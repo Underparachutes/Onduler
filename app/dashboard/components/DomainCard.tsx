@@ -1,3 +1,5 @@
+'use client'
+
 import Link from 'next/link'
 import { deleteDomain } from '@/app/actions/domains'
 

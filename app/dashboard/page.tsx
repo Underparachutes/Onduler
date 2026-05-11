@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { signOut } from '@/app/actions/auth'
 import { AddDomainForm } from './components/AddDomainForm'
-import { DomainCard } from './components/DomainCard'
+import { SortableDomainList } from './components/SortableDomainList'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -69,10 +69,8 @@ export default async function DashboardPage() {
         )}
 
         {domains && domains.length > 0 ? (
-          <div className="mb-8 flex flex-col gap-2">
-            {domains.map(domain => (
-              <DomainCard key={domain.id} domain={domain} />
-            ))}
+          <div className="mb-8">
+            <SortableDomainList domains={domains} />
           </div>
         ) : (
           <p className="mb-8 text-sm text-zinc-500">
