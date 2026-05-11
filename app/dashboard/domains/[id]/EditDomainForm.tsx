@@ -1,16 +1,7 @@
 'use client'
 
-import { useActionState, useState } from 'react'
+import { useActionState } from 'react'
 import { updateDomain } from '@/app/actions/domains'
-
-const COLORS = [
-  '#6366f1',
-  '#10b981',
-  '#f59e0b',
-  '#ef4444',
-  '#0ea5e9',
-  '#8b5cf6',
-]
 
 type Domain = {
   id: string
@@ -22,12 +13,9 @@ type Domain = {
 export function EditDomainForm({ domain }: { domain: Domain }) {
   const updateDomainById = updateDomain.bind(null, domain.id)
   const [state, formAction, pending] = useActionState(updateDomainById, null)
-  const [selectedColor, setSelectedColor] = useState(domain.color)
 
   return (
     <form action={formAction} className="flex flex-col gap-4">
-      <input type="hidden" name="color" value={selectedColor} />
-
       <div className="flex flex-col gap-1">
         <label htmlFor="edit-name" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
           Name
@@ -60,20 +48,17 @@ export function EditDomainForm({ domain }: { domain: Domain }) {
         </select>
       </div>
 
-      <div className="flex flex-col gap-2">
-        <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Color</span>
-        <div className="flex gap-2">
-          {COLORS.map(color => (
-            <button
-              key={color}
-              type="button"
-              onClick={() => setSelectedColor(color)}
-              className={`h-6 w-6 rounded-full transition-transform ${selectedColor === color ? 'ring-2 ring-offset-2 ring-zinc-900 dark:ring-zinc-50 scale-110' : ''}`}
-              style={{ backgroundColor: color }}
-              aria-label={color}
-            />
-          ))}
-        </div>
+      <div className="flex flex-col gap-1">
+        <label htmlFor="edit-color" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+          Color
+        </label>
+        <input
+          id="edit-color"
+          name="color"
+          type="color"
+          defaultValue={domain.color}
+          className="h-10 w-full cursor-pointer rounded-lg border border-zinc-200 bg-white p-1 dark:border-zinc-700 dark:bg-zinc-900"
+        />
       </div>
 
       {state?.error && (
