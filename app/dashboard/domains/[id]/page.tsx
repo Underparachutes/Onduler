@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { deleteActivity } from '@/app/actions/activities'
 import { AddActivityForm } from './AddActivityForm'
+import { EditDomainForm } from './EditDomainForm'
 
 export default async function DomainPage({
   params,
@@ -39,17 +40,11 @@ export default async function DomainPage({
           ← Back
         </Link>
 
-        <div className="mb-8 flex items-center gap-3">
-          <div
-            className="h-4 w-4 flex-none rounded-full"
-            style={{ backgroundColor: domain.color }}
-          />
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
-              {domain.name}
-            </h1>
-            <p className="text-sm text-zinc-400">Weight {domain.weight}/5</p>
-          </div>
+        <div className="mb-8">
+          <h2 className="mb-4 text-sm font-medium text-zinc-900 dark:text-zinc-50">
+            Edit domain
+          </h2>
+          <EditDomainForm domain={domain} />
         </div>
 
         <div className="mb-8">
