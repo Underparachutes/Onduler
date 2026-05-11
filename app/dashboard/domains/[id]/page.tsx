@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { deleteActivity } from '@/app/actions/activities'
 import { AddActivityForm } from './AddActivityForm'
 import { EditDomainForm } from './EditDomainForm'
+import { LogActivityButton } from './LogActivityButton'
 
 export default async function DomainPage({
   params,
@@ -63,7 +64,7 @@ export default async function DomainPage({
                     <span className="flex-1 text-sm text-zinc-900 dark:text-zinc-50">
                       {activity.name}
                     </span>
-                    <span className="text-xs text-zinc-400">{activity.default_points} pts</span>
+                    <LogActivityButton activityId={activity.id} domainId={domain.id} />
                     <form action={deleteActivityById}>
                       <button
                         type="submit"
