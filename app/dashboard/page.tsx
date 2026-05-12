@@ -4,13 +4,14 @@ import { createClient } from '@/lib/supabase/server'
 import { signOut } from '@/app/actions/auth'
 import { ThemeSwitcher } from './components/ThemeSwitcher'
 import { DailyChecklist } from './components/DailyChecklist'
+import { WavePrompt } from './components/WavePrompt'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  // Wave detection — redirect if away 72+ hrs with no checkin since last log
+  // Wave detection — show inline prompt if away 72+ hrs with no checkin since last log
   const { data: lastLogData } = await supabase
     .from('logs')
     .select('logged_at')
@@ -18,6 +19,9 @@ export default async function DashboardPage() {
     .limit(1)
 
   const lastLog = lastLogData?.[0] ?? null
+
+  let showWavePrompt = false
+  let waveDurationSeconds: number | null = null
 
   if (lastLog) {
     const hoursSinceLog =
@@ -29,7 +33,10 @@ export default async function DashboardPage() {
         .gt('checked_in_at', lastLog.logged_at)
         .limit(1)
       if (!recentCheckinData || recentCheckinData.length === 0) {
-        redirect('/wave/return')
+        showWavePrompt = true
+        waveDurationSeconds = Math.floor(
+          (Date.now() - new Date(lastLog.logged_at).getTime()) / 1000,
+        )
       }
     }
   }
@@ -95,6 +102,8 @@ export default async function DashboardPage() {
             <p className="mt-1 text-xs uppercase tracking-widest text-th-muted">pts today</p>
           </div>
         </div>
+
+        {showWavePrompt && <WavePrompt durationSeconds={waveDurationSeconds} />}
 
         {hasActivities ? (
           <DailyChecklist
