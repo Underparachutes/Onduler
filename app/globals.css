@@ -1,26 +1,85 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  --color-th-bg: var(--th-bg);
+  --color-th-surface: var(--th-surface);
+  --color-th-border: var(--th-border);
+  --color-th-text: var(--th-text);
+  --color-th-secondary: var(--th-secondary);
+  --color-th-muted: var(--th-muted);
+  --color-th-faint: var(--th-faint);
+  --color-th-btn: var(--th-btn);
+  --color-th-btn-text: var(--th-btn-text);
+  --color-th-btn-hover: var(--th-btn-hover);
+  --color-th-focus: var(--th-focus);
+}
+
+/* Default theme — zinc/white */
+:root {
+  --th-bg: #ffffff;
+  --th-surface: #f4f4f5;
+  --th-border: #e4e4e7;
+  --th-text: #18181b;
+  --th-secondary: #3f3f46;
+  --th-muted: #71717a;
+  --th-faint: #a1a1aa;
+  --th-btn: #18181b;
+  --th-btn-text: #ffffff;
+  --th-btn-hover: #3f3f46;
+  --th-focus: #71717a;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --th-bg: #09090b;
+    --th-surface: #18181b;
+    --th-border: #3f3f46;
+    --th-text: #fafafa;
+    --th-secondary: #d4d4d8;
+    --th-muted: #71717a;
+    --th-faint: #52525b;
+    --th-btn: #fafafa;
+    --th-btn-text: #18181b;
+    --th-btn-hover: #e4e4e7;
+    --th-focus: #71717a;
+  }
+}
+
+/* Bolinas — fog, driftwood, coastal sage */
+[data-theme="bolinas"] {
+  --th-bg: #f0ebe3;
+  --th-surface: #e6dfd6;
+  --th-border: #c8bfb5;
+  --th-text: #25201a;
+  --th-secondary: #5a4e42;
+  --th-muted: #786d60;
+  --th-faint: #a09384;
+  --th-btn: #3f5c39;
+  --th-btn-text: #ffffff;
+  --th-btn-hover: #2f4629;
+  --th-focus: #786d60;
+}
+
+@media (prefers-color-scheme: dark) {
+  [data-theme="bolinas"] {
+    --th-bg: #19150f;
+    --th-surface: #211c15;
+    --th-border: #38302a;
+    --th-text: #e5ddd1;
+    --th-secondary: #b0a090;
+    --th-muted: #9a8d7a;
+    --th-faint: #6f6254;
+    --th-btn: #567c50;
+    --th-btn-text: #ffffff;
+    --th-btn-hover: #456641;
+    --th-focus: #9a8d7a;
   }
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--th-bg);
+  color: var(--th-text);
 }

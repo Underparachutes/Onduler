@@ -36,20 +36,20 @@ export default async function DomainPage({
       <div className="w-full max-w-sm">
         <Link
           href="/dashboard"
-          className="mb-6 inline-block text-sm text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+          className="mb-6 inline-block text-sm text-th-faint hover:text-th-secondary"
         >
           ← Back
         </Link>
 
         <div className="mb-8">
-          <h2 className="mb-4 text-sm font-medium text-zinc-900 dark:text-zinc-50">
+          <h2 className="mb-4 text-sm font-medium text-th-text">
             Edit domain
           </h2>
           <EditDomainForm domain={domain} />
         </div>
 
         <div className="mb-8">
-          <h2 className="mb-3 text-sm font-medium text-zinc-900 dark:text-zinc-50">
+          <h2 className="mb-3 text-sm font-medium text-th-text">
             Activities
           </h2>
           {activities && activities.length > 0 ? (
@@ -59,16 +59,16 @@ export default async function DomainPage({
                 return (
                   <div
                     key={activity.id}
-                    className="flex items-center gap-3 rounded-lg border border-zinc-200 px-4 py-3 dark:border-zinc-700"
+                    className="flex items-center gap-3 rounded-lg border border-th-border px-4 py-3"
                   >
-                    <span className="flex-1 text-sm text-zinc-900 dark:text-zinc-50">
+                    <span className="flex-1 text-sm text-th-text">
                       {activity.name}
                     </span>
                     <LogActivityButton activityId={activity.id} domainId={domain.id} />
                     <form action={deleteActivityById}>
                       <button
                         type="submit"
-                        className="text-xs text-zinc-400 hover:text-red-500 transition-colors"
+                        className="text-xs text-th-faint hover:text-red-500 transition-colors"
                       >
                         Delete
                       </button>
@@ -78,12 +78,12 @@ export default async function DomainPage({
               })}
             </div>
           ) : (
-            <p className="text-sm text-zinc-500">No activities yet.</p>
+            <p className="text-sm text-th-muted">No activities yet.</p>
           )}
         </div>
 
-        <div className="border-t border-zinc-100 pt-8 dark:border-zinc-800">
-          <h2 className="mb-4 text-sm font-medium text-zinc-900 dark:text-zinc-50">
+        <div className="border-t border-th-border pt-8">
+          <h2 className="mb-4 text-sm font-medium text-th-text">
             Add an activity
           </h2>
           <AddActivityForm domainId={domain.id} />

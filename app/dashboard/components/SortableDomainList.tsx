@@ -37,7 +37,7 @@ function SortableItem({ domain }: { domain: Domain }) {
       <button
         {...attributes}
         {...listeners}
-        className="cursor-grab touch-none select-none text-zinc-300 hover:text-zinc-500 active:cursor-grabbing dark:text-zinc-600 dark:hover:text-zinc-400"
+        className="cursor-grab touch-none select-none text-th-faint hover:text-th-muted active:cursor-grabbing"
         aria-label="Drag to reorder"
       >
         ⠿

@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { signOut } from '@/app/actions/auth'
 import { AddDomainForm } from './components/AddDomainForm'
 import { SortableDomainList } from './components/SortableDomainList'
+import { ThemeSwitcher } from './components/ThemeSwitcher'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -30,24 +31,27 @@ export default async function DashboardPage() {
       <div className="w-full max-w-sm">
         <div className="mb-8 flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
+            <h1 className="text-2xl font-semibold tracking-tight text-th-text">
               Your domains
             </h1>
-            <p className="mt-1 text-sm text-zinc-500">{user.email}</p>
+            <p className="mt-1 text-sm text-th-muted">{user.email}</p>
           </div>
-          <form action={signOut}>
-            <button
-              type="submit"
-              className="rounded-lg border border-zinc-200 px-3 py-1.5 text-xs font-medium text-zinc-600 transition-colors hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-900"
-            >
-              Sign out
-            </button>
-          </form>
+          <div className="flex items-center gap-2">
+            <ThemeSwitcher />
+            <form action={signOut}>
+              <button
+                type="submit"
+                className="rounded-lg border border-th-border px-3 py-1.5 text-xs font-medium text-th-muted transition-colors hover:bg-th-surface"
+              >
+                Sign out
+              </button>
+            </form>
+          </div>
         </div>
 
         {todayPoints > 0 && (
-          <div className="mb-8 rounded-lg border border-zinc-200 p-4 dark:border-zinc-700">
-            <p className="mb-3 text-sm font-medium text-zinc-900 dark:text-zinc-50">
+          <div className="mb-8 rounded-lg border border-th-border p-4">
+            <p className="mb-3 text-sm font-medium text-th-text">
               Today — {todayPoints} pts
             </p>
             <div className="flex flex-col gap-1.5">
@@ -57,11 +61,11 @@ export default async function DashboardPage() {
                     className="h-2 w-2 shrink-0 rounded-full"
                     style={{ backgroundColor: (Array.isArray(log.domains) ? log.domains[0] : log.domains as { color: string } | null)?.color ?? '#a1a1aa' }}
                   />
-                  <span className="flex-1 text-xs text-zinc-600 dark:text-zinc-400">
+                  <span className="flex-1 text-xs text-th-muted">
                     {(Array.isArray(log.activities) ? log.activities[0] : log.activities as { name: string } | null)?.name}
                   </span>
-                  <span className="text-xs capitalize text-zinc-400">{log.difficulty}</span>
-                  <span className="text-xs text-zinc-400">+{log.points}</span>
+                  <span className="text-xs capitalize text-th-faint">{log.difficulty}</span>
+                  <span className="text-xs text-th-faint">+{log.points}</span>
                 </div>
               ))}
             </div>
@@ -73,13 +77,13 @@ export default async function DashboardPage() {
             <SortableDomainList domains={domains} />
           </div>
         ) : (
-          <p className="mb-8 text-sm text-zinc-500">
+          <p className="mb-8 text-sm text-th-muted">
             No domains yet. Add your first one below.
           </p>
         )}
 
-        <div className="border-t border-zinc-100 pt-8 dark:border-zinc-800">
-          <h2 className="mb-4 text-sm font-medium text-zinc-900 dark:text-zinc-50">
+        <div className="border-t border-th-border pt-8">
+          <h2 className="mb-4 text-sm font-medium text-th-text">
             Add a domain
           </h2>
           <AddDomainForm />

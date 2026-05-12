@@ -10,7 +10,7 @@ export function AddActivityForm({ domainId }: { domainId: string }) {
   return (
     <form action={formAction} className="flex flex-col gap-4">
       <div className="flex flex-col gap-1">
-        <label htmlFor="name" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+        <label htmlFor="name" className="text-sm font-medium text-th-secondary">
           Activity name
         </label>
         <input
@@ -19,12 +19,12 @@ export function AddActivityForm({ domainId }: { domainId: string }) {
           type="text"
           placeholder="e.g. Morning run, Cook a meal"
           required
-          className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50 dark:focus:border-zinc-500"
+          className="rounded-lg border border-th-border bg-th-surface px-3 py-2 text-sm text-th-text outline-none focus:border-th-focus"
         />
       </div>
 
       <div className="flex flex-col gap-1">
-        <label htmlFor="default_points" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+        <label htmlFor="default_points" className="text-sm font-medium text-th-secondary">
           Default points
         </label>
         <input
@@ -34,7 +34,7 @@ export function AddActivityForm({ domainId }: { domainId: string }) {
           defaultValue="1"
           min="1"
           max="10"
-          className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+          className="rounded-lg border border-th-border bg-th-surface px-3 py-2 text-sm text-th-text outline-none focus:border-th-focus"
         />
       </div>
 
@@ -45,7 +45,7 @@ export function AddActivityForm({ domainId }: { domainId: string }) {
       <button
         type="submit"
         disabled={pending}
-        className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+        className="rounded-lg bg-th-btn px-4 py-2 text-sm font-medium text-th-btn-text transition-colors hover:bg-th-btn-hover disabled:opacity-50"
       >
         {pending ? 'Adding…' : 'Add activity'}
       </button>

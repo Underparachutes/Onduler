@@ -9,7 +9,7 @@ export function AddDomainForm() {
   return (
     <form action={formAction} className="flex flex-col gap-4">
       <div className="flex flex-col gap-1">
-        <label htmlFor="name" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+        <label htmlFor="name" className="text-sm font-medium text-th-secondary">
           Name
         </label>
         <input
@@ -18,19 +18,19 @@ export function AddDomainForm() {
           type="text"
           placeholder="e.g. Health, Creative, Work"
           required
-          className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50 dark:focus:border-zinc-500"
+          className="rounded-lg border border-th-border bg-th-surface px-3 py-2 text-sm text-th-text outline-none focus:border-th-focus"
         />
       </div>
 
       <div className="flex flex-col gap-1">
-        <label htmlFor="weight" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-          Weight <span className="font-normal text-zinc-400">(how much this domain matters right now)</span>
+        <label htmlFor="weight" className="text-sm font-medium text-th-secondary">
+          Weight <span className="font-normal text-th-faint">(how much this domain matters right now)</span>
         </label>
         <select
           id="weight"
           name="weight"
           defaultValue="3"
-          className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+          className="rounded-lg border border-th-border bg-th-surface px-3 py-2 text-sm text-th-text outline-none focus:border-th-focus"
         >
           <option value="1">1 — Low</option>
           <option value="2">2</option>
@@ -41,7 +41,7 @@ export function AddDomainForm() {
       </div>
 
       <div className="flex flex-col gap-1">
-        <label htmlFor="color" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+        <label htmlFor="color" className="text-sm font-medium text-th-secondary">
           Color
         </label>
         <input
@@ -49,7 +49,7 @@ export function AddDomainForm() {
           name="color"
           type="color"
           defaultValue="#6366f1"
-          className="h-10 w-full cursor-pointer rounded-lg border border-zinc-200 bg-white p-1 dark:border-zinc-700 dark:bg-zinc-900"
+          className="h-10 w-full cursor-pointer rounded-lg border border-th-border bg-th-surface p-1"
         />
       </div>
 
@@ -60,7 +60,7 @@ export function AddDomainForm() {
       <button
         type="submit"
         disabled={pending}
-        className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+        className="rounded-lg bg-th-btn px-4 py-2 text-sm font-medium text-th-btn-text transition-colors hover:bg-th-btn-hover disabled:opacity-50"
       >
         {pending ? 'Adding…' : 'Add domain'}
       </button>
