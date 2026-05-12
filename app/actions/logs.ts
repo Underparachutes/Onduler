@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { getTodayStart } from '@/lib/timezone'
 
 const DIFFICULTY_MULTIPLIER = { soft: 1, medium: 2, hard: 3 } as const
 type Difficulty = keyof typeof DIFFICULTY_MULTIPLIER
@@ -69,8 +70,7 @@ export async function unlogActivity(activityId: string) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
-  const todayStart = new Date()
-  todayStart.setUTCHours(0, 0, 0, 0)
+  const todayStart = await getTodayStart()
 
   const { data: logs } = await supabase
     .from('logs')

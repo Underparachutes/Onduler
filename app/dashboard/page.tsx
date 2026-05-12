@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { signOut } from '@/app/actions/auth'
+import { getTodayStart } from '@/lib/timezone'
 import { ThemeSwitcher } from './components/ThemeSwitcher'
 import { DailyChecklist } from './components/DailyChecklist'
 import { WavePrompt } from './components/WavePrompt'
@@ -48,8 +49,7 @@ export default async function DashboardPage() {
     .order('created_at', { ascending: true })
 
   // Today's logs
-  const todayStart = new Date()
-  todayStart.setUTCHours(0, 0, 0, 0)
+  const todayStart = await getTodayStart()
 
   const { data: todayLogs } = await supabase
     .from('logs')
