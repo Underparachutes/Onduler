@@ -30,11 +30,15 @@ export async function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname
 
   if (protectedRoutes.some((r) => path.startsWith(r)) && !user) {
-    return NextResponse.redirect(new URL('/login', request.url))
+    const redirectResponse = NextResponse.redirect(new URL('/login', request.url))
+    response.cookies.getAll().forEach((cookie) => redirectResponse.cookies.set(cookie))
+    return redirectResponse
   }
 
   if (authRoutes.some((r) => path.startsWith(r)) && user) {
-    return NextResponse.redirect(new URL('/dashboard', request.url))
+    const redirectResponse = NextResponse.redirect(new URL('/dashboard', request.url))
+    response.cookies.getAll().forEach((cookie) => redirectResponse.cookies.set(cookie))
+    return redirectResponse
   }
 
   return response
