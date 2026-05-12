@@ -35,12 +35,6 @@ export async function proxy(request: NextRequest) {
     return redirectResponse
   }
 
-  if (authRoutes.some((r) => path.startsWith(r)) && user) {
-    const redirectResponse = NextResponse.redirect(new URL('/dashboard', request.url))
-    response.cookies.getAll().forEach((cookie) => redirectResponse.cookies.set(cookie))
-    return redirectResponse
-  }
-
   return response
 }
 
