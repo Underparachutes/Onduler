@@ -1,10 +1,18 @@
-import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 const protectedRoutes = ['/dashboard', '/log', '/wave']
-const authRoutes = ['/login', '/signup']
 
 export async function proxy(request: NextRequest) {
+  const path = request.nextUrl.pathname
+
+  // Optimistic check — read cookie directly, no network call.
+  // Real verification happens in each server component via createClient().auth.getUser().
+  const hasSession = request.cookies.getAll().some((c) => c.name.includes('-auth-token'))
+
+  if (protectedRoutes.some((r) => path.startsWith(r)) && !hasSession) {
+    return NextResponse.redirect(new URL('/login', request.url))
+  }
+
   return NextResponse.next()
 }
 
