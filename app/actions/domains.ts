@@ -14,13 +14,34 @@ export async function createDomain(prevState: unknown, formData: FormData) {
 
   if (!name) return { error: 'Name is required' }
 
+  const { count } = await supabase
+    .from('domains')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', user.id)
+
   const { error } = await supabase
     .from('domains')
-    .insert({ user_id: user.id, name, weight, color })
+    .insert({ user_id: user.id, name, weight, color, sort_order: count ?? 0 })
 
   if (error) return { error: error.message }
 
   revalidatePath('/dashboard')
+  return { success: true }
+}
+
+export async function reorderDomains(ids: string[]) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  await Promise.all(
+    ids.map((id, i) =>
+      supabase.from('domains').update({ sort_order: i }).eq('id', id).eq('user_id', user.id)
+    )
+  )
+
+  revalidatePath('/dashboard')
+  revalidatePath('/dashboard/manage')
   return { success: true }
 }
 

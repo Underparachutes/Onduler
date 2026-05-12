@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useTransition } from 'react'
 import {
   DndContext,
   closestCenter,
@@ -19,10 +19,9 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { DomainCard } from './DomainCard'
+import { reorderDomains } from '@/app/actions/domains'
 
 type Domain = { id: string; name: string; weight: number; color: string }
-
-const STORAGE_KEY = 'onduler-domain-order'
 
 function SortableItem({ domain }: { domain: Domain }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
@@ -51,20 +50,7 @@ function SortableItem({ domain }: { domain: Domain }) {
 
 export function SortableDomainList({ domains }: { domains: Domain[] }) {
   const [ordered, setOrdered] = useState(domains)
-
-  useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY)
-    if (!saved) return
-    try {
-      const ids: string[] = JSON.parse(saved)
-      const map = new Map(domains.map(d => [d.id, d]))
-      const reordered = ids.flatMap(id => (map.has(id) ? [map.get(id)!] : []))
-      const seen = new Set(ids)
-      domains.forEach(d => { if (!seen.has(d.id)) reordered.push(d) })
-      setOrdered(reordered)
-    } catch {}
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  const [, startTransition] = useTransition()
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -74,11 +60,9 @@ export function SortableDomainList({ domains }: { domains: Domain[] }) {
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event
     if (!over || active.id === over.id) return
-    setOrdered(prev => {
-      const next = arrayMove(prev, prev.findIndex(d => d.id === active.id), prev.findIndex(d => d.id === over.id))
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(next.map(d => d.id)))
-      return next
-    })
+    const next = arrayMove(ordered, ordered.findIndex(d => d.id === active.id), ordered.findIndex(d => d.id === over.id))
+    setOrdered(next)
+    startTransition(async () => { await reorderDomains(next.map(d => d.id)) })
   }
 
   return (

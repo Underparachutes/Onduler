@@ -46,7 +46,7 @@ export default async function DashboardPage() {
   const { data: domains } = await supabase
     .from('domains')
     .select('id, name, color, activities(id, name, default_points)')
-    .order('created_at', { ascending: true })
+    .order('sort_order', { ascending: true })
 
   // Today's logs
   const todayStart = await getTodayStart()

@@ -12,7 +12,7 @@ export default async function ManagePage() {
   const { data: domains } = await supabase
     .from('domains')
     .select('*')
-    .order('created_at', { ascending: true })
+    .order('sort_order', { ascending: true })
 
   return (
     <div className="flex min-h-full flex-col items-center px-6 py-24">
