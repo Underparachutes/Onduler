@@ -79,6 +79,37 @@
   }
 }
 
+/* Biarritz — Atlantic surf, basque sand, burnt orange */
+[data-theme="biarritz"] {
+  --th-bg: #f2ede5;
+  --th-surface: #e8e1d7;
+  --th-border: #cbbfaf;
+  --th-text: #1a2b30;
+  --th-secondary: #2a5f68;
+  --th-muted: #5a7d82;
+  --th-faint: #8aabaf;
+  --th-btn: #c9621e;
+  --th-btn-text: #ffffff;
+  --th-btn-hover: #a8511a;
+  --th-focus: #5a7d82;
+}
+
+@media (prefers-color-scheme: dark) {
+  [data-theme="biarritz"] {
+    --th-bg: #0d1f24;
+    --th-surface: #162830;
+    --th-border: #2a4a52;
+    --th-text: #ede8df;
+    --th-secondary: #8dcbd2;
+    --th-muted: #5a8a90;
+    --th-faint: #3a6068;
+    --th-btn: #d4743a;
+    --th-btn-text: #ffffff;
+    --th-btn-hover: #b85e2a;
+    --th-focus: #5a8a90;
+  }
+}
+
 body {
   background-color: var(--th-bg);
   color: var(--th-text);

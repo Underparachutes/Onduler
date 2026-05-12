@@ -3,12 +3,13 @@
 import { useState, useEffect, useTransition } from 'react'
 import { setTheme } from '@/app/actions/theme'
 
-const THEMES = ['default', 'bolinas'] as const
+const THEMES = ['default', 'bolinas', 'biarritz'] as const
 type Theme = typeof THEMES[number]
 
 const LABELS: Record<Theme, string> = {
   default: 'Default',
   bolinas: 'Bolinas',
+  biarritz: 'Biarritz',
 }
 
 export function ThemeSwitcher() {
@@ -21,7 +22,8 @@ export function ThemeSwitcher() {
   }, [])
 
   function toggle() {
-    const next: Theme = current === 'default' ? 'bolinas' : 'default'
+    const idx = THEMES.indexOf(current)
+    const next: Theme = THEMES[(idx + 1) % THEMES.length]
     setCurrent(next)
     document.documentElement.dataset.theme = next
     startTransition(async () => { await setTheme(next) })
