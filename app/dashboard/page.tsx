@@ -11,6 +11,30 @@ export default async function DashboardPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
+  // Wave detection — redirect if away 72+ hrs with no checkin since last log
+  const { data: lastLogData } = await supabase
+    .from('logs')
+    .select('logged_at')
+    .order('logged_at', { ascending: false })
+    .limit(1)
+
+  const lastLog = lastLogData?.[0] ?? null
+
+  if (lastLog) {
+    const hoursSinceLog =
+      (Date.now() - new Date(lastLog.logged_at).getTime()) / (1000 * 60 * 60)
+    if (hoursSinceLog >= 72) {
+      const { data: recentCheckinData } = await supabase
+        .from('wave_checkins')
+        .select('id')
+        .gt('checked_in_at', lastLog.logged_at)
+        .limit(1)
+      if (!recentCheckinData || recentCheckinData.length === 0) {
+        redirect('/wave/return')
+      }
+    }
+  }
+
   const { data: domains } = await supabase
     .from('domains')
     .select('*')

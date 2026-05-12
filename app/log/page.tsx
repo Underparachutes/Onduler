@@ -44,6 +44,17 @@ export default async function LogPage({
 
   const { data: logs } = await query
 
+  let checkinQuery = supabase
+    .from('wave_checkins')
+    .select('energy, alignment, duration_seconds, checked_in_at')
+    .order('checked_in_at', { ascending: false })
+
+  if (startDate) {
+    checkinQuery = checkinQuery.gte('checked_in_at', startDate.toISOString())
+  }
+
+  const { data: waveCheckins } = await checkinQuery
+
   const totalPoints = logs?.reduce((sum, l) => sum + l.points, 0) ?? 0
 
   // Group by domain
@@ -190,7 +201,7 @@ export default async function LogPage({
             )}
 
             {/* Activity feed */}
-            <div>
+            <div className="mb-8">
               <h2 className="mb-3 text-sm font-medium text-th-text">
                 {period === 'all' ? 'All activity' : 'Recent'}
               </h2>
@@ -222,6 +233,52 @@ export default async function LogPage({
                 })}
               </div>
             </div>
+
+            {/* Wave checkins */}
+            {waveCheckins && waveCheckins.length > 0 && (
+              <div>
+                <h2 className="mb-3 text-sm font-medium text-th-text">Waves</h2>
+                <div className="flex flex-col gap-3">
+                  {waveCheckins.map((checkin, i) => {
+                    const dateLabel = new Date(checkin.checked_in_at as string).toLocaleDateString(
+                      'en-US',
+                      { month: 'short', day: 'numeric' },
+                    )
+                    const days = checkin.duration_seconds
+                      ? Math.round(checkin.duration_seconds / 86400)
+                      : null
+                    return (
+                      <div key={i} className="flex items-center gap-3">
+                        {/* Mini grid dot */}
+                        <div className="relative h-8 w-8 shrink-0 rounded border border-th-border bg-th-surface">
+                          <div className="pointer-events-none absolute inset-0 flex items-center">
+                            <div className="h-px w-full bg-th-border" />
+                          </div>
+                          <div className="pointer-events-none absolute inset-0 flex justify-center">
+                            <div className="h-full w-px bg-th-border" />
+                          </div>
+                          <div
+                            className="absolute h-2 w-2 -translate-x-1/2 translate-y-1/2 rounded-full bg-th-btn"
+                            style={{
+                              left: `${checkin.energy * 100}%`,
+                              bottom: `${checkin.alignment * 100}%`,
+                            }}
+                          />
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-xs text-th-muted">{dateLabel}</p>
+                          {days !== null && (
+                            <p className="text-xs text-th-faint">
+                              {days} day{days !== 1 ? 's' : ''} away
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
           </>
         )}
       </div>
