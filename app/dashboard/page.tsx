@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { signOut } from '@/app/actions/auth'
 import { AddDomainForm } from './components/AddDomainForm'
@@ -38,6 +39,12 @@ export default async function DashboardPage() {
           </div>
           <div className="flex items-center gap-2">
             <ThemeSwitcher />
+            <Link
+              href="/log"
+              className="rounded-lg border border-th-border px-3 py-1.5 text-xs font-medium text-th-muted transition-colors hover:bg-th-surface"
+            >
+              Log
+            </Link>
             <form action={signOut}>
               <button
                 type="submit"
