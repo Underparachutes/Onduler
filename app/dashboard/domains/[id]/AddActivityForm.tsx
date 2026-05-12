@@ -33,7 +33,6 @@ export function AddActivityForm({ domainId }: { domainId: string }) {
           type="number"
           defaultValue="1"
           min="1"
-          max="10"
           className="rounded-lg border border-th-border bg-th-surface px-3 py-2 text-sm text-th-text outline-none focus:border-th-focus"
         />
       </div>

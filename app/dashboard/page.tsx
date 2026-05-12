@@ -2,9 +2,8 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { signOut } from '@/app/actions/auth'
-import { AddDomainForm } from './components/AddDomainForm'
-import { SortableDomainList } from './components/SortableDomainList'
 import { ThemeSwitcher } from './components/ThemeSwitcher'
+import { DailyChecklist } from './components/DailyChecklist'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -35,32 +34,40 @@ export default async function DashboardPage() {
     }
   }
 
+  // Domains with their activities
   const { data: domains } = await supabase
     .from('domains')
-    .select('*')
+    .select('id, name, color, activities(id, name, default_points)')
     .order('created_at', { ascending: true })
 
+  // Today's logs
   const todayStart = new Date()
   todayStart.setUTCHours(0, 0, 0, 0)
 
   const { data: todayLogs } = await supabase
     .from('logs')
-    .select('points, difficulty, logged_at, activities(name), domains(name, color)')
+    .select('activity_id, points')
     .gte('logged_at', todayStart.toISOString())
-    .order('logged_at', { ascending: false })
 
-  const todayPoints = todayLogs?.reduce((sum, log) => sum + log.points, 0) ?? 0
+  const todayPoints = todayLogs?.reduce((sum, l) => sum + l.points, 0) ?? 0
+  const doneActivityIds = (todayLogs ?? []).map(l => l.activity_id).filter(Boolean) as string[]
+
+  const today = new Date().toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+  })
+
+  const hasActivities = domains?.some(d =>
+    Array.isArray(d.activities) && d.activities.length > 0,
+  )
 
   return (
-    <div className="flex min-h-full flex-col items-center px-6 py-24">
+    <div className="flex min-h-full flex-col items-center px-6 py-12">
       <div className="w-full max-w-sm">
-        <div className="mb-8 flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-th-text">
-              Your domains
-            </h1>
-            <p className="mt-1 text-sm text-th-muted">{user.email}</p>
-          </div>
+        {/* Nav */}
+        <div className="mb-6 flex items-center justify-between">
+          <p className="text-xs uppercase tracking-widest text-th-muted">Onduler</p>
           <div className="flex items-center gap-2">
             <ThemeSwitcher />
             <Link
@@ -80,44 +87,43 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        {todayPoints > 0 && (
-          <div className="mb-8 rounded-lg border border-th-border p-4">
-            <p className="mb-3 text-sm font-medium text-th-text">
-              Today — {todayPoints} pts
-            </p>
-            <div className="flex flex-col gap-1.5">
-              {todayLogs?.map(log => (
-                <div key={`${log.logged_at}-${Math.random()}`} className="flex items-center gap-2">
-                  <span
-                    className="h-2 w-2 shrink-0 rounded-full"
-                    style={{ backgroundColor: (Array.isArray(log.domains) ? log.domains[0] : log.domains as { color: string } | null)?.color ?? '#a1a1aa' }}
-                  />
-                  <span className="flex-1 text-xs text-th-muted">
-                    {(Array.isArray(log.activities) ? log.activities[0] : log.activities as { name: string } | null)?.name}
-                  </span>
-                  <span className="text-xs capitalize text-th-faint">{log.difficulty}</span>
-                  <span className="text-xs text-th-faint">+{log.points}</span>
-                </div>
-              ))}
-            </div>
+        {/* Date + pts header */}
+        <div className="mb-8 flex items-end justify-between">
+          <h1 className="text-2xl font-semibold tracking-tight text-th-text">{today}</h1>
+          <div className="text-right">
+            <p className="text-2xl font-semibold leading-none text-th-text">{todayPoints}</p>
+            <p className="mt-1 text-xs uppercase tracking-widest text-th-muted">pts today</p>
           </div>
-        )}
+        </div>
 
-        {domains && domains.length > 0 ? (
-          <div className="mb-8">
-            <SortableDomainList domains={domains} />
-          </div>
+        {hasActivities ? (
+          <DailyChecklist
+            domains={(domains ?? []) as any}
+            todayPoints={todayPoints}
+            doneActivityIds={doneActivityIds}
+          />
         ) : (
-          <p className="mb-8 text-sm text-th-muted">
-            No domains yet. Add your first one below.
-          </p>
+          <div className="rounded-lg border border-th-border p-6 text-center">
+            <p className="mb-1 text-sm font-medium text-th-text">Nothing here yet.</p>
+            <p className="mb-4 text-sm text-th-muted">
+              Set up your domains and activities to start tracking.
+            </p>
+            <Link
+              href="/dashboard/manage"
+              className="text-sm font-medium text-th-secondary underline"
+            >
+              Set up →
+            </Link>
+          </div>
         )}
 
-        <div className="border-t border-th-border pt-8">
-          <h2 className="mb-4 text-sm font-medium text-th-text">
-            Add a domain
-          </h2>
-          <AddDomainForm />
+        <div className="mt-10 border-t border-th-border pt-6">
+          <Link
+            href="/dashboard/manage"
+            className="text-xs text-th-faint transition-colors hover:text-th-secondary"
+          >
+            Manage domains & activities →
+          </Link>
         </div>
       </div>
     </div>

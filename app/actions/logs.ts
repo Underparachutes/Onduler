@@ -32,3 +32,34 @@ export async function logActivity(activityId: string, domainId: string, difficul
   revalidatePath('/dashboard')
   return { success: true }
 }
+
+export async function quickLogActivity(activityId: string, domainId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const { data: activity } = await supabase
+    .from('activities')
+    .select('default_points')
+    .eq('id', activityId)
+    .eq('user_id', user.id)
+    .single()
+
+  if (!activity) return { error: 'Activity not found' }
+
+  const { error } = await supabase
+    .from('logs')
+    .insert({
+      user_id: user.id,
+      activity_id: activityId,
+      domain_id: domainId,
+      difficulty: 'medium',
+      points: activity.default_points,
+    })
+
+  if (error) return { error: error.message }
+
+  revalidatePath('/dashboard')
+  revalidatePath('/log')
+  return { success: true }
+}
