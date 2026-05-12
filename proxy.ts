@@ -5,13 +5,6 @@ const protectedRoutes = ['/dashboard', '/log', '/wave']
 const authRoutes = ['/login', '/signup']
 
 export async function proxy(request: NextRequest) {
-  const host = request.headers.get('host') ?? ''
-  if (host.startsWith('www.')) {
-    const nonWwwUrl = request.nextUrl.clone()
-    nonWwwUrl.host = host.replace(/^www\./, '')
-    return NextResponse.redirect(nonWwwUrl, 308)
-  }
-
   let response = NextResponse.next({ request })
 
   const supabase = createServerClient(
@@ -26,7 +19,7 @@ export async function proxy(request: NextRequest) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
           response = NextResponse.next({ request })
           cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options)
+            response.cookies.set(name, value, { ...options, domain: '.onduler.app' })
           )
         },
       },
