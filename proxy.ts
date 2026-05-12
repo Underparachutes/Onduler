@@ -5,6 +5,13 @@ const protectedRoutes = ['/dashboard', '/log', '/wave']
 const authRoutes = ['/login', '/signup']
 
 export async function proxy(request: NextRequest) {
+  const host = request.headers.get('host') ?? ''
+  if (host.startsWith('www.')) {
+    const nonWwwUrl = request.nextUrl.clone()
+    nonWwwUrl.host = host.replace(/^www\./, '')
+    return NextResponse.redirect(nonWwwUrl, 308)
+  }
+
   let response = NextResponse.next({ request })
 
   const supabase = createServerClient(
