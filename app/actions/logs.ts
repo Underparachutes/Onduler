@@ -63,3 +63,30 @@ export async function quickLogActivity(activityId: string, domainId: string) {
   revalidatePath('/log')
   return { success: true }
 }
+
+export async function unlogActivity(activityId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const todayStart = new Date()
+  todayStart.setUTCHours(0, 0, 0, 0)
+
+  const { data: logs } = await supabase
+    .from('logs')
+    .select('id')
+    .eq('activity_id', activityId)
+    .eq('user_id', user.id)
+    .gte('logged_at', todayStart.toISOString())
+    .order('logged_at', { ascending: false })
+    .limit(1)
+
+  const log = logs?.[0]
+  if (!log) return { error: 'No log found' }
+
+  await supabase.from('logs').delete().eq('id', log.id)
+
+  revalidatePath('/dashboard')
+  revalidatePath('/log')
+  return { success: true }
+}

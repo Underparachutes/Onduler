@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { quickLogActivity } from '@/app/actions/logs'
+import { quickLogActivity, unlogActivity } from '@/app/actions/logs'
 
 type Activity = { id: string; name: string; default_points: number }
 type Domain = { id: string; name: string; color: string; activities: Activity[] }
@@ -27,12 +27,16 @@ export function DailyChecklist({
   const progress = Math.min((localPoints / DAILY_GOAL) * 100, 100)
 
   function handleLog(activity: Activity, domainId: string) {
-    if (localDone.has(activity.id)) return
-    setLocalDone(prev => new Set([...prev, activity.id]))
-    setLocalPoints(prev => prev + activity.default_points)
-    startTransition(async () => {
-      await quickLogActivity(activity.id, domainId)
-    })
+    const done = localDone.has(activity.id)
+    if (done) {
+      setLocalDone(prev => { const next = new Set(prev); next.delete(activity.id); return next })
+      setLocalPoints(prev => Math.max(0, prev - activity.default_points))
+      startTransition(async () => { await unlogActivity(activity.id) })
+    } else {
+      setLocalDone(prev => new Set([...prev, activity.id]))
+      setLocalPoints(prev => prev + activity.default_points)
+      startTransition(async () => { await quickLogActivity(activity.id, domainId) })
+    }
   }
 
   return (
@@ -108,10 +112,9 @@ export function DailyChecklist({
                     <button
                       key={activity.id}
                       onClick={() => handleLog(activity, domain.id)}
-                      disabled={done}
                       className={`flex w-full items-center gap-3 rounded-lg border px-4 py-3 text-left transition-colors ${
                         done
-                          ? 'border-th-border opacity-50'
+                          ? 'border-th-border opacity-50 hover:opacity-70'
                           : 'border-th-border hover:bg-th-surface active:scale-[0.99]'
                       }`}
                     >
