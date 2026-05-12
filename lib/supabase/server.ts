@@ -15,7 +15,7 @@ export async function createClient() {
         setAll(cookiesToSet) {
           try {
             cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, { ...options, domain: '.onduler.app' })
+              cookieStore.set(name, value, options)
             )
           } catch {}
         },
