@@ -5,7 +5,6 @@ import { deleteActivity } from '@/app/actions/activities'
 import { AddDomainForm } from '../components/AddDomainForm'
 import { SortableDomainList } from '../components/SortableDomainList'
 import { AddActivityStandaloneForm } from './AddActivityStandaloneForm'
-import { ToggleDomainsButton } from './ToggleDomainsButton'
 
 export default async function ManagePage() {
   const supabase = await createClient()
@@ -49,9 +48,6 @@ export default async function ManagePage() {
             <AddDomainForm />
           </div>
 
-          <div className="mt-10 border-t border-th-border pt-6">
-            <ToggleDomainsButton enabled={true} />
-          </div>
         </div>
       </div>
     )
@@ -106,9 +102,6 @@ export default async function ManagePage() {
           <AddActivityStandaloneForm />
         </div>
 
-        <div className="mt-10 border-t border-th-border pt-6">
-          <ToggleDomainsButton enabled={false} />
-        </div>
       </div>
     </div>
   )

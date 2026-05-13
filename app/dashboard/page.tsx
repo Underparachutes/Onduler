@@ -1,9 +1,7 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import { signOut } from '@/app/actions/auth'
 import { getTodayStart } from '@/lib/timezone'
-import { ThemeSwitcher } from './components/ThemeSwitcher'
 import { DailyChecklist } from './components/DailyChecklist'
 import { WavePrompt } from './components/WavePrompt'
 
@@ -93,21 +91,18 @@ export default async function DashboardPage() {
         <div className="mb-6 flex items-center justify-between">
           <p className="text-xs uppercase tracking-widest text-th-muted">Onduler</p>
           <div className="flex items-center gap-2">
-            <ThemeSwitcher />
             <Link
               href="/log"
               className="rounded-lg border border-th-border px-3 py-1.5 text-xs font-medium text-th-muted transition-colors hover:bg-th-surface"
             >
               Log
             </Link>
-            <form action={signOut}>
-              <button
-                type="submit"
-                className="rounded-lg border border-th-border px-3 py-1.5 text-xs font-medium text-th-muted transition-colors hover:bg-th-surface"
-              >
-                Sign out
-              </button>
-            </form>
+            <Link
+              href="/settings"
+              className="rounded-lg border border-th-border px-3 py-1.5 text-xs font-medium text-th-muted transition-colors hover:bg-th-surface"
+            >
+              Settings
+            </Link>
           </div>
         </div>
 
