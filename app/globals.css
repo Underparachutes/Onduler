@@ -114,3 +114,27 @@ body {
   background-color: var(--th-bg);
   color: var(--th-text);
 }
+
+/* Celebration animations */
+@keyframes celebration-glow {
+  from { transform: translate(-50%, -50%) scale(0); opacity: 0.75; }
+  to   { transform: translate(-50%, -50%) scale(7); opacity: 0; }
+}
+
+@keyframes celebration-wave {
+  0%   { transform: translateY(0);      opacity: 0; }
+  15%  { opacity: 0.22; }
+  85%  { opacity: 0.16; }
+  100% { transform: translateY(-220vh); opacity: 0; }
+}
+
+@keyframes celebration-particle {
+  from {
+    transform: translate(-50%, -50%) translate(0, 0) scale(1);
+    opacity: 1;
+  }
+  to {
+    transform: translate(-50%, -50%) translate(var(--p-dx), var(--p-dy)) scale(0);
+    opacity: 0;
+  }
+}

@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import { quickLogActivity, unlogActivity } from '@/app/actions/logs'
 import { ActivityEditRow } from './ActivityEditRow'
+import { CelebrationOverlay, type CelebrationState } from './CelebrationOverlay'
 
 type Activity = { id: string; name: string; default_points: number }
 type Domain = { id: string; name: string; color: string; activities: Activity[] }
@@ -21,16 +22,26 @@ export function DailyChecklist(props: Props) {
   const [, startTransition] = useTransition()
   const [localPoints, setLocalPoints] = useState(todayPoints)
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [celebration, setCelebration] = useState<CelebrationState | null>(null)
 
   const progress = Math.min((localPoints / DAILY_GOAL) * 100, 100)
 
-  function handleLog(activity: Activity, domainId: string | null) {
+  function getAnimType(): CelebrationState['type'] {
+    const theme = document.documentElement.dataset.theme ?? 'default'
+    if (theme === 'biarritz') return 'wave'
+    if (theme === 'bolinas') return 'bloom'
+    return 'glow'
+  }
+
+  function handleLog(activity: Activity, domainId: string | null, clientX = 0, clientY = 0) {
     const done = localDone.has(activity.id)
     if (done) {
       setLocalDone(prev => { const next = new Set(prev); next.delete(activity.id); return next })
       setLocalPoints(prev => Math.max(0, prev - activity.default_points))
       startTransition(async () => { await unlogActivity(activity.id) })
     } else {
+      if ('vibrate' in navigator) navigator.vibrate(50)
+      setCelebration({ x: clientX, y: clientY, type: getAnimType() })
       setLocalDone(prev => new Set([...prev, activity.id]))
       setLocalPoints(prev => prev + activity.default_points)
       startTransition(async () => { await quickLogActivity(activity.id, domainId) })
@@ -53,7 +64,7 @@ export function DailyChecklist(props: Props) {
     return (
       <div key={activity.id} className="flex items-center gap-1">
         <button
-          onClick={() => handleLog(activity, domainId)}
+          onClick={(e) => handleLog(activity, domainId, e.clientX, e.clientY)}
           className={`flex flex-1 items-center gap-3 rounded-lg border px-4 py-3 text-left transition-colors ${
             done
               ? 'border-th-border opacity-50 hover:opacity-70'
@@ -116,26 +127,33 @@ export function DailyChecklist(props: Props) {
     </div>
   )
 
+  const celebrationOverlay = celebration && (
+    <CelebrationOverlay celebration={celebration} onDone={() => setCelebration(null)} />
+  )
+
   // Flat mode — domains off
   if (!props.domainsEnabled) {
     return (
-      <div>
-        {progressBar}
-        <div className="mb-4 flex justify-end">
-          <button
-            onClick={() => setHideDone(!hideDone)}
-            className="text-xs text-th-faint hover:text-th-muted transition-colors"
-          >
-            {hideDone ? 'Show all' : 'Hide done'}
-          </button>
+      <>
+        <div>
+          {progressBar}
+          <div className="mb-4 flex justify-end">
+            <button
+              onClick={() => setHideDone(!hideDone)}
+              className="text-xs text-th-faint hover:text-th-muted transition-colors"
+            >
+              {hideDone ? 'Show all' : 'Hide done'}
+            </button>
+          </div>
+          <div className="flex flex-col gap-2">
+            {props.activities.map(activity => {
+              if (hideDone && localDone.has(activity.id) && editingId !== activity.id) return null
+              return renderActivity(activity, null)
+            })}
+          </div>
         </div>
-        <div className="flex flex-col gap-2">
-          {props.activities.map(activity => {
-            if (hideDone && localDone.has(activity.id) && editingId !== activity.id) return null
-            return renderActivity(activity, null)
-          })}
-        </div>
-      </div>
+        {celebrationOverlay}
+      </>
     )
   }
 
@@ -143,6 +161,7 @@ export function DailyChecklist(props: Props) {
   const filtered = activeDomain ? props.domains.filter(d => d.id === activeDomain) : props.domains
 
   return (
+    <>
     <div>
       {progressBar}
 
@@ -190,5 +209,7 @@ export function DailyChecklist(props: Props) {
         })}
       </div>
     </div>
+    {celebrationOverlay}
+    </>
   )
 }
