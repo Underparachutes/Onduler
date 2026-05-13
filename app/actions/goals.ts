@@ -35,7 +35,23 @@ export async function deleteGoal(id: string): Promise<void> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return
+  // Unassign activities before deleting so they return to Unassigned
+  await supabase.from('activities').update({ goal_id: null }).eq('goal_id', id).eq('user_id', user.id)
   await supabase.from('goals').delete().eq('id', id).eq('user_id', user.id)
+  revalidatePath('/goals')
+  redirect('/goals')
+}
+
+export async function updateGoal(id: string, prevState: unknown, formData: FormData) {
+  const name = (formData.get('name') as string)?.trim()
+  const color = formData.get('color') as string
+  if (!name) return { error: 'Name required' }
+
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  await supabase.from('goals').update({ name, color }).eq('id', id).eq('user_id', user.id)
   revalidatePath('/goals')
   redirect('/goals')
 }

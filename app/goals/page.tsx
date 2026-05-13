@@ -2,8 +2,8 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTodayStart } from '@/lib/timezone'
-import { deleteGoal } from '@/app/actions/goals'
 import { AddGoalForm } from './AddGoalForm'
+import { GoalRow } from './GoalRow'
 import { ActivityAssignSelect } from './ActivityAssignSelect'
 
 export default async function GoalsPage() {
@@ -66,58 +66,15 @@ export default async function GoalsPage() {
 
         {/* Goals */}
         <div className="mb-8 flex flex-col gap-6">
-          {goalList.map(goal => {
-            const goalPts = goal.activities.reduce((sum, a) => sum + (ptsToday.get(a.id) ?? 0), 0)
-            const deleteById = deleteGoal.bind(null, goal.id)
-
-            return (
-              <div key={goal.id}>
-                <div className="mb-2 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: goal.color }} />
-                    <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: goal.color }}>
-                      {goal.name}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs text-th-faint">{goalPts} pts today</span>
-                    <form action={deleteById}>
-                      <button type="submit" className="text-xs text-th-faint transition-colors hover:text-red-500">
-                        Delete
-                      </button>
-                    </form>
-                  </div>
-                </div>
-
-                {activities.length === 0 ? (
-                  <p className="rounded-lg border border-th-border px-4 py-3 text-xs text-th-faint">
-                    No activities assigned yet.
-                  </p>
-                ) : (
-                  <div className="flex flex-col gap-2">
-                    {goal.activities.map((activity) => (
-                      <div key={activity.id} className="flex items-center gap-3 rounded-lg border border-th-border px-4 py-3">
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm text-th-text truncate">{activity.name}</p>
-                          <p className="text-xs text-th-faint">{activity.default_points} pts</p>
-                        </div>
-                        {ptsToday.get(activity.id) ? (
-                          <span className="text-xs font-medium text-th-secondary shrink-0">
-                            +{ptsToday.get(activity.id)} today
-                          </span>
-                        ) : null}
-                        <ActivityAssignSelect
-                          activityId={activity.id}
-                          currentGoalId={goal.id}
-                          goals={goalStubs}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )
-          })}
+          {goalList.map(goal => (
+            <GoalRow
+              key={goal.id}
+              goal={goal}
+              goalPts={goal.activities.reduce((sum, a) => sum + (ptsToday.get(a.id) ?? 0), 0)}
+              ptsToday={ptsToday}
+              goalStubs={goalStubs}
+            />
+          ))}
         </div>
 
         {/* Unassigned */}
