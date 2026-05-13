@@ -1,14 +1,19 @@
 'use client'
 
 import { useActionState, useEffect, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { createGoal } from '@/app/actions/goals'
 
 export function AddGoalForm() {
   const [state, action, isPending] = useActionState(createGoal, null)
   const formRef = useRef<HTMLFormElement>(null)
+  const router = useRouter()
 
   useEffect(() => {
-    if (state?.success) formRef.current?.reset()
+    if (state?.success) {
+      formRef.current?.reset()
+      router.refresh()
+    }
   }, [state])
 
   return (
