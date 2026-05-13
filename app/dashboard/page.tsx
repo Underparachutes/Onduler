@@ -76,7 +76,7 @@ export default async function DashboardPage() {
       .from('activities')
       .select('id, name, default_points')
       .eq('user_id', user.id)
-      .order('created_at', { ascending: true })
+      .order('default_points', { ascending: false })
     activitiesData = data
   }
 

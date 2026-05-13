@@ -21,7 +21,7 @@ export default async function GoalsPage() {
       .from('activities')
       .select('id, name, default_points, goal_id')
       .eq('user_id', user.id)
-      .order('created_at', { ascending: true }),
+      .order('default_points', { ascending: false }),
     getTodayStart(),
   ])
 

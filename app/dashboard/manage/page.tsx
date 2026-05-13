@@ -58,7 +58,7 @@ export default async function ManagePage() {
     .from('activities')
     .select('id, name, default_points')
     .eq('user_id', user.id)
-    .order('created_at', { ascending: true })
+    .order('default_points', { ascending: false })
 
   return (
     <div className="flex min-h-full flex-col items-center px-6 py-24">
