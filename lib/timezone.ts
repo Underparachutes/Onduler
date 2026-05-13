@@ -1,17 +1,24 @@
-import { cookies } from 'next/headers'
-
-// Returns the UTC timestamp for the start of "today" in the user's local timezone.
-// getTimezoneOffset() returns offset = UTC - local in minutes (e.g. 420 for UTC-7).
-// We shift UTC "now" into local coordinates, zero to local midnight, then shift back.
+// Returns the UTC timestamp for the start of "today" in Pacific time.
+// Handles PST (UTC-8) and PDT (UTC-7) automatically via Intl APIs.
 export async function getTodayStart(): Promise<Date> {
-  const cookieStore = await cookies()
-  const raw = cookieStore.get('tz_offset')?.value
-  const offsetMinutes = raw !== undefined ? parseInt(raw) : 0
-  // Shift to local time coordinates
-  const localMs = Date.now() - offsetMinutes * 60 * 1000
-  const d = new Date(localMs)
-  d.setUTCHours(0, 0, 0, 0)
-  // Shift back to UTC
-  d.setTime(d.getTime() + offsetMinutes * 60 * 1000)
-  return d
+  const now = new Date()
+
+  // Get today's date string in Pacific time, e.g. "2026-05-13"
+  const pacificDateStr = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Los_Angeles',
+  }).format(now)
+
+  // Find the UTC-to-Pacific offset at this moment by comparing timestamps.
+  // toLocaleString gives Pacific wall-clock time as a string; parsing it as
+  // a "UTC" date gives us the offset difference.
+  const utcMs = now.getTime()
+  const pacificMs = new Date(
+    now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' })
+  ).getTime()
+  const offsetMs = utcMs - pacificMs
+
+  // Treat the Pacific date as UTC midnight, then shift by the offset
+  // to get the true UTC equivalent of Pacific midnight.
+  const [year, month, day] = pacificDateStr.split('-').map(Number)
+  return new Date(Date.UTC(year, month - 1, day) + offsetMs)
 }
