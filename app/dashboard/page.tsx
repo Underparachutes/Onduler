@@ -92,6 +92,12 @@ export default async function DashboardPage() {
           <p className="text-xs uppercase tracking-widest text-th-muted">Onduler</p>
           <div className="flex items-center gap-2">
             <Link
+              href="/goals"
+              className="rounded-lg border border-th-border px-3 py-1.5 text-xs font-medium text-th-muted transition-colors hover:bg-th-surface"
+            >
+              Goals
+            </Link>
+            <Link
               href="/log"
               className="rounded-lg border border-th-border px-3 py-1.5 text-xs font-medium text-th-muted transition-colors hover:bg-th-surface"
             >

@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
 
-const protectedRoutes = ['/dashboard', '/log', '/wave', '/onboarding', '/settings']
+const protectedRoutes = ['/dashboard', '/log', '/wave', '/onboarding', '/settings', '/goals']
 
 export async function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname
