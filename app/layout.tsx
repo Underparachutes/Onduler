@@ -17,11 +17,18 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Onduler",
   description: "Ride your waves. Hold your tides.",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Onduler",
+  },
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#151918",
 };
 
 export default async function RootLayout({
