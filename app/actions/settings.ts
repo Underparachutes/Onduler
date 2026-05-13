@@ -47,6 +47,22 @@ export async function setDailyGoal(goal: number) {
   return { success: true }
 }
 
+export async function setCelebrationEnabled(enabled: boolean) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+  await supabase.from('user_settings').upsert({ user_id: user.id, celebration_enabled: enabled })
+  return { success: true }
+}
+
+export async function setHapticEnabled(enabled: boolean) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+  await supabase.from('user_settings').upsert({ user_id: user.id, haptic_enabled: enabled })
+  return { success: true }
+}
+
 export async function setDomainsEnabled(enabled: boolean) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()

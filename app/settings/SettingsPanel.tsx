@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { setTheme } from '@/app/actions/theme'
-import { setDomainsEnabled, setDailyGoal } from '@/app/actions/settings'
+import { setDomainsEnabled, setDailyGoal, setCelebrationEnabled, setHapticEnabled } from '@/app/actions/settings'
 
 const THEMES = [
   { id: 'default', label: 'Default', desc: 'Clean and minimal' },
@@ -14,15 +14,19 @@ type Props = {
   theme: string
   domainsEnabled: boolean
   dailyGoal: number
+  celebrationEnabled: boolean
+  hapticEnabled: boolean
   email: string
 }
 
-export function SettingsPanel({ theme, domainsEnabled, dailyGoal, email }: Props) {
+export function SettingsPanel({ theme, domainsEnabled, dailyGoal, celebrationEnabled, hapticEnabled, email }: Props) {
   const [currentTheme, setCurrentTheme] = useState(theme)
   const [domains, setDomains] = useState(domainsEnabled)
   const [goal, setGoal] = useState(dailyGoal)
   const [editingGoal, setEditingGoal] = useState(false)
   const [goalInput, setGoalInput] = useState(String(dailyGoal))
+  const [celebration, setCelebration] = useState(celebrationEnabled)
+  const [haptic, setHaptic] = useState(hapticEnabled)
   const [, startTransition] = useTransition()
 
   function handleTheme(t: string) {
@@ -34,6 +38,16 @@ export function SettingsPanel({ theme, domainsEnabled, dailyGoal, email }: Props
   function handleDomains(enabled: boolean) {
     setDomains(enabled)
     startTransition(async () => { await setDomainsEnabled(enabled) })
+  }
+
+  function handleCelebration(enabled: boolean) {
+    setCelebration(enabled)
+    startTransition(async () => { await setCelebrationEnabled(enabled) })
+  }
+
+  function handleHaptic(enabled: boolean) {
+    setHaptic(enabled)
+    startTransition(async () => { await setHapticEnabled(enabled) })
   }
 
   function commitGoal() {
@@ -122,6 +136,41 @@ export function SettingsPanel({ theme, domainsEnabled, dailyGoal, email }: Props
               <span
                 className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${domains ? 'translate-x-[22px]' : 'translate-x-0.5'}`}
               />
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* Celebration */}
+      <section>
+        <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-th-muted">Celebration</p>
+        <div className="rounded-lg border border-th-border divide-y divide-th-border">
+          <div className="flex items-center justify-between px-4 py-3">
+            <div>
+              <p className="text-sm font-medium text-th-text">Visual</p>
+              <p className="text-xs text-th-muted">Animation on check-off</p>
+            </div>
+            <button
+              role="switch"
+              aria-checked={celebration}
+              onClick={() => handleCelebration(!celebration)}
+              className={`relative h-6 w-11 rounded-full transition-colors ${celebration ? 'bg-th-btn' : 'bg-th-border'}`}
+            >
+              <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${celebration ? 'translate-x-[22px]' : 'translate-x-0.5'}`} />
+            </button>
+          </div>
+          <div className="flex items-center justify-between px-4 py-3">
+            <div>
+              <p className="text-sm font-medium text-th-text">Haptic</p>
+              <p className="text-xs text-th-muted">Vibration on check-off</p>
+            </div>
+            <button
+              role="switch"
+              aria-checked={haptic}
+              onClick={() => handleHaptic(!haptic)}
+              className={`relative h-6 w-11 rounded-full transition-colors ${haptic ? 'bg-th-btn' : 'bg-th-border'}`}
+            >
+              <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${haptic ? 'translate-x-[22px]' : 'translate-x-0.5'}`} />
             </button>
           </div>
         </div>

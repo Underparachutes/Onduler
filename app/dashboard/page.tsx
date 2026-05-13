@@ -12,7 +12,7 @@ export default async function DashboardPage() {
 
   const { data: settings } = await supabase
     .from('user_settings')
-    .select('domains_enabled, onboarding_complete, daily_goal')
+    .select('domains_enabled, onboarding_complete, daily_goal, celebration_enabled, haptic_enabled')
     .eq('user_id', user.id)
     .single()
 
@@ -20,6 +20,8 @@ export default async function DashboardPage() {
 
   const domainsEnabled = settings?.domains_enabled ?? false
   const dailyGoal = settings?.daily_goal ?? 20
+  const celebrationEnabled = settings?.celebration_enabled ?? true
+  const hapticEnabled = settings?.haptic_enabled ?? true
 
   // Wave detection
   const { data: lastLogData } = await supabase
@@ -128,6 +130,8 @@ export default async function DashboardPage() {
               doneActivityIds={doneActivityIds}
               dailyGoal={dailyGoal}
               goals={(goalsData ?? []) as any}
+              celebrationEnabled={celebrationEnabled}
+              hapticEnabled={hapticEnabled}
             />
           ) : (
             <DailyChecklist
@@ -137,6 +141,8 @@ export default async function DashboardPage() {
               doneActivityIds={doneActivityIds}
               dailyGoal={dailyGoal}
               goals={(goalsData ?? []) as any}
+              celebrationEnabled={celebrationEnabled}
+              hapticEnabled={hapticEnabled}
             />
           )
         ) : (

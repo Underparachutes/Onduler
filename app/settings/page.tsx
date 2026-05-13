@@ -11,7 +11,7 @@ export default async function SettingsPage() {
 
   const { data: settings } = await supabase
     .from('user_settings')
-    .select('theme, domains_enabled, daily_goal')
+    .select('theme, domains_enabled, daily_goal, celebration_enabled, haptic_enabled')
     .eq('user_id', user.id)
     .single()
 
@@ -34,6 +34,8 @@ export default async function SettingsPage() {
           theme={settings?.theme ?? 'default'}
           domainsEnabled={settings?.domains_enabled ?? false}
           dailyGoal={settings?.daily_goal ?? 20}
+          celebrationEnabled={settings?.celebration_enabled ?? true}
+          hapticEnabled={settings?.haptic_enabled ?? true}
           email={user.email ?? ''}
         />
 

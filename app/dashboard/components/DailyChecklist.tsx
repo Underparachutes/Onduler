@@ -10,12 +10,13 @@ type Activity = { id: string; name: string; default_points: number; goal_id?: st
 type Domain = { id: string; name: string; color: string; activities: Activity[] }
 type Goal = { id: string; name: string; color: string }
 
+type SharedProps = { todayPoints: number; doneActivityIds: string[]; dailyGoal: number; goals: Goal[]; celebrationEnabled: boolean; hapticEnabled: boolean }
 type Props =
-  | { domainsEnabled: true; domains: Domain[]; todayPoints: number; doneActivityIds: string[]; dailyGoal: number; goals: Goal[] }
-  | { domainsEnabled: false; activities: Activity[]; todayPoints: number; doneActivityIds: string[]; dailyGoal: number; goals: Goal[] }
+  | ({ domainsEnabled: true; domains: Domain[] } & SharedProps)
+  | ({ domainsEnabled: false; activities: Activity[] } & SharedProps)
 
 export function DailyChecklist(props: Props) {
-  const { todayPoints, doneActivityIds, dailyGoal, goals } = props
+  const { todayPoints, doneActivityIds, dailyGoal, goals, celebrationEnabled, hapticEnabled } = props
   const goalMap = new Map(goals.map(g => [g.id, g]))
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
   const [activeDomain, setActiveDomain] = useState<string | null>(null)
@@ -45,8 +46,8 @@ export function DailyChecklist(props: Props) {
       setLocalPoints(prev => Math.max(0, prev - activity.default_points))
       startTransition(async () => { await unlogActivity(activity.id) })
     } else {
-      if ('vibrate' in navigator) navigator.vibrate(50)
-      setCelebration({ x: clientX, y: clientY, type: getAnimType() })
+      if (hapticEnabled && 'vibrate' in navigator) navigator.vibrate(50)
+      if (celebrationEnabled) setCelebration({ x: clientX, y: clientY, type: getAnimType() })
       setLocalDone(prev => new Set([...prev, activity.id]))
       setLocalPoints(prev => prev + activity.default_points)
       startTransition(async () => { await quickLogActivity(activity.id, domainId) })
