@@ -6,15 +6,17 @@ import { setDailyGoal } from '@/app/actions/settings'
 import { ActivityEditRow } from './ActivityEditRow'
 import { CelebrationOverlay, type CelebrationState } from './CelebrationOverlay'
 
-type Activity = { id: string; name: string; default_points: number }
+type Activity = { id: string; name: string; default_points: number; goal_id?: string | null }
 type Domain = { id: string; name: string; color: string; activities: Activity[] }
+type Goal = { id: string; name: string; color: string }
 
 type Props =
-  | { domainsEnabled: true; domains: Domain[]; todayPoints: number; doneActivityIds: string[]; dailyGoal: number }
-  | { domainsEnabled: false; activities: Activity[]; todayPoints: number; doneActivityIds: string[]; dailyGoal: number }
+  | { domainsEnabled: true; domains: Domain[]; todayPoints: number; doneActivityIds: string[]; dailyGoal: number; goals: Goal[] }
+  | { domainsEnabled: false; activities: Activity[]; todayPoints: number; doneActivityIds: string[]; dailyGoal: number; goals: Goal[] }
 
 export function DailyChecklist(props: Props) {
-  const { todayPoints, doneActivityIds, dailyGoal } = props
+  const { todayPoints, doneActivityIds, dailyGoal, goals } = props
+  const goalMap = new Map(goals.map(g => [g.id, g]))
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
   const [activeDomain, setActiveDomain] = useState<string | null>(null)
   const [hideDone, setHideDone] = useState(false)
@@ -51,7 +53,8 @@ export function DailyChecklist(props: Props) {
     }
   }
 
-  function renderActivity(activity: Activity, domainId: string | null, domainColor?: string, domainName?: string) {
+  function renderActivity(activity: Activity, domainId: string | null) {
+    const goal = activity.goal_id ? goalMap.get(activity.goal_id) : undefined
     if (editingId === activity.id) {
       return (
         <ActivityEditRow
@@ -86,12 +89,12 @@ export function DailyChecklist(props: Props) {
               <p className={`text-sm font-medium ${done ? 'text-th-muted line-through' : 'text-th-text'}`}>
                 {activity.name}
               </p>
-              {domainName && domainColor && (
+              {goal && (
                 <span
                   className="mt-0.5 inline-block rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white"
-                  style={{ backgroundColor: domainColor }}
+                  style={{ backgroundColor: goal.color }}
                 >
-                  {domainName}
+                  {goal.name}
                 </span>
               )}
             </div>
@@ -245,7 +248,7 @@ export function DailyChecklist(props: Props) {
               </p>
               <div className="flex flex-col gap-2">
                 {activities.map(activity =>
-                  renderActivity(activity, domain.id, domain.color, domain.name)
+                  renderActivity(activity, domain.id)
                 )}
               </div>
             </div>

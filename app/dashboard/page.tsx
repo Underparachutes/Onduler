@@ -68,17 +68,22 @@ export default async function DashboardPage() {
   if (domainsEnabled) {
     const { data } = await supabase
       .from('domains')
-      .select('id, name, color, activities(id, name, default_points)')
+      .select('id, name, color, activities(id, name, default_points, goal_id)')
       .order('sort_order', { ascending: true })
     domainsData = data
   } else {
     const { data } = await supabase
       .from('activities')
-      .select('id, name, default_points')
+      .select('id, name, default_points, goal_id')
       .eq('user_id', user.id)
       .order('default_points', { ascending: false })
     activitiesData = data
   }
+
+  const { data: goalsData } = await supabase
+    .from('goals')
+    .select('id, name, color')
+    .eq('user_id', user.id)
 
   const hasActivities = domainsEnabled
     ? (domainsData ?? []).some(d => Array.isArray(d.activities) && d.activities.length > 0)
@@ -122,6 +127,7 @@ export default async function DashboardPage() {
               todayPoints={todayPoints}
               doneActivityIds={doneActivityIds}
               dailyGoal={dailyGoal}
+              goals={(goalsData ?? []) as any}
             />
           ) : (
             <DailyChecklist
@@ -130,6 +136,7 @@ export default async function DashboardPage() {
               todayPoints={todayPoints}
               doneActivityIds={doneActivityIds}
               dailyGoal={dailyGoal}
+              goals={(goalsData ?? []) as any}
             />
           )
         ) : (
