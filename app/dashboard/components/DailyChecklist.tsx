@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { quickLogActivity, unlogActivity } from '@/app/actions/logs'
+import { ActivityEditRow } from './ActivityEditRow'
 
 type Activity = { id: string; name: string; default_points: number }
 type Domain = { id: string; name: string; color: string; activities: Activity[] }
@@ -19,6 +20,7 @@ export function DailyChecklist(props: Props) {
   const [localDone, setLocalDone] = useState(() => new Set(doneActivityIds))
   const [, startTransition] = useTransition()
   const [localPoints, setLocalPoints] = useState(todayPoints)
+  const [editingId, setEditingId] = useState<string | null>(null)
 
   const progress = Math.min((localPoints / DAILY_GOAL) * 100, 100)
 
@@ -33,6 +35,66 @@ export function DailyChecklist(props: Props) {
       setLocalPoints(prev => prev + activity.default_points)
       startTransition(async () => { await quickLogActivity(activity.id, domainId) })
     }
+  }
+
+  function renderActivity(activity: Activity, domainId: string | null, domainColor?: string, domainName?: string) {
+    if (editingId === activity.id) {
+      return (
+        <ActivityEditRow
+          key={activity.id}
+          activity={activity}
+          domainId={domainId}
+          onClose={() => setEditingId(null)}
+        />
+      )
+    }
+
+    const done = localDone.has(activity.id)
+    return (
+      <div key={activity.id} className="flex items-center gap-1">
+        <button
+          onClick={() => handleLog(activity, domainId)}
+          className={`flex flex-1 items-center gap-3 rounded-lg border px-4 py-3 text-left transition-colors ${
+            done
+              ? 'border-th-border opacity-50 hover:opacity-70'
+              : 'border-th-border hover:bg-th-surface active:scale-[0.99]'
+          }`}
+        >
+          <div className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 transition-all ${done ? 'border-th-btn bg-th-btn' : 'border-th-border'}`}>
+            {done && (
+              <svg viewBox="0 0 12 10" fill="none" className="h-3 w-3">
+                <path d="M1 5l3.5 3.5L11 1" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            )}
+          </div>
+          <div className="flex flex-1 items-center justify-between">
+            <div>
+              <p className={`text-sm font-medium ${done ? 'text-th-muted line-through' : 'text-th-text'}`}>
+                {activity.name}
+              </p>
+              {domainName && domainColor && (
+                <span
+                  className="mt-0.5 inline-block rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white"
+                  style={{ backgroundColor: domainColor }}
+                >
+                  {domainName}
+                </span>
+              )}
+            </div>
+            <span className={`text-sm font-semibold ${done ? 'text-th-faint' : 'text-th-secondary'}`}>
+              {activity.default_points}pts
+            </span>
+          </div>
+        </button>
+        <button
+          onClick={() => setEditingId(activity.id)}
+          className="shrink-0 px-2 py-3 text-base leading-none text-th-faint transition-colors hover:text-th-muted"
+          aria-label="Edit activity"
+        >
+          ···
+        </button>
+      </div>
+    )
   }
 
   const progressBar = (
@@ -54,51 +116,6 @@ export function DailyChecklist(props: Props) {
     </div>
   )
 
-  function ActivityButton({ activity, domainId, domainColor, domainName }: {
-    activity: Activity
-    domainId: string | null
-    domainColor?: string
-    domainName?: string
-  }) {
-    const done = localDone.has(activity.id)
-    return (
-      <button
-        onClick={() => handleLog(activity, domainId)}
-        className={`flex w-full items-center gap-3 rounded-lg border px-4 py-3 text-left transition-colors ${
-          done
-            ? 'border-th-border opacity-50 hover:opacity-70'
-            : 'border-th-border hover:bg-th-surface active:scale-[0.99]'
-        }`}
-      >
-        <div className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 transition-all ${done ? 'border-th-btn bg-th-btn' : 'border-th-border'}`}>
-          {done && (
-            <svg viewBox="0 0 12 10" fill="none" className="h-3 w-3">
-              <path d="M1 5l3.5 3.5L11 1" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          )}
-        </div>
-        <div className="flex flex-1 items-center justify-between">
-          <div>
-            <p className={`text-sm font-medium ${done ? 'text-th-muted line-through' : 'text-th-text'}`}>
-              {activity.name}
-            </p>
-            {domainName && domainColor && (
-              <span
-                className="mt-0.5 inline-block rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white"
-                style={{ backgroundColor: domainColor }}
-              >
-                {domainName}
-              </span>
-            )}
-          </div>
-          <span className={`text-sm font-semibold ${done ? 'text-th-faint' : 'text-th-secondary'}`}>
-            {activity.default_points}pts
-          </span>
-        </div>
-      </button>
-    )
-  }
-
   // Flat mode — domains off
   if (!props.domainsEnabled) {
     return (
@@ -114,8 +131,8 @@ export function DailyChecklist(props: Props) {
         </div>
         <div className="flex flex-col gap-2">
           {props.activities.map(activity => {
-            if (hideDone && localDone.has(activity.id)) return null
-            return <ActivityButton key={activity.id} activity={activity} domainId={null} />
+            if (hideDone && localDone.has(activity.id) && editingId !== activity.id) return null
+            return renderActivity(activity, null)
           })}
         </div>
       </div>
@@ -155,7 +172,7 @@ export function DailyChecklist(props: Props) {
       <div className="flex flex-col gap-6">
         {filtered.map(domain => {
           const activities = (domain.activities ?? []).filter(
-            a => !hideDone || !localDone.has(a.id),
+            a => (!hideDone || !localDone.has(a.id)) || editingId === a.id,
           )
           if (activities.length === 0) return null
           return (
@@ -164,15 +181,9 @@ export function DailyChecklist(props: Props) {
                 {domain.name}
               </p>
               <div className="flex flex-col gap-2">
-                {activities.map(activity => (
-                  <ActivityButton
-                    key={activity.id}
-                    activity={activity}
-                    domainId={domain.id}
-                    domainColor={domain.color}
-                    domainName={domain.name}
-                  />
-                ))}
+                {activities.map(activity =>
+                  renderActivity(activity, domain.id, domain.color, domain.name)
+                )}
               </div>
             </div>
           )
