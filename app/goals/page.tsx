@@ -14,7 +14,7 @@ export default async function GoalsPage() {
   const [{ data: goals }, { data: allActivities }, todayStart] = await Promise.all([
     supabase
       .from('goals')
-      .select('id, name, color, activities(id, name, default_points, goal_id)')
+      .select('id, name, color')
       .eq('user_id', user.id)
       .order('sort_order', { ascending: true }),
     supabase
@@ -39,8 +39,12 @@ export default async function GoalsPage() {
     }
   }
 
-  const unassigned = (allActivities ?? []).filter(a => !a.goal_id)
-  const goalList = goals ?? []
+  const activities = allActivities ?? []
+  const unassigned = activities.filter(a => !a.goal_id)
+  const goalList = (goals ?? []).map(g => ({
+    ...g,
+    activities: activities.filter(a => a.goal_id === g.id),
+  }))
   const goalStubs = goalList.map(g => ({ id: g.id, name: g.name }))
 
   return (
@@ -63,8 +67,7 @@ export default async function GoalsPage() {
         {/* Goals */}
         <div className="mb-8 flex flex-col gap-6">
           {goalList.map(goal => {
-            const activities = (goal.activities as any[]) ?? []
-            const goalPts = activities.reduce((sum, a) => sum + (ptsToday.get(a.id) ?? 0), 0)
+            const goalPts = goal.activities.reduce((sum, a) => sum + (ptsToday.get(a.id) ?? 0), 0)
             const deleteById = deleteGoal.bind(null, goal.id)
 
             return (
@@ -92,7 +95,7 @@ export default async function GoalsPage() {
                   </p>
                 ) : (
                   <div className="flex flex-col gap-2">
-                    {activities.map((activity: any) => (
+                    {goal.activities.map((activity) => (
                       <div key={activity.id} className="flex items-center gap-3 rounded-lg border border-th-border px-4 py-3">
                         <div className="flex-1 min-w-0">
                           <p className="text-sm text-th-text truncate">{activity.name}</p>

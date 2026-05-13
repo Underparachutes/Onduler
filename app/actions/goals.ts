@@ -27,6 +27,7 @@ export async function createGoal(prevState: unknown, formData: FormData) {
     .insert({ user_id: user.id, name, color, sort_order })
 
   if (error) return { error: error.message }
+  revalidatePath('/goals')
   redirect('/goals')
 }
 
@@ -36,6 +37,7 @@ export async function deleteGoal(id: string): Promise<void> {
   if (!user) return
   await supabase.from('goals').delete().eq('id', id).eq('user_id', user.id)
   revalidatePath('/goals')
+  redirect('/goals')
 }
 
 export async function assignActivityToGoal(activityId: string, goalId: string | null): Promise<void> {
@@ -49,5 +51,6 @@ export async function assignActivityToGoal(activityId: string, goalId: string | 
     .eq('id', activityId)
     .eq('user_id', user.id)
 
+  revalidatePath('/goals')
   redirect('/goals')
 }
