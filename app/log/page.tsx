@@ -31,6 +31,13 @@ export default async function LogPage({
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
+  const { data: settings } = await supabase
+    .from('user_settings')
+    .select('domains_enabled')
+    .eq('user_id', user.id)
+    .single()
+  const domainsEnabled = settings?.domains_enabled ?? false
+
   const startDate = getStartDate(period)
 
   let query = supabase
@@ -129,33 +136,35 @@ export default async function LogPage({
           <p className="text-sm text-th-muted">No activity logged for this period.</p>
         ) : (
           <>
-            {/* Domain breakdown */}
-            <div className="mb-8">
-              <h2 className="mb-3 text-sm font-medium text-th-text">By domain</h2>
-              <div className="flex flex-col gap-3">
-                {domainBreakdown.map(d => (
-                  <div key={d.name} className="flex items-center gap-3">
-                    <span
-                      className="h-2 w-2 shrink-0 rounded-full"
-                      style={{ backgroundColor: d.color }}
-                    />
-                    <span className="w-20 shrink-0 truncate text-xs text-th-secondary">
-                      {d.name}
-                    </span>
-                    <div className="flex-1 rounded-full bg-th-surface" style={{ height: '6px' }}>
-                      <div
-                        className="h-full rounded-full"
-                        style={{
-                          width: `${(d.points / maxDomainPoints) * 100}%`,
-                          backgroundColor: d.color,
-                        }}
+            {/* Domain breakdown — only when domains feature is enabled */}
+            {domainsEnabled && domainBreakdown.length > 0 && (
+              <div className="mb-8">
+                <h2 className="mb-3 text-sm font-medium text-th-text">By domain</h2>
+                <div className="flex flex-col gap-3">
+                  {domainBreakdown.map(d => (
+                    <div key={d.name} className="flex items-center gap-3">
+                      <span
+                        className="h-2 w-2 shrink-0 rounded-full"
+                        style={{ backgroundColor: d.color }}
                       />
+                      <span className="w-20 shrink-0 truncate text-xs text-th-secondary">
+                        {d.name}
+                      </span>
+                      <div className="flex-1 rounded-full bg-th-surface" style={{ height: '6px' }}>
+                        <div
+                          className="h-full rounded-full"
+                          style={{
+                            width: `${(d.points / maxDomainPoints) * 100}%`,
+                            backgroundColor: d.color,
+                          }}
+                        />
+                      </div>
+                      <span className="w-14 text-right text-xs text-th-faint">{d.points} pts</span>
                     </div>
-                    <span className="w-14 text-right text-xs text-th-faint">{d.points} pts</span>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Daily bar chart — only for fixed periods */}
             {period !== 'all' && days.length > 0 && (

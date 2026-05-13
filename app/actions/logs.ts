@@ -34,7 +34,7 @@ export async function logActivity(activityId: string, domainId: string, difficul
   return { success: true }
 }
 
-export async function quickLogActivity(activityId: string, domainId: string) {
+export async function quickLogActivity(activityId: string, domainId: string | null) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }

@@ -12,7 +12,14 @@ export default async function DashboardPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  // Wave detection — show inline prompt if away 72+ hrs with no checkin since last log
+  const { data: settings } = await supabase
+    .from('user_settings')
+    .select('domains_enabled')
+    .eq('user_id', user.id)
+    .single()
+  const domainsEnabled = settings?.domains_enabled ?? false
+
+  // Wave detection
   const { data: lastLogData } = await supabase
     .from('logs')
     .select('logged_at')
@@ -20,7 +27,6 @@ export default async function DashboardPage() {
     .limit(1)
 
   const lastLog = lastLogData?.[0] ?? null
-
   let showWavePrompt = false
   let waveDurationSeconds: number | null = null
 
@@ -42,15 +48,8 @@ export default async function DashboardPage() {
     }
   }
 
-  // Domains with their activities
-  const { data: domains } = await supabase
-    .from('domains')
-    .select('id, name, color, activities(id, name, default_points)')
-    .order('sort_order', { ascending: true })
-
   // Today's logs
   const todayStart = await getTodayStart()
-
   const { data: todayLogs } = await supabase
     .from('logs')
     .select('activity_id, points')
@@ -65,9 +64,28 @@ export default async function DashboardPage() {
     day: 'numeric',
   })
 
-  const hasActivities = domains?.some(d =>
-    Array.isArray(d.activities) && d.activities.length > 0,
-  )
+  // Fetch activities based on domains mode
+  let domainsData: any[] | null = null
+  let activitiesData: any[] | null = null
+
+  if (domainsEnabled) {
+    const { data } = await supabase
+      .from('domains')
+      .select('id, name, color, activities(id, name, default_points)')
+      .order('sort_order', { ascending: true })
+    domainsData = data
+  } else {
+    const { data } = await supabase
+      .from('activities')
+      .select('id, name, default_points')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: true })
+    activitiesData = data
+  }
+
+  const hasActivities = domainsEnabled
+    ? (domainsData ?? []).some(d => Array.isArray(d.activities) && d.activities.length > 0)
+    : (activitiesData?.length ?? 0) > 0
 
   return (
     <div className="flex min-h-full flex-col items-center px-6 py-12">
@@ -106,22 +124,32 @@ export default async function DashboardPage() {
         {showWavePrompt && <WavePrompt durationSeconds={waveDurationSeconds} />}
 
         {hasActivities ? (
-          <DailyChecklist
-            domains={(domains ?? []) as any}
-            todayPoints={todayPoints}
-            doneActivityIds={doneActivityIds}
-          />
+          domainsEnabled ? (
+            <DailyChecklist
+              domainsEnabled={true}
+              domains={(domainsData ?? []) as any}
+              todayPoints={todayPoints}
+              doneActivityIds={doneActivityIds}
+            />
+          ) : (
+            <DailyChecklist
+              domainsEnabled={false}
+              activities={(activitiesData ?? []) as any}
+              todayPoints={todayPoints}
+              doneActivityIds={doneActivityIds}
+            />
+          )
         ) : (
           <div className="rounded-lg border border-th-border p-6 text-center">
             <p className="mb-1 text-sm font-medium text-th-text">Nothing here yet.</p>
             <p className="mb-4 text-sm text-th-muted">
-              Set up your domains and activities to start tracking.
+              Add your first activity to start tracking.
             </p>
             <Link
               href="/dashboard/manage"
               className="text-sm font-medium text-th-secondary underline"
             >
-              Set up →
+              Add activities →
             </Link>
           </div>
         )}
@@ -131,7 +159,7 @@ export default async function DashboardPage() {
             href="/dashboard/manage"
             className="text-xs text-th-faint transition-colors hover:text-th-secondary"
           >
-            Manage domains & activities →
+            {domainsEnabled ? 'Manage domains & activities →' : 'Manage activities →'}
           </Link>
         </div>
       </div>
