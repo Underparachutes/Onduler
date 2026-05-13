@@ -1,23 +1,13 @@
 'use client'
 
-import { useActionState, useEffect, useRef } from 'react'
-import { useRouter } from 'next/navigation'
+import { useActionState } from 'react'
 import { createGoal } from '@/app/actions/goals'
 
 export function AddGoalForm() {
   const [state, action, isPending] = useActionState(createGoal, null)
-  const formRef = useRef<HTMLFormElement>(null)
-  const router = useRouter()
-
-  useEffect(() => {
-    if (state?.success) {
-      formRef.current?.reset()
-      router.refresh()
-    }
-  }, [state])
 
   return (
-    <form ref={formRef} action={action} className="flex flex-col gap-3">
+    <form action={action} className="flex flex-col gap-3">
       <div className="flex gap-2">
         <input
           type="text"

@@ -1,7 +1,6 @@
 'use client'
 
 import { useTransition } from 'react'
-import { useRouter } from 'next/navigation'
 import { assignActivityToGoal } from '@/app/actions/goals'
 
 type Goal = { id: string; name: string }
@@ -16,7 +15,6 @@ export function ActivityAssignSelect({
   goals: Goal[]
 }) {
   const [isPending, startTransition] = useTransition()
-  const router = useRouter()
 
   return (
     <select
@@ -24,10 +22,7 @@ export function ActivityAssignSelect({
       disabled={isPending}
       onChange={e => {
         const goalId = e.target.value || null
-        startTransition(async () => {
-          await assignActivityToGoal(activityId, goalId)
-          router.refresh()
-        })
+        startTransition(async () => { await assignActivityToGoal(activityId, goalId) })
       }}
       className="rounded border border-th-border bg-th-surface px-2 py-1 text-xs text-th-muted outline-none focus:border-th-focus disabled:opacity-50"
     >

@@ -1,5 +1,6 @@
 'use server'
 
+import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 
@@ -26,8 +27,7 @@ export async function createGoal(prevState: unknown, formData: FormData) {
     .insert({ user_id: user.id, name, color, sort_order })
 
   if (error) return { error: error.message }
-  revalidatePath('/goals')
-  return { success: true }
+  redirect('/goals')
 }
 
 export async function deleteGoal(id: string): Promise<void> {
@@ -38,10 +38,10 @@ export async function deleteGoal(id: string): Promise<void> {
   revalidatePath('/goals')
 }
 
-export async function assignActivityToGoal(activityId: string, goalId: string | null) {
+export async function assignActivityToGoal(activityId: string, goalId: string | null): Promise<void> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Not authenticated' }
+  if (!user) return
 
   await supabase
     .from('activities')
@@ -49,6 +49,5 @@ export async function assignActivityToGoal(activityId: string, goalId: string | 
     .eq('id', activityId)
     .eq('user_id', user.id)
 
-  revalidatePath('/goals')
-  return { success: true }
+  redirect('/goals')
 }
