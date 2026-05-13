@@ -22,13 +22,20 @@ export const metadata: Metadata = {
     statusBarStyle: "black-translucent",
     title: "Onduler",
   },
+  icons: {
+    icon: [
+      { url: "/favicon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicon-16.png", sizes: "16x16", type: "image/png" },
+    ],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+  },
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#151918",
+  themeColor: "#5a6f55",
 };
 
 export default async function RootLayout({
