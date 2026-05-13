@@ -10,11 +10,12 @@ type Activity = { id: string; name: string; default_points: number }
 type Domain = { id: string; name: string; color: string; activities: Activity[] }
 
 type Props =
-  | { domainsEnabled: true; domains: Domain[]; todayPoints: number; doneActivityIds: string[]; dailyGoal: number; today: string }
-  | { domainsEnabled: false; activities: Activity[]; todayPoints: number; doneActivityIds: string[]; dailyGoal: number; today: string }
+  | { domainsEnabled: true; domains: Domain[]; todayPoints: number; doneActivityIds: string[]; dailyGoal: number }
+  | { domainsEnabled: false; activities: Activity[]; todayPoints: number; doneActivityIds: string[]; dailyGoal: number }
 
 export function DailyChecklist(props: Props) {
-  const { todayPoints, doneActivityIds, dailyGoal, today } = props
+  const { todayPoints, doneActivityIds, dailyGoal } = props
+  const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
   const [activeDomain, setActiveDomain] = useState<string | null>(null)
   const [hideDone, setHideDone] = useState(false)
   const [localDone, setLocalDone] = useState(() => new Set(doneActivityIds))

@@ -63,12 +63,6 @@ export default async function DashboardPage() {
   const todayPoints = todayLogs?.reduce((sum, l) => sum + l.points, 0) ?? 0
   const doneActivityIds = (todayLogs ?? []).map(l => l.activity_id).filter(Boolean) as string[]
 
-  const today = new Date().toLocaleDateString('en-US', {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-  })
-
   // Fetch activities based on domains mode
   let domainsData: any[] | null = null
   let activitiesData: any[] | null = null
@@ -127,7 +121,6 @@ export default async function DashboardPage() {
               todayPoints={todayPoints}
               doneActivityIds={doneActivityIds}
               dailyGoal={dailyGoal}
-              today={today}
             />
           ) : (
             <DailyChecklist
@@ -136,7 +129,6 @@ export default async function DashboardPage() {
               todayPoints={todayPoints}
               doneActivityIds={doneActivityIds}
               dailyGoal={dailyGoal}
-              today={today}
             />
           )
         ) : (
