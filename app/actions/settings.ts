@@ -3,6 +3,37 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 
+export async function setupAndCompleteOnboarding(
+  activities: { name: string; default_points: number }[],
+  mode: 'quick_start' | 'custom',
+  theme: string
+) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  if (activities.length > 0) {
+    await supabase.from('activities').insert(
+      activities.map(a => ({
+        user_id: user.id,
+        domain_id: null,
+        name: a.name,
+        default_points: a.default_points,
+      }))
+    )
+  }
+
+  await supabase.from('user_settings').upsert({
+    user_id: user.id,
+    onboarding_complete: true,
+    onboarding_mode: mode,
+    theme,
+  })
+
+  revalidatePath('/dashboard')
+  return { success: true }
+}
+
 export async function setDomainsEnabled(enabled: boolean) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()

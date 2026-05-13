@@ -14,9 +14,12 @@ export default async function DashboardPage() {
 
   const { data: settings } = await supabase
     .from('user_settings')
-    .select('domains_enabled')
+    .select('domains_enabled, onboarding_complete')
     .eq('user_id', user.id)
     .single()
+
+  if (!settings?.onboarding_complete) redirect('/onboarding')
+
   const domainsEnabled = settings?.domains_enabled ?? false
 
   // Wave detection
