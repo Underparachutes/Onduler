@@ -184,6 +184,23 @@ export function SettingsPanel({ theme, domainsEnabled, dailyGoal, celebrationEna
           <p className="mt-0.5 text-sm text-th-text">{email}</p>
         </div>
       </section>
+
+      {/* Data */}
+      <section>
+        <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-th-muted">Data</p>
+        <div className="rounded-lg border border-th-border px-4 py-3 flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-th-text">Export your data</p>
+            <p className="text-xs text-th-muted">Download everything as JSON</p>
+          </div>
+          <a
+            href="/api/export"
+            className="text-sm text-th-secondary hover:underline"
+          >
+            Download
+          </a>
+        </div>
+      </section>
     </div>
   )
 }
