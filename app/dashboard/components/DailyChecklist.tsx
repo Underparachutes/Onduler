@@ -2,20 +2,19 @@
 
 import { useState, useTransition } from 'react'
 import { quickLogActivity, unlogActivity } from '@/app/actions/logs'
+import { setDailyGoal } from '@/app/actions/settings'
 import { ActivityEditRow } from './ActivityEditRow'
 import { CelebrationOverlay, type CelebrationState } from './CelebrationOverlay'
 
 type Activity = { id: string; name: string; default_points: number }
 type Domain = { id: string; name: string; color: string; activities: Activity[] }
 
-const DAILY_GOAL = 20
-
 type Props =
-  | { domainsEnabled: true; domains: Domain[]; todayPoints: number; doneActivityIds: string[] }
-  | { domainsEnabled: false; activities: Activity[]; todayPoints: number; doneActivityIds: string[] }
+  | { domainsEnabled: true; domains: Domain[]; todayPoints: number; doneActivityIds: string[]; dailyGoal: number; today: string }
+  | { domainsEnabled: false; activities: Activity[]; todayPoints: number; doneActivityIds: string[]; dailyGoal: number; today: string }
 
 export function DailyChecklist(props: Props) {
-  const { todayPoints, doneActivityIds } = props
+  const { todayPoints, doneActivityIds, dailyGoal, today } = props
   const [activeDomain, setActiveDomain] = useState<string | null>(null)
   const [hideDone, setHideDone] = useState(false)
   const [localDone, setLocalDone] = useState(() => new Set(doneActivityIds))
@@ -23,8 +22,11 @@ export function DailyChecklist(props: Props) {
   const [localPoints, setLocalPoints] = useState(todayPoints)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [celebration, setCelebration] = useState<CelebrationState | null>(null)
+  const [localGoal, setLocalGoal] = useState(dailyGoal)
+  const [editingGoal, setEditingGoal] = useState(false)
+  const [goalInput, setGoalInput] = useState(String(dailyGoal))
 
-  const progress = Math.min((localPoints / DAILY_GOAL) * 100, 100)
+  const progress = Math.min((localPoints / localGoal) * 100, 100)
 
   function getAnimType(): CelebrationState['type'] {
     const theme = document.documentElement.dataset.theme ?? 'default'
@@ -108,6 +110,24 @@ export function DailyChecklist(props: Props) {
     )
   }
 
+  const dateHeader = (
+    <div className="mb-8 flex items-end justify-between">
+      <h1 className="text-2xl font-semibold tracking-tight text-th-text">{today}</h1>
+      <div className="text-right">
+        <p className="text-2xl font-semibold leading-none text-th-text">{localPoints}</p>
+        <p className="mt-1 text-xs uppercase tracking-widest text-th-muted">pts today</p>
+      </div>
+    </div>
+  )
+
+  function commitGoal() {
+    const val = parseInt(goalInput)
+    if (!val || val < 1) { setGoalInput(String(localGoal)); setEditingGoal(false); return }
+    setLocalGoal(val)
+    setEditingGoal(false)
+    startTransition(async () => { await setDailyGoal(val) })
+  }
+
   const progressBar = (
     <div className="mb-6 rounded-lg border border-th-border p-4">
       <div className="mb-2 flex justify-between text-xs text-th-muted">
@@ -122,7 +142,28 @@ export function DailyChecklist(props: Props) {
       </div>
       <div className="flex justify-between text-xs text-th-faint">
         <span>{localPoints} pts earned</span>
-        <span>{DAILY_GOAL} pt goal</span>
+        {editingGoal ? (
+          <span className="flex items-center gap-1">
+            <input
+              autoFocus
+              type="number"
+              min="1"
+              value={goalInput}
+              onChange={e => setGoalInput(e.target.value)}
+              onBlur={commitGoal}
+              onKeyDown={e => { if (e.key === 'Enter') commitGoal(); if (e.key === 'Escape') { setGoalInput(String(localGoal)); setEditingGoal(false) } }}
+              className="w-12 rounded border border-th-border bg-th-surface px-1 py-0 text-xs text-th-text outline-none focus:border-th-focus"
+            />
+            <span>pt goal</span>
+          </span>
+        ) : (
+          <button
+            onClick={() => { setGoalInput(String(localGoal)); setEditingGoal(true) }}
+            className="hover:text-th-muted transition-colors"
+          >
+            {localGoal} pt goal
+          </button>
+        )}
       </div>
     </div>
   )
@@ -136,6 +177,7 @@ export function DailyChecklist(props: Props) {
     return (
       <>
         <div>
+          {dateHeader}
           {progressBar}
           <div className="mb-4 flex justify-end">
             <button
@@ -163,6 +205,7 @@ export function DailyChecklist(props: Props) {
   return (
     <>
     <div>
+      {dateHeader}
       {progressBar}
 
       <div className="mb-6 flex items-center gap-2">

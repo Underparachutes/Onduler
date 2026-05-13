@@ -14,13 +14,14 @@ export default async function DashboardPage() {
 
   const { data: settings } = await supabase
     .from('user_settings')
-    .select('domains_enabled, onboarding_complete')
+    .select('domains_enabled, onboarding_complete, daily_goal')
     .eq('user_id', user.id)
     .single()
 
   if (!settings?.onboarding_complete) redirect('/onboarding')
 
   const domainsEnabled = settings?.domains_enabled ?? false
+  const dailyGoal = settings?.daily_goal ?? 20
 
   // Wave detection
   const { data: lastLogData } = await supabase
@@ -56,6 +57,7 @@ export default async function DashboardPage() {
   const { data: todayLogs } = await supabase
     .from('logs')
     .select('activity_id, points')
+    .eq('user_id', user.id)
     .gte('logged_at', todayStart.toISOString())
 
   const todayPoints = todayLogs?.reduce((sum, l) => sum + l.points, 0) ?? 0
@@ -115,15 +117,6 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        {/* Date + pts header */}
-        <div className="mb-8 flex items-end justify-between">
-          <h1 className="text-2xl font-semibold tracking-tight text-th-text">{today}</h1>
-          <div className="text-right">
-            <p className="text-2xl font-semibold leading-none text-th-text">{todayPoints}</p>
-            <p className="mt-1 text-xs uppercase tracking-widest text-th-muted">pts today</p>
-          </div>
-        </div>
-
         {showWavePrompt && <WavePrompt durationSeconds={waveDurationSeconds} />}
 
         {hasActivities ? (
@@ -133,6 +126,8 @@ export default async function DashboardPage() {
               domains={(domainsData ?? []) as any}
               todayPoints={todayPoints}
               doneActivityIds={doneActivityIds}
+              dailyGoal={dailyGoal}
+              today={today}
             />
           ) : (
             <DailyChecklist
@@ -140,6 +135,8 @@ export default async function DashboardPage() {
               activities={(activitiesData ?? []) as any}
               todayPoints={todayPoints}
               doneActivityIds={doneActivityIds}
+              dailyGoal={dailyGoal}
+              today={today}
             />
           )
         ) : (

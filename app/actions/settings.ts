@@ -34,6 +34,19 @@ export async function setupAndCompleteOnboarding(
   return { success: true }
 }
 
+export async function setDailyGoal(goal: number) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  await supabase
+    .from('user_settings')
+    .upsert({ user_id: user.id, daily_goal: goal })
+
+  revalidatePath('/dashboard')
+  return { success: true }
+}
+
 export async function setDomainsEnabled(enabled: boolean) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
