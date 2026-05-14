@@ -55,10 +55,13 @@ Most habit apps treat every day like it should look the same. Onduler doesn't. T
 
 **As of this session (May 2026), the following is working:**
 
-- Auth (login / signup / sign out)
-- Onboarding flow (quick start + build your own)
+- Auth (login / signup / sign out) — verified working on mobile (iOS)
+- Onboarding flow (quick start + build your own) — verified working on mobile
 - Dashboard: daily checklist with flat mode and groups mode, hide-done toggle, daily progress bar, wave detection
-- Motions: create, edit (name/pts/hrs), delete, log, unlog
+- Motions: create, edit (name/pts/hrs), delete, log, unlog, drag-to-reorder, hide/unhide
+- Motion detail sheet: tap card body to open; shows submotions, add submotion form, hide toggle
+- Submotions: create (via detail sheet), log/unlog independently; shown only in detail sheet (not checklist)
+- Search: filter motions by name in flat mode checklist
 - Groups: create, edit, delete, reorder (drag), enable/disable via settings toggle
 - Swells: create, edit (name/color/target pts/target hrs), delete, assign motions via toggle chips, target progress bars
 - Many-to-many: motions ↔ swells, motions ↔ groups
@@ -68,10 +71,11 @@ Most habit apps treat every day like it should look the same. Onduler doesn't. T
 - Data export: JSON download of all user data
 - PWA: manifest, icons
 - Themes: Default, Bolinas, Biarritz
+- Bottom nav: Today / Swells / Log / Settings, persistent across app pages
 
 **Deferred / not yet built:**
-- Motion card detail view with submotions (schema ready: parent_id exists; UI not built)
-- Hide motion functionality (schema ready: hidden column exists; UI toggle not built)
+- Submotion budget model (submotions share parent's pts pool — needs schema + UX design)
+- Groups assignment UX (easier to assign existing motions to groups — model TBD)
 - Swell target celebration trigger (progress bars show, but no celebration fires on completion)
 - Bolinas theme (visual design system not implemented — current "Bolinas" is a placeholder)
 - Stripe / monetization
@@ -80,8 +84,9 @@ Most habit apps treat every day like it should look the same. Onduler doesn't. T
 
 | Session | Goal |
 |---|---|
-| **Next** | Motion card UI — tap to expand submotions (Option C: submotions not in daily checklist), hide toggle on motion card |
-| **After** | Swell target celebration trigger — fire celebration when cumulative pts/hrs hits target |
+| **Next** | Swell target celebration trigger — fire celebration when cumulative pts/hrs hits target |
+| **After** | Submotion budget model — submotions share parent's points pool |
+| **After** | Groups assignment UX — decide model, build assignment from motion card or group page |
 | **After** | Bolinas theme design system |
 | **After** | Stripe, premium gating, additional themes |
 
