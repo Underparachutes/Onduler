@@ -63,13 +63,30 @@ export default async function DashboardPage() {
   const todayPoints = todayLogs?.reduce((sum, l) => sum + l.points, 0) ?? 0
   const doneMotionIds = (todayLogs ?? []).map(l => l.motion_id).filter(Boolean) as string[]
 
-  // Fetch motions with swell and group data
+  // Fetch top-level motions with swell and group data
   const { data: motionsRaw } = await supabase
     .from('motions')
     .select('id, name, default_points, default_hours, motion_groups(group_id), motion_swells(swells(id, name, color))')
     .eq('user_id', user.id)
     .eq('hidden', false)
+    .is('parent_id', null)
     .order('default_points', { ascending: false })
+
+  // Fetch submotions separately (not shown in checklist, shown in detail sheet)
+  const { data: submotionsRaw } = await supabase
+    .from('motions')
+    .select('id, name, default_points, default_hours, parent_id')
+    .eq('user_id', user.id)
+    .eq('hidden', false)
+    .not('parent_id', 'is', null)
+    .order('default_points', { ascending: false })
+
+  const submotionsMap: Record<string, { id: string; name: string; default_points: number; default_hours: number }[]> = {}
+  submotionsRaw?.forEach(m => {
+    if (!m.parent_id) return
+    if (!submotionsMap[m.parent_id]) submotionsMap[m.parent_id] = []
+    submotionsMap[m.parent_id].push({ id: m.id, name: m.name, default_points: m.default_points, default_hours: m.default_hours })
+  })
 
   const motions = (motionsRaw ?? []).map(m => ({
     id: m.id,
@@ -135,6 +152,7 @@ export default async function DashboardPage() {
             motions={motions}
             groups={groupsWithMotions}
             ungroupedMotions={ungroupedMotions}
+            submotionsMap={submotionsMap}
             todayPoints={todayPoints}
             doneMotionIds={doneMotionIds}
             dailyGoal={dailyGoal}

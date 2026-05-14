@@ -105,6 +105,39 @@ export async function createMotionInGroup(groupId: string, prevState: unknown, f
   return { success: true }
 }
 
+export async function createSubmotion(parentId: string, name: string, defaultPoints: number, defaultHours: number) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const trimmed = name.trim()
+  if (!trimmed) return { error: 'Name is required' }
+
+  const { error } = await supabase.from('motions').insert({
+    user_id: user.id,
+    name: trimmed,
+    default_points: defaultPoints,
+    default_hours: defaultHours,
+    parent_id: parentId,
+  })
+
+  if (error) return { error: error.message }
+
+  revalidatePath('/dashboard')
+  return { success: true }
+}
+
+export async function hideMotion(id: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return
+
+  await supabase.from('motions').update({ hidden: true }).eq('id', id).eq('user_id', user.id)
+
+  revalidatePath('/dashboard')
+  revalidatePath('/dashboard/manage')
+}
+
 export async function setMotionGroups(motionId: string, groupIds: string[]) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()

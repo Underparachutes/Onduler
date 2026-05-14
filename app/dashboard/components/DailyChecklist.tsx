@@ -5,16 +5,19 @@ import { quickLogMotion, unlogMotion } from '@/app/actions/logs'
 import { setDailyGoal } from '@/app/actions/settings'
 import { MotionEditRow } from './MotionEditRow'
 import { CelebrationOverlay, type CelebrationState } from './CelebrationOverlay'
+import { MotionDetailSheet } from './MotionDetailSheet'
 
 type Swell = { id: string; name: string; color: string }
 type Motion = { id: string; name: string; default_points: number; default_hours: number; swells: Swell[] }
 type Group = { id: string; name: string; color: string; motions: Motion[] }
+type Submotion = { id: string; name: string; default_points: number; default_hours: number }
 
 type Props = {
   groupsEnabled: boolean
   motions: Motion[]
   groups: Group[]
   ungroupedMotions: Motion[]
+  submotionsMap: Record<string, Submotion[]>
   todayPoints: number
   doneMotionIds: string[]
   dailyGoal: number
@@ -27,6 +30,7 @@ export function DailyChecklist({
   motions,
   groups,
   ungroupedMotions,
+  submotionsMap,
   todayPoints,
   doneMotionIds,
   dailyGoal,
@@ -40,6 +44,8 @@ export function DailyChecklist({
   const [, startTransition] = useTransition()
   const [localPoints, setLocalPoints] = useState(todayPoints)
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [openSheetId, setOpenSheetId] = useState<string | null>(null)
+  const [localHiddenIds, setLocalHiddenIds] = useState<Set<string>>(new Set())
   const [celebration, setCelebration] = useState<CelebrationState | null>(null)
   const [localGoal, setLocalGoal] = useState(dailyGoal)
   const [editingGoal, setEditingGoal] = useState(false)
@@ -78,6 +84,8 @@ export function DailyChecklist({
   }
 
   function renderMotion(motion: Motion) {
+    if (localHiddenIds.has(motion.id)) return null
+
     if (editingId === motion.id) {
       return (
         <MotionEditRow
@@ -89,47 +97,63 @@ export function DailyChecklist({
     }
 
     const done = localDone.has(motion.id)
+    const hasSubmotions = (submotionsMap[motion.id]?.length ?? 0) > 0
+
     return (
       <div key={motion.id} className="flex items-center gap-1">
+        {/* Checkbox — logs the motion */}
         <button
           onClick={(e) => handleLog(motion, e.clientX, e.clientY)}
-          className={`flex flex-1 items-center gap-3 rounded-lg border px-4 py-3 text-left transition-colors ${
-            done
-              ? 'border-th-border opacity-50 hover:opacity-70'
-              : 'border-th-border hover:bg-th-surface active:scale-[0.99]'
-          }`}
+          aria-label={done ? 'Unlog' : 'Log'}
+          className="flex h-12 w-10 shrink-0 items-center justify-center"
         >
-          <div className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 transition-all ${done ? 'border-th-btn bg-th-btn' : 'border-th-border'}`}>
+          <div className={`flex h-5 w-5 items-center justify-center rounded border-2 transition-all ${done ? 'border-th-btn bg-th-btn' : 'border-th-border'}`}>
             {done && (
               <svg viewBox="0 0 12 10" fill="none" className="h-3 w-3">
                 <path d="M1 5l3.5 3.5L11 1" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             )}
           </div>
-          <div className="flex flex-1 items-center justify-between gap-2">
-            <div className="min-w-0">
-              <p className={`text-sm font-medium ${done ? 'text-th-muted line-through' : 'text-th-text'}`}>
-                {motion.name}
-              </p>
-              {motion.swells.length > 0 && (
-                <div className="mt-0.5 flex flex-wrap gap-1">
-                  {motion.swells.map(s => (
-                    <span
-                      key={s.id}
-                      className="inline-block rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white"
-                      style={{ backgroundColor: s.color }}
-                    >
-                      {s.name}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-            <span className={`shrink-0 text-sm font-semibold ${done ? 'text-th-faint' : 'text-th-secondary'}`}>
+        </button>
+
+        {/* Card body — opens detail sheet */}
+        <button
+          onClick={() => setOpenSheetId(motion.id)}
+          className={`flex flex-1 items-center gap-2 rounded-lg border px-3 py-3 text-left transition-colors ${
+            done
+              ? 'border-th-border opacity-50'
+              : 'border-th-border hover:bg-th-surface active:scale-[0.99]'
+          }`}
+        >
+          <div className="min-w-0 flex-1">
+            <p className={`text-sm font-medium ${done ? 'text-th-muted line-through' : 'text-th-text'}`}>
+              {motion.name}
+            </p>
+            {motion.swells.length > 0 && (
+              <div className="mt-0.5 flex flex-wrap gap-1">
+                {motion.swells.map(s => (
+                  <span
+                    key={s.id}
+                    className="inline-block rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white"
+                    style={{ backgroundColor: s.color }}
+                  >
+                    {s.name}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className="flex shrink-0 items-center gap-1.5">
+            <span className={`text-sm font-semibold ${done ? 'text-th-faint' : 'text-th-secondary'}`}>
               {motion.default_points}pts
             </span>
+            {hasSubmotions && (
+              <span className="text-xs text-th-faint">›</span>
+            )}
           </div>
         </button>
+
+        {/* Edit button */}
         <button
           onClick={() => setEditingId(motion.id)}
           className="shrink-0 px-2 py-3 text-base leading-none text-th-faint transition-colors hover:text-th-muted"
@@ -195,6 +219,18 @@ export function DailyChecklist({
     <CelebrationOverlay celebration={celebration} onDone={() => setCelebration(null)} />
   )
 
+  const openSheetMotion = openSheetId ? motions.find(m => m.id === openSheetId) ?? null : null
+  const detailSheet = openSheetMotion && (
+    <MotionDetailSheet
+      motion={openSheetMotion}
+      submotions={submotionsMap[openSheetMotion.id] ?? []}
+      doneMotionIds={Array.from(localDone)}
+      onClose={() => setOpenSheetId(null)}
+      onPointsDelta={(delta) => setLocalPoints(prev => Math.max(0, prev + delta))}
+      onHide={(id) => { setLocalHiddenIds(prev => new Set([...prev, id])); setOpenSheetId(null) }}
+    />
+  )
+
   // Flat mode
   if (!groupsEnabled) {
     return (
@@ -217,6 +253,7 @@ export function DailyChecklist({
             })}
           </div>
         </div>
+        {detailSheet}
         {celebrationOverlay}
       </>
     )
@@ -287,6 +324,7 @@ export function DailyChecklist({
           )}
         </div>
       </div>
+      {detailSheet}
       {celebrationOverlay}
     </>
   )
