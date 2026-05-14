@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { useRouter } from 'next/navigation'
 import { setupAndCompleteOnboarding } from '@/app/actions/settings'
 
 type Step = 'mode' | 'quick' | 'build' | 'theme'
@@ -27,7 +26,6 @@ const THEMES = [
 ]
 
 export function OnboardingFlow() {
-  const router = useRouter()
   const [step, setStep] = useState<Step>('mode')
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [customMotions, setCustomMotions] = useState<Motion[]>([])
@@ -57,10 +55,9 @@ export function OnboardingFlow() {
     document.documentElement.dataset.theme = t
   }
 
-  function finish(motions: Motion[], mode: 'quick_start' | 'custom', t: string) {
+  function finish(motions: Motion[], t: string) {
     startTransition(async () => {
-      await setupAndCompleteOnboarding(motions, mode, t)
-      router.push('/dashboard')
+      await setupAndCompleteOnboarding(motions, t)
     })
   }
 
@@ -129,7 +126,7 @@ export function OnboardingFlow() {
           </div>
 
           <button
-            onClick={() => finish(picked, 'quick_start', 'default')}
+            onClick={() => finish(picked, 'default')}
             disabled={picked.length === 0 || isPending}
             className="w-full rounded-lg bg-th-btn py-3 text-sm font-medium text-th-btn-text transition-colors hover:bg-th-btn-hover disabled:opacity-40"
           >
@@ -245,7 +242,7 @@ export function OnboardingFlow() {
         </div>
 
         <button
-          onClick={() => finish(customMotions, 'custom', theme)}
+          onClick={() => finish(customMotions, theme)}
           disabled={isPending}
           className="w-full rounded-lg bg-th-btn py-3 text-sm font-medium text-th-btn-text transition-colors hover:bg-th-btn-hover disabled:opacity-50"
         >

@@ -1,11 +1,11 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 
 export async function setupAndCompleteOnboarding(
   motions: { name: string; default_points: number }[],
-  mode: 'quick_start' | 'custom',
   theme: string
 ) {
   const supabase = await createClient()
@@ -26,12 +26,11 @@ export async function setupAndCompleteOnboarding(
   await supabase.from('user_settings').upsert({
     user_id: user.id,
     onboarding_complete: true,
-    onboarding_mode: mode,
     theme,
   })
 
   revalidatePath('/dashboard')
-  return { success: true }
+  redirect('/dashboard')
 }
 
 export async function setDailyGoal(goal: number) {
