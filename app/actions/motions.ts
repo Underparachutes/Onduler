@@ -138,6 +138,31 @@ export async function hideMotion(id: string) {
   revalidatePath('/dashboard/manage')
 }
 
+export async function reorderMotions(orderedIds: string[]) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return
+
+  await Promise.all(
+    orderedIds.map((id, index) =>
+      supabase.from('motions').update({ sort_order: index }).eq('id', id).eq('user_id', user.id)
+    )
+  )
+
+  revalidatePath('/dashboard')
+}
+
+export async function unhideMotion(id: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return
+
+  await supabase.from('motions').update({ hidden: false }).eq('id', id).eq('user_id', user.id)
+
+  revalidatePath('/dashboard')
+  revalidatePath('/dashboard/manage')
+}
+
 export async function setMotionGroups(motionId: string, groupIds: string[]) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()

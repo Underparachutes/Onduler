@@ -6,6 +6,7 @@ import { setDailyGoal } from '@/app/actions/settings'
 import { MotionEditRow } from './MotionEditRow'
 import { CelebrationOverlay, type CelebrationState } from './CelebrationOverlay'
 import { MotionDetailSheet } from './MotionDetailSheet'
+import { SortableMotionList } from './SortableMotionList'
 
 type Swell = { id: string; name: string; color: string }
 type Motion = { id: string; name: string; default_points: number; default_hours: number; swells: Swell[] }
@@ -46,6 +47,7 @@ export function DailyChecklist({
   const [editingId, setEditingId] = useState<string | null>(null)
   const [openSheetId, setOpenSheetId] = useState<string | null>(null)
   const [localHiddenIds, setLocalHiddenIds] = useState<Set<string>>(new Set())
+  const [searchQuery, setSearchQuery] = useState('')
   const [celebration, setCelebration] = useState<CelebrationState | null>(null)
   const [localGoal, setLocalGoal] = useState(dailyGoal)
   const [editingGoal, setEditingGoal] = useState(false)
@@ -238,6 +240,15 @@ export function DailyChecklist({
         <div>
           {dateHeader}
           {progressBar}
+          <div className="mb-3">
+            <input
+              type="search"
+              placeholder="Search motions…"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="w-full rounded-lg border border-th-border bg-th-surface px-3 py-2 text-sm text-th-text outline-none focus:border-th-focus placeholder:text-th-faint"
+            />
+          </div>
           <div className="mb-4 flex justify-end">
             <button
               onClick={() => setHideDone(!hideDone)}
@@ -246,12 +257,18 @@ export function DailyChecklist({
               {hideDone ? 'Show all' : 'Hide done'}
             </button>
           </div>
-          <div className="flex flex-col gap-2">
-            {motions.map(motion => {
-              if (hideDone && localDone.has(motion.id) && editingId !== motion.id) return null
-              return renderMotion(motion)
-            })}
-          </div>
+          <SortableMotionList
+            motions={motions}
+            submotionsMap={submotionsMap}
+            localDone={localDone}
+            hideDone={hideDone}
+            editingId={editingId}
+            localHiddenIds={localHiddenIds}
+            searchQuery={searchQuery}
+            onLog={handleLog}
+            onEdit={setEditingId}
+            onOpenSheet={setOpenSheetId}
+          />
         </div>
         {detailSheet}
         {celebrationOverlay}

@@ -32,7 +32,8 @@ export function AddSwellForm() {
             type="number"
             name="target_points"
             min="1"
-            placeholder="e.g. 100"
+            placeholder="e.g. 1,000"
+            defaultValue="1000"
             className="rounded-lg border border-th-border bg-th-surface px-3 py-2 text-sm text-th-text outline-none focus:border-th-focus"
           />
         </div>
@@ -44,7 +45,8 @@ export function AddSwellForm() {
             name="target_hours"
             min="0.25"
             step="0.25"
-            placeholder="e.g. 10"
+            placeholder="e.g. 10,000"
+            defaultValue="10000"
             className="rounded-lg border border-th-border bg-th-surface px-3 py-2 text-sm text-th-text outline-none focus:border-th-focus"
           />
         </div>

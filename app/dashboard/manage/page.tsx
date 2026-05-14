@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import { deleteMotion } from '@/app/actions/motions'
+import { deleteMotion, unhideMotion } from '@/app/actions/motions'
 import { AddGroupForm } from '../components/AddGroupForm'
 import { SortableGroupList } from '../components/SortableGroupList'
 import { AddMotionStandaloneForm } from './AddMotionStandaloneForm'
@@ -58,11 +58,21 @@ export default async function ManagePage() {
   }
 
   // Flat mode
-  const { data: motions } = await supabase
-    .from('motions')
-    .select('id, name, default_points, default_hours')
-    .eq('user_id', user.id)
-    .order('default_points', { ascending: false })
+  const [{ data: motions }, { data: hiddenMotions }] = await Promise.all([
+    supabase
+      .from('motions')
+      .select('id, name, default_points, default_hours')
+      .eq('user_id', user.id)
+      .eq('hidden', false)
+      .is('parent_id', null)
+      .order('sort_order', { ascending: true, nullsFirst: false }),
+    supabase
+      .from('motions')
+      .select('id, name, default_points, default_hours')
+      .eq('user_id', user.id)
+      .eq('hidden', true)
+      .order('name', { ascending: true }),
+  ])
 
   return (
     <div className="flex min-h-full flex-col items-center px-6 py-24">
@@ -108,6 +118,31 @@ export default async function ManagePage() {
           <h2 className="mb-4 text-sm font-medium text-th-text">Add a motion</h2>
           <AddMotionStandaloneForm />
         </div>
+
+        {hiddenMotions && hiddenMotions.length > 0 && (
+          <div className="mt-8 border-t border-th-border pt-8">
+            <h2 className="mb-1 text-sm font-medium text-th-text">Hidden</h2>
+            <p className="mb-4 text-xs text-th-faint">These motions are hidden from your daily checklist.</p>
+            <div className="flex flex-col gap-2">
+              {hiddenMotions.map(motion => {
+                const unhide = unhideMotion.bind(null, motion.id)
+                return (
+                  <div key={motion.id} className="flex items-center gap-3 rounded-lg border border-th-border px-4 py-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-th-muted">{motion.name}</p>
+                      <p className="text-xs text-th-faint">{motion.default_points} pts · {motion.default_hours} hrs</p>
+                    </div>
+                    <form action={unhide}>
+                      <button type="submit" className="text-xs text-th-secondary transition-colors hover:text-th-text">
+                        Unhide
+                      </button>
+                    </form>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

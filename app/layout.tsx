@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { createClient } from "@/lib/supabase/server";
 import { TimezoneSync } from "./components/TimezoneSync";
+import { BottomNav } from "./components/BottomNav";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -55,9 +56,10 @@ export default async function RootLayout({
       data-theme={theme}
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-th-bg text-th-text">
+      <body className="min-h-full flex flex-col bg-th-bg text-th-text pb-20">
         <TimezoneSync />
         {children}
+        <BottomNav />
       </body>
     </html>
   );

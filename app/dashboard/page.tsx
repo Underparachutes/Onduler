@@ -70,7 +70,7 @@ export default async function DashboardPage() {
     .eq('user_id', user.id)
     .eq('hidden', false)
     .is('parent_id', null)
-    .order('default_points', { ascending: false })
+    .order('sort_order', { ascending: true, nullsFirst: false })
 
   // Fetch submotions separately (not shown in checklist, shown in detail sheet)
   const { data: submotionsRaw } = await supabase
@@ -122,26 +122,12 @@ export default async function DashboardPage() {
       <div className="w-full max-w-sm">
         <div className="mb-6 flex items-center justify-between">
           <p className="text-xs uppercase tracking-widest text-th-muted">Onduler</p>
-          <div className="flex items-center gap-2">
-            <Link
-              href="/swells"
-              className="rounded-lg border border-th-border px-3 py-1.5 text-xs font-medium text-th-muted transition-colors hover:bg-th-surface"
-            >
-              Swells
-            </Link>
-            <Link
-              href="/log"
-              className="rounded-lg border border-th-border px-3 py-1.5 text-xs font-medium text-th-muted transition-colors hover:bg-th-surface"
-            >
-              Log
-            </Link>
-            <Link
-              href="/settings"
-              className="rounded-lg border border-th-border px-3 py-1.5 text-xs font-medium text-th-muted transition-colors hover:bg-th-surface"
-            >
-              Settings
-            </Link>
-          </div>
+          <Link
+            href="/dashboard/manage"
+            className="rounded-lg border border-th-border px-3 py-1.5 text-xs font-medium text-th-muted transition-colors hover:bg-th-surface"
+          >
+            {groupsEnabled ? 'Groups & motions' : 'Motions'}
+          </Link>
         </div>
 
         {showWavePrompt && <WavePrompt durationSeconds={waveDurationSeconds} />}
