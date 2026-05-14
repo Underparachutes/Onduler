@@ -1,21 +1,19 @@
 'use client'
 
 import { useActionState, useEffect, useTransition } from 'react'
-import { updateActivity, deleteActivity } from '@/app/actions/activities'
+import { updateMotion, deleteMotion } from '@/app/actions/motions'
 
-type Activity = { id: string; name: string; default_points: number }
+type Motion = { id: string; name: string; default_points: number; default_hours: number }
 type State = { error?: string; success?: boolean } | null
 
-export function ActivityEditRow({
-  activity,
-  domainId,
+export function MotionEditRow({
+  motion,
   onClose,
 }: {
-  activity: Activity
-  domainId: string | null
+  motion: Motion
   onClose: () => void
 }) {
-  const updateById = updateActivity.bind(null, activity.id)
+  const updateById = updateMotion.bind(null, motion.id)
   const [state, formAction, pending] = useActionState<State, FormData>(updateById, null)
   const [deleting, startDelete] = useTransition()
 
@@ -28,19 +26,28 @@ export function ActivityEditRow({
       <form action={formAction} className="flex flex-col gap-3">
         <input
           name="name"
-          defaultValue={activity.name}
+          defaultValue={motion.name}
           autoFocus
           required
           className="rounded border border-th-border bg-th-surface px-3 py-1.5 text-sm text-th-text outline-none focus:border-th-focus"
         />
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <label className="text-xs text-th-muted shrink-0">pts</label>
           <input
             name="default_points"
             type="number"
-            defaultValue={activity.default_points}
+            defaultValue={motion.default_points}
             min="1"
-            className="w-20 rounded border border-th-border bg-th-surface px-3 py-1.5 text-sm text-th-text outline-none focus:border-th-focus"
+            className="w-16 rounded border border-th-border bg-th-surface px-3 py-1.5 text-sm text-th-text outline-none focus:border-th-focus"
+          />
+          <label className="text-xs text-th-muted shrink-0">hrs</label>
+          <input
+            name="default_hours"
+            type="number"
+            defaultValue={motion.default_hours}
+            min="0.25"
+            step="0.25"
+            className="w-16 rounded border border-th-border bg-th-surface px-3 py-1.5 text-sm text-th-text outline-none focus:border-th-focus"
           />
         </div>
         {state?.error && <p className="text-xs text-red-500">{state.error}</p>}
@@ -62,7 +69,7 @@ export function ActivityEditRow({
           </button>
           <button
             type="button"
-            onClick={() => startDelete(async () => { await deleteActivity(activity.id, domainId) })}
+            onClick={() => startDelete(async () => { await deleteMotion(motion.id); onClose() })}
             disabled={pending || deleting}
             className="ml-auto text-xs text-th-faint transition-colors hover:text-red-500 disabled:opacity-50"
           >

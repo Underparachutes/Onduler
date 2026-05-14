@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { setTheme } from '@/app/actions/theme'
-import { setDomainsEnabled, setDailyGoal, setCelebrationEnabled, setHapticEnabled } from '@/app/actions/settings'
+import { setGroupsEnabled, setDailyGoal, setCelebrationEnabled, setHapticEnabled } from '@/app/actions/settings'
 
 const THEMES = [
   { id: 'default', label: 'Default', desc: 'Clean and minimal' },
@@ -12,16 +12,16 @@ const THEMES = [
 
 type Props = {
   theme: string
-  domainsEnabled: boolean
+  groupsEnabled: boolean
   dailyGoal: number
   celebrationEnabled: boolean
   hapticEnabled: boolean
   email: string
 }
 
-export function SettingsPanel({ theme, domainsEnabled, dailyGoal, celebrationEnabled, hapticEnabled, email }: Props) {
+export function SettingsPanel({ theme, groupsEnabled, dailyGoal, celebrationEnabled, hapticEnabled, email }: Props) {
   const [currentTheme, setCurrentTheme] = useState(theme)
-  const [domains, setDomains] = useState(domainsEnabled)
+  const [groups, setGroups] = useState(groupsEnabled)
   const [goal, setGoal] = useState(dailyGoal)
   const [editingGoal, setEditingGoal] = useState(false)
   const [goalInput, setGoalInput] = useState(String(dailyGoal))
@@ -35,9 +35,9 @@ export function SettingsPanel({ theme, domainsEnabled, dailyGoal, celebrationEna
     startTransition(async () => { await setTheme(t) })
   }
 
-  function handleDomains(enabled: boolean) {
-    setDomains(enabled)
-    startTransition(async () => { await setDomainsEnabled(enabled) })
+  function handleGroups(enabled: boolean) {
+    setGroups(enabled)
+    startTransition(async () => { await setGroupsEnabled(enabled) })
   }
 
   function handleCelebration(enabled: boolean) {
@@ -88,7 +88,6 @@ export function SettingsPanel({ theme, domainsEnabled, dailyGoal, celebrationEna
       <section>
         <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-th-muted">Tracking</p>
         <div className="rounded-lg border border-th-border divide-y divide-th-border">
-          {/* Daily goal */}
           <div className="flex items-center justify-between px-4 py-3">
             <div>
               <p className="text-sm font-medium text-th-text">Daily goal</p>
@@ -121,20 +120,19 @@ export function SettingsPanel({ theme, domainsEnabled, dailyGoal, celebrationEna
             )}
           </div>
 
-          {/* Domains */}
           <div className="flex items-center justify-between px-4 py-3">
             <div>
-              <p className="text-sm font-medium text-th-text">Domains</p>
-              <p className="text-xs text-th-muted">Group activities by area of life</p>
+              <p className="text-sm font-medium text-th-text">Groups</p>
+              <p className="text-xs text-th-muted">Organize motions into buckets</p>
             </div>
             <button
               role="switch"
-              aria-checked={domains}
-              onClick={() => handleDomains(!domains)}
-              className={`relative h-6 w-11 rounded-full transition-colors ${domains ? 'bg-th-btn' : 'bg-th-border'}`}
+              aria-checked={groups}
+              onClick={() => handleGroups(!groups)}
+              className={`relative h-6 w-11 rounded-full transition-colors ${groups ? 'bg-th-btn' : 'bg-th-border'}`}
             >
               <span
-                className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${domains ? 'translate-x-[22px]' : 'translate-x-0.5'}`}
+                className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${groups ? 'translate-x-[22px]' : 'translate-x-0.5'}`}
               />
             </button>
           </div>
@@ -193,10 +191,7 @@ export function SettingsPanel({ theme, domainsEnabled, dailyGoal, celebrationEna
             <p className="text-sm font-medium text-th-text">Export your data</p>
             <p className="text-xs text-th-muted">Download everything as JSON</p>
           </div>
-          <a
-            href="/api/export"
-            className="text-sm text-th-secondary hover:underline"
-          >
+          <a href="/api/export" className="text-sm text-th-secondary hover:underline">
             Download
           </a>
         </div>

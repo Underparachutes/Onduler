@@ -24,12 +24,7 @@ export default async function LogPage({
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const [{ data: settings }, todayStart] = await Promise.all([
-    supabase.from('user_settings').select('domains_enabled').eq('user_id', user.id).single(),
-    getTodayStart(),
-  ])
-  const domainsEnabled = settings?.domains_enabled ?? false
-
+  const todayStart = await getTodayStart()
   const startDate =
     period === 'all'
       ? null
@@ -37,7 +32,7 @@ export default async function LogPage({
 
   let logsQuery = supabase
     .from('logs')
-    .select('points, logged_at, activities(name, goal_id), domains(name, color)')
+    .select('points, hours, logged_at, motions(name, motion_swells(swells(id, name, color)))')
     .eq('user_id', user.id)
     .order('logged_at', { ascending: false })
 
@@ -50,42 +45,36 @@ export default async function LogPage({
 
   if (startDate) checkinQuery = checkinQuery.gte('checked_in_at', startDate.toISOString())
 
-  const [{ data: logs }, { data: waveCheckins }, { data: goals }] = await Promise.all([
+  const [{ data: logs }, { data: waveCheckins }, { data: swells }] = await Promise.all([
     logsQuery,
     checkinQuery,
-    supabase.from('goals').select('id, name, color').eq('user_id', user.id).order('sort_order', { ascending: true }),
+    supabase.from('swells').select('id, name, color, target_points, target_hours').eq('user_id', user.id).order('sort_order'),
   ])
 
   const totalPoints = logs?.reduce((sum, l) => sum + l.points, 0) ?? 0
+  const totalHours = logs?.reduce((sum, l) => sum + Number(l.hours), 0) ?? 0
 
-  // --- Goals breakdown ---
-  const goalAccum = new Map<string, { name: string; color: string; points: number }>()
-  goals?.forEach(g => goalAccum.set(g.id, { name: g.name, color: g.color, points: 0 }))
+  // Swells breakdown
+  const swellAccum = new Map<string, { name: string; color: string; points: number; hours: number; target_points: number | null; target_hours: number | null }>()
+  swells?.forEach(s => swellAccum.set(s.id, { name: s.name, color: s.color, points: 0, hours: 0, target_points: s.target_points, target_hours: s.target_hours }))
+
   logs?.forEach(log => {
-    const activity = Array.isArray(log.activities) ? log.activities[0] : (log.activities as { name: string; goal_id: string | null } | null)
-    if (activity?.goal_id) {
-      const g = goalAccum.get(activity.goal_id)
-      if (g) g.points += log.points
-    }
+    const motion = (Array.isArray(log.motions) ? log.motions[0] : log.motions) as unknown as { motion_swells?: { swells: { id: string; name: string; color: string } | null }[] } | null
+    motion?.motion_swells?.forEach((ms: unknown) => {
+      const swell = (ms as { swells: { id: string; name: string; color: string } | null }).swells
+      if (!swell) return
+      const existing = swellAccum.get(swell.id)
+      if (existing) {
+        existing.points += log.points
+        existing.hours += Number(log.hours)
+      }
+    })
   })
-  const goalBreakdown = Array.from(goalAccum.values()).filter(g => g.points > 0).sort((a, b) => b.points - a.points)
-  const maxGoalPoints = goalBreakdown[0]?.points ?? 1
 
-  // --- Domain breakdown ---
-  const domainMap = new Map<string, { name: string; color: string; points: number }>()
-  logs?.forEach(log => {
-    const domain = Array.isArray(log.domains)
-      ? log.domains[0]
-      : (log.domains as { name: string; color: string } | null)
-    if (!domain) return
-    const existing = domainMap.get(domain.name)
-    if (existing) existing.points += log.points
-    else domainMap.set(domain.name, { name: domain.name, color: domain.color, points: log.points })
-  })
-  const domainBreakdown = Array.from(domainMap.values()).sort((a, b) => b.points - a.points)
-  const maxDomainPoints = domainBreakdown[0]?.points ?? 1
+  const swellBreakdown = Array.from(swellAccum.values()).filter(s => s.points > 0).sort((a, b) => b.points - a.points)
+  const maxSwellPoints = swellBreakdown[0]?.points ?? 1
 
-  // --- Daily chart ---
+  // Daily chart
   const dayMap = new Map<string, number>()
   if (period !== 'all') {
     const numDays = parseInt(period)
@@ -101,14 +90,12 @@ export default async function LogPage({
   const days = Array.from(dayMap.entries()).sort(([a], [b]) => a.localeCompare(b))
   const maxDayPoints = Math.max(...days.map(([, pts]) => pts), 1)
 
-  // --- Summary stats ---
   const activeDays = days.filter(([, pts]) => pts > 0).length
   const avgPts = activeDays > 0 ? Math.round(totalPoints / activeDays) : 0
 
   return (
     <div className="flex min-h-full flex-col items-center px-6 py-12">
       <div className="w-full max-w-sm">
-        {/* Nav */}
         <div className="mb-6 flex items-center justify-between">
           <p className="text-xs uppercase tracking-widest text-th-muted">Onduler</p>
           <Link href="/dashboard" className="text-xs text-th-faint transition-colors hover:text-th-muted">
@@ -118,7 +105,6 @@ export default async function LogPage({
 
         <h1 className="mb-8 text-2xl font-semibold tracking-tight text-th-text">Report</h1>
 
-        {/* Period switcher */}
         <div className="mb-8 flex gap-2">
           {PERIOD_OPTIONS.map(({ value, label }) => (
             <Link
@@ -136,10 +122,9 @@ export default async function LogPage({
         </div>
 
         {totalPoints === 0 ? (
-          <p className="text-sm text-th-muted">No activity logged for this period.</p>
+          <p className="text-sm text-th-muted">No motions logged for this period.</p>
         ) : (
           <>
-            {/* Summary stats */}
             {period !== 'all' && (
               <div className="mb-8 grid grid-cols-3 gap-3">
                 <div className="rounded-lg border border-th-border p-3 text-center">
@@ -151,57 +136,33 @@ export default async function LogPage({
                   <p className="mt-0.5 text-[10px] uppercase tracking-widest text-th-muted">pts / day</p>
                 </div>
                 <div className="rounded-lg border border-th-border p-3 text-center">
-                  <p className="text-lg font-semibold text-th-text">{activeDays}</p>
-                  <p className="mt-0.5 text-[10px] uppercase tracking-widest text-th-muted">days active</p>
+                  <p className="text-lg font-semibold text-th-text">{totalHours.toFixed(1)}</p>
+                  <p className="mt-0.5 text-[10px] uppercase tracking-widest text-th-muted">hrs total</p>
                 </div>
               </div>
             )}
 
-            {/* Goals breakdown */}
-            {goalBreakdown.length > 0 && (
+            {swellBreakdown.length > 0 && (
               <div className="mb-8">
-                <h2 className="mb-3 text-sm font-medium text-th-text">By goal</h2>
+                <h2 className="mb-3 text-sm font-medium text-th-text">By swell</h2>
                 <div className="flex flex-col gap-3">
-                  {goalBreakdown.map(g => (
-                    <div key={g.name} className="flex items-center gap-3">
-                      <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: g.color }} />
-                      <span className="w-20 shrink-0 truncate text-xs text-th-secondary">{g.name}</span>
+                  {swellBreakdown.map(s => (
+                    <div key={s.name} className="flex items-center gap-3">
+                      <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: s.color }} />
+                      <span className="w-20 shrink-0 truncate text-xs text-th-secondary">{s.name}</span>
                       <div className="flex-1 rounded-full bg-th-surface" style={{ height: '6px' }}>
                         <div
                           className="h-full rounded-full transition-all"
-                          style={{ width: `${(g.points / maxGoalPoints) * 100}%`, backgroundColor: g.color }}
+                          style={{ width: `${(s.points / maxSwellPoints) * 100}%`, backgroundColor: s.color }}
                         />
                       </div>
-                      <span className="w-14 text-right text-xs text-th-faint">{g.points} pts</span>
+                      <span className="w-16 text-right text-xs text-th-faint">{s.points} pts</span>
                     </div>
                   ))}
                 </div>
               </div>
             )}
 
-            {/* Domain breakdown */}
-            {domainsEnabled && domainBreakdown.length > 0 && (
-              <div className="mb-8">
-                <h2 className="mb-3 text-sm font-medium text-th-text">By domain</h2>
-                <div className="flex flex-col gap-3">
-                  {domainBreakdown.map(d => (
-                    <div key={d.name} className="flex items-center gap-3">
-                      <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: d.color }} />
-                      <span className="w-20 shrink-0 truncate text-xs text-th-secondary">{d.name}</span>
-                      <div className="flex-1 rounded-full bg-th-surface" style={{ height: '6px' }}>
-                        <div
-                          className="h-full rounded-full"
-                          style={{ width: `${(d.points / maxDomainPoints) * 100}%`, backgroundColor: d.color }}
-                        />
-                      </div>
-                      <span className="w-14 text-right text-xs text-th-faint">{d.points} pts</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Daily chart */}
             {period !== 'all' && days.length > 0 && (
               <div className="mb-8">
                 <h2 className="mb-3 text-sm font-medium text-th-text">
@@ -235,30 +196,21 @@ export default async function LogPage({
               </div>
             )}
 
-            {/* Activity feed */}
             <div className="mb-8">
               <h2 className="mb-3 text-sm font-medium text-th-text">
                 {period === 'all' ? 'All activity' : 'Recent'}
               </h2>
               <div className="flex flex-col gap-2">
                 {logs?.slice(0, 40).map((log, i) => {
-                  const domain = Array.isArray(log.domains)
-                    ? log.domains[0]
-                    : (log.domains as { name: string; color: string } | null)
-                  const activity = Array.isArray(log.activities)
-                    ? log.activities[0]
-                    : (log.activities as { name: string } | null)
+                  const motion = Array.isArray(log.motions) ? log.motions[0] : log.motions as { name: string } | null
                   const dateLabel = new Date(log.logged_at as string).toLocaleDateString('en-US', {
                     month: 'short',
                     day: 'numeric',
                   })
                   return (
                     <div key={`${log.logged_at}-${i}`} className="flex items-center gap-2">
-                      <span
-                        className="h-2 w-2 shrink-0 rounded-full"
-                        style={{ backgroundColor: domain?.color ?? '#a1a1aa' }}
-                      />
-                      <span className="flex-1 truncate text-xs text-th-muted">{activity?.name}</span>
+                      <span className="h-2 w-2 shrink-0 rounded-full bg-th-border" />
+                      <span className="flex-1 truncate text-xs text-th-muted">{motion?.name ?? '—'}</span>
                       <span className="text-xs text-th-faint">{dateLabel}</span>
                       <span className="w-12 text-right text-xs text-th-faint">+{log.points}</span>
                     </div>
@@ -267,7 +219,6 @@ export default async function LogPage({
               </div>
             </div>
 
-            {/* Wave checkins */}
             {waveCheckins && waveCheckins.length > 0 && (
               <div>
                 <h2 className="mb-3 text-sm font-medium text-th-text">Waves</h2>

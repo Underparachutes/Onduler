@@ -55,7 +55,7 @@ export default async function RootLayout({
       data-theme={theme}
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
+      <body className="min-h-full flex flex-col bg-th-bg text-th-text">
         <TimezoneSync />
         {children}
       </body>

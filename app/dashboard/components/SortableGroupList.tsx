@@ -18,14 +18,14 @@ import {
   arrayMove,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { DomainCard } from './DomainCard'
-import { reorderDomains } from '@/app/actions/domains'
+import { GroupCard } from './GroupCard'
+import { reorderGroups } from '@/app/actions/groups'
 
-type Domain = { id: string; name: string; weight: number; color: string }
+type Group = { id: string; name: string; color: string }
 
-function SortableItem({ domain }: { domain: Domain }) {
+function SortableItem({ group }: { group: Group }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
-    useSortable({ id: domain.id })
+    useSortable({ id: group.id })
 
   return (
     <div
@@ -42,14 +42,14 @@ function SortableItem({ domain }: { domain: Domain }) {
         ⠿
       </button>
       <div className="flex-1">
-        <DomainCard domain={domain} />
+        <GroupCard group={group} />
       </div>
     </div>
   )
 }
 
-export function SortableDomainList({ domains }: { domains: Domain[] }) {
-  const [ordered, setOrdered] = useState(domains)
+export function SortableGroupList({ groups }: { groups: Group[] }) {
+  const [ordered, setOrdered] = useState(groups)
   const [, startTransition] = useTransition()
 
   const sensors = useSensors(
@@ -60,17 +60,17 @@ export function SortableDomainList({ domains }: { domains: Domain[] }) {
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event
     if (!over || active.id === over.id) return
-    const next = arrayMove(ordered, ordered.findIndex(d => d.id === active.id), ordered.findIndex(d => d.id === over.id))
+    const next = arrayMove(ordered, ordered.findIndex(g => g.id === active.id), ordered.findIndex(g => g.id === over.id))
     setOrdered(next)
-    startTransition(async () => { await reorderDomains(next.map(d => d.id)) })
+    startTransition(async () => { await reorderGroups(next.map(g => g.id)) })
   }
 
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-      <SortableContext items={ordered.map(d => d.id)} strategy={verticalListSortingStrategy}>
+      <SortableContext items={ordered.map(g => g.id)} strategy={verticalListSortingStrategy}>
         <div className="flex flex-col gap-2">
-          {ordered.map(domain => (
-            <SortableItem key={domain.id} domain={domain} />
+          {ordered.map(group => (
+            <SortableItem key={group.id} group={group} />
           ))}
         </div>
       </SortableContext>

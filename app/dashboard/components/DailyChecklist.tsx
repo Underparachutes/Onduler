@@ -1,27 +1,42 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { quickLogActivity, unlogActivity } from '@/app/actions/logs'
+import { quickLogMotion, unlogMotion } from '@/app/actions/logs'
 import { setDailyGoal } from '@/app/actions/settings'
-import { ActivityEditRow } from './ActivityEditRow'
+import { MotionEditRow } from './MotionEditRow'
 import { CelebrationOverlay, type CelebrationState } from './CelebrationOverlay'
 
-type Activity = { id: string; name: string; default_points: number; goal_id?: string | null }
-type Domain = { id: string; name: string; color: string; activities: Activity[] }
-type Goal = { id: string; name: string; color: string }
+type Swell = { id: string; name: string; color: string }
+type Motion = { id: string; name: string; default_points: number; default_hours: number; swells: Swell[] }
+type Group = { id: string; name: string; color: string; motions: Motion[] }
 
-type SharedProps = { todayPoints: number; doneActivityIds: string[]; dailyGoal: number; goals: Goal[]; celebrationEnabled: boolean; hapticEnabled: boolean }
-type Props =
-  | ({ domainsEnabled: true; domains: Domain[] } & SharedProps)
-  | ({ domainsEnabled: false; activities: Activity[] } & SharedProps)
+type Props = {
+  groupsEnabled: boolean
+  motions: Motion[]
+  groups: Group[]
+  ungroupedMotions: Motion[]
+  todayPoints: number
+  doneMotionIds: string[]
+  dailyGoal: number
+  celebrationEnabled: boolean
+  hapticEnabled: boolean
+}
 
-export function DailyChecklist(props: Props) {
-  const { todayPoints, doneActivityIds, dailyGoal, goals, celebrationEnabled, hapticEnabled } = props
-  const goalMap = new Map(goals.map(g => [g.id, g]))
+export function DailyChecklist({
+  groupsEnabled,
+  motions,
+  groups,
+  ungroupedMotions,
+  todayPoints,
+  doneMotionIds,
+  dailyGoal,
+  celebrationEnabled,
+  hapticEnabled,
+}: Props) {
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
-  const [activeDomain, setActiveDomain] = useState<string | null>(null)
+  const [activeGroup, setActiveGroup] = useState<string | null>(null)
   const [hideDone, setHideDone] = useState(false)
-  const [localDone, setLocalDone] = useState(() => new Set(doneActivityIds))
+  const [localDone, setLocalDone] = useState(() => new Set(doneMotionIds))
   const [, startTransition] = useTransition()
   const [localPoints, setLocalPoints] = useState(todayPoints)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -39,39 +54,45 @@ export function DailyChecklist(props: Props) {
     return 'glow'
   }
 
-  function handleLog(activity: Activity, domainId: string | null, clientX = 0, clientY = 0) {
-    const done = localDone.has(activity.id)
+  function handleLog(motion: Motion, clientX = 0, clientY = 0) {
+    const done = localDone.has(motion.id)
     if (done) {
-      setLocalDone(prev => { const next = new Set(prev); next.delete(activity.id); return next })
-      setLocalPoints(prev => Math.max(0, prev - activity.default_points))
-      startTransition(async () => { await unlogActivity(activity.id) })
+      setLocalDone(prev => { const next = new Set(prev); next.delete(motion.id); return next })
+      setLocalPoints(prev => Math.max(0, prev - motion.default_points))
+      startTransition(async () => { await unlogMotion(motion.id) })
     } else {
       if (hapticEnabled && 'vibrate' in navigator) navigator.vibrate(50)
       if (celebrationEnabled) setCelebration({ x: clientX, y: clientY, type: getAnimType() })
-      setLocalDone(prev => new Set([...prev, activity.id]))
-      setLocalPoints(prev => prev + activity.default_points)
-      startTransition(async () => { await quickLogActivity(activity.id, domainId) })
+      setLocalDone(prev => new Set([...prev, motion.id]))
+      setLocalPoints(prev => prev + motion.default_points)
+      startTransition(async () => { await quickLogMotion(motion.id) })
     }
   }
 
-  function renderActivity(activity: Activity, domainId: string | null) {
-    const goal = activity.goal_id ? goalMap.get(activity.goal_id) : undefined
-    if (editingId === activity.id) {
+  function commitGoal() {
+    const val = parseInt(goalInput)
+    if (!val || val < 1) { setGoalInput(String(localGoal)); setEditingGoal(false); return }
+    setLocalGoal(val)
+    setEditingGoal(false)
+    startTransition(async () => { await setDailyGoal(val) })
+  }
+
+  function renderMotion(motion: Motion) {
+    if (editingId === motion.id) {
       return (
-        <ActivityEditRow
-          key={activity.id}
-          activity={activity}
-          domainId={domainId}
+        <MotionEditRow
+          key={motion.id}
+          motion={motion}
           onClose={() => setEditingId(null)}
         />
       )
     }
 
-    const done = localDone.has(activity.id)
+    const done = localDone.has(motion.id)
     return (
-      <div key={activity.id} className="flex items-center gap-1">
+      <div key={motion.id} className="flex items-center gap-1">
         <button
-          onClick={(e) => handleLog(activity, domainId, e.clientX, e.clientY)}
+          onClick={(e) => handleLog(motion, e.clientX, e.clientY)}
           className={`flex flex-1 items-center gap-3 rounded-lg border px-4 py-3 text-left transition-colors ${
             done
               ? 'border-th-border opacity-50 hover:opacity-70'
@@ -85,29 +106,34 @@ export function DailyChecklist(props: Props) {
               </svg>
             )}
           </div>
-          <div className="flex flex-1 items-center justify-between">
-            <div>
+          <div className="flex flex-1 items-center justify-between gap-2">
+            <div className="min-w-0">
               <p className={`text-sm font-medium ${done ? 'text-th-muted line-through' : 'text-th-text'}`}>
-                {activity.name}
+                {motion.name}
               </p>
-              {goal && (
-                <span
-                  className="mt-0.5 inline-block rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white"
-                  style={{ backgroundColor: goal.color }}
-                >
-                  {goal.name}
-                </span>
+              {motion.swells.length > 0 && (
+                <div className="mt-0.5 flex flex-wrap gap-1">
+                  {motion.swells.map(s => (
+                    <span
+                      key={s.id}
+                      className="inline-block rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white"
+                      style={{ backgroundColor: s.color }}
+                    >
+                      {s.name}
+                    </span>
+                  ))}
+                </div>
               )}
             </div>
-            <span className={`text-sm font-semibold ${done ? 'text-th-faint' : 'text-th-secondary'}`}>
-              {activity.default_points}pts
+            <span className={`shrink-0 text-sm font-semibold ${done ? 'text-th-faint' : 'text-th-secondary'}`}>
+              {motion.default_points}pts
             </span>
           </div>
         </button>
         <button
-          onClick={() => setEditingId(activity.id)}
+          onClick={() => setEditingId(motion.id)}
           className="shrink-0 px-2 py-3 text-base leading-none text-th-faint transition-colors hover:text-th-muted"
-          aria-label="Edit activity"
+          aria-label="Edit motion"
         >
           ···
         </button>
@@ -124,14 +150,6 @@ export function DailyChecklist(props: Props) {
       </div>
     </div>
   )
-
-  function commitGoal() {
-    const val = parseInt(goalInput)
-    if (!val || val < 1) { setGoalInput(String(localGoal)); setEditingGoal(false); return }
-    setLocalGoal(val)
-    setEditingGoal(false)
-    startTransition(async () => { await setDailyGoal(val) })
-  }
 
   const progressBar = (
     <div className="mb-6 rounded-lg border border-th-border p-4">
@@ -164,7 +182,7 @@ export function DailyChecklist(props: Props) {
         ) : (
           <button
             onClick={() => { setGoalInput(String(localGoal)); setEditingGoal(true) }}
-            className="hover:text-th-muted transition-colors"
+            className="transition-colors hover:text-th-muted"
           >
             {localGoal} pt goal
           </button>
@@ -177,8 +195,8 @@ export function DailyChecklist(props: Props) {
     <CelebrationOverlay celebration={celebration} onDone={() => setCelebration(null)} />
   )
 
-  // Flat mode — domains off
-  if (!props.domainsEnabled) {
+  // Flat mode
+  if (!groupsEnabled) {
     return (
       <>
         <div>
@@ -187,15 +205,15 @@ export function DailyChecklist(props: Props) {
           <div className="mb-4 flex justify-end">
             <button
               onClick={() => setHideDone(!hideDone)}
-              className="text-xs text-th-faint hover:text-th-muted transition-colors"
+              className="text-xs text-th-faint transition-colors hover:text-th-muted"
             >
               {hideDone ? 'Show all' : 'Hide done'}
             </button>
           </div>
           <div className="flex flex-col gap-2">
-            {props.activities.map(activity => {
-              if (hideDone && localDone.has(activity.id) && editingId !== activity.id) return null
-              return renderActivity(activity, null)
+            {motions.map(motion => {
+              if (hideDone && localDone.has(motion.id) && editingId !== motion.id) return null
+              return renderMotion(motion)
             })}
           </div>
         </div>
@@ -204,60 +222,72 @@ export function DailyChecklist(props: Props) {
     )
   }
 
-  // Domain mode
-  const filtered = activeDomain ? props.domains.filter(d => d.id === activeDomain) : props.domains
+  // Groups mode
+  const visibleGroups = activeGroup ? groups.filter(g => g.id === activeGroup) : groups
+  const showUngrouped = !activeGroup && ungroupedMotions.length > 0
 
   return (
     <>
-    <div>
-      {dateHeader}
-      {progressBar}
+      <div>
+        {dateHeader}
+        {progressBar}
 
-      <div className="mb-6 flex items-center gap-2">
-        <div className="flex flex-1 flex-wrap gap-2">
-          {props.domains.map(d => (
-            <button
-              key={d.id}
-              onClick={() => setActiveDomain(activeDomain === d.id ? null : d.id)}
-              className="rounded-full border px-3 py-1 text-xs font-medium transition-colors"
-              style={activeDomain === d.id ? { backgroundColor: d.color, borderColor: d.color, color: '#fff' } : {}}
-            >
-              <span className={activeDomain !== d.id ? 'text-th-muted' : ''}>
-                {d.name.toUpperCase()}
-              </span>
-            </button>
-          ))}
+        <div className="mb-6 flex items-center gap-2">
+          <div className="flex flex-1 flex-wrap gap-2">
+            {groups.map(g => (
+              <button
+                key={g.id}
+                onClick={() => setActiveGroup(activeGroup === g.id ? null : g.id)}
+                className="rounded-full border px-3 py-1 text-xs font-medium transition-colors"
+                style={activeGroup === g.id ? { backgroundColor: g.color, borderColor: g.color, color: '#fff' } : {}}
+              >
+                <span className={activeGroup !== g.id ? 'text-th-muted' : ''}>
+                  {g.name.toUpperCase()}
+                </span>
+              </button>
+            ))}
+          </div>
+          <button
+            onClick={() => setHideDone(!hideDone)}
+            className="shrink-0 text-xs text-th-faint transition-colors hover:text-th-muted"
+          >
+            {hideDone ? 'Show all' : 'Hide done'}
+          </button>
         </div>
-        <button
-          onClick={() => setHideDone(!hideDone)}
-          className="shrink-0 text-xs text-th-faint hover:text-th-muted transition-colors"
-        >
-          {hideDone ? 'Show all' : 'Hide done'}
-        </button>
-      </div>
 
-      <div className="flex flex-col gap-6">
-        {filtered.map(domain => {
-          const activities = (domain.activities ?? []).filter(
-            a => (!hideDone || !localDone.has(a.id)) || editingId === a.id,
-          )
-          if (activities.length === 0) return null
-          return (
-            <div key={domain.id}>
-              <p className="mb-2 text-xs font-semibold uppercase tracking-widest" style={{ color: domain.color }}>
-                {domain.name}
+        <div className="flex flex-col gap-6">
+          {visibleGroups.map(group => {
+            const visible = group.motions.filter(
+              m => (!hideDone || !localDone.has(m.id)) || editingId === m.id,
+            )
+            if (visible.length === 0) return null
+            return (
+              <div key={group.id}>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-widest" style={{ color: group.color }}>
+                  {group.name}
+                </p>
+                <div className="flex flex-col gap-2">
+                  {visible.map(m => renderMotion(m))}
+                </div>
+              </div>
+            )
+          })}
+
+          {showUngrouped && (
+            <div>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-th-faint">
+                Other
               </p>
               <div className="flex flex-col gap-2">
-                {activities.map(activity =>
-                  renderActivity(activity, domain.id)
-                )}
+                {ungroupedMotions
+                  .filter(m => (!hideDone || !localDone.has(m.id)) || editingId === m.id)
+                  .map(m => renderMotion(m))}
               </div>
             </div>
-          )
-        })}
+          )}
+        </div>
       </div>
-    </div>
-    {celebrationOverlay}
+      {celebrationOverlay}
     </>
   )
 }

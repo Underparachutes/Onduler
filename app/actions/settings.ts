@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 
 export async function setupAndCompleteOnboarding(
-  activities: { name: string; default_points: number }[],
+  motions: { name: string; default_points: number }[],
   mode: 'quick_start' | 'custom',
   theme: string
 ) {
@@ -12,13 +12,13 @@ export async function setupAndCompleteOnboarding(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
-  if (activities.length > 0) {
-    await supabase.from('activities').insert(
-      activities.map(a => ({
+  if (motions.length > 0) {
+    await supabase.from('motions').insert(
+      motions.map(m => ({
         user_id: user.id,
-        domain_id: null,
-        name: a.name,
-        default_points: a.default_points,
+        name: m.name,
+        default_points: m.default_points,
+        default_hours: 1.0,
       }))
     )
   }
@@ -39,9 +39,7 @@ export async function setDailyGoal(goal: number) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
-  await supabase
-    .from('user_settings')
-    .upsert({ user_id: user.id, daily_goal: goal })
+  await supabase.from('user_settings').upsert({ user_id: user.id, daily_goal: goal })
 
   revalidatePath('/dashboard')
   return { success: true }
@@ -63,14 +61,12 @@ export async function setHapticEnabled(enabled: boolean) {
   return { success: true }
 }
 
-export async function setDomainsEnabled(enabled: boolean) {
+export async function setGroupsEnabled(enabled: boolean) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
-  await supabase
-    .from('user_settings')
-    .upsert({ user_id: user.id, domains_enabled: enabled })
+  await supabase.from('user_settings').upsert({ user_id: user.id, groups_enabled: enabled })
 
   revalidatePath('/dashboard')
   revalidatePath('/dashboard/manage')

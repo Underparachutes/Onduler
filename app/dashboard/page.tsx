@@ -12,13 +12,13 @@ export default async function DashboardPage() {
 
   const { data: settings } = await supabase
     .from('user_settings')
-    .select('domains_enabled, onboarding_complete, daily_goal, celebration_enabled, haptic_enabled')
+    .select('groups_enabled, onboarding_complete, daily_goal, celebration_enabled, haptic_enabled')
     .eq('user_id', user.id)
     .single()
 
   if (!settings?.onboarding_complete) redirect('/onboarding')
 
-  const domainsEnabled = settings?.domains_enabled ?? false
+  const groupsEnabled = settings?.groups_enabled ?? false
   const dailyGoal = settings?.daily_goal ?? 20
   const celebrationEnabled = settings?.celebration_enabled ?? true
   const hapticEnabled = settings?.haptic_enabled ?? true
@@ -56,53 +56,61 @@ export default async function DashboardPage() {
   const todayStart = await getTodayStart()
   const { data: todayLogs } = await supabase
     .from('logs')
-    .select('activity_id, points')
+    .select('motion_id, points')
     .eq('user_id', user.id)
     .gte('logged_at', todayStart.toISOString())
 
   const todayPoints = todayLogs?.reduce((sum, l) => sum + l.points, 0) ?? 0
-  const doneActivityIds = (todayLogs ?? []).map(l => l.activity_id).filter(Boolean) as string[]
+  const doneMotionIds = (todayLogs ?? []).map(l => l.motion_id).filter(Boolean) as string[]
 
-  // Fetch activities based on domains mode
-  let domainsData: any[] | null = null
-  let activitiesData: any[] | null = null
+  // Fetch motions with swell and group data
+  const { data: motionsRaw } = await supabase
+    .from('motions')
+    .select('id, name, default_points, default_hours, motion_groups(group_id), motion_swells(swells(id, name, color))')
+    .eq('user_id', user.id)
+    .eq('hidden', false)
+    .order('default_points', { ascending: false })
 
-  if (domainsEnabled) {
+  const motions = (motionsRaw ?? []).map(m => ({
+    id: m.id,
+    name: m.name,
+    default_points: m.default_points,
+    default_hours: m.default_hours,
+    groupIds: (m.motion_groups ?? []).map((mg: { group_id: string }) => mg.group_id),
+    swells: (m.motion_swells ?? [])
+      .map((ms: unknown) => (ms as { swells: { id: string; name: string; color: string } | null }).swells)
+      .filter(Boolean) as { id: string; name: string; color: string }[],
+  }))
+
+  let groupsData: { id: string; name: string; color: string }[] = []
+  if (groupsEnabled) {
     const { data } = await supabase
-      .from('domains')
-      .select('id, name, color, activities(id, name, default_points, goal_id)')
-      .order('sort_order', { ascending: true })
-    domainsData = data
-  } else {
-    const { data } = await supabase
-      .from('activities')
-      .select('id, name, default_points, goal_id')
+      .from('groups')
+      .select('id, name, color')
       .eq('user_id', user.id)
-      .order('default_points', { ascending: false })
-    activitiesData = data
+      .order('sort_order', { ascending: true })
+    groupsData = data ?? []
   }
 
-  const { data: goalsData } = await supabase
-    .from('goals')
-    .select('id, name, color')
-    .eq('user_id', user.id)
+  const groupsWithMotions = groupsData.map(g => ({
+    ...g,
+    motions: motions.filter(m => m.groupIds.includes(g.id)),
+  }))
+  const ungroupedMotions = motions.filter(m => m.groupIds.length === 0)
 
-  const hasActivities = domainsEnabled
-    ? (domainsData ?? []).some(d => Array.isArray(d.activities) && d.activities.length > 0)
-    : (activitiesData?.length ?? 0) > 0
+  const hasMotions = motions.length > 0
 
   return (
     <div className="flex min-h-full flex-col items-center px-6 py-12">
       <div className="w-full max-w-sm">
-        {/* Nav */}
         <div className="mb-6 flex items-center justify-between">
           <p className="text-xs uppercase tracking-widest text-th-muted">Onduler</p>
           <div className="flex items-center gap-2">
             <Link
-              href="/goals"
+              href="/swells"
               className="rounded-lg border border-th-border px-3 py-1.5 text-xs font-medium text-th-muted transition-colors hover:bg-th-surface"
             >
-              Goals
+              Swells
             </Link>
             <Link
               href="/log"
@@ -121,41 +129,29 @@ export default async function DashboardPage() {
 
         {showWavePrompt && <WavePrompt durationSeconds={waveDurationSeconds} />}
 
-        {hasActivities ? (
-          domainsEnabled ? (
-            <DailyChecklist
-              domainsEnabled={true}
-              domains={(domainsData ?? []) as any}
-              todayPoints={todayPoints}
-              doneActivityIds={doneActivityIds}
-              dailyGoal={dailyGoal}
-              goals={(goalsData ?? []) as any}
-              celebrationEnabled={celebrationEnabled}
-              hapticEnabled={hapticEnabled}
-            />
-          ) : (
-            <DailyChecklist
-              domainsEnabled={false}
-              activities={(activitiesData ?? []) as any}
-              todayPoints={todayPoints}
-              doneActivityIds={doneActivityIds}
-              dailyGoal={dailyGoal}
-              goals={(goalsData ?? []) as any}
-              celebrationEnabled={celebrationEnabled}
-              hapticEnabled={hapticEnabled}
-            />
-          )
+        {hasMotions ? (
+          <DailyChecklist
+            groupsEnabled={groupsEnabled}
+            motions={motions}
+            groups={groupsWithMotions}
+            ungroupedMotions={ungroupedMotions}
+            todayPoints={todayPoints}
+            doneMotionIds={doneMotionIds}
+            dailyGoal={dailyGoal}
+            celebrationEnabled={celebrationEnabled}
+            hapticEnabled={hapticEnabled}
+          />
         ) : (
           <div className="rounded-lg border border-th-border p-6 text-center">
             <p className="mb-1 text-sm font-medium text-th-text">Nothing here yet.</p>
             <p className="mb-4 text-sm text-th-muted">
-              Add your first activity to start tracking.
+              Add your first motion to start tracking.
             </p>
             <Link
               href="/dashboard/manage"
               className="text-sm font-medium text-th-secondary underline"
             >
-              Add activities →
+              Add motions →
             </Link>
           </div>
         )}
@@ -165,7 +161,7 @@ export default async function DashboardPage() {
             href="/dashboard/manage"
             className="text-xs text-th-faint transition-colors hover:text-th-secondary"
           >
-            {domainsEnabled ? 'Manage domains & activities →' : 'Manage activities →'}
+            {groupsEnabled ? 'Manage groups & motions →' : 'Manage motions →'}
           </Link>
         </div>
       </div>

@@ -1,10 +1,11 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import { deleteActivity } from '@/app/actions/activities'
-import { AddDomainForm } from '../components/AddDomainForm'
-import { SortableDomainList } from '../components/SortableDomainList'
-import { AddActivityStandaloneForm } from './AddActivityStandaloneForm'
+import { deleteMotion } from '@/app/actions/motions'
+import { AddGroupForm } from '../components/AddGroupForm'
+import { SortableGroupList } from '../components/SortableGroupList'
+import { AddMotionStandaloneForm } from './AddMotionStandaloneForm'
+import { ToggleGroupsButton } from './ToggleGroupsButton'
 
 export default async function ManagePage() {
   const supabase = await createClient()
@@ -13,15 +14,16 @@ export default async function ManagePage() {
 
   const { data: settings } = await supabase
     .from('user_settings')
-    .select('domains_enabled')
+    .select('groups_enabled')
     .eq('user_id', user.id)
     .single()
-  const domainsEnabled = settings?.domains_enabled ?? false
+  const groupsEnabled = settings?.groups_enabled ?? false
 
-  if (domainsEnabled) {
-    const { data: domains } = await supabase
-      .from('domains')
+  if (groupsEnabled) {
+    const { data: groups } = await supabase
+      .from('groups')
       .select('*')
+      .eq('user_id', user.id)
       .order('sort_order', { ascending: true })
 
     return (
@@ -30,33 +32,35 @@ export default async function ManagePage() {
           <Link href="/dashboard" className="mb-6 inline-block text-sm text-th-faint hover:text-th-secondary">
             ← Back
           </Link>
-          <h1 className="mb-8 text-2xl font-semibold tracking-tight text-th-text">Domains & activities</h1>
+          <div className="mb-8 flex items-center justify-between">
+            <h1 className="text-2xl font-semibold tracking-tight text-th-text">Groups & motions</h1>
+            <ToggleGroupsButton enabled={true} />
+          </div>
 
-          {domains && domains.length > 0 ? (
+          {groups && groups.length > 0 ? (
             <div className="mb-8">
               <p className="mb-4 text-sm text-th-muted">
-                Tap a domain to edit it and manage its activities.
+                Tap a group to edit it and manage its motions.
               </p>
-              <SortableDomainList domains={domains} />
+              <SortableGroupList groups={groups} />
             </div>
           ) : (
-            <p className="mb-8 text-sm text-th-muted">No domains yet.</p>
+            <p className="mb-8 text-sm text-th-muted">No groups yet.</p>
           )}
 
           <div className="border-t border-th-border pt-8">
-            <h2 className="mb-4 text-sm font-medium text-th-text">Add a domain</h2>
-            <AddDomainForm />
+            <h2 className="mb-4 text-sm font-medium text-th-text">Add a group</h2>
+            <AddGroupForm />
           </div>
-
         </div>
       </div>
     )
   }
 
-  // Flat mode — domains off
-  const { data: activities } = await supabase
-    .from('activities')
-    .select('id, name, default_points')
+  // Flat mode
+  const { data: motions } = await supabase
+    .from('motions')
+    .select('id, name, default_points, default_hours')
     .eq('user_id', user.id)
     .order('default_points', { ascending: false })
 
@@ -66,25 +70,28 @@ export default async function ManagePage() {
         <Link href="/dashboard" className="mb-6 inline-block text-sm text-th-faint hover:text-th-secondary">
           ← Back
         </Link>
-        <h1 className="mb-8 text-2xl font-semibold tracking-tight text-th-text">Activities</h1>
+        <div className="mb-8 flex items-center justify-between">
+          <h1 className="text-2xl font-semibold tracking-tight text-th-text">Motions</h1>
+          <ToggleGroupsButton enabled={false} />
+        </div>
 
-        {activities && activities.length > 0 ? (
+        {motions && motions.length > 0 ? (
           <div className="mb-8 flex flex-col gap-2">
-            {activities.map(activity => {
-              const deleteById = deleteActivity.bind(null, activity.id, null)
+            {motions.map(motion => {
+              const deleteById = deleteMotion.bind(null, motion.id)
               return (
                 <div
-                  key={activity.id}
+                  key={motion.id}
                   className="flex items-center gap-3 rounded-lg border border-th-border px-4 py-3"
                 >
-                  <div className="flex-1">
-                    <p className="text-sm text-th-text">{activity.name}</p>
-                    <p className="text-xs text-th-faint">{activity.default_points} pts</p>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-th-text">{motion.name}</p>
+                    <p className="text-xs text-th-faint">{motion.default_points} pts · {motion.default_hours} hrs</p>
                   </div>
                   <form action={deleteById}>
                     <button
                       type="submit"
-                      className="text-xs text-th-faint hover:text-red-500 transition-colors"
+                      className="text-xs text-th-faint transition-colors hover:text-red-500"
                     >
                       Delete
                     </button>
@@ -94,14 +101,13 @@ export default async function ManagePage() {
             })}
           </div>
         ) : (
-          <p className="mb-8 text-sm text-th-muted">No activities yet.</p>
+          <p className="mb-8 text-sm text-th-muted">No motions yet.</p>
         )}
 
         <div className="border-t border-th-border pt-8">
-          <h2 className="mb-4 text-sm font-medium text-th-text">Add an activity</h2>
-          <AddActivityStandaloneForm />
+          <h2 className="mb-4 text-sm font-medium text-th-text">Add a motion</h2>
+          <AddMotionStandaloneForm />
         </div>
-
       </div>
     </div>
   )

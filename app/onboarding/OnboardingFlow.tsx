@@ -5,9 +5,9 @@ import { useRouter } from 'next/navigation'
 import { setupAndCompleteOnboarding } from '@/app/actions/settings'
 
 type Step = 'mode' | 'quick' | 'build' | 'theme'
-type Suggestion = { name: string; default_points: number }
+type Motion = { name: string; default_points: number }
 
-const SUGGESTIONS: Suggestion[] = [
+const SUGGESTIONS: Motion[] = [
   { name: 'Move my body', default_points: 3 },
   { name: 'Read', default_points: 2 },
   { name: 'Meditate', default_points: 2 },
@@ -30,7 +30,7 @@ export function OnboardingFlow() {
   const router = useRouter()
   const [step, setStep] = useState<Step>('mode')
   const [selected, setSelected] = useState<Set<string>>(new Set())
-  const [customActivities, setCustomActivities] = useState<Suggestion[]>([])
+  const [customMotions, setCustomMotions] = useState<Motion[]>([])
   const [newName, setNewName] = useState('')
   const [newPts, setNewPts] = useState(2)
   const [theme, setTheme] = useState('default')
@@ -47,7 +47,7 @@ export function OnboardingFlow() {
   function addCustom() {
     const name = newName.trim()
     if (!name) return
-    setCustomActivities(prev => [...prev, { name, default_points: newPts }])
+    setCustomMotions(prev => [...prev, { name, default_points: newPts }])
     setNewName('')
     setNewPts(2)
   }
@@ -57,14 +57,13 @@ export function OnboardingFlow() {
     document.documentElement.dataset.theme = t
   }
 
-  function finish(activities: Suggestion[], mode: 'quick_start' | 'custom', t: string) {
+  function finish(motions: Motion[], mode: 'quick_start' | 'custom', t: string) {
     startTransition(async () => {
-      await setupAndCompleteOnboarding(activities, mode, t)
+      await setupAndCompleteOnboarding(motions, mode, t)
       router.push('/dashboard')
     })
   }
 
-  // Mode selection
   if (step === 'mode') {
     return (
       <div className="flex min-h-full flex-col items-center justify-center px-6 py-12">
@@ -85,7 +84,7 @@ export function OnboardingFlow() {
               className="rounded-lg border border-th-border p-5 text-left transition-colors hover:bg-th-surface"
             >
               <p className="mb-1 text-sm font-medium text-th-text">Build your own</p>
-              <p className="text-xs text-th-muted">Define your own activities and set up your space.</p>
+              <p className="text-xs text-th-muted">Define your own motions and set up your space.</p>
             </button>
           </div>
         </div>
@@ -93,7 +92,6 @@ export function OnboardingFlow() {
     )
   }
 
-  // Quick start — pick suggestions
   if (step === 'quick') {
     const picked = SUGGESTIONS.filter(s => selected.has(s.name))
     return (
@@ -142,7 +140,6 @@ export function OnboardingFlow() {
     )
   }
 
-  // Build your own — add activities
   if (step === 'build') {
     return (
       <div className="flex min-h-full flex-col items-center px-6 py-12">
@@ -150,17 +147,17 @@ export function OnboardingFlow() {
           <button onClick={() => setStep('mode')} className="mb-6 text-sm text-th-faint transition-colors hover:text-th-muted">
             ← Back
           </button>
-          <h1 className="mb-2 text-2xl font-semibold tracking-tight text-th-text">Add your activities.</h1>
+          <h1 className="mb-2 text-2xl font-semibold tracking-tight text-th-text">Add your motions.</h1>
           <p className="mb-6 text-sm text-th-muted">What do you want to track daily?</p>
 
-          {customActivities.length > 0 && (
+          {customMotions.length > 0 && (
             <div className="mb-6 flex flex-col gap-2">
-              {customActivities.map((a, i) => (
+              {customMotions.map((m, i) => (
                 <div key={i} className="flex items-center gap-3 rounded-lg border border-th-border px-4 py-3">
-                  <span className="flex-1 text-sm text-th-text">{a.name}</span>
-                  <span className="text-xs text-th-faint">{a.default_points}pts</span>
+                  <span className="flex-1 text-sm text-th-text">{m.name}</span>
+                  <span className="text-xs text-th-faint">{m.default_points}pts</span>
                   <button
-                    onClick={() => setCustomActivities(prev => prev.filter((_, j) => j !== i))}
+                    onClick={() => setCustomMotions(prev => prev.filter((_, j) => j !== i))}
                     className="text-sm text-th-faint transition-colors hover:text-red-500"
                   >
                     ×
@@ -173,7 +170,7 @@ export function OnboardingFlow() {
           <div className="mb-8 flex flex-col gap-3">
             <input
               type="text"
-              placeholder="Activity name"
+              placeholder="Motion name"
               value={newName}
               onChange={e => setNewName(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && addCustom()}
@@ -201,7 +198,7 @@ export function OnboardingFlow() {
           <div className="flex flex-col gap-3">
             <button
               onClick={() => setStep('theme')}
-              disabled={customActivities.length === 0}
+              disabled={customMotions.length === 0}
               className="w-full rounded-lg bg-th-btn py-3 text-sm font-medium text-th-btn-text transition-colors hover:bg-th-btn-hover disabled:opacity-40"
             >
               Next →
@@ -218,7 +215,6 @@ export function OnboardingFlow() {
     )
   }
 
-  // Theme selection
   return (
     <div className="flex min-h-full flex-col items-center justify-center px-6 py-12">
       <div className="w-full max-w-sm">
@@ -249,7 +245,7 @@ export function OnboardingFlow() {
         </div>
 
         <button
-          onClick={() => finish(customActivities, 'custom', theme)}
+          onClick={() => finish(customMotions, 'custom', theme)}
           disabled={isPending}
           className="w-full rounded-lg bg-th-btn py-3 text-sm font-medium text-th-btn-text transition-colors hover:bg-th-btn-hover disabled:opacity-50"
         >

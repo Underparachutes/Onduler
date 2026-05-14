@@ -4,58 +4,27 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { getTodayStart } from '@/lib/timezone'
 
-const DIFFICULTY_MULTIPLIER = { soft: 1, medium: 2, hard: 3 } as const
-type Difficulty = keyof typeof DIFFICULTY_MULTIPLIER
-
-export async function logActivity(activityId: string, domainId: string, difficulty: Difficulty) {
+export async function quickLogMotion(motionId: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
-  const { data: domain } = await supabase
-    .from('domains')
-    .select('weight')
-    .eq('id', domainId)
+  const { data: motion } = await supabase
+    .from('motions')
+    .select('default_points, default_hours')
+    .eq('id', motionId)
     .eq('user_id', user.id)
     .single()
 
-  if (!domain) return { error: 'Domain not found' }
-
-  const points = DIFFICULTY_MULTIPLIER[difficulty] * domain.weight
-
-  const { error } = await supabase
-    .from('logs')
-    .insert({ user_id: user.id, activity_id: activityId, domain_id: domainId, difficulty, points })
-
-  if (error) return { error: error.message }
-
-  revalidatePath(`/dashboard/domains/${domainId}`)
-  revalidatePath('/dashboard')
-  return { success: true }
-}
-
-export async function quickLogActivity(activityId: string, domainId: string | null) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Not authenticated' }
-
-  const { data: activity } = await supabase
-    .from('activities')
-    .select('default_points')
-    .eq('id', activityId)
-    .eq('user_id', user.id)
-    .single()
-
-  if (!activity) return { error: 'Activity not found' }
+  if (!motion) return { error: 'Motion not found' }
 
   const { error } = await supabase
     .from('logs')
     .insert({
       user_id: user.id,
-      activity_id: activityId,
-      domain_id: domainId,
-      difficulty: 'medium',
-      points: activity.default_points,
+      motion_id: motionId,
+      points: motion.default_points,
+      hours: motion.default_hours,
     })
 
   if (error) return { error: error.message }
@@ -65,7 +34,7 @@ export async function quickLogActivity(activityId: string, domainId: string | nu
   return { success: true }
 }
 
-export async function unlogActivity(activityId: string) {
+export async function unlogMotion(motionId: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
@@ -75,7 +44,7 @@ export async function unlogActivity(activityId: string) {
   const { data: logs } = await supabase
     .from('logs')
     .select('id')
-    .eq('activity_id', activityId)
+    .eq('motion_id', motionId)
     .eq('user_id', user.id)
     .gte('logged_at', todayStart.toISOString())
     .order('logged_at', { ascending: false })
