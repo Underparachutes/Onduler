@@ -7,15 +7,17 @@ import { SwellRow } from './SwellRow'
 import { formatPts, formatHrs } from '@/lib/format'
 
 type Swell = { id: string; name: string; color: string }
+type MotionSwell = { id: string; name: string; color: string; weight: number }
 type Group = { id: string; name: string; color: string }
 type Motion = {
   id: string
   name: string
   default_points: number
   default_hours: number
-  swells: Swell[]
+  swells: MotionSwell[]
   groupId: string | null
   swellIds: string[]
+  swellWeights: Record<string, number>
 }
 type Submotion = { id: string; name: string; default_points: number; default_hours: number }
 type SwellWithMotions = {
@@ -77,8 +79,14 @@ export function SwellsList({
           <SwellRow
             key={swell.id}
             swell={swell}
-            swellPtsToday={swell.motions.reduce((sum, m) => sum + (ptsTodayMap.get(m.id) ?? 0), 0)}
-            swellHrsToday={swell.motions.reduce((sum, m) => sum + (hrsTodayMap.get(m.id) ?? 0), 0)}
+            swellPtsToday={swell.motions.reduce((sum, m) => {
+              const w = m.swellWeights?.[swell.id] ?? 1
+              return sum + Math.floor((ptsTodayMap.get(m.id) ?? 0) * w)
+            }, 0)}
+            swellHrsToday={swell.motions.reduce((sum, m) => {
+              const w = m.swellWeights?.[swell.id] ?? 1
+              return sum + (hrsTodayMap.get(m.id) ?? 0) * w
+            }, 0)}
             ptsToday={ptsTodayMap}
             hrsToday={hrsTodayMap}
             allSwells={swellStubs}

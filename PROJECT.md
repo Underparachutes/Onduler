@@ -60,12 +60,12 @@ Most habit apps treat every day like it should look the same. Onduler doesn't. T
 - Dashboard: daily checklist with flat mode and groups mode, hide-done toggle, daily progress bar, wave detection
 - Motions: create, edit (name/pts/hrs), delete, log, unlog, drag-to-reorder, hide/unhide
 - Dashboard interaction model: tap card to log, long-press to drag-reorder, kebab opens detail sheet
-- Motion detail sheet: edit name/pts/hrs, two-tap delete, swells chip assignment, groups chip assignment, submotions, unlog, hide toggle
-- Submotions: create (via detail sheet), log/unlog independently; shown only in detail sheet (not checklist)
+- Motion detail sheet: edit name/pts/hrs, two-tap delete, swells chip assignment with contribution weights, groups chip assignment, submotions, unlog, hide toggle
+- Submotions: create (via detail sheet), log/unlog independently; shown only in detail sheet (not checklist); budget auto-divides parent's pts/hrs equally across submotions on add/remove/parent edit
 - Search: filter motions by name in flat mode checklist
 - Groups: create, edit, delete, reorder (drag), enable/disable via settings toggle
-- Swells: create, edit (name/color/target pts/target hrs), delete, assign motions via toggle chips, target progress bars
-- Many-to-many: motions ↔ swells, motions ↔ groups
+- Swells: create, edit (name/color/target pts/target hrs), delete, assign motions via toggle chips with per-swell contribution weight (1–100%), target progress bars with weighted aggregation
+- Many-to-many: motions ↔ swells (with contribution_weight), motions ↔ groups
 - Log (reports) page: period filter, stats, swells breakdown, daily chart, activity feed, waves
 - Settings: theme picker, groups toggle, daily goal, celebration/haptic toggles
 - Wave mode: 72hr auto-detection, manual wave return with WaveGrid check-in
@@ -75,7 +75,6 @@ Most habit apps treat every day like it should look the same. Onduler doesn't. T
 - Bottom nav: Today / Swells / Log / Settings, persistent across app pages
 
 **Deferred / not yet built:**
-- Submotion budget model (submotions share parent's pts pool — needs schema + UX design)
 - Groups assignment UX (easier to assign existing motions to groups — model TBD)
 - Swell target celebration trigger (progress bars show, but no celebration fires on completion)
 - Bolinas theme (visual design system not implemented — current "Bolinas" is a placeholder)
@@ -86,7 +85,6 @@ Most habit apps treat every day like it should look the same. Onduler doesn't. T
 | Session | Goal |
 |---|---|
 | **Next** | Swell target celebration trigger — fire celebration when cumulative pts/hrs hits target |
-| **After** | Submotion budget model — submotions share parent's points pool |
 | **After** | Groups assignment UX — decide model, build assignment from motion card or group page |
 | **After** | Bolinas theme design system |
 | **After** | Stripe, premium gating, additional themes |
@@ -114,7 +112,7 @@ motion_swells (motion_id, swell_id, contribution_weight)
 
 **Why this matters.** Most habit apps either have flat lists (no organization) or single-goal tagging (no additive credit). Collapsing Groups and Swells would either lose the additive points benefit (if everything became 1:many) or make the motion list unscannable (if everything became many:many). The two-concept model is Onduler's distinctive structural choice — don't propose simplifying it away.
 
-**Implementation gap (as of May 2026).** Current production schema does NOT match this target. It uses a `motion_groups` many-to-many junction (no `group_id` column on motions) and `motion_swells` has no `contribution_weight` column. A migration is needed to reach the locked shape. The cross-group drag-and-drop work should target the locked shape — `UPDATE motions SET group_id = ...` directly rather than juggling the junction.
+**Implementation gap (as of May 2026).** Schema now matches the locked target: `motions.group_id` FK is live, and `motion_swells.contribution_weight` is active in all aggregation paths (swells page, log page, swell progress bars). The old `motion_groups` junction is gone.
 
 ## Working agreements
 

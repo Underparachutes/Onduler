@@ -7,8 +7,9 @@ import { AddMotionForm } from './AddMotionForm'
 import { AddGroupForm } from './AddGroupForm'
 
 type Swell = { id: string; name: string; color: string }
+type MotionSwell = { id: string; name: string; color: string; weight: number }
 type Group = { id: string; name: string; color: string }
-type Motion = { id: string; name: string; default_points: number; default_hours: number; swells: Swell[]; groupId: string | null }
+type Motion = { id: string; name: string; default_points: number; default_hours: number; swells: MotionSwell[]; groupId: string | null }
 type GroupWithMotions = { id: string; name: string; color: string; motions: Motion[] }
 type Submotion = { id: string; name: string; default_points: number; default_hours: number }
 

@@ -22,8 +22,8 @@ import { CSS } from '@dnd-kit/utilities'
 import { reorderMotions } from '@/app/actions/motions'
 import { formatPts, formatHrs } from '@/lib/format'
 
-type Swell = { id: string; name: string; color: string }
-type Motion = { id: string; name: string; default_points: number; default_hours: number; swells: Swell[]; groupId: string | null }
+type MotionSwell = { id: string; name: string; color: string; weight: number }
+type Motion = { id: string; name: string; default_points: number; default_hours: number; swells: MotionSwell[]; groupId: string | null }
 type Submotion = { id: string; name: string; default_points: number; default_hours: number }
 type TrackingMode = 'points' | 'hours'
 

@@ -24,13 +24,13 @@ import { quickLogMotion, unlogMotion } from '@/app/actions/logs'
 import { setDailyGoal, setDailyGoalHours } from '@/app/actions/settings'
 import { reassignMotionToGroup, reorderMotions } from '@/app/actions/motions'
 import { formatPts, formatHrs } from '@/lib/format'
-import { adaptColor } from '@/lib/theme-colors'
 import { CelebrationOverlay, type CelebrationState } from './CelebrationOverlay'
 import { MotionDetailSheet } from './MotionDetailSheet'
 import { SortableMotionList, SortableMotionRow } from './SortableMotionList'
 
 type Swell = { id: string; name: string; color: string }
-type Motion = { id: string; name: string; default_points: number; default_hours: number; swells: Swell[]; groupId: string | null }
+type MotionSwell = { id: string; name: string; color: string; weight: number }
+type Motion = { id: string; name: string; default_points: number; default_hours: number; swells: MotionSwell[]; groupId: string | null }
 type Group = { id: string; name: string; color: string; motions: Motion[] }
 type Submotion = { id: string; name: string; default_points: number; default_hours: number }
 type TrackingMode = 'points' | 'hours'
@@ -77,7 +77,7 @@ function DroppableGroup({
     <div>
       <p
         className="mb-2 text-xs font-semibold uppercase tracking-widest"
-        style={color ? { color: adaptColor(color) } : undefined}
+        style={color ? { color } : undefined}
       >
         {label}
       </p>

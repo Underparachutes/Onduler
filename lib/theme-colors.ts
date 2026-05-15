@@ -11,6 +11,3 @@ export function getRandomThemeAccent(theme: string): string {
   return palette[Math.floor(Math.random() * palette.length)]
 }
 
-export function adaptColor(hex: string): string {
-  return `color-mix(in oklch, ${hex} 60%, var(--th-text))`
-}

@@ -3,7 +3,6 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTodayStart } from '@/lib/timezone'
 import { formatPts, formatHrs } from '@/lib/format'
-import { adaptColor } from '@/lib/theme-colors'
 
 type Period = '7' | '30' | 'all'
 
@@ -43,7 +42,7 @@ export default async function LogPage({
 
   let logsQuery = supabase
     .from('logs')
-    .select('points, hours, logged_at, motions(name, motion_swells(swells(id, name, color)))')
+    .select('points, hours, logged_at, motions(name, motion_swells(contribution_weight, swells(id, name, color)))')
     .eq('user_id', user.id)
     .order('logged_at', { ascending: false })
 
@@ -71,14 +70,14 @@ export default async function LogPage({
   swells?.forEach(s => swellAccum.set(s.id, { name: s.name, color: s.color, points: 0, hours: 0 }))
 
   logs?.forEach(log => {
-    const motion = (Array.isArray(log.motions) ? log.motions[0] : log.motions) as unknown as { motion_swells?: { swells: { id: string; name: string; color: string } | null }[] } | null
-    motion?.motion_swells?.forEach((ms: unknown) => {
-      const swell = (ms as { swells: { id: string; name: string; color: string } | null }).swells
-      if (!swell) return
-      const existing = swellAccum.get(swell.id)
+    const motion = (Array.isArray(log.motions) ? log.motions[0] : log.motions) as unknown as { motion_swells?: { contribution_weight: number; swells: { id: string; name: string; color: string } | null }[] } | null
+    motion?.motion_swells?.forEach(ms => {
+      if (!ms.swells) return
+      const weight = Number(ms.contribution_weight) || 1
+      const existing = swellAccum.get(ms.swells.id)
       if (existing) {
-        existing.points += log.points
-        existing.hours += Number(log.hours)
+        existing.points += Math.floor(log.points * weight)
+        existing.hours += Number(log.hours) * weight
       }
     })
   })
@@ -175,12 +174,12 @@ export default async function LogPage({
                 <div className="flex flex-col gap-3">
                   {swellBreakdown.map(s => (
                     <div key={s.name} className="flex items-center gap-3">
-                      <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: adaptColor(s.color) }} />
+                      <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: s.color }} />
                       <span className="w-20 shrink-0 truncate text-xs text-th-secondary">{s.name}</span>
                       <div className="flex-1 rounded-full bg-th-surface" style={{ height: '6px' }}>
                         <div
                           className="h-full rounded-full transition-all"
-                          style={{ width: `${(s.value / maxSwellValue) * 100}%`, backgroundColor: adaptColor(s.color) }}
+                          style={{ width: `${(s.value / maxSwellValue) * 100}%`, backgroundColor: s.color }}
                         />
                       </div>
                       <span className="w-16 text-right text-xs text-th-faint">{formatValue(s.value)}</span>

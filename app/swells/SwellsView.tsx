@@ -6,15 +6,17 @@ import { SwellsList } from './SwellsList'
 import { AddSwellForm } from './AddSwellForm'
 
 type Swell = { id: string; name: string; color: string }
+type MotionSwell = { id: string; name: string; color: string; weight: number }
 type Group = { id: string; name: string; color: string }
 type Motion = {
   id: string
   name: string
   default_points: number
   default_hours: number
-  swells: Swell[]
+  swells: MotionSwell[]
   groupId: string | null
   swellIds: string[]
+  swellWeights: Record<string, number>
 }
 type Submotion = { id: string; name: string; default_points: number; default_hours: number }
 type SwellWithMotions = {

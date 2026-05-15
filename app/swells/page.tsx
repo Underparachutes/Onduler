@@ -23,7 +23,7 @@ export default async function SwellsPage() {
       .order('sort_order', { ascending: true }),
     supabase
       .from('motions')
-      .select('id, name, default_points, default_hours, group_id, motion_swells(swells(id, name, color))')
+      .select('id, name, default_points, default_hours, group_id, motion_swells(contribution_weight, swells(id, name, color))')
       .eq('user_id', user.id)
       .eq('hidden', false)
       .order('default_points', { ascending: false }),
@@ -78,9 +78,14 @@ export default async function SwellsPage() {
   })
 
   const motions = (motionsRaw ?? []).map(m => {
-    const motionSwells = (m.motion_swells ?? [])
-      .map((ms: unknown) => (ms as { swells: { id: string; name: string; color: string } | null }).swells)
-      .filter(Boolean) as { id: string; name: string; color: string }[]
+    const rawJunctions = (m.motion_swells ?? []) as unknown as { contribution_weight: number; swells: { id: string; name: string; color: string } | null }[]
+    const motionSwells = rawJunctions
+      .filter(ms => ms.swells !== null)
+      .map(ms => ({ ...ms.swells!, weight: Number(ms.contribution_weight) || 1 }))
+    const swellWeights: Record<string, number> = {}
+    rawJunctions.forEach(ms => {
+      if (ms.swells) swellWeights[ms.swells.id] = Number(ms.contribution_weight) || 1
+    })
     return {
       id: m.id,
       name: m.name,
@@ -89,6 +94,7 @@ export default async function SwellsPage() {
       groupId: m.group_id as string | null,
       swells: motionSwells,
       swellIds: motionSwells.map(s => s.id),
+      swellWeights,
     }
   })
 

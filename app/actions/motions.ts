@@ -46,6 +46,16 @@ export async function updateMotion(id: string, prevState: unknown, formData: For
 
   if (error) return { error: error.message }
 
+  const { count } = await supabase
+    .from('motions')
+    .select('id', { count: 'exact', head: true })
+    .eq('parent_id', id)
+    .eq('user_id', user.id)
+
+  if (count && count > 0) {
+    await rebalanceSubmotionBudget(supabase, id, user.id)
+  }
+
   revalidatePath('/dashboard')
   revalidatePath('/swells')
   revalidatePath('/settings')
@@ -57,23 +67,41 @@ export async function deleteMotion(id: string) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return
 
+  const { data: motion } = await supabase
+    .from('motions')
+    .select('parent_id')
+    .eq('id', id)
+    .eq('user_id', user.id)
+    .single()
+
   await supabase.from('motions').delete().eq('id', id).eq('user_id', user.id)
+
+  if (motion?.parent_id) {
+    await rebalanceSubmotionBudget(supabase, motion.parent_id, user.id)
+  }
 
   revalidatePath('/dashboard')
   revalidatePath('/swells')
   revalidatePath('/settings')
 }
 
-export async function setMotionSwells(motionId: string, swellIds: string[]) {
+export async function setMotionSwells(
+  motionId: string,
+  entries: { swellId: string; weight: number }[]
+) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
   await supabase.from('motion_swells').delete().eq('motion_id', motionId)
 
-  if (swellIds.length > 0) {
+  if (entries.length > 0) {
     await supabase.from('motion_swells').insert(
-      swellIds.map(swell_id => ({ motion_id: motionId, swell_id }))
+      entries.map(({ swellId, weight }) => ({
+        motion_id: motionId,
+        swell_id: swellId,
+        contribution_weight: Math.max(0, Math.min(weight, 1)),
+      }))
     )
   }
 
@@ -82,7 +110,7 @@ export async function setMotionSwells(motionId: string, swellIds: string[]) {
   return { success: true }
 }
 
-export async function createSubmotion(parentId: string, name: string, defaultPoints: number, defaultHours: number) {
+export async function createSubmotion(parentId: string, name: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
@@ -93,14 +121,17 @@ export async function createSubmotion(parentId: string, name: string, defaultPoi
   const { error } = await supabase.from('motions').insert({
     user_id: user.id,
     name: trimmed,
-    default_points: defaultPoints,
-    default_hours: defaultHours,
+    default_points: 1,
+    default_hours: 1,
     parent_id: parentId,
   })
 
   if (error) return { error: error.message }
 
+  await rebalanceSubmotionBudget(supabase, parentId, user.id)
+
   revalidatePath('/dashboard')
+  revalidatePath('/swells')
   return { success: true }
 }
 
@@ -169,6 +200,47 @@ export async function reassignMotionToGroup(
 
   revalidatePath('/dashboard')
   return { success: true }
+}
+
+async function rebalanceSubmotionBudget(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  parentId: string,
+  userId: string
+) {
+  const { data: parent } = await supabase
+    .from('motions')
+    .select('default_points, default_hours')
+    .eq('id', parentId)
+    .eq('user_id', userId)
+    .single()
+
+  if (!parent) return
+
+  const { data: subs } = await supabase
+    .from('motions')
+    .select('id')
+    .eq('parent_id', parentId)
+    .eq('user_id', userId)
+    .order('created_at', { ascending: true })
+
+  if (!subs || subs.length === 0) return
+
+  const count = subs.length
+  const basePts = Math.floor(parent.default_points / count)
+  const remainderPts = parent.default_points % count
+  const baseHrs = parseFloat((Number(parent.default_hours) / count).toFixed(2))
+
+  await Promise.all(
+    subs.map((sub, i) =>
+      supabase
+        .from('motions')
+        .update({
+          default_points: basePts + (i < remainderPts ? 1 : 0),
+          default_hours: baseHrs,
+        })
+        .eq('id', sub.id)
+    )
+  )
 }
 
 export async function setMotionGroup(motionId: string, groupId: string | null) {

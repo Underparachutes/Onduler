@@ -7,8 +7,9 @@ import { createSubmotion, hideMotion, updateMotion, deleteMotion, setMotionSwell
 import { formatPts, formatHrs } from '@/lib/format'
 
 type Swell = { id: string; name: string; color: string }
+type MotionSwell = { id: string; name: string; color: string; weight: number }
 type Group = { id: string; name: string; color: string }
-type Motion = { id: string; name: string; default_points: number; default_hours: number; swells: Swell[]; groupId: string | null }
+type Motion = { id: string; name: string; default_points: number; default_hours: number; swells: MotionSwell[]; groupId: string | null }
 type Submotion = { id: string; name: string; default_points: number; default_hours: number }
 type UpdateState = { error?: string; success?: boolean } | null
 type TrackingMode = 'points' | 'hours'
@@ -46,14 +47,14 @@ export function MotionDetailSheet({
   const [confirming, setConfirming] = useState(false)
   const confirmTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Add submotion
+  // Add submotion (budget auto-divides from parent)
   const [addName, setAddName] = useState('')
-  const [addPts, setAddPts] = useState(1)
-  const [addHrs, setAddHrs] = useState(1.0)
   const [isAdding, startAdding] = useTransition()
 
-  // Swells assignment
-  const [localSwellIds, setLocalSwellIds] = useState<Set<string>>(() => new Set(motion.swells.map(s => s.id)))
+  // Swells assignment with weights
+  const [localSwellWeights, setLocalSwellWeights] = useState<Map<string, number>>(
+    () => new Map(motion.swells.map(s => [s.id, s.weight]))
+  )
   const [, startSwells] = useTransition()
 
   // Groups assignment
@@ -90,8 +91,8 @@ export function MotionDetailSheet({
     const name = addName.trim()
     if (!name) return
     startAdding(async () => {
-      await createSubmotion(motion.id, name, addPts, addHrs)
-      setAddName(''); setAddPts(1); setAddHrs(1.0)
+      await createSubmotion(motion.id, name)
+      setAddName('')
       router.refresh()
     })
   }
@@ -106,11 +107,23 @@ export function MotionDetailSheet({
     }
   }
 
+  function swellEntries(weights: Map<string, number>) {
+    return Array.from(weights.entries()).map(([swellId, weight]) => ({ swellId, weight }))
+  }
+
   function toggleSwell(swellId: string) {
-    const next = new Set(localSwellIds)
-    next.has(swellId) ? next.delete(swellId) : next.add(swellId)
-    setLocalSwellIds(next)
-    startSwells(async () => { await setMotionSwells(motion.id, Array.from(next)) })
+    const next = new Map(localSwellWeights)
+    next.has(swellId) ? next.delete(swellId) : next.set(swellId, 1)
+    setLocalSwellWeights(next)
+    startSwells(async () => { await setMotionSwells(motion.id, swellEntries(next)) })
+  }
+
+  function updateSwellWeight(swellId: string, pct: number) {
+    const clamped = Math.max(0, Math.min(pct, 100))
+    const next = new Map(localSwellWeights)
+    next.set(swellId, clamped / 100)
+    setLocalSwellWeights(next)
+    startSwells(async () => { await setMotionSwells(motion.id, swellEntries(next)) })
   }
 
   function toggleGroup(groupId: string) {
@@ -229,24 +242,39 @@ export function MotionDetailSheet({
           </form>
         </div>
 
-        {/* Swells assignment */}
+        {/* Swells assignment with weights */}
         {allSwells.length > 0 && (
           <div className="mb-6">
             <p className="mb-3 text-xs font-medium uppercase tracking-widest text-th-faint">Swells</p>
             <div className="flex flex-wrap gap-2">
               {allSwells.map(s => {
-                const active = localSwellIds.has(s.id)
+                const active = localSwellWeights.has(s.id)
+                const pct = Math.round((localSwellWeights.get(s.id) ?? 1) * 100)
                 return (
-                  <button
-                    key={s.id}
-                    onClick={() => toggleSwell(s.id)}
-                    className="rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wide transition-colors"
-                    style={active
-                      ? { backgroundColor: s.color, borderColor: s.color, color: '#fff' }
-                      : { borderColor: 'var(--color-th-border)', color: 'var(--color-th-muted)' }}
-                  >
-                    {s.name}
-                  </button>
+                  <div key={s.id} className="flex items-center gap-1">
+                    <button
+                      onClick={() => toggleSwell(s.id)}
+                      className="rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wide transition-colors"
+                      style={active
+                        ? { backgroundColor: s.color, borderColor: s.color, color: '#fff' }
+                        : { borderColor: 'var(--color-th-border)', color: 'var(--color-th-muted)' }}
+                    >
+                      {s.name}
+                    </button>
+                    {active && (
+                      <div className="flex items-center gap-0.5">
+                        <input
+                          type="number"
+                          min="1"
+                          max="100"
+                          value={pct}
+                          onChange={e => updateSwellWeight(s.id, parseInt(e.target.value) || 100)}
+                          className="w-10 rounded border border-th-border bg-th-surface px-1 py-0.5 text-center text-xs text-th-text outline-none focus:border-th-focus"
+                        />
+                        <span className="text-xs text-th-faint">%</span>
+                      </div>
+                    )}
+                  </div>
                 )
               })}
             </div>
@@ -277,49 +305,31 @@ export function MotionDetailSheet({
           </div>
         )}
 
-        {/* Add submotion */}
+        {/* Add submotion (budget auto-divides from parent) */}
         <div className="mb-6 border-t border-th-border pt-4">
           <p className="mb-3 text-xs font-medium uppercase tracking-widest text-th-faint">Add submotion</p>
-          <div className="flex flex-col gap-2">
+          <div className="flex gap-2">
             <input
               type="text"
               placeholder="Name"
               value={addName}
               onChange={e => setAddName(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleAdd()}
-              className="rounded-lg border border-th-border bg-th-surface px-3 py-2 text-sm text-th-text outline-none focus:border-th-focus"
+              className="flex-1 rounded-lg border border-th-border bg-th-surface px-3 py-2 text-sm text-th-text outline-none focus:border-th-focus"
             />
-            <div className="flex gap-2">
-              <div className="flex items-center gap-1.5">
-                <label className="text-xs text-th-muted">Pts</label>
-                <input
-                  type="number"
-                  min="1"
-                  value={addPts}
-                  onChange={e => setAddPts(parseInt(e.target.value) || 1)}
-                  className="w-14 rounded-lg border border-th-border bg-th-surface px-2 py-2 text-sm text-th-text outline-none focus:border-th-focus"
-                />
-              </div>
-              <div className="flex items-center gap-1.5">
-                <label className="text-xs text-th-muted">Hrs</label>
-                <input
-                  type="number"
-                  min="0.25"
-                  step="0.25"
-                  value={addHrs}
-                  onChange={e => setAddHrs(parseFloat(e.target.value) || 0.25)}
-                  className="w-14 rounded-lg border border-th-border bg-th-surface px-2 py-2 text-sm text-th-text outline-none focus:border-th-focus"
-                />
-              </div>
-              <button
-                onClick={handleAdd}
-                disabled={!addName.trim() || isAdding}
-                className="flex-1 rounded-lg bg-th-btn px-3 py-2 text-sm font-medium text-th-btn-text transition-colors hover:bg-th-btn-hover disabled:opacity-40"
-              >
-                {isAdding ? '…' : 'Add'}
-              </button>
-            </div>
+            <button
+              onClick={handleAdd}
+              disabled={!addName.trim() || isAdding}
+              className="shrink-0 rounded-lg bg-th-btn px-3 py-2 text-sm font-medium text-th-btn-text transition-colors hover:bg-th-btn-hover disabled:opacity-40"
+            >
+              {isAdding ? '…' : 'Add'}
+            </button>
           </div>
+          {submotions.length > 0 && (
+            <p className="mt-2 text-xs text-th-faint">
+              Parent&apos;s {formatPts(motion.default_points)} split across {submotions.length} submotion{submotions.length !== 1 ? 's' : ''}
+            </p>
+          )}
         </div>
 
         {/* Hide */}

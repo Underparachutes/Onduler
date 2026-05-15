@@ -67,7 +67,7 @@ export default async function DashboardPage() {
   // Fetch top-level motions with swell and group data
   const { data: motionsRaw } = await supabase
     .from('motions')
-    .select('id, name, default_points, default_hours, group_id, motion_swells(swells(id, name, color))')
+    .select('id, name, default_points, default_hours, group_id, motion_swells(contribution_weight, swells(id, name, color))')
     .eq('user_id', user.id)
     .eq('hidden', false)
     .is('parent_id', null)
@@ -89,16 +89,24 @@ export default async function DashboardPage() {
     submotionsMap[m.parent_id].push({ id: m.id, name: m.name, default_points: m.default_points, default_hours: m.default_hours })
   })
 
-  const motions = (motionsRaw ?? []).map(m => ({
-    id: m.id,
-    name: m.name,
-    default_points: m.default_points,
-    default_hours: m.default_hours,
-    groupId: m.group_id as string | null,
-    swells: (m.motion_swells ?? [])
-      .map((ms: unknown) => (ms as { swells: { id: string; name: string; color: string } | null }).swells)
-      .filter(Boolean) as { id: string; name: string; color: string }[],
-  }))
+  const motions = (motionsRaw ?? []).map(m => {
+    const rawJunctions = (m.motion_swells ?? []) as unknown as { contribution_weight: number; swells: { id: string; name: string; color: string } | null }[]
+    const swellWeights: Record<string, number> = {}
+    rawJunctions.forEach(ms => {
+      if (ms.swells) swellWeights[ms.swells.id] = Number(ms.contribution_weight) || 1
+    })
+    return {
+      id: m.id,
+      name: m.name,
+      default_points: m.default_points,
+      default_hours: m.default_hours,
+      groupId: m.group_id as string | null,
+      swells: rawJunctions
+        .filter(ms => ms.swells !== null)
+        .map(ms => ({ ...ms.swells!, weight: Number(ms.contribution_weight) || 1 })),
+      swellWeights,
+    }
+  })
 
   const { data: swellsData } = await supabase
     .from('swells')
