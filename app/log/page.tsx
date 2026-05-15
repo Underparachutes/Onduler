@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTodayStart } from '@/lib/timezone'
 import { formatPts, formatHrs } from '@/lib/format'
+import { adaptColor } from '@/lib/theme-colors'
 
 type Period = '7' | '30' | 'all'
 
@@ -88,19 +89,20 @@ export default async function LogPage({
     .sort((a, b) => b.value - a.value)
   const maxSwellValue = swellBreakdown[0]?.value ?? 1
 
-  // Daily chart
+  // Daily chart — bucket everything by Pacific date, not UTC
+  const pacificDateFmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Los_Angeles' })
   const dayMap = new Map<string, number>()
   if (period !== 'all') {
     const numDays = parseInt(period)
     for (let i = numDays - 1; i >= 0; i--) {
       const d = new Date(todayStart.getTime() - i * 24 * 60 * 60 * 1000)
-      dayMap.set(d.toISOString().slice(0, 10), 0)
+      dayMap.set(pacificDateFmt.format(d), 0)
     }
   }
   logs?.forEach(log => {
-    const day = (log.logged_at as string).slice(0, 10)
+    const day = pacificDateFmt.format(new Date(log.logged_at as string))
     const inc = isHours ? Number(log.hours) : log.points
-    dayMap.set(day, (dayMap.get(day) ?? 0) + inc)
+    if (dayMap.has(day)) dayMap.set(day, dayMap.get(day)! + inc)
   })
   const days = Array.from(dayMap.entries()).sort(([a], [b]) => a.localeCompare(b))
   const maxDayValue = Math.max(...days.map(([, v]) => v), 1)
@@ -173,12 +175,12 @@ export default async function LogPage({
                 <div className="flex flex-col gap-3">
                   {swellBreakdown.map(s => (
                     <div key={s.name} className="flex items-center gap-3">
-                      <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: s.color }} />
+                      <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: adaptColor(s.color) }} />
                       <span className="w-20 shrink-0 truncate text-xs text-th-secondary">{s.name}</span>
                       <div className="flex-1 rounded-full bg-th-surface" style={{ height: '6px' }}>
                         <div
                           className="h-full rounded-full transition-all"
-                          style={{ width: `${(s.value / maxSwellValue) * 100}%`, backgroundColor: s.color }}
+                          style={{ width: `${(s.value / maxSwellValue) * 100}%`, backgroundColor: adaptColor(s.color) }}
                         />
                       </div>
                       <span className="w-16 text-right text-xs text-th-faint">{formatValue(s.value)}</span>
@@ -231,6 +233,7 @@ export default async function LogPage({
                   const dateLabel = new Date(log.logged_at as string).toLocaleDateString('en-US', {
                     month: 'short',
                     day: 'numeric',
+                    timeZone: 'America/Los_Angeles',
                   })
                   const entryValue = isHours ? round1(Number(log.hours)) : log.points
                   return (
@@ -251,7 +254,7 @@ export default async function LogPage({
                 <div className="flex flex-col gap-3">
                   {waveCheckins.map((checkin, i) => {
                     const dateLabel = new Date(checkin.checked_in_at as string).toLocaleDateString(
-                      'en-US', { month: 'short', day: 'numeric' },
+                      'en-US', { month: 'short', day: 'numeric', timeZone: 'America/Los_Angeles' },
                     )
                     const waveDays = checkin.duration_seconds
                       ? Math.round(checkin.duration_seconds / 86400)

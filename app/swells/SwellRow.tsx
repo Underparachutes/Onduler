@@ -3,6 +3,7 @@
 import { useState, useActionState } from 'react'
 import { updateSwell, deleteSwell } from '@/app/actions/swells'
 import { formatPts, formatHrs } from '@/lib/format'
+import { adaptColor } from '@/lib/theme-colors'
 
 type Motion = { id: string; name: string; default_points: number; default_hours: number; swellIds: string[] }
 type SwellStub = { id: string; name: string; color: string }
@@ -121,8 +122,8 @@ export function SwellRow({ swell, swellPtsToday, swellHrsToday, ptsToday, hrsTod
     <div>
       <div className="mb-2 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: swell.color }} />
-          <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: swell.color }}>
+          <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: adaptColor(swell.color) }} />
+          <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: adaptColor(swell.color) }}>
             {swell.name}
           </p>
         </div>
@@ -146,7 +147,7 @@ export function SwellRow({ swell, swellPtsToday, swellHrsToday, ptsToday, hrsTod
             <div className="flex-1 rounded-full bg-th-surface" style={{ height: '4px' }}>
               <div
                 className="h-full rounded-full transition-all"
-                style={{ width: `${progress}%`, backgroundColor: swell.color }}
+                style={{ width: `${progress}%`, backgroundColor: adaptColor(swell.color) }}
               />
             </div>
             <span className="w-8 text-right text-[10px] text-th-faint">{Math.round(progress)}%</span>

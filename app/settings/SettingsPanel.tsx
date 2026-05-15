@@ -12,6 +12,7 @@ import {
 } from '@/app/actions/settings'
 import { unhideMotion } from '@/app/actions/motions'
 import { formatPts, formatHrs } from '@/lib/format'
+import { adaptColor } from '@/lib/theme-colors'
 import { EditGroupForm } from './EditGroupForm'
 
 const THEMES = [
@@ -217,7 +218,7 @@ export function SettingsPanel({
             >
               <span
                 className="h-3 w-3 shrink-0 rounded-full"
-                style={{ backgroundColor: g.color }}
+                style={{ backgroundColor: adaptColor(g.color) }}
               />
               <span className="flex-1 text-sm text-th-text">{g.name}</span>
             </button>

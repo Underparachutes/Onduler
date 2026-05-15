@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { setMotionSwells } from '@/app/actions/motions'
+import { adaptColor } from '@/lib/theme-colors'
 
 type Swell = { id: string; name: string; color: string }
 
@@ -37,7 +38,7 @@ export function MotionSwellToggle({
             style={
               on
                 ? { backgroundColor: swell.color, color: 'white' }
-                : { border: `1px solid ${swell.color}`, color: swell.color, backgroundColor: 'transparent' }
+                : { border: `1px solid ${adaptColor(swell.color)}`, color: adaptColor(swell.color), backgroundColor: 'transparent' }
             }
           >
             {swell.name}

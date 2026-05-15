@@ -10,3 +10,7 @@ export function getRandomThemeAccent(theme: string): string {
   const palette = THEME_PALETTES[theme as ThemeName] ?? THEME_PALETTES.default
   return palette[Math.floor(Math.random() * palette.length)]
 }
+
+export function adaptColor(hex: string): string {
+  return `color-mix(in oklch, ${hex} 60%, var(--th-text))`
+}

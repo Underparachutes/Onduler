@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useRef, useTransition } from 'react'
 import {
   DndContext,
   DragOverlay,
@@ -24,6 +24,7 @@ import { quickLogMotion, unlogMotion } from '@/app/actions/logs'
 import { setDailyGoal, setDailyGoalHours } from '@/app/actions/settings'
 import { reassignMotionToGroup, reorderMotions } from '@/app/actions/motions'
 import { formatPts, formatHrs } from '@/lib/format'
+import { adaptColor } from '@/lib/theme-colors'
 import { CelebrationOverlay, type CelebrationState } from './CelebrationOverlay'
 import { MotionDetailSheet } from './MotionDetailSheet'
 import { SortableMotionList, SortableMotionRow } from './SortableMotionList'
@@ -76,7 +77,7 @@ function DroppableGroup({
     <div>
       <p
         className="mb-2 text-xs font-semibold uppercase tracking-widest"
-        style={color ? { color } : undefined}
+        style={color ? { color: adaptColor(color) } : undefined}
       >
         {label}
       </p>
@@ -172,6 +173,8 @@ export function DailyChecklist({
   const [localGoal, setLocalGoal] = useState(goalValue)
   const [editingGoal, setEditingGoal] = useState(false)
   const [goalInput, setGoalInput] = useState(String(goalValue))
+  const [undoToast, setUndoToast] = useState<{ motion: Motion } | null>(null)
+  const undoTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined)
 
   // Groups DnD state
   const [containers, setContainers] = useState<Record<string, Motion[]>>(() => {
@@ -211,7 +214,21 @@ export function DailyChecklist({
       setLocalDone(prev => new Set([...prev, motion.id]))
       setLocalValue(prev => prev + delta)
       startTransition(async () => { await quickLogMotion(motion.id) })
+      if (undoTimeoutRef.current) clearTimeout(undoTimeoutRef.current)
+      undoTimeoutRef.current = setTimeout(() => setUndoToast(null), 3500)
+      setUndoToast({ motion })
     }
+  }
+
+  function handleUndo() {
+    if (!undoToast) return
+    if (undoTimeoutRef.current) clearTimeout(undoTimeoutRef.current)
+    const { motion } = undoToast
+    const delta = motionDelta(motion)
+    setLocalDone(prev => { const next = new Set(prev); next.delete(motion.id); return next })
+    setLocalValue(prev => Math.max(0, prev - delta))
+    setUndoToast(null)
+    startTransition(async () => { await unlogMotion(motion.id) })
   }
 
   function commitGoal() {
@@ -354,6 +371,13 @@ export function DailyChecklist({
     />
   )
 
+  const undoToastEl = undoToast && (
+    <div className="fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-lg border border-th-border bg-th-surface px-4 py-2.5 shadow-lg">
+      <span className="truncate text-sm text-th-muted">Logged {undoToast.motion.name}</span>
+      <button onClick={handleUndo} className="shrink-0 text-sm font-semibold text-th-btn">Undo</button>
+    </div>
+  )
+
   // Flat mode
   if (!groupsEnabled) {
     return (
@@ -392,6 +416,7 @@ export function DailyChecklist({
         </div>
         {detailSheet}
         {celebrationOverlay}
+        {undoToastEl}
       </>
     )
   }
@@ -494,6 +519,7 @@ export function DailyChecklist({
       </div>
       {detailSheet}
       {celebrationOverlay}
+      {undoToastEl}
     </>
   )
 }
