@@ -3,7 +3,7 @@
 import { useActionState, useEffect, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { quickLogMotion, unlogMotion } from '@/app/actions/logs'
-import { createSubmotion, hideMotion, updateMotion, deleteMotion, setMotionSwells, setMotionGroup } from '@/app/actions/motions'
+import { createSubmotion, hideMotion, updateMotion, deleteMotion, setMotionSwells, setMotionGroup, updateSubmotionDirect } from '@/app/actions/motions'
 import { formatPts, formatHrs } from '@/lib/format'
 
 type Swell = { id: string; name: string; color: string }
@@ -51,9 +51,42 @@ export function MotionDetailSheet({
   const [addName, setAddName] = useState('')
   const [isAdding, startAdding] = useTransition()
 
+  // Edit submotion inline
+  const [editingSubId, setEditingSubId] = useState<string | null>(null)
+  const [editSubName, setEditSubName] = useState('')
+  const [editSubPts, setEditSubPts] = useState('')
+  const [isSavingSub, startSavingSub] = useTransition()
+
+  function startEditSub(sub: Submotion) {
+    setEditingSubId(sub.id)
+    setEditSubName(sub.name)
+    setEditSubPts(String(sub.default_points))
+  }
+
+  function cancelEditSub() {
+    setEditingSubId(null)
+    setEditSubName('')
+    setEditSubPts('')
+  }
+
+  function saveEditSub(sub: Submotion) {
+    const name = editSubName.trim()
+    const pts = parseInt(editSubPts)
+    if (!name || isNaN(pts) || pts < 1) return
+    startSavingSub(async () => {
+      await updateSubmotionDirect(sub.id, name, pts)
+      setEditingSubId(null)
+      router.refresh()
+    })
+  }
+
   // Swells assignment with weights
   const [localSwellWeights, setLocalSwellWeights] = useState<Map<string, number>>(
     () => new Map(motion.swells.map(s => [s.id, s.weight]))
+  )
+  // Draft string values so the input can be empty while the user is typing
+  const [swellPctDraft, setSwellPctDraft] = useState<Map<string, string>>(
+    () => new Map(motion.swells.map(s => [s.id, String(Math.round(s.weight * 100))]))
   )
   const [, startSwells] = useTransition()
 
@@ -113,7 +146,13 @@ export function MotionDetailSheet({
 
   function toggleSwell(swellId: string) {
     const next = new Map(localSwellWeights)
-    next.has(swellId) ? next.delete(swellId) : next.set(swellId, 1)
+    if (next.has(swellId)) {
+      next.delete(swellId)
+      setSwellPctDraft(prev => { const d = new Map(prev); d.delete(swellId); return d })
+    } else {
+      next.set(swellId, 1)
+      setSwellPctDraft(prev => new Map(prev).set(swellId, '100'))
+    }
     setLocalSwellWeights(next)
     startSwells(async () => { await setMotionSwells(motion.id, swellEntries(next)) })
   }
@@ -168,24 +207,75 @@ export function MotionDetailSheet({
             <div className="flex flex-col gap-2">
               {submotions.map(sub => {
                 const done = localDone.has(sub.id)
-                return (
-                  <button
-                    key={sub.id}
-                    onClick={() => handleSubLog(sub)}
-                    className={`flex items-center gap-3 rounded-lg border px-4 py-3 text-left transition-colors ${
-                      done ? 'border-th-border opacity-50' : 'border-th-border hover:bg-th-surface active:scale-[0.99]'
-                    }`}
-                  >
-                    <div className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 transition-all ${done ? 'border-th-btn text-th-btn' : 'border-th-border'}`}>
-                      {done && (
-                        <svg viewBox="0 0 12 10" fill="none" className="h-3 w-3">
-                          <path d="M1 5l3.5 3.5L11 1" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                      )}
+                const isEditing = editingSubId === sub.id
+
+                if (isEditing) {
+                  return (
+                    <div key={sub.id} className="rounded-lg border border-th-focus bg-th-surface px-4 py-3 flex flex-col gap-2">
+                      <input
+                        autoFocus
+                        value={editSubName}
+                        onChange={e => setEditSubName(e.target.value)}
+                        placeholder="Name"
+                        className="rounded border border-th-border bg-th-bg px-2 py-1 text-sm text-th-text outline-none focus:border-th-focus"
+                      />
+                      <div className="flex items-center gap-2">
+                        <label className="text-xs text-th-muted shrink-0">Pts</label>
+                        <input
+                          type="number"
+                          min="1"
+                          value={editSubPts}
+                          onChange={e => setEditSubPts(e.target.value)}
+                          className="w-16 rounded border border-th-border bg-th-bg px-2 py-1 text-sm text-th-text outline-none focus:border-th-focus"
+                        />
+                      </div>
+                      <div className="flex items-center gap-2 pt-1">
+                        <button
+                          onClick={() => saveEditSub(sub)}
+                          disabled={isSavingSub || !editSubName.trim() || parseInt(editSubPts) < 1}
+                          className="rounded-lg bg-th-btn px-3 py-1 text-xs font-medium text-th-btn-text transition-colors hover:bg-th-btn-hover disabled:opacity-50"
+                        >
+                          {isSavingSub ? 'Saving…' : 'Save'}
+                        </button>
+                        <button
+                          onClick={cancelEditSub}
+                          className="text-xs text-th-faint hover:text-th-muted transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </div>
                     </div>
-                    <span className={`flex-1 text-sm ${done ? 'line-through text-th-muted' : 'text-th-text'}`}>{sub.name}</span>
-                    <span className={`text-sm font-semibold ${done ? 'text-th-faint' : 'text-th-secondary'}`}>+{sub.default_points}</span>
-                  </button>
+                  )
+                }
+
+                return (
+                  <div key={sub.id} className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleSubLog(sub)}
+                      className={`flex flex-1 items-center gap-3 rounded-lg border px-4 py-3 text-left transition-colors ${
+                        done ? 'border-th-border opacity-50' : 'border-th-border hover:bg-th-surface active:scale-[0.99]'
+                      }`}
+                    >
+                      <div className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 transition-all ${done ? 'border-th-btn text-th-btn' : 'border-th-border'}`}>
+                        {done && (
+                          <svg viewBox="0 0 12 10" fill="none" className="h-3 w-3">
+                            <path d="M1 5l3.5 3.5L11 1" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        )}
+                      </div>
+                      <span className={`flex-1 text-sm ${done ? 'line-through text-th-muted' : 'text-th-text'}`}>{sub.name}</span>
+                      <span className={`text-sm font-semibold ${done ? 'text-th-faint' : 'text-th-secondary'}`}>+{sub.default_points}</span>
+                    </button>
+                    <button
+                      onClick={() => startEditSub(sub)}
+                      className="shrink-0 p-1.5 text-th-faint hover:text-th-muted transition-colors"
+                      aria-label="Edit submotion"
+                    >
+                      <svg viewBox="0 0 16 16" fill="none" className="h-3.5 w-3.5" strokeWidth="1.5" stroke="currentColor">
+                        <path d="M11.5 2.5l2 2L5 13H3v-2L11.5 2.5z" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </button>
+                  </div>
                 )
               })}
             </div>
@@ -267,8 +357,17 @@ export function MotionDetailSheet({
                           type="number"
                           min="1"
                           max="100"
-                          value={pct}
-                          onChange={e => updateSwellWeight(s.id, parseInt(e.target.value) || 100)}
+                          value={swellPctDraft.get(s.id) ?? String(pct)}
+                          onChange={e => setSwellPctDraft(prev => new Map(prev).set(s.id, e.target.value))}
+                          onBlur={e => {
+                            const num = parseInt(e.target.value)
+                            if (!isNaN(num) && num >= 1 && num <= 100) {
+                              updateSwellWeight(s.id, num)
+                            } else {
+                              // Revert draft to last valid value
+                              setSwellPctDraft(prev => new Map(prev).set(s.id, String(pct)))
+                            }
+                          }}
                           className="w-10 rounded border border-th-border bg-th-surface px-1 py-0.5 text-center text-xs text-th-text outline-none focus:border-th-focus"
                         />
                         <span className="text-xs text-th-faint">%</span>
