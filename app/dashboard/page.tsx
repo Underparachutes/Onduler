@@ -1,9 +1,7 @@
 import { redirect } from 'next/navigation'
-import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTodayStart } from '@/lib/timezone'
-import { DailyChecklist } from './components/DailyChecklist'
-import { WavePrompt } from './components/WavePrompt'
+import { DashboardView } from './components/DashboardView'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -12,7 +10,7 @@ export default async function DashboardPage() {
 
   const { data: settings } = await supabase
     .from('user_settings')
-    .select('groups_enabled, onboarding_complete, daily_goal, celebration_enabled, haptic_enabled')
+    .select('groups_enabled, onboarding_complete, daily_goal, daily_goal_hours, tracking_mode, celebration_enabled, haptic_enabled')
     .eq('user_id', user.id)
     .single()
 
@@ -20,6 +18,8 @@ export default async function DashboardPage() {
 
   const groupsEnabled = settings?.groups_enabled ?? false
   const dailyGoal = settings?.daily_goal ?? 20
+  const dailyGoalHours = Number(settings?.daily_goal_hours ?? 4)
+  const trackingMode: 'points' | 'hours' = (settings?.tracking_mode as 'points' | 'hours') ?? 'points'
   const celebrationEnabled = settings?.celebration_enabled ?? true
   const hapticEnabled = settings?.haptic_enabled ?? true
 
@@ -56,17 +56,18 @@ export default async function DashboardPage() {
   const todayStart = await getTodayStart()
   const { data: todayLogs } = await supabase
     .from('logs')
-    .select('motion_id, points')
+    .select('motion_id, points, hours')
     .eq('user_id', user.id)
     .gte('logged_at', todayStart.toISOString())
 
   const todayPoints = todayLogs?.reduce((sum, l) => sum + l.points, 0) ?? 0
+  const todayHours = todayLogs?.reduce((sum, l) => sum + Number(l.hours), 0) ?? 0
   const doneMotionIds = (todayLogs ?? []).map(l => l.motion_id).filter(Boolean) as string[]
 
   // Fetch top-level motions with swell and group data
   const { data: motionsRaw } = await supabase
     .from('motions')
-    .select('id, name, default_points, default_hours, motion_groups(group_id), motion_swells(swells(id, name, color))')
+    .select('id, name, default_points, default_hours, group_id, motion_swells(swells(id, name, color))')
     .eq('user_id', user.id)
     .eq('hidden', false)
     .is('parent_id', null)
@@ -93,11 +94,17 @@ export default async function DashboardPage() {
     name: m.name,
     default_points: m.default_points,
     default_hours: m.default_hours,
-    groupIds: (m.motion_groups ?? []).map((mg: { group_id: string }) => mg.group_id),
+    groupId: m.group_id as string | null,
     swells: (m.motion_swells ?? [])
       .map((ms: unknown) => (ms as { swells: { id: string; name: string; color: string } | null }).swells)
       .filter(Boolean) as { id: string; name: string; color: string }[],
   }))
+
+  const { data: swellsData } = await supabase
+    .from('swells')
+    .select('id, name, color')
+    .eq('user_id', user.id)
+    .order('sort_order', { ascending: true })
 
   let groupsData: { id: string; name: string; color: string }[] = []
   if (groupsEnabled) {
@@ -111,64 +118,29 @@ export default async function DashboardPage() {
 
   const groupsWithMotions = groupsData.map(g => ({
     ...g,
-    motions: motions.filter(m => m.groupIds.includes(g.id)),
+    motions: motions.filter(m => m.groupId === g.id),
   }))
-  const ungroupedMotions = motions.filter(m => m.groupIds.length === 0)
-
-  const hasMotions = motions.length > 0
+  const ungroupedMotions = motions.filter(m => m.groupId === null)
 
   return (
-    <div className="flex min-h-full flex-col items-center px-6 py-12">
-      <div className="w-full max-w-sm">
-        <div className="mb-6 flex items-center justify-between">
-          <p className="text-xs uppercase tracking-widest text-th-muted">Onduler</p>
-          <Link
-            href="/dashboard/manage"
-            className="rounded-lg border border-th-border px-3 py-1.5 text-xs font-medium text-th-muted transition-colors hover:bg-th-surface"
-          >
-            {groupsEnabled ? 'Groups & motions' : 'Motions'}
-          </Link>
-        </div>
-
-        {showWavePrompt && <WavePrompt durationSeconds={waveDurationSeconds} />}
-
-        {hasMotions ? (
-          <DailyChecklist
-            groupsEnabled={groupsEnabled}
-            motions={motions}
-            groups={groupsWithMotions}
-            ungroupedMotions={ungroupedMotions}
-            submotionsMap={submotionsMap}
-            todayPoints={todayPoints}
-            doneMotionIds={doneMotionIds}
-            dailyGoal={dailyGoal}
-            celebrationEnabled={celebrationEnabled}
-            hapticEnabled={hapticEnabled}
-          />
-        ) : (
-          <div className="rounded-lg border border-th-border p-6 text-center">
-            <p className="mb-1 text-sm font-medium text-th-text">Nothing here yet.</p>
-            <p className="mb-4 text-sm text-th-muted">
-              Add your first motion to start tracking.
-            </p>
-            <Link
-              href="/dashboard/manage"
-              className="text-sm font-medium text-th-secondary underline"
-            >
-              Add motions →
-            </Link>
-          </div>
-        )}
-
-        <div className="mt-10 border-t border-th-border pt-6">
-          <Link
-            href="/dashboard/manage"
-            className="text-xs text-th-faint transition-colors hover:text-th-secondary"
-          >
-            {groupsEnabled ? 'Manage groups & motions →' : 'Manage motions →'}
-          </Link>
-        </div>
-      </div>
-    </div>
+    <DashboardView
+      groupsEnabled={groupsEnabled}
+      motions={motions}
+      groups={groupsWithMotions}
+      ungroupedMotions={ungroupedMotions}
+      submotionsMap={submotionsMap}
+      todayPoints={todayPoints}
+      todayHours={todayHours}
+      doneMotionIds={doneMotionIds}
+      dailyGoal={dailyGoal}
+      dailyGoalHours={dailyGoalHours}
+      trackingMode={trackingMode}
+      celebrationEnabled={celebrationEnabled}
+      hapticEnabled={hapticEnabled}
+      allSwells={swellsData ?? []}
+      allGroups={groupsData}
+      showWavePrompt={showWavePrompt}
+      waveDurationSeconds={waveDurationSeconds}
+    />
   )
 }

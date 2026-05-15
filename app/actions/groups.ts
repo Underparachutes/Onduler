@@ -25,6 +25,7 @@ export async function createGroup(prevState: unknown, formData: FormData) {
   if (error) return { error: error.message }
 
   revalidatePath('/dashboard')
+  revalidatePath('/settings')
   return { success: true }
 }
 
@@ -40,7 +41,7 @@ export async function reorderGroups(ids: string[]) {
   )
 
   revalidatePath('/dashboard')
-  revalidatePath('/dashboard/manage')
+  revalidatePath('/settings')
   return { success: true }
 }
 
@@ -62,8 +63,8 @@ export async function updateGroup(id: string, prevState: unknown, formData: Form
 
   if (error) return { error: error.message }
 
-  revalidatePath(`/dashboard/groups/${id}`)
   revalidatePath('/dashboard')
+  revalidatePath('/settings')
   return { error: undefined, success: true }
 }
 
@@ -74,4 +75,5 @@ export async function deleteGroup(id: string) {
 
   await supabase.from('groups').delete().eq('id', id).eq('user_id', user.id)
   revalidatePath('/dashboard')
+  revalidatePath('/settings')
 }

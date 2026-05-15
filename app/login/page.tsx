@@ -1,15 +1,16 @@
 'use client'
 
-import { useActionState } from 'react'
+import { useActionState, useState } from 'react'
 import Link from 'next/link'
 import { signIn } from '@/app/actions/auth'
 
 export default function LoginPage() {
   const [state, action, pending] = useActionState(signIn, undefined)
+  const [email, setEmail] = useState('')
 
   return (
-    <div className="flex min-h-full flex-col items-center justify-center px-6 py-24">
-      <div className="w-full max-w-sm">
+    <div className="flex min-h-full flex-col items-center justify-center px-4 py-24">
+      <div className="w-full max-w-[22rem]">
         <h1 className="mb-2 text-2xl font-semibold tracking-tight text-th-text">
           Welcome back
         </h1>
@@ -26,6 +27,8 @@ export default function LoginPage() {
               type="email"
               autoComplete="email"
               required
+              value={email}
+              onChange={e => setEmail(e.target.value)}
               className="rounded-lg border border-th-border bg-th-surface px-3 py-2 text-sm text-th-text outline-none focus:border-th-focus"
             />
           </div>
@@ -45,7 +48,10 @@ export default function LoginPage() {
           </div>
 
           {state?.error && (
-            <p className="text-sm text-red-500">{state.error}</p>
+            <p className="text-sm text-red-500">
+              That email and password didn&apos;t match. Try again, or{' '}
+              <Link href="/signup" className="underline underline-offset-4">Sign up</Link>?
+            </p>
           )}
 
           <button

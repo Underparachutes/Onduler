@@ -1,51 +1,71 @@
 'use client'
 
-import { useActionState } from 'react'
+import { useActionState, useEffect, useState } from 'react'
 import { createGroup } from '@/app/actions/groups'
+import { getRandomThemeAccent } from '@/lib/theme-colors'
 
-export function AddGroupForm() {
+type Props = {
+  onClose: () => void
+}
+
+export function AddGroupForm({ onClose }: Props) {
   const [state, formAction, pending] = useActionState(createGroup, null)
+  const [color, setColor] = useState('#6366f1')
+
+  useEffect(() => {
+    const theme = document.documentElement.dataset.theme ?? 'default'
+    setColor(getRandomThemeAccent(theme))
+  }, [])
+
+  useEffect(() => {
+    if (state && 'success' in state && state.success) onClose()
+  }, [state, onClose])
 
   return (
-    <form action={formAction} className="flex flex-col gap-4">
-      <div className="flex flex-col gap-1">
-        <label htmlFor="name" className="text-sm font-medium text-th-secondary">
-          Name
-        </label>
+    <>
+      <div className="mb-6 flex items-center justify-between">
+        <p className="text-xs uppercase tracking-widest text-th-muted">Onduler</p>
+        <button
+          type="button"
+          onClick={onClose}
+          className="text-xs text-th-faint transition-all hover:text-th-muted active:scale-[0.97]"
+        >
+          Cancel
+        </button>
+      </div>
+
+      <form action={formAction} className="flex flex-col gap-4">
         <input
-          id="name"
           name="name"
           type="text"
-          placeholder="e.g. Relationships, Career, Health"
+          placeholder="Group name"
           required
-          className="rounded-lg border border-th-border bg-th-surface px-3 py-2 text-sm text-th-text outline-none focus:border-th-focus"
+          autoFocus
+          className="rounded-lg border border-th-border bg-th-surface px-3 py-2.5 text-base text-th-text outline-none focus:border-th-focus"
         />
-      </div>
 
-      <div className="flex flex-col gap-1">
-        <label htmlFor="color" className="text-sm font-medium text-th-secondary">
-          Color
-        </label>
-        <input
-          id="color"
-          name="color"
-          type="color"
-          defaultValue="#6366f1"
-          className="h-10 w-full cursor-pointer rounded-lg border border-th-border bg-th-surface p-1"
-        />
-      </div>
+        <div className="flex items-center gap-2">
+          <label htmlFor="color" className="shrink-0 text-xs text-th-muted">Color</label>
+          <input
+            id="color"
+            name="color"
+            type="color"
+            value={color}
+            onChange={e => setColor(e.target.value)}
+            className="h-10 w-full cursor-pointer rounded-lg border border-th-border bg-th-surface p-1"
+          />
+        </div>
 
-      {state?.error && (
-        <p className="text-sm text-red-500">{state.error}</p>
-      )}
+        {state?.error && <p className="text-xs text-red-500">{state.error}</p>}
 
-      <button
-        type="submit"
-        disabled={pending}
-        className="rounded-lg bg-th-btn px-4 py-2 text-sm font-medium text-th-btn-text transition-colors hover:bg-th-btn-hover disabled:opacity-50"
-      >
-        {pending ? 'Adding…' : 'Add group'}
-      </button>
-    </form>
+        <button
+          type="submit"
+          disabled={pending}
+          className="mt-2 rounded-lg bg-th-btn py-2.5 text-sm font-medium text-th-btn-text transition-colors hover:bg-th-btn-hover disabled:opacity-50"
+        >
+          {pending ? 'Adding…' : 'Save'}
+        </button>
+      </form>
+    </>
   )
 }

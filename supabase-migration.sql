@@ -15,6 +15,16 @@ DROP TABLE IF EXISTS user_settings CASCADE;
 
 
 -- 2. CREATE NEW TABLES
+-- (groups must precede motions: motions.group_id references groups.id)
+
+CREATE TABLE groups (
+  id         uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id    uuid        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  name       text        NOT NULL,
+  color      text        NOT NULL DEFAULT '#6366f1',
+  sort_order int         NOT NULL DEFAULT 0,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
 
 CREATE TABLE motions (
   id             uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -22,6 +32,7 @@ CREATE TABLE motions (
   name           text        NOT NULL,
   default_points int         NOT NULL DEFAULT 1,
   default_hours  numeric(5,2) NOT NULL DEFAULT 1.00,
+  group_id       uuid        REFERENCES groups(id) ON DELETE SET NULL,
   parent_id      uuid        REFERENCES motions(id) ON DELETE CASCADE,
   hidden         boolean     NOT NULL DEFAULT false,
   sort_order     int         NOT NULL DEFAULT 0,
@@ -39,27 +50,12 @@ CREATE TABLE swells (
   created_at    timestamptz NOT NULL DEFAULT now()
 );
 
-CREATE TABLE groups (
-  id         uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id    uuid        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  name       text        NOT NULL,
-  color      text        NOT NULL DEFAULT '#6366f1',
-  sort_order int         NOT NULL DEFAULT 0,
-  created_at timestamptz NOT NULL DEFAULT now()
-);
-
--- junction: one motion can belong to many swells
+-- junction: one motion can belong to many swells (with contribution weight)
 CREATE TABLE motion_swells (
-  motion_id uuid NOT NULL REFERENCES motions(id) ON DELETE CASCADE,
-  swell_id  uuid NOT NULL REFERENCES swells(id)  ON DELETE CASCADE,
+  motion_id           uuid         NOT NULL REFERENCES motions(id) ON DELETE CASCADE,
+  swell_id            uuid         NOT NULL REFERENCES swells(id)  ON DELETE CASCADE,
+  contribution_weight numeric(5,2) NOT NULL DEFAULT 1.00,
   PRIMARY KEY (motion_id, swell_id)
-);
-
--- junction: one motion can belong to many groups
-CREATE TABLE motion_groups (
-  motion_id uuid NOT NULL REFERENCES motions(id) ON DELETE CASCADE,
-  group_id  uuid NOT NULL REFERENCES groups(id)  ON DELETE CASCADE,
-  PRIMARY KEY (motion_id, group_id)
 );
 
 CREATE TABLE logs (
@@ -98,7 +94,6 @@ ALTER TABLE motions      ENABLE ROW LEVEL SECURITY;
 ALTER TABLE swells       ENABLE ROW LEVEL SECURITY;
 ALTER TABLE groups       ENABLE ROW LEVEL SECURITY;
 ALTER TABLE motion_swells ENABLE ROW LEVEL SECURITY;
-ALTER TABLE motion_groups ENABLE ROW LEVEL SECURITY;
 ALTER TABLE logs         ENABLE ROW LEVEL SECURITY;
 ALTER TABLE wave_checkins ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_settings ENABLE ROW LEVEL SECURITY;
@@ -110,12 +105,9 @@ CREATE POLICY "own logs"          ON logs          FOR ALL USING (auth.uid() = u
 CREATE POLICY "own wave_checkins" ON wave_checkins FOR ALL USING (auth.uid() = user_id);
 CREATE POLICY "own user_settings" ON user_settings FOR ALL USING (auth.uid() = user_id);
 
--- junction tables: ownership via the motion
+-- motion_swells: ownership via the motion
 CREATE POLICY "own motion_swells" ON motion_swells FOR ALL USING (
   EXISTS (SELECT 1 FROM motions WHERE motions.id = motion_swells.motion_id AND motions.user_id = auth.uid())
-);
-CREATE POLICY "own motion_groups" ON motion_groups FOR ALL USING (
-  EXISTS (SELECT 1 FROM motions WHERE motions.id = motion_groups.motion_id AND motions.user_id = auth.uid())
 );
 
 
@@ -123,10 +115,11 @@ CREATE POLICY "own motion_groups" ON motion_groups FOR ALL USING (
 
 CREATE INDEX ON motions (user_id);
 CREATE INDEX ON motions (parent_id);
+CREATE INDEX ON motions (group_id);
+CREATE INDEX ON motions (user_id, group_id);
 CREATE INDEX ON swells (user_id);
 CREATE INDEX ON groups (user_id);
 CREATE INDEX ON motion_swells (swell_id);
-CREATE INDEX ON motion_groups (group_id);
 CREATE INDEX ON logs (user_id, logged_at DESC);
 CREATE INDEX ON logs (motion_id);
 CREATE INDEX ON wave_checkins (user_id);

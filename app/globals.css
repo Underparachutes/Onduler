@@ -17,6 +17,10 @@
   --color-th-focus: var(--th-focus);
 }
 
+html {
+  font-size: 18px;
+}
+
 /* Default theme — zinc/white */
 :root {
   --th-bg: #ffffff;

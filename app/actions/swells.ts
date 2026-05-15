@@ -1,6 +1,5 @@
 'use server'
 
-import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 
@@ -33,7 +32,7 @@ export async function createSwell(prevState: unknown, formData: FormData) {
 
   if (error) return { error: error.message }
   revalidatePath('/swells')
-  redirect('/swells')
+  return { success: true }
 }
 
 export async function updateSwell(id: string, prevState: unknown, formData: FormData) {
@@ -58,7 +57,7 @@ export async function updateSwell(id: string, prevState: unknown, formData: Form
     .eq('user_id', user.id)
 
   revalidatePath('/swells')
-  redirect('/swells')
+  return { success: true }
 }
 
 export async function deleteSwell(id: string) {
@@ -68,5 +67,4 @@ export async function deleteSwell(id: string) {
 
   await supabase.from('swells').delete().eq('id', id).eq('user_id', user.id)
   revalidatePath('/swells')
-  redirect('/swells')
 }

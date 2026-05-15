@@ -6,6 +6,7 @@ import {
   closestCenter,
   PointerSensor,
   KeyboardSensor,
+  TouchSensor,
   useSensor,
   useSensors,
   type DragEndEvent,
@@ -19,111 +20,85 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { reorderMotions } from '@/app/actions/motions'
-import { MotionEditRow } from './MotionEditRow'
+import { formatPts, formatHrs } from '@/lib/format'
 
 type Swell = { id: string; name: string; color: string }
-type Motion = { id: string; name: string; default_points: number; default_hours: number; swells: Swell[] }
+type Motion = { id: string; name: string; default_points: number; default_hours: number; swells: Swell[]; groupId: string | null }
 type Submotion = { id: string; name: string; default_points: number; default_hours: number }
+type TrackingMode = 'points' | 'hours'
 
 type RowProps = {
   motion: Motion
   done: boolean
   hasSubmotions: boolean
-  editing: boolean
-  hidden: boolean
+  trackingMode: TrackingMode
   onLog: (e: React.MouseEvent) => void
-  onEdit: () => void
   onOpenSheet: () => void
-  onCloseEdit: () => void
 }
 
-function SortableMotionRow({ motion, done, hasSubmotions, editing, hidden, onLog, onEdit, onOpenSheet, onCloseEdit }: RowProps) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+export function SortableMotionRow({ motion, done, hasSubmotions, trackingMode, onLog, onOpenSheet }: RowProps) {
+  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } =
     useSortable({ id: motion.id })
-
-  if (hidden) return null
-
-  if (editing) {
-    return (
-      <div ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition }}>
-        <MotionEditRow motion={motion} onClose={onCloseEdit} />
-      </div>
-    )
-  }
 
   return (
     <div
       ref={setNodeRef}
+      {...attributes}
+      suppressHydrationWarning
       style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1 }}
-      className="flex items-center gap-1"
+      className="flex items-center gap-1 select-none"
     >
-      {/* Drag handle */}
-      <button
-        {...attributes}
+      {/* Drag handle — only this element captures touch for drag */}
+      <span
+        ref={setActivatorNodeRef}
         {...listeners}
-        className="flex h-12 w-6 shrink-0 cursor-grab items-center justify-center touch-none select-none text-th-faint hover:text-th-muted active:cursor-grabbing"
+        style={{ touchAction: 'none' }}
+        className="shrink-0 flex items-center px-1 py-3 text-th-faint cursor-grab active:cursor-grabbing"
         aria-label="Drag to reorder"
       >
-        <svg viewBox="0 0 10 16" fill="currentColor" className="h-3.5 w-3">
-          <circle cx="3" cy="2" r="1.5" /><circle cx="7" cy="2" r="1.5" />
-          <circle cx="3" cy="8" r="1.5" /><circle cx="7" cy="8" r="1.5" />
-          <circle cx="3" cy="14" r="1.5" /><circle cx="7" cy="14" r="1.5" />
+        <svg width="12" height="16" viewBox="0 0 12 16" fill="currentColor" opacity="0.4">
+          <circle cx="4" cy="3" r="1.5" />
+          <circle cx="8" cy="3" r="1.5" />
+          <circle cx="4" cy="8" r="1.5" />
+          <circle cx="8" cy="8" r="1.5" />
+          <circle cx="4" cy="13" r="1.5" />
+          <circle cx="8" cy="13" r="1.5" />
         </svg>
-      </button>
+      </span>
 
-      {/* Checkbox — logs */}
+      {/* Card body — tap to log */}
       <button
-        onClick={onLog}
-        aria-label={done ? 'Unlog' : 'Log'}
-        className="flex h-12 w-10 shrink-0 items-center justify-center"
+        onClick={(e) => { if (!done) onLog(e) }}
+        className={`flex flex-1 items-center gap-3 rounded-lg px-3 py-3 text-left transition-colors ${
+          done ? 'opacity-50 cursor-default' : 'hover:bg-th-surface active:scale-[0.99]'
+        }`}
       >
-        <div className={`flex h-5 w-5 items-center justify-center rounded border-2 transition-all ${done ? 'border-th-btn bg-th-btn' : 'border-th-border'}`}>
+        <div className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 transition-all ${done ? 'border-th-btn text-th-btn' : 'border-th-border'}`}>
           {done && (
             <svg viewBox="0 0 12 10" fill="none" className="h-3 w-3">
-              <path d="M1 5l3.5 3.5L11 1" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M1 5l3.5 3.5L11 1" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           )}
         </div>
-      </button>
-
-      {/* Card body — opens detail sheet */}
-      <button
-        onClick={onOpenSheet}
-        className={`flex flex-1 items-center gap-2 rounded-lg border px-3 py-3 text-left transition-colors ${
-          done ? 'border-th-border opacity-50' : 'border-th-border hover:bg-th-surface active:scale-[0.99]'
-        }`}
-      >
         <div className="min-w-0 flex-1">
           <p className={`text-sm font-medium ${done ? 'text-th-muted line-through' : 'text-th-text'}`}>
             {motion.name}
           </p>
-          {motion.swells.length > 0 && (
-            <div className="mt-0.5 flex flex-wrap gap-1">
-              {motion.swells.map(s => (
-                <span
-                  key={s.id}
-                  className="inline-block rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white"
-                  style={{ backgroundColor: s.color }}
-                >
-                  {s.name}
-                </span>
-              ))}
-            </div>
-          )}
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
           <span className={`text-sm font-semibold ${done ? 'text-th-faint' : 'text-th-secondary'}`}>
-            {motion.default_points}pts
+            {trackingMode === 'hours' ? formatHrs(motion.default_hours) : formatPts(motion.default_points)}
           </span>
           {hasSubmotions && <span className="text-xs text-th-faint">›</span>}
         </div>
       </button>
 
-      {/* Edit button */}
+      {/* Kebab — opens detail sheet */}
       <button
-        onClick={onEdit}
+        onPointerDown={e => e.stopPropagation()}
+        onClick={onOpenSheet}
         className="shrink-0 px-2 py-3 text-base leading-none text-th-faint transition-colors hover:text-th-muted"
-        aria-label="Edit motion"
+        aria-label="Open details"
       >
         ···
       </button>
@@ -136,11 +111,10 @@ type ListProps = {
   submotionsMap: Record<string, Submotion[]>
   localDone: Set<string>
   hideDone: boolean
-  editingId: string | null
   localHiddenIds: Set<string>
   searchQuery: string
+  trackingMode: TrackingMode
   onLog: (motion: Motion, x: number, y: number) => void
-  onEdit: (id: string | null) => void
   onOpenSheet: (id: string) => void
 }
 
@@ -149,18 +123,18 @@ export function SortableMotionList({
   submotionsMap,
   localDone,
   hideDone,
-  editingId,
   localHiddenIds,
   searchQuery,
+  trackingMode,
   onLog,
-  onEdit,
   onOpenSheet,
 }: ListProps) {
   const [ordered, setOrdered] = useState(motions)
   const [, startTransition] = useTransition()
 
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(PointerSensor, { activationConstraint: { delay: 250, tolerance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   )
 
@@ -180,7 +154,7 @@ export function SortableMotionList({
   const visible = ordered.filter(m => {
     if (localHiddenIds.has(m.id)) return false
     if (q && !m.name.toLowerCase().includes(q)) return false
-    if (hideDone && localDone.has(m.id) && editingId !== m.id) return false
+    if (hideDone && localDone.has(m.id)) return false
     return true
   })
 
@@ -194,12 +168,9 @@ export function SortableMotionList({
               motion={motion}
               done={localDone.has(motion.id)}
               hasSubmotions={(submotionsMap[motion.id]?.length ?? 0) > 0}
-              editing={editingId === motion.id}
-              hidden={localHiddenIds.has(motion.id)}
+              trackingMode={trackingMode}
               onLog={(e) => onLog(motion, e.clientX, e.clientY)}
-              onEdit={() => onEdit(motion.id)}
               onOpenSheet={() => onOpenSheet(motion.id)}
-              onCloseEdit={() => onEdit(null)}
             />
           ))}
           {visible.length === 0 && q && (

@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTodayStart } from '@/lib/timezone'
+import { formatPts, formatHrs } from '@/lib/format'
 
 type Period = '7' | '30' | 'all'
 
@@ -23,6 +24,15 @@ export default async function LogPage({
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  const { data: settings } = await supabase
+    .from('user_settings')
+    .select('tracking_mode')
+    .eq('user_id', user.id)
+    .single()
+  const trackingMode: 'points' | 'hours' = (settings?.tracking_mode as 'points' | 'hours') ?? 'points'
+  const isHours = trackingMode === 'hours'
+  const formatValue = (n: number) => isHours ? formatHrs(round1(n)) : formatPts(n)
 
   const todayStart = await getTodayStart()
   const startDate =
@@ -53,10 +63,11 @@ export default async function LogPage({
 
   const totalPoints = logs?.reduce((sum, l) => sum + l.points, 0) ?? 0
   const totalHours = logs?.reduce((sum, l) => sum + Number(l.hours), 0) ?? 0
+  const totalValue = isHours ? totalHours : totalPoints
 
   // Swells breakdown
-  const swellAccum = new Map<string, { name: string; color: string; points: number; hours: number; target_points: number | null; target_hours: number | null }>()
-  swells?.forEach(s => swellAccum.set(s.id, { name: s.name, color: s.color, points: 0, hours: 0, target_points: s.target_points, target_hours: s.target_hours }))
+  const swellAccum = new Map<string, { name: string; color: string; points: number; hours: number }>()
+  swells?.forEach(s => swellAccum.set(s.id, { name: s.name, color: s.color, points: 0, hours: 0 }))
 
   logs?.forEach(log => {
     const motion = (Array.isArray(log.motions) ? log.motions[0] : log.motions) as unknown as { motion_swells?: { swells: { id: string; name: string; color: string } | null }[] } | null
@@ -71,8 +82,11 @@ export default async function LogPage({
     })
   })
 
-  const swellBreakdown = Array.from(swellAccum.values()).filter(s => s.points > 0).sort((a, b) => b.points - a.points)
-  const maxSwellPoints = swellBreakdown[0]?.points ?? 1
+  const swellBreakdown = Array.from(swellAccum.values())
+    .map(s => ({ ...s, value: isHours ? s.hours : s.points }))
+    .filter(s => s.value > 0)
+    .sort((a, b) => b.value - a.value)
+  const maxSwellValue = swellBreakdown[0]?.value ?? 1
 
   // Daily chart
   const dayMap = new Map<string, number>()
@@ -85,25 +99,28 @@ export default async function LogPage({
   }
   logs?.forEach(log => {
     const day = (log.logged_at as string).slice(0, 10)
-    dayMap.set(day, (dayMap.get(day) ?? 0) + log.points)
+    const inc = isHours ? Number(log.hours) : log.points
+    dayMap.set(day, (dayMap.get(day) ?? 0) + inc)
   })
   const days = Array.from(dayMap.entries()).sort(([a], [b]) => a.localeCompare(b))
-  const maxDayPoints = Math.max(...days.map(([, pts]) => pts), 1)
+  const maxDayValue = Math.max(...days.map(([, v]) => v), 1)
 
-  const activeDays = days.filter(([, pts]) => pts > 0).length
-  const avgPts = activeDays > 0 ? Math.round(totalPoints / activeDays) : 0
+  const activeDays = days.filter(([, v]) => v > 0).length
+  const avgValue = activeDays > 0
+    ? (isHours ? round1(totalValue / activeDays) : Math.round(totalValue / activeDays))
+    : 0
 
   return (
-    <div className="flex min-h-full flex-col items-center px-6 py-12">
-      <div className="w-full max-w-sm">
+    <div className="flex min-h-full flex-col items-center px-4 py-12">
+      <div className="w-full max-w-[22rem]">
         <div className="mb-6 flex items-center justify-between">
           <p className="text-xs uppercase tracking-widest text-th-muted">Onduler</p>
-          <Link href="/dashboard" className="text-xs text-th-faint transition-colors hover:text-th-muted">
+          <Link href="/dashboard" className="hidden text-xs text-th-faint transition-all hover:text-th-muted active:scale-[0.97] sm:inline">
             ← Back
           </Link>
         </div>
 
-        <h1 className="mb-8 text-2xl font-semibold tracking-tight text-th-text">Report</h1>
+        <h1 className="mb-8 text-2xl font-semibold tracking-tight text-th-text">Log</h1>
 
         <div className="mb-8 flex gap-2">
           {PERIOD_OPTIONS.map(({ value, label }) => (
@@ -121,23 +138,31 @@ export default async function LogPage({
           ))}
         </div>
 
-        {totalPoints === 0 ? (
+        {totalValue === 0 ? (
           <p className="text-sm text-th-muted">No motions logged for this period.</p>
         ) : (
           <>
             {period !== 'all' && (
               <div className="mb-8 grid grid-cols-3 gap-3">
-                <div className="rounded-lg border border-th-border p-3 text-center">
-                  <p className="text-lg font-semibold text-th-text">{totalPoints}</p>
-                  <p className="mt-0.5 text-[10px] uppercase tracking-widest text-th-muted">pts total</p>
+                <div className="rounded-lg p-3 text-center">
+                  <p className="text-lg font-semibold text-th-text">{isHours ? round1(totalValue) : totalValue}</p>
+                  <p className="mt-0.5 text-[10px] uppercase tracking-widest text-th-muted">
+                    {isHours ? 'hrs total' : 'pts total'}
+                  </p>
                 </div>
-                <div className="rounded-lg border border-th-border p-3 text-center">
-                  <p className="text-lg font-semibold text-th-text">{avgPts}</p>
-                  <p className="mt-0.5 text-[10px] uppercase tracking-widest text-th-muted">pts / day</p>
+                <div className="rounded-lg p-3 text-center">
+                  <p className="text-lg font-semibold text-th-text">{avgValue}</p>
+                  <p className="mt-0.5 text-[10px] uppercase tracking-widest text-th-muted">
+                    {isHours ? 'hrs / active day' : 'pts / active day'}
+                  </p>
                 </div>
-                <div className="rounded-lg border border-th-border p-3 text-center">
-                  <p className="text-lg font-semibold text-th-text">{totalHours.toFixed(1)}</p>
-                  <p className="mt-0.5 text-[10px] uppercase tracking-widest text-th-muted">hrs total</p>
+                <div className="rounded-lg p-3 text-center">
+                  <p className="text-lg font-semibold text-th-text">
+                    {isHours ? totalPoints : round1(totalHours)}
+                  </p>
+                  <p className="mt-0.5 text-[10px] uppercase tracking-widest text-th-muted">
+                    {isHours ? 'pts total' : 'hrs total'}
+                  </p>
                 </div>
               </div>
             )}
@@ -153,10 +178,10 @@ export default async function LogPage({
                       <div className="flex-1 rounded-full bg-th-surface" style={{ height: '6px' }}>
                         <div
                           className="h-full rounded-full transition-all"
-                          style={{ width: `${(s.points / maxSwellPoints) * 100}%`, backgroundColor: s.color }}
+                          style={{ width: `${(s.value / maxSwellValue) * 100}%`, backgroundColor: s.color }}
                         />
                       </div>
-                      <span className="w-16 text-right text-xs text-th-faint">{s.points} pts</span>
+                      <span className="w-16 text-right text-xs text-th-faint">{formatValue(s.value)}</span>
                     </div>
                   ))}
                 </div>
@@ -169,7 +194,7 @@ export default async function LogPage({
                   {period === '7' ? 'This week' : 'Past 30 days'}
                 </h2>
                 <div className="flex flex-col gap-2">
-                  {days.map(([date, pts]) => {
+                  {days.map(([date, val]) => {
                     const d = new Date(date + 'T00:00:00Z')
                     const label =
                       period === '7'
@@ -179,15 +204,15 @@ export default async function LogPage({
                       <div key={date} className="flex items-center gap-3">
                         <span className="w-20 shrink-0 text-xs text-th-muted">{label}</span>
                         <div className="flex-1 rounded-full bg-th-surface" style={{ height: '6px' }}>
-                          {pts > 0 && (
+                          {val > 0 && (
                             <div
                               className="h-full rounded-full bg-th-btn"
-                              style={{ width: `${(pts / maxDayPoints) * 100}%` }}
+                              style={{ width: `${(val / maxDayValue) * 100}%` }}
                             />
                           )}
                         </div>
                         <span className="w-14 text-right text-xs text-th-faint">
-                          {pts > 0 ? `${pts} pts` : '—'}
+                          {val > 0 ? formatValue(val) : '—'}
                         </span>
                       </div>
                     )
@@ -207,12 +232,13 @@ export default async function LogPage({
                     month: 'short',
                     day: 'numeric',
                   })
+                  const entryValue = isHours ? round1(Number(log.hours)) : log.points
                   return (
                     <div key={`${log.logged_at}-${i}`} className="flex items-center gap-2">
                       <span className="h-2 w-2 shrink-0 rounded-full bg-th-border" />
                       <span className="flex-1 truncate text-xs text-th-muted">{motion?.name ?? '—'}</span>
                       <span className="text-xs text-th-faint">{dateLabel}</span>
-                      <span className="w-12 text-right text-xs text-th-faint">+{log.points}</span>
+                      <span className="w-12 text-right text-xs text-th-faint">+{entryValue}</span>
                     </div>
                   )
                 })}
@@ -266,4 +292,8 @@ export default async function LogPage({
       </div>
     </div>
   )
+}
+
+function round1(n: number): number {
+  return Math.round(n * 10) / 10
 }

@@ -11,17 +11,19 @@ export async function createMotion(prevState: unknown, formData: FormData) {
   const name = (formData.get('name') as string)?.trim()
   const defaultPoints = parseInt(formData.get('default_points') as string) || 1
   const defaultHours = parseFloat(formData.get('default_hours') as string) || 1.0
+  const groupIdRaw = (formData.get('group_id') as string) || ''
+  const group_id = groupIdRaw ? groupIdRaw : null
 
   if (!name) return { error: 'Name is required' }
 
   const { error } = await supabase
     .from('motions')
-    .insert({ user_id: user.id, name, default_points: defaultPoints, default_hours: defaultHours })
+    .insert({ user_id: user.id, name, default_points: defaultPoints, default_hours: defaultHours, group_id })
 
   if (error) return { error: error.message }
 
   revalidatePath('/dashboard')
-  revalidatePath('/dashboard/manage')
+  revalidatePath('/swells')
   return { success: true }
 }
 
@@ -45,7 +47,8 @@ export async function updateMotion(id: string, prevState: unknown, formData: For
   if (error) return { error: error.message }
 
   revalidatePath('/dashboard')
-  revalidatePath('/dashboard/manage')
+  revalidatePath('/swells')
+  revalidatePath('/settings')
   return { success: true }
 }
 
@@ -57,7 +60,8 @@ export async function deleteMotion(id: string) {
   await supabase.from('motions').delete().eq('id', id).eq('user_id', user.id)
 
   revalidatePath('/dashboard')
-  revalidatePath('/dashboard/manage')
+  revalidatePath('/swells')
+  revalidatePath('/settings')
 }
 
 export async function setMotionSwells(motionId: string, swellIds: string[]) {
@@ -75,33 +79,6 @@ export async function setMotionSwells(motionId: string, swellIds: string[]) {
 
   revalidatePath('/swells')
   revalidatePath('/dashboard')
-  return { success: true }
-}
-
-export async function createMotionInGroup(groupId: string, prevState: unknown, formData: FormData) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Not authenticated' }
-
-  const name = (formData.get('name') as string)?.trim()
-  const defaultPoints = parseInt(formData.get('default_points') as string) || 1
-  const defaultHours = parseFloat(formData.get('default_hours') as string) || 1.0
-
-  if (!name) return { error: 'Name is required' }
-
-  const { data: motion, error } = await supabase
-    .from('motions')
-    .insert({ user_id: user.id, name, default_points: defaultPoints, default_hours: defaultHours })
-    .select('id')
-    .single()
-
-  if (error || !motion) return { error: error?.message ?? 'Failed to create motion' }
-
-  await supabase.from('motion_groups').insert({ motion_id: motion.id, group_id: groupId })
-
-  revalidatePath(`/dashboard/groups/${groupId}`)
-  revalidatePath('/dashboard')
-  revalidatePath('/dashboard/manage')
   return { success: true }
 }
 
@@ -135,7 +112,8 @@ export async function hideMotion(id: string) {
   await supabase.from('motions').update({ hidden: true }).eq('id', id).eq('user_id', user.id)
 
   revalidatePath('/dashboard')
-  revalidatePath('/dashboard/manage')
+  revalidatePath('/swells')
+  revalidatePath('/settings')
 }
 
 export async function reorderMotions(orderedIds: string[]) {
@@ -160,23 +138,51 @@ export async function unhideMotion(id: string) {
   await supabase.from('motions').update({ hidden: false }).eq('id', id).eq('user_id', user.id)
 
   revalidatePath('/dashboard')
-  revalidatePath('/dashboard/manage')
+  revalidatePath('/swells')
+  revalidatePath('/settings')
 }
 
-export async function setMotionGroups(motionId: string, groupIds: string[]) {
+export async function reassignMotionToGroup(
+  motionId: string,
+  toGroupId: string | null,
+  sourceOrderedIds: string[],
+  destOrderedIds: string[]
+) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
-  await supabase.from('motion_groups').delete().eq('motion_id', motionId)
+  await supabase
+    .from('motions')
+    .update({ group_id: toGroupId })
+    .eq('id', motionId)
+    .eq('user_id', user.id)
 
-  if (groupIds.length > 0) {
-    await supabase.from('motion_groups').insert(
-      groupIds.map(group_id => ({ motion_id: motionId, group_id }))
-    )
-  }
+  await Promise.all([
+    ...sourceOrderedIds.map((id, index) =>
+      supabase.from('motions').update({ sort_order: index }).eq('id', id).eq('user_id', user.id)
+    ),
+    ...destOrderedIds.map((id, index) =>
+      supabase.from('motions').update({ sort_order: index }).eq('id', id).eq('user_id', user.id)
+    ),
+  ])
 
   revalidatePath('/dashboard')
-  revalidatePath('/dashboard/manage')
+  return { success: true }
+}
+
+export async function setMotionGroup(motionId: string, groupId: string | null) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  await supabase
+    .from('motions')
+    .update({ group_id: groupId })
+    .eq('id', motionId)
+    .eq('user_id', user.id)
+
+  revalidatePath('/dashboard')
+  revalidatePath('/swells')
   return { success: true }
 }

@@ -27,6 +27,7 @@ export async function setupAndCompleteOnboarding(
     user_id: user.id,
     onboarding_complete: true,
     theme,
+    groups_enabled: false,
   })
 
   revalidatePath('/dashboard')
@@ -41,6 +42,31 @@ export async function setDailyGoal(goal: number) {
   await supabase.from('user_settings').upsert({ user_id: user.id, daily_goal: goal })
 
   revalidatePath('/dashboard')
+  return { success: true }
+}
+
+export async function setDailyGoalHours(hours: number) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  await supabase.from('user_settings').upsert({ user_id: user.id, daily_goal_hours: hours })
+
+  revalidatePath('/dashboard')
+  return { success: true }
+}
+
+export async function setTrackingMode(mode: 'points' | 'hours') {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  await supabase.from('user_settings').upsert({ user_id: user.id, tracking_mode: mode })
+
+  revalidatePath('/dashboard')
+  revalidatePath('/swells')
+  revalidatePath('/log')
+  revalidatePath('/settings')
   return { success: true }
 }
 
@@ -68,7 +94,7 @@ export async function setGroupsEnabled(enabled: boolean) {
   await supabase.from('user_settings').upsert({ user_id: user.id, groups_enabled: enabled })
 
   revalidatePath('/dashboard')
-  revalidatePath('/dashboard/manage')
   revalidatePath('/log')
+  revalidatePath('/settings')
   return { success: true }
 }

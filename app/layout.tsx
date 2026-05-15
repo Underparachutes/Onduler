@@ -56,10 +56,10 @@ export default async function RootLayout({
       data-theme={theme}
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-th-bg text-th-text pb-20">
+      <body className="min-h-full flex flex-col bg-th-bg text-th-text pb-20 overflow-x-hidden">
         <TimezoneSync />
-        {children}
-        <BottomNav />
+        <div className="mx-auto flex w-full max-w-lg flex-col flex-1">{children}</div>
+        {user && <BottomNav />}
       </body>
     </html>
   );

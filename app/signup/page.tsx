@@ -8,8 +8,8 @@ export default function SignupPage() {
   const [state, action, pending] = useActionState(signUp, undefined)
 
   return (
-    <div className="flex min-h-full flex-col items-center justify-center px-6 py-24">
-      <div className="w-full max-w-sm">
+    <div className="flex min-h-full flex-col items-center justify-center px-4 py-24">
+      <div className="w-full max-w-[22rem]">
         <h1 className="mb-2 text-2xl font-semibold tracking-tight text-th-text">
           Create your account
         </h1>

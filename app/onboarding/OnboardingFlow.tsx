@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { setupAndCompleteOnboarding } from '@/app/actions/settings'
+import { formatPts } from '@/lib/format'
 
 type Step = 'mode' | 'quick' | 'build' | 'theme'
 type Motion = { name: string; default_points: number }
@@ -63,8 +64,8 @@ export function OnboardingFlow() {
 
   if (step === 'mode') {
     return (
-      <div className="flex min-h-full flex-col items-center justify-center px-6 py-12">
-        <div className="w-full max-w-sm">
+      <div className="flex min-h-full flex-col items-center justify-center px-4 py-12">
+        <div className="w-full max-w-[22rem]">
           <p className="mb-2 text-xs uppercase tracking-widest text-th-muted">Onduler</p>
           <h1 className="mb-2 text-2xl font-semibold tracking-tight text-th-text">Welcome.</h1>
           <p className="mb-8 text-sm text-th-muted">How do you want to start?</p>
@@ -92,8 +93,8 @@ export function OnboardingFlow() {
   if (step === 'quick') {
     const picked = SUGGESTIONS.filter(s => selected.has(s.name))
     return (
-      <div className="flex min-h-full flex-col items-center px-6 py-12">
-        <div className="w-full max-w-sm">
+      <div className="flex min-h-full flex-col items-center px-4 py-12">
+        <div className="w-full max-w-[22rem]">
           <button onClick={() => setStep('mode')} className="mb-6 text-sm text-th-faint transition-colors hover:text-th-muted">
             ← Back
           </button>
@@ -111,15 +112,15 @@ export function OnboardingFlow() {
                     on ? 'border-th-btn bg-th-surface' : 'border-th-border hover:bg-th-surface'
                   }`}
                 >
-                  <div className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 transition-all ${on ? 'border-th-btn bg-th-btn' : 'border-th-border'}`}>
+                  <div className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 transition-all ${on ? 'border-th-btn text-th-btn' : 'border-th-border'}`}>
                     {on && (
                       <svg viewBox="0 0 12 10" fill="none" className="h-3 w-3">
-                        <path d="M1 5l3.5 3.5L11 1" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                        <path d="M1 5l3.5 3.5L11 1" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
                     )}
                   </div>
                   <span className="flex-1 text-sm text-th-text">{s.name}</span>
-                  <span className="text-xs text-th-faint">{s.default_points}pts</span>
+                  <span className="text-xs text-th-faint">{formatPts(s.default_points)}</span>
                 </button>
               )
             })}
@@ -139,8 +140,8 @@ export function OnboardingFlow() {
 
   if (step === 'build') {
     return (
-      <div className="flex min-h-full flex-col items-center px-6 py-12">
-        <div className="w-full max-w-sm">
+      <div className="flex min-h-full flex-col items-center px-4 py-12">
+        <div className="w-full max-w-[22rem]">
           <button onClick={() => setStep('mode')} className="mb-6 text-sm text-th-faint transition-colors hover:text-th-muted">
             ← Back
           </button>
@@ -152,7 +153,7 @@ export function OnboardingFlow() {
               {customMotions.map((m, i) => (
                 <div key={i} className="flex items-center gap-3 rounded-lg border border-th-border px-4 py-3">
                   <span className="flex-1 text-sm text-th-text">{m.name}</span>
-                  <span className="text-xs text-th-faint">{m.default_points}pts</span>
+                  <span className="text-xs text-th-faint">{formatPts(m.default_points)}</span>
                   <button
                     onClick={() => setCustomMotions(prev => prev.filter((_, j) => j !== i))}
                     className="text-sm text-th-faint transition-colors hover:text-red-500"
@@ -213,8 +214,8 @@ export function OnboardingFlow() {
   }
 
   return (
-    <div className="flex min-h-full flex-col items-center justify-center px-6 py-12">
-      <div className="w-full max-w-sm">
+    <div className="flex min-h-full flex-col items-center justify-center px-4 py-12">
+      <div className="w-full max-w-[22rem]">
         <button onClick={() => setStep('build')} className="mb-6 text-sm text-th-faint transition-colors hover:text-th-muted">
           ← Back
         </button>

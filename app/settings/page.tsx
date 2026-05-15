@@ -11,18 +11,31 @@ export default async function SettingsPage() {
 
   const { data: settings } = await supabase
     .from('user_settings')
-    .select('theme, groups_enabled, daily_goal, celebration_enabled, haptic_enabled')
+    .select('theme, groups_enabled, daily_goal, daily_goal_hours, tracking_mode, celebration_enabled, haptic_enabled')
     .eq('user_id', user.id)
     .single()
 
+  const { data: groups } = await supabase
+    .from('groups')
+    .select('id, name, color')
+    .eq('user_id', user.id)
+    .order('sort_order')
+
+  const { data: hiddenMotions } = await supabase
+    .from('motions')
+    .select('id, name')
+    .eq('user_id', user.id)
+    .eq('hidden', true)
+    .order('name', { ascending: true })
+
   return (
-    <div className="flex min-h-full flex-col items-center px-6 py-12">
-      <div className="w-full max-w-sm">
+    <div className="flex min-h-full flex-col items-center px-4 py-12">
+      <div className="w-full max-w-[22rem]">
         <div className="mb-6 flex items-center justify-between">
           <p className="text-xs uppercase tracking-widest text-th-muted">Onduler</p>
           <Link
             href="/dashboard"
-            className="text-xs text-th-faint transition-colors hover:text-th-muted"
+            className="hidden text-xs text-th-faint transition-all hover:text-th-muted active:scale-[0.97] sm:inline"
           >
             ← Back
           </Link>
@@ -34,9 +47,13 @@ export default async function SettingsPage() {
           theme={settings?.theme ?? 'default'}
           groupsEnabled={settings?.groups_enabled ?? false}
           dailyGoal={settings?.daily_goal ?? 20}
+          dailyGoalHours={Number(settings?.daily_goal_hours ?? 4)}
+          trackingMode={(settings?.tracking_mode as 'points' | 'hours') ?? 'points'}
           celebrationEnabled={settings?.celebration_enabled ?? true}
           hapticEnabled={settings?.haptic_enabled ?? true}
           email={user.email ?? ''}
+          groups={groups ?? []}
+          hiddenMotions={hiddenMotions ?? []}
         />
 
         <div className="mt-8 border-t border-th-border pt-6">
