@@ -19,7 +19,7 @@ type Motion = {
   swellIds: string[]
   swellWeights: Record<string, number>
 }
-type Submotion = { id: string; name: string; default_points: number; default_hours: number }
+type Submotion = { id: string; name: string; default_points: number; default_hours: number; swells: { id: string; name: string; color: string; weight: number }[] }
 type SwellWithMotions = {
   id: string
   name: string

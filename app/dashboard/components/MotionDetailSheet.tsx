@@ -28,8 +28,60 @@ type Swell = { id: string; name: string; color: string }
 type MotionSwell = { id: string; name: string; color: string; weight: number }
 type Group = { id: string; name: string; color: string }
 type Motion = { id: string; name: string; default_points: number; default_hours: number; swells: MotionSwell[]; groupId: string | null }
-type Submotion = { id: string; name: string; default_points: number; default_hours: number }
+type SubSwell = { id: string; name: string; color: string; weight: number }
+type Submotion = { id: string; name: string; default_points: number; default_hours: number; swells: SubSwell[] }
 type TrackingMode = 'points' | 'hours'
+
+type SwellChipsProps = {
+  allSwells: Swell[]
+  weights: Map<string, number>
+  pctDraft: Map<string, string>
+  onToggle: (swellId: string) => void
+  onPctChange: (swellId: string, value: string) => void
+  onPctBlur: (swellId: string, value: string) => void
+}
+
+function SwellChips({ allSwells, weights, pctDraft, onToggle, onPctChange, onPctBlur }: SwellChipsProps) {
+  if (allSwells.length === 0) return null
+  return (
+    <div className="flex flex-col gap-1.5">
+      <p className="text-xs text-th-faint">Swells</p>
+      <div className="flex flex-wrap gap-1.5">
+        {allSwells.map(s => {
+          const active = weights.has(s.id)
+          return (
+            <div key={s.id} className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => onToggle(s.id)}
+                className="rounded-full border px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wide transition-colors"
+                style={active
+                  ? { backgroundColor: s.color, borderColor: s.color, color: '#fff' }
+                  : { borderColor: 'var(--color-th-border)', color: 'var(--color-th-muted)' }}
+              >
+                {s.name}
+              </button>
+              {active && (
+                <div className="flex items-center gap-0.5">
+                  <input
+                    type="number"
+                    min="1"
+                    max="100"
+                    value={pctDraft.get(s.id) ?? '100'}
+                    onChange={e => onPctChange(s.id, e.target.value)}
+                    onBlur={e => onPctBlur(s.id, e.target.value)}
+                    className="w-10 rounded border border-th-border bg-th-bg px-1 py-0.5 text-center text-xs text-th-text outline-none focus:border-th-focus"
+                  />
+                  <span className="text-xs text-th-faint">%</span>
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
 
 type SortableSubmotionProps = {
   sub: Submotion
@@ -40,8 +92,14 @@ type SortableSubmotionProps = {
   isSavingSub: boolean
   isDeletingSub: boolean
   confirmingSubDel: string | null
+  allSwells: Swell[]
+  editSubSwellWeights: Map<string, number>
+  editSubSwellPctDraft: Map<string, string>
   onSetEditSubName: (v: string) => void
   onSetEditSubPts: (v: string) => void
+  onToggleEditSubSwell: (swellId: string) => void
+  onEditSubSwellPctChange: (swellId: string, value: string) => void
+  onEditSubSwellPctBlur: (swellId: string, value: string) => void
   onSaveEdit: (sub: Submotion) => void
   onCancelEdit: () => void
   onDeleteSub: (id: string) => void
@@ -51,7 +109,9 @@ type SortableSubmotionProps = {
 
 function SortableSubmotion({
   sub, done, isEditing, editSubName, editSubPts, isSavingSub, isDeletingSub, confirmingSubDel,
-  onSetEditSubName, onSetEditSubPts, onSaveEdit, onCancelEdit, onDeleteSub, onLog, onStartEdit,
+  allSwells, editSubSwellWeights, editSubSwellPctDraft,
+  onSetEditSubName, onSetEditSubPts, onToggleEditSubSwell, onEditSubSwellPctChange, onEditSubSwellPctBlur,
+  onSaveEdit, onCancelEdit, onDeleteSub, onLog, onStartEdit,
 }: SortableSubmotionProps) {
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } =
     useSortable({ id: sub.id })
@@ -81,6 +141,14 @@ function SortableSubmotion({
             className="w-16 rounded border border-th-border bg-th-bg px-2 py-1 text-sm text-th-text outline-none focus:border-th-focus"
           />
         </div>
+        <SwellChips
+          allSwells={allSwells}
+          weights={editSubSwellWeights}
+          pctDraft={editSubSwellPctDraft}
+          onToggle={onToggleEditSubSwell}
+          onPctChange={onEditSubSwellPctChange}
+          onPctBlur={onEditSubSwellPctBlur}
+        />
         <div className="flex items-center gap-2 pt-1">
           <button
             onClick={() => onSaveEdit(sub)}
@@ -266,14 +334,19 @@ export function MotionDetailSheet({
     startReorderSub(async () => { await reorderMotions(next.map(s => s.id)) })
   }
 
-  // Add submotion (budget auto-divides from parent)
+  // Add submotion — expandable from + button
+  const [addingSubmotion, setAddingSubmotion] = useState(false)
   const [addName, setAddName] = useState('')
+  const [addSwellWeights, setAddSwellWeights] = useState<Map<string, number>>(new Map())
+  const [addSwellPctDraft, setAddSwellPctDraft] = useState<Map<string, string>>(new Map())
   const [isAdding, startAdding] = useTransition()
 
   // Edit submotion inline
   const [editingSubId, setEditingSubId] = useState<string | null>(null)
   const [editSubName, setEditSubName] = useState('')
   const [editSubPts, setEditSubPts] = useState('')
+  const [editSubSwellWeights, setEditSubSwellWeights] = useState<Map<string, number>>(new Map())
+  const [editSubSwellPctDraft, setEditSubSwellPctDraft] = useState<Map<string, string>>(new Map())
   const [isSavingSub, startSavingSub] = useTransition()
 
   // Delete submotion with two-tap confirm
@@ -281,18 +354,67 @@ export function MotionDetailSheet({
   const [isDeletingSub, startDeletingSub] = useTransition()
   const subDelTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  function swellEntriesToArray(weights: Map<string, number>) {
+    return Array.from(weights.entries()).map(([swellId, weight]) => ({ swellId, weight }))
+  }
+
+  function toggleSwellInMap(prev: Map<string, number>, swellId: string): Map<string, number> {
+    const next = new Map(prev)
+    if (next.has(swellId)) next.delete(swellId)
+    else next.set(swellId, 1)
+    return next
+  }
+
+  function togglePctDraftInMap(prev: Map<string, string>, swellId: string, weights: Map<string, number>): Map<string, string> {
+    const next = new Map(prev)
+    if (weights.has(swellId)) next.delete(swellId)
+    else next.set(swellId, '100')
+    return next
+  }
+
   function startEditSub(sub: Submotion) {
     setEditingSubId(sub.id)
     setEditSubName(sub.name)
     setEditSubPts(String(sub.default_points))
+    setEditSubSwellWeights(new Map(sub.swells.map(s => [s.id, s.weight])))
+    setEditSubSwellPctDraft(new Map(sub.swells.map(s => [s.id, String(Math.round(s.weight * 100))])))
   }
 
   function cancelEditSub() {
     setEditingSubId(null)
     setEditSubName('')
     setEditSubPts('')
+    setEditSubSwellWeights(new Map())
+    setEditSubSwellPctDraft(new Map())
     setConfirmingSubDel(null)
     if (subDelTimer.current) clearTimeout(subDelTimer.current)
+  }
+
+  function toggleEditSubSwell(swellId: string) {
+    if (!editingSubId) return
+    const nextWeights = toggleSwellInMap(editSubSwellWeights, swellId)
+    setEditSubSwellPctDraft(prev => togglePctDraftInMap(prev, swellId, editSubSwellWeights))
+    setEditSubSwellWeights(nextWeights)
+    startTransition(async () => { await setMotionSwells(editingSubId, swellEntriesToArray(nextWeights)) })
+  }
+
+  function editSubSwellPctChange(swellId: string, value: string) {
+    setEditSubSwellPctDraft(prev => new Map(prev).set(swellId, value))
+  }
+
+  function editSubSwellPctBlur(swellId: string, value: string) {
+    if (!editingSubId) return
+    const num = parseInt(value)
+    const pct = Math.round((editSubSwellWeights.get(swellId) ?? 1) * 100)
+    if (!isNaN(num) && num >= 1 && num <= 100) {
+      const clamped = Math.max(0, Math.min(num, 100))
+      const next = new Map(editSubSwellWeights)
+      next.set(swellId, clamped / 100)
+      setEditSubSwellWeights(next)
+      startTransition(async () => { await setMotionSwells(editingSubId!, swellEntriesToArray(next)) })
+    } else {
+      setEditSubSwellPctDraft(prev => new Map(prev).set(swellId, String(pct)))
+    }
   }
 
   function saveEditSub(sub: Submotion) {
@@ -363,11 +485,37 @@ export function MotionDetailSheet({
   function handleAdd() {
     const name = addName.trim()
     if (!name) return
+    const swellsToAssign = swellEntriesToArray(addSwellWeights)
     startAdding(async () => {
-      await createSubmotion(motion.id, name)
+      const result = await createSubmotion(motion.id, name)
+      if (result?.id && swellsToAssign.length > 0) {
+        await setMotionSwells(result.id, swellsToAssign)
+      }
       setAddName('')
+      setAddSwellWeights(new Map())
+      setAddSwellPctDraft(new Map())
+      setAddingSubmotion(false)
       router.refresh()
     })
+  }
+
+  function toggleAddSwell(swellId: string) {
+    setAddSwellPctDraft(prev => togglePctDraftInMap(prev, swellId, addSwellWeights))
+    setAddSwellWeights(prev => toggleSwellInMap(prev, swellId))
+  }
+
+  function addSwellPctChange(swellId: string, value: string) {
+    setAddSwellPctDraft(prev => new Map(prev).set(swellId, value))
+  }
+
+  function addSwellPctBlur(swellId: string, value: string) {
+    const num = parseInt(value)
+    const pct = Math.round((addSwellWeights.get(swellId) ?? 1) * 100)
+    if (!isNaN(num) && num >= 1 && num <= 100) {
+      setAddSwellWeights(prev => { const n = new Map(prev); n.set(swellId, Math.max(0, Math.min(num, 100)) / 100); return n })
+    } else {
+      setAddSwellPctDraft(prev => new Map(prev).set(swellId, String(pct)))
+    }
   }
 
   function handleDelete() {
@@ -464,55 +612,120 @@ export function MotionDetailSheet({
         )}
 
         {/* Submotions */}
-        {orderedSubs.length > 0 && (
-          <div className="mb-6">
-            <button
-              onClick={() => setSubmotionsCollapsed(c => !c)}
-              className="mb-3 flex items-center gap-1.5 text-xs font-medium uppercase tracking-widest text-th-faint"
-            >
-              <svg
-                viewBox="0 0 16 16"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className={`h-3 w-3 transition-transform ${submotionsCollapsed ? '-rotate-90' : ''}`}
+        <div className="mb-6">
+          <div className="mb-3 flex items-center gap-2">
+            {orderedSubs.length > 0 && (
+              <button
+                onClick={() => setSubmotionsCollapsed(c => !c)}
+                className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-widest text-th-faint"
               >
-                <path d="M4 6l4 4 4-4" />
-              </svg>
-              Submotions
-            </button>
-            {!submotionsCollapsed && (
-              <DndContext sensors={subSensors} collisionDetection={closestCenter} onDragEnd={handleSubDragEnd}>
-                <SortableContext items={orderedSubs.map(s => s.id)} strategy={verticalListSortingStrategy}>
-                  <div className="flex flex-col gap-2">
-                    {orderedSubs.map(sub => (
-                      <SortableSubmotion
-                        key={sub.id}
-                        sub={sub}
-                        done={localDone.has(sub.id)}
-                        isEditing={editingSubId === sub.id}
-                        editSubName={editSubName}
-                        editSubPts={editSubPts}
-                        isSavingSub={isSavingSub}
-                        isDeletingSub={isDeletingSub}
-                        confirmingSubDel={confirmingSubDel}
-                        onSetEditSubName={setEditSubName}
-                        onSetEditSubPts={setEditSubPts}
-                        onSaveEdit={saveEditSub}
-                        onCancelEdit={cancelEditSub}
-                        onDeleteSub={handleDeleteSub}
-                        onLog={handleSubLog}
-                        onStartEdit={startEditSub}
-                      />
-                    ))}
-                  </div>
-                </SortableContext>
-              </DndContext>
+                <svg
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className={`h-3 w-3 transition-transform ${submotionsCollapsed ? '-rotate-90' : ''}`}
+                >
+                  <path d="M4 6l4 4 4-4" />
+                </svg>
+                Submotions
+              </button>
             )}
+            {orderedSubs.length === 0 && (
+              <p className="text-xs font-medium uppercase tracking-widest text-th-faint">Submotions</p>
+            )}
+            <button
+              onClick={() => setAddingSubmotion(a => !a)}
+              className="ml-auto shrink-0 p-0.5 text-th-faint transition-colors hover:text-th-muted"
+              aria-label="Add submotion"
+            >
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="h-4 w-4">
+                <path d="M8 3v10M3 8h10" />
+              </svg>
+            </button>
           </div>
-        )}
+
+          {/* Add submotion expandable form */}
+          {addingSubmotion && (
+            <div className="mb-3 rounded-lg border border-th-focus bg-th-surface px-4 py-3 flex flex-col gap-2">
+              <input
+                autoFocus
+                type="text"
+                placeholder="Name"
+                value={addName}
+                onChange={e => setAddName(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') handleAdd() }}
+                className="rounded border border-th-border bg-th-bg px-2 py-1 text-sm text-th-text outline-none focus:border-th-focus"
+              />
+              <SwellChips
+                allSwells={allSwells}
+                weights={addSwellWeights}
+                pctDraft={addSwellPctDraft}
+                onToggle={toggleAddSwell}
+                onPctChange={addSwellPctChange}
+                onPctBlur={addSwellPctBlur}
+              />
+              <div className="flex items-center gap-2 pt-1">
+                <button
+                  onClick={handleAdd}
+                  disabled={!addName.trim() || isAdding}
+                  className="rounded-lg bg-th-btn px-3 py-1 text-xs font-medium text-th-btn-text transition-colors hover:bg-th-btn-hover disabled:opacity-50"
+                >
+                  {isAdding ? 'Adding…' : 'Add'}
+                </button>
+                <button
+                  onClick={() => { setAddingSubmotion(false); setAddName(''); setAddSwellWeights(new Map()); setAddSwellPctDraft(new Map()) }}
+                  className="text-xs text-th-faint hover:text-th-muted transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+              {orderedSubs.length > 0 && (
+                <p className="text-xs text-th-faint">
+                  Parent&apos;s {formatPts(motion.default_points)} split across {orderedSubs.length + 1} submotion{orderedSubs.length !== 0 ? 's' : ''}
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Submotion list */}
+          {orderedSubs.length > 0 && !submotionsCollapsed && (
+            <DndContext sensors={subSensors} collisionDetection={closestCenter} onDragEnd={handleSubDragEnd}>
+              <SortableContext items={orderedSubs.map(s => s.id)} strategy={verticalListSortingStrategy}>
+                <div className="flex flex-col gap-2">
+                  {orderedSubs.map(sub => (
+                    <SortableSubmotion
+                      key={sub.id}
+                      sub={sub}
+                      done={localDone.has(sub.id)}
+                      isEditing={editingSubId === sub.id}
+                      editSubName={editSubName}
+                      editSubPts={editSubPts}
+                      isSavingSub={isSavingSub}
+                      isDeletingSub={isDeletingSub}
+                      confirmingSubDel={confirmingSubDel}
+                      allSwells={allSwells}
+                      editSubSwellWeights={editSubSwellWeights}
+                      editSubSwellPctDraft={editSubSwellPctDraft}
+                      onSetEditSubName={setEditSubName}
+                      onSetEditSubPts={setEditSubPts}
+                      onToggleEditSubSwell={toggleEditSubSwell}
+                      onEditSubSwellPctChange={editSubSwellPctChange}
+                      onEditSubSwellPctBlur={editSubSwellPctBlur}
+                      onSaveEdit={saveEditSub}
+                      onCancelEdit={cancelEditSub}
+                      onDeleteSub={handleDeleteSub}
+                      onLog={handleSubLog}
+                      onStartEdit={startEditSub}
+                    />
+                  ))}
+                </div>
+              </SortableContext>
+            </DndContext>
+          )}
+        </div>
 
         {/* Groups assignment */}
         {groupsEnabled && allGroups.length > 0 && (
@@ -584,33 +797,6 @@ export function MotionDetailSheet({
             </div>
           </div>
         )}
-
-        {/* Add submotion (budget auto-divides from parent) */}
-        <div className="mb-6 border-t border-th-border pt-4">
-          <p className="mb-3 text-xs font-medium uppercase tracking-widest text-th-faint">Add submotion</p>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              placeholder="Name"
-              value={addName}
-              onChange={e => setAddName(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleAdd()}
-              className="flex-1 rounded-lg border border-th-border bg-th-surface px-3 py-2 text-sm text-th-text outline-none focus:border-th-focus"
-            />
-            <button
-              onClick={handleAdd}
-              disabled={!addName.trim() || isAdding}
-              className="shrink-0 rounded-lg bg-th-btn px-3 py-2 text-sm font-medium text-th-btn-text transition-colors hover:bg-th-btn-hover disabled:opacity-40"
-            >
-              {isAdding ? '…' : 'Add'}
-            </button>
-          </div>
-          {submotions.length > 0 && (
-            <p className="mt-2 text-xs text-th-faint">
-              Parent&apos;s {formatPts(motion.default_points)} split across {submotions.length} submotion{submotions.length !== 1 ? 's' : ''}
-            </p>
-          )}
-        </div>
 
         {/* Hide + Delete */}
         <div className="flex items-center justify-between border-t border-th-border pt-4">

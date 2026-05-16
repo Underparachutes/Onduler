@@ -76,17 +76,24 @@ export default async function DashboardPage() {
   // Fetch submotions separately (not shown in checklist, shown in detail sheet)
   const { data: submotionsRaw } = await supabase
     .from('motions')
-    .select('id, name, default_points, default_hours, parent_id')
+    .select('id, name, default_points, default_hours, parent_id, motion_swells(contribution_weight, swells(id, name, color))')
     .eq('user_id', user.id)
     .eq('hidden', false)
     .not('parent_id', 'is', null)
     .order('sort_order', { ascending: true, nullsFirst: false })
 
-  const submotionsMap: Record<string, { id: string; name: string; default_points: number; default_hours: number }[]> = {}
+  const submotionsMap: Record<string, { id: string; name: string; default_points: number; default_hours: number; swells: { id: string; name: string; color: string; weight: number }[] }[]> = {}
   submotionsRaw?.forEach(m => {
     if (!m.parent_id) return
     if (!submotionsMap[m.parent_id]) submotionsMap[m.parent_id] = []
-    submotionsMap[m.parent_id].push({ id: m.id, name: m.name, default_points: m.default_points, default_hours: m.default_hours })
+    const rawJunctions = (m.motion_swells ?? []) as unknown as { contribution_weight: number; swells: { id: string; name: string; color: string } | null }[]
+    submotionsMap[m.parent_id].push({
+      id: m.id,
+      name: m.name,
+      default_points: m.default_points,
+      default_hours: m.default_hours,
+      swells: rawJunctions.filter(ms => ms.swells !== null).map(ms => ({ ...ms.swells!, weight: Number(ms.contribution_weight) || 1 })),
+    })
   })
 
   const motions = (motionsRaw ?? []).map(m => {

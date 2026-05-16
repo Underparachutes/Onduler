@@ -178,13 +178,13 @@ export async function createSubmotion(parentId: string, name: string) {
   const trimmed = name.trim()
   if (!trimmed) return { error: 'Name is required' }
 
-  const { error } = await supabase.from('motions').insert({
+  const { data, error } = await supabase.from('motions').insert({
     user_id: user.id,
     name: trimmed,
     default_points: 1,
     default_hours: 1,
     parent_id: parentId,
-  })
+  }).select('id').single()
 
   if (error) return { error: error.message }
 
@@ -192,7 +192,7 @@ export async function createSubmotion(parentId: string, name: string) {
 
   revalidatePath('/dashboard')
   revalidatePath('/swells')
-  return { success: true }
+  return { success: true, id: data.id }
 }
 
 export async function hideMotion(id: string) {

@@ -29,7 +29,7 @@ export default async function SwellsPage() {
       .order('default_points', { ascending: false }),
     supabase
       .from('motions')
-      .select('id, name, default_points, default_hours, parent_id')
+      .select('id, name, default_points, default_hours, parent_id, motion_swells(contribution_weight, swells(id, name, color))')
       .eq('user_id', user.id)
       .eq('hidden', false)
       .not('parent_id', 'is', null)
@@ -66,15 +66,17 @@ export default async function SwellsPage() {
     new Set((todayLogs ?? []).map(l => l.motion_id).filter(Boolean) as string[])
   )
 
-  const submotionsMap: Record<string, { id: string; name: string; default_points: number; default_hours: number }[]> = {}
+  const submotionsMap: Record<string, { id: string; name: string; default_points: number; default_hours: number; swells: { id: string; name: string; color: string; weight: number }[] }[]> = {}
   submotionsRaw?.forEach(m => {
     if (!m.parent_id) return
     if (!submotionsMap[m.parent_id]) submotionsMap[m.parent_id] = []
+    const rawJunctions = (m.motion_swells ?? []) as unknown as { contribution_weight: number; swells: { id: string; name: string; color: string } | null }[]
     submotionsMap[m.parent_id].push({
       id: m.id,
       name: m.name,
       default_points: m.default_points,
       default_hours: m.default_hours,
+      swells: rawJunctions.filter(ms => ms.swells !== null).map(ms => ({ ...ms.swells!, weight: Number(ms.contribution_weight) || 1 })),
     })
   })
 

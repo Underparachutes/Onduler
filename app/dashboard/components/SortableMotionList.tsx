@@ -24,7 +24,7 @@ import { formatPts, formatHrs } from '@/lib/format'
 
 type MotionSwell = { id: string; name: string; color: string; weight: number }
 type Motion = { id: string; name: string; default_points: number; default_hours: number; swells: MotionSwell[]; groupId: string | null }
-type Submotion = { id: string; name: string; default_points: number; default_hours: number }
+type Submotion = { id: string; name: string; default_points: number; default_hours: number; swells: { id: string; name: string; color: string; weight: number }[] }
 type TrackingMode = 'points' | 'hours'
 
 type RowProps = {
