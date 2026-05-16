@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { SwellsList } from './SwellsList'
 import { AddSwellForm } from './AddSwellForm'
+import { AddGroupForm } from '@/app/dashboard/components/AddGroupForm'
 
 type Swell = { id: string; name: string; color: string }
 type MotionSwell = { id: string; name: string; color: string; weight: number }
@@ -67,8 +68,30 @@ function usePersistedHideDone(key: string): [boolean, () => void] {
 }
 
 export function SwellsView(props: Props) {
-  const [openForm, setOpenForm] = useState<null | 'swell'>(null)
+  const [openForm, setOpenForm] = useState<null | 'swell' | 'group'>(null)
+  const [menuOpen, setMenuOpen] = useState(false)
   const [hideDone, toggleHideDone] = usePersistedHideDone('onduler-hide-done-swells')
+  const [searchQuery, setSearchQuery] = useState('')
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!menuOpen) return
+    function handler(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [menuOpen])
+
+  function handlePlus() {
+    if (props.groupsEnabled) {
+      setMenuOpen(prev => !prev)
+    } else {
+      setOpenForm('swell')
+    }
+  }
 
   const activeGroupIds = new Set(props.swells.map(s => s.groupId).filter(Boolean) as string[])
   const visibleGroups = props.allGroups.filter(g => activeGroupIds.has(g.id))
@@ -97,6 +120,10 @@ export function SwellsView(props: Props) {
           <div style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.5rem)' }}>
             <AddSwellForm trackingMode={props.trackingMode} onClose={() => setOpenForm(null)} />
           </div>
+        ) : openForm === 'group' ? (
+          <div style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.5rem)' }}>
+            <AddGroupForm onClose={() => setOpenForm(null)} />
+          </div>
         ) : (
           <>
             <div className="sticky top-0 z-10 bg-th-bg pb-3" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.5rem)' }}>
@@ -106,13 +133,32 @@ export function SwellsView(props: Props) {
                   <Link href="/dashboard" className="hidden text-xs text-th-faint transition-all hover:text-th-muted active:scale-[0.97] sm:inline">
                     ← Back
                   </Link>
-                  <button
-                    onClick={() => setOpenForm('swell')}
-                    aria-label="Add a swell"
-                    className="flex items-center justify-center text-3xl font-light leading-none text-th-muted transition-colors hover:text-th-text"
-                  >
-                    +
-                  </button>
+                  <div ref={menuRef} className="relative">
+                    <button
+                      onClick={handlePlus}
+                      aria-label="Add"
+                      className="flex items-center justify-center text-3xl font-light leading-none text-th-muted transition-colors hover:text-th-text"
+                    >
+                      +
+                    </button>
+                    {menuOpen && (
+                      <div className="absolute right-0 top-full z-10 mt-2 w-44 overflow-hidden rounded-lg border border-th-border bg-th-bg shadow-lg">
+                        <button
+                          onClick={() => { setMenuOpen(false); setOpenForm('swell') }}
+                          className="block w-full px-4 py-3 text-left text-sm text-th-text transition-colors hover:bg-th-surface"
+                        >
+                          Add a swell
+                        </button>
+                        <div className="border-t border-th-border" />
+                        <button
+                          onClick={() => { setMenuOpen(false); setOpenForm('group') }}
+                          className="block w-full px-4 py-3 text-left text-sm text-th-text transition-colors hover:bg-th-surface"
+                        >
+                          Add a group
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -141,6 +187,17 @@ export function SwellsView(props: Props) {
                 </div>
               )}
 
+              {/* Search bar */}
+              <div className="mb-2">
+                <input
+                  type="search"
+                  placeholder="Search swells…"
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  className="w-full rounded-lg border border-th-border bg-th-surface px-3 py-2 text-sm text-th-text outline-none focus:border-th-focus placeholder:text-th-faint"
+                />
+              </div>
+
               {/* Group filter + hide done */}
               <div className="flex items-center gap-2">
                 {props.groupsEnabled && visibleGroups.length > 0 && (
@@ -150,7 +207,7 @@ export function SwellsView(props: Props) {
                 )}
                 <button
                   onClick={toggleHideDone}
-                  className="shrink-0 text-xs text-th-faint transition-colors hover:text-th-muted"
+                  className="shrink-0 text-xs text-th-faint transition-colors hover:text-th-muted ml-auto"
                 >
                   {hideDone ? 'Show all' : 'Hide done'}
                 </button>
@@ -175,6 +232,7 @@ export function SwellsView(props: Props) {
               groupsEnabled={props.groupsEnabled}
               trackingMode={props.trackingMode}
               hideDone={hideDone}
+              searchQuery={searchQuery}
             />
           </>
         )}

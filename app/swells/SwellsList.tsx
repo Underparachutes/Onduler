@@ -65,6 +65,7 @@ type Props = {
   groupsEnabled: boolean
   trackingMode: TrackingMode
   hideDone: boolean
+  searchQuery: string
 }
 
 function SortableSwellItem({ swell, children }: { swell: SwellWithMotions; children: React.ReactNode }) {
@@ -114,6 +115,7 @@ export function SwellsList({
   groupsEnabled,
   trackingMode,
   hideDone,
+  searchQuery,
 }: Props) {
   const isHours = trackingMode === 'hours'
   const [openSheetId, setOpenSheetId] = useState<string | null>(null)
@@ -205,9 +207,13 @@ export function SwellsList({
     )
   }
 
+  const filteredSwells = searchQuery
+    ? orderedSwells.filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase()))
+    : orderedSwells
+
   // Group swells by groupId for display
   const groupedSwells = new Map<string | null, SwellWithMotions[]>()
-  for (const swell of orderedSwells) {
+  for (const swell of filteredSwells) {
     const gid = swell.groupId
     if (!groupedSwells.has(gid)) groupedSwells.set(gid, [])
     groupedSwells.get(gid)!.push(swell)
@@ -220,26 +226,33 @@ export function SwellsList({
       <div className="mb-8 flex flex-col gap-6">
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext items={orderedSwells.map(s => s.id)} strategy={verticalListSortingStrategy}>
-            {groupOrder.map(gid => {
-              const groupSwells = groupedSwells.get(gid)
-              if (!groupSwells || groupSwells.length === 0) return null
-              const group = allGroups.find(g => g.id === gid)
-              return (
-                <div key={gid}>
-                  <p
-                    className="mb-2 text-xs font-semibold uppercase tracking-widest"
-                    style={{ color: group?.color }}
-                  >
-                    {group?.name}
-                  </p>
-                  <div className="flex flex-col gap-4">
-                    {groupSwells.map(renderSwellRow)}
-                  </div>
-                </div>
-              )
-            })}
-            {/* Ungrouped swells */}
-            {(groupedSwells.get(null) ?? []).map(renderSwellRow)}
+            {groupsEnabled ? (
+              <>
+                {groupOrder.map(gid => {
+                  const groupSwells = groupedSwells.get(gid)
+                  if (!groupSwells || groupSwells.length === 0) return null
+                  const group = allGroups.find(g => g.id === gid)
+                  return (
+                    <div key={gid}>
+                      <p
+                        className="mb-2 text-xs font-semibold uppercase tracking-widest"
+                        style={{ color: group?.color }}
+                      >
+                        {group?.name}
+                      </p>
+                      <div className="flex flex-col gap-4">
+                        {groupSwells.map(renderSwellRow)}
+                      </div>
+                    </div>
+                  )
+                })}
+                {(groupedSwells.get(null) ?? []).map(renderSwellRow)}
+              </>
+            ) : (
+              <div className="flex flex-col gap-4">
+                {filteredSwells.map(renderSwellRow)}
+              </div>
+            )}
           </SortableContext>
         </DndContext>
       </div>
