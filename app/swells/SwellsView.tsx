@@ -72,6 +72,7 @@ export function SwellsView(props: Props) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [hideDone, toggleHideDone] = usePersistedHideDone('onduler-hide-done-swells')
   const [searchQuery, setSearchQuery] = useState('')
+  const [activeGroup, setActiveGroup] = useState<string | null>(null)
   const menuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -202,7 +203,18 @@ export function SwellsView(props: Props) {
               <div className="flex items-center gap-2">
                 {props.groupsEnabled && visibleGroups.length > 0 && (
                   <div className="flex flex-1 flex-wrap gap-2">
-                    <SwellGroupFilter groups={visibleGroups} swells={props.swells} />
+                    {visibleGroups.map(g => (
+                      <button
+                        key={g.id}
+                        onClick={() => setActiveGroup(activeGroup === g.id ? null : g.id)}
+                        className="rounded-full border px-3 py-1 text-xs font-medium transition-colors"
+                        style={activeGroup === g.id ? { backgroundColor: g.color, borderColor: g.color, color: '#fff' } : {}}
+                      >
+                        <span className={activeGroup !== g.id ? 'text-th-muted' : ''}>
+                          {g.name.toUpperCase()}
+                        </span>
+                      </button>
+                    ))}
                   </div>
                 )}
                 <button
@@ -233,6 +245,7 @@ export function SwellsView(props: Props) {
               trackingMode={props.trackingMode}
               hideDone={hideDone}
               searchQuery={searchQuery}
+              activeGroup={activeGroup}
             />
           </>
         )}
@@ -241,27 +254,3 @@ export function SwellsView(props: Props) {
   )
 }
 
-function SwellGroupFilter({ groups, swells }: { groups: Group[]; swells: { groupId: string | null }[] }) {
-  const [activeGroup, setActiveGroup] = useState<string | null>(null)
-
-  if (activeGroup && !swells.some(s => s.groupId === activeGroup)) {
-    setActiveGroup(null)
-  }
-
-  return (
-    <>
-      {groups.map(g => (
-        <button
-          key={g.id}
-          onClick={() => setActiveGroup(activeGroup === g.id ? null : g.id)}
-          className="rounded-full border px-3 py-1 text-xs font-medium transition-colors"
-          style={activeGroup === g.id ? { backgroundColor: g.color, borderColor: g.color, color: '#fff' } : {}}
-        >
-          <span className={activeGroup !== g.id ? 'text-th-muted' : ''}>
-            {g.name.toUpperCase()}
-          </span>
-        </button>
-      ))}
-    </>
-  )
-}

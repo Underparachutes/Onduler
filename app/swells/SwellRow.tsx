@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useActionState, useTransition, useRef, useEffect } from 'react'
-import { updateSwell, deleteSwell, setSwellGroup } from '@/app/actions/swells'
+import { useState, useTransition, useRef, useEffect } from 'react'
+import { updateSwellDirect, deleteSwell, setSwellGroup } from '@/app/actions/swells'
 import { formatPts, formatHrs } from '@/lib/format'
 
 type Motion = { id: string; name: string; default_points: number; default_hours: number; swellIds: string[]; swellWeights: Record<string, number> }
@@ -34,12 +34,15 @@ export function SwellRow({
   expanded, onToggleExpand, onOpenMotion,
 }: Props) {
   const [editing, setEditing] = useState(false)
-  const updateById = updateSwell.bind(null, swell.id)
-  const [state, action, isPending] = useActionState(updateById, null)
-
+  const [saving, startSave] = useTransition()
   const [deleting, startDelete] = useTransition()
   const [confirming, setConfirming] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const confirmTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const nameRef = useRef<HTMLInputElement>(null)
+  const colorRef = useRef<HTMLInputElement>(null)
+  const targetPtsRef = useRef<HTMLInputElement>(null)
+  const targetHrsRef = useRef<HTMLInputElement>(null)
 
   // Group assignment
   const [localGroupId, setLocalGroupId] = useState<string | null>(swell.groupId)
@@ -48,6 +51,20 @@ export function SwellRow({
   useEffect(() => {
     return () => { if (confirmTimer.current) clearTimeout(confirmTimer.current) }
   }, [])
+
+  function handleSave() {
+    const name = nameRef.current?.value.trim() ?? ''
+    if (!name) { setError('Name required'); return }
+    const color = colorRef.current?.value ?? swell.color
+    const targetPoints = targetPtsRef.current?.value ? parseInt(targetPtsRef.current.value) || null : null
+    const targetHours = targetHrsRef.current?.value ? parseFloat(targetHrsRef.current.value) || null : null
+    setError(null)
+    startSave(async () => {
+      const result = await updateSwellDirect(swell.id, name, color, targetPoints, targetHours)
+      if (result?.error) { setError(result.error); return }
+      setEditing(false)
+    })
+  }
 
   function handleDelete() {
     if (!confirming) {
@@ -82,102 +99,99 @@ export function SwellRow({
 
   if (editing) {
     return (
-      <div>
-        <form action={action} className="flex flex-col gap-3 mb-2">
+      <div className="flex flex-col gap-3 mb-2">
+        <div className="flex items-center gap-2">
+          <input
+            ref={nameRef}
+            type="text"
+            defaultValue={swell.name}
+            autoFocus
+            className="flex-1 rounded-lg border border-th-border bg-th-surface px-3 py-2 text-sm text-th-text outline-none focus:border-th-focus"
+          />
+          <input
+            ref={colorRef}
+            type="color"
+            defaultValue={swell.color}
+            className="h-9 w-9 shrink-0 cursor-pointer rounded-lg border border-th-border bg-th-surface p-1"
+          />
+        </div>
+        {showHoursField ? (
           <div className="flex items-center gap-2">
+            <label className="shrink-0 text-xs text-th-muted">Target hrs</label>
             <input
-              type="text"
-              name="name"
-              defaultValue={swell.name}
-              required
-              autoFocus
+              ref={targetHrsRef}
+              type="number"
+              defaultValue={swell.target_hours ?? ''}
+              min="0.25"
+              step="0.25"
+              placeholder="None"
+              inputMode="decimal"
               className="flex-1 rounded-lg border border-th-border bg-th-surface px-3 py-2 text-sm text-th-text outline-none focus:border-th-focus"
             />
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <label className="shrink-0 text-xs text-th-muted">Target pts</label>
             <input
-              type="color"
-              name="color"
-              defaultValue={swell.color}
-              className="h-9 w-9 shrink-0 cursor-pointer rounded-lg border border-th-border bg-th-surface p-1"
+              ref={targetPtsRef}
+              type="number"
+              defaultValue={swell.target_points ?? ''}
+              min="1"
+              placeholder="None"
+              inputMode="numeric"
+              className="flex-1 rounded-lg border border-th-border bg-th-surface px-3 py-2 text-sm text-th-text outline-none focus:border-th-focus"
             />
           </div>
-          {showHoursField ? (
-            <div className="flex items-center gap-2">
-              <label className="shrink-0 text-xs text-th-muted">Target hrs</label>
-              <input
-                type="number"
-                name="target_hours"
-                defaultValue={swell.target_hours ?? ''}
-                min="0.25"
-                step="0.25"
-                placeholder="None"
-                inputMode="decimal"
-                className="flex-1 rounded-lg border border-th-border bg-th-surface px-3 py-2 text-sm text-th-text outline-none focus:border-th-focus"
-              />
+        )}
+        {groupsEnabled && allGroups.length > 0 && (
+          <div>
+            <p className="mb-1.5 text-xs text-th-faint">Group</p>
+            <div className="flex flex-wrap gap-1.5">
+              {allGroups.map(g => {
+                const active = localGroupId === g.id
+                return (
+                  <button
+                    key={g.id}
+                    type="button"
+                    onClick={() => toggleGroup(g.id)}
+                    className="rounded-full border px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wide transition-colors"
+                    style={active
+                      ? { backgroundColor: g.color, borderColor: g.color, color: '#fff' }
+                      : { borderColor: 'var(--color-th-border)', color: 'var(--color-th-muted)' }}
+                  >
+                    {g.name}
+                  </button>
+                )
+              })}
             </div>
-          ) : (
-            <div className="flex items-center gap-2">
-              <label className="shrink-0 text-xs text-th-muted">Target pts</label>
-              <input
-                type="number"
-                name="target_points"
-                defaultValue={swell.target_points ?? ''}
-                min="1"
-                placeholder="None"
-                inputMode="numeric"
-                className="flex-1 rounded-lg border border-th-border bg-th-surface px-3 py-2 text-sm text-th-text outline-none focus:border-th-focus"
-              />
-            </div>
-          )}
-          {/* Group picker (same UI as motions) */}
-          {groupsEnabled && allGroups.length > 0 && (
-            <div>
-              <p className="mb-1.5 text-xs text-th-faint">Group</p>
-              <div className="flex flex-wrap gap-1.5">
-                {allGroups.map(g => {
-                  const active = localGroupId === g.id
-                  return (
-                    <button
-                      key={g.id}
-                      type="button"
-                      onClick={() => toggleGroup(g.id)}
-                      className="rounded-full border px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wide transition-colors"
-                      style={active
-                        ? { backgroundColor: g.color, borderColor: g.color, color: '#fff' }
-                        : { borderColor: 'var(--color-th-border)', color: 'var(--color-th-muted)' }}
-                    >
-                      {g.name}
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-          )}
-          <div className="flex items-center gap-2">
-            <button
-              type="submit"
-              disabled={isPending}
-              className="rounded-lg bg-th-btn px-3 py-2 text-xs font-medium text-th-btn-text disabled:opacity-40"
-            >
-              Save
-            </button>
-            <button
-              type="button"
-              onClick={() => setEditing(false)}
-              className="text-xs text-th-faint transition-colors hover:text-th-muted"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={handleDelete}
-              disabled={isPending || deleting}
-              className={`ml-auto text-xs transition-colors disabled:opacity-50 ${confirming ? 'font-medium text-orange-500' : 'text-th-faint hover:text-red-500'}`}
-            >
-              {deleting ? 'Deleting…' : confirming ? 'Tap again to confirm delete' : 'Delete'}
-            </button>
           </div>
-        </form>
-        {state?.error && <p className="mb-2 text-xs text-red-500">{state.error}</p>}
+        )}
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={saving}
+            className="rounded-lg bg-th-btn px-3 py-2 text-xs font-medium text-th-btn-text disabled:opacity-40"
+          >
+            {saving ? 'Saving…' : 'Save'}
+          </button>
+          <button
+            type="button"
+            onClick={() => setEditing(false)}
+            className="text-xs text-th-faint transition-colors hover:text-th-muted"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleDelete}
+            disabled={saving || deleting}
+            className={`ml-auto text-xs transition-colors disabled:opacity-50 ${confirming ? 'font-medium text-orange-500' : 'text-th-faint hover:text-red-500'}`}
+          >
+            {deleting ? 'Deleting…' : confirming ? 'Tap again to confirm delete' : 'Delete'}
+          </button>
+        </div>
+        {error && <p className="text-xs text-red-500">{error}</p>}
       </div>
     )
   }

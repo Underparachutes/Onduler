@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useRef } from 'react'
 import {
   DndContext,
   closestCenter,
@@ -116,7 +116,8 @@ export function SwellsList({
   trackingMode,
   hideDone,
   searchQuery,
-}: Props) {
+  activeGroup,
+}: Props & { activeGroup: string | null }) {
   const isHours = trackingMode === 'hours'
   const [openSheetId, setOpenSheetId] = useState<string | null>(null)
   const [localDone, setLocalDone] = useState<Set<string>>(() => new Set(doneMotionIds))
@@ -124,6 +125,12 @@ export function SwellsList({
   const [expandedSwells, setExpandedSwells] = useState<Set<string>>(new Set())
   const [orderedSwells, setOrderedSwells] = useState(swells)
   const [, startTransition] = useTransition()
+
+  const prevSwellsRef = useRef(swells)
+  if (swells !== prevSwellsRef.current) {
+    prevSwellsRef.current = swells
+    setOrderedSwells(swells)
+  }
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { delay: 250, tolerance: 8 } }),
@@ -207,9 +214,11 @@ export function SwellsList({
     )
   }
 
-  const filteredSwells = searchQuery
-    ? orderedSwells.filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase()))
-    : orderedSwells
+  const filteredSwells = orderedSwells.filter(s => {
+    if (searchQuery && !s.name.toLowerCase().includes(searchQuery.toLowerCase())) return false
+    if (activeGroup && s.groupId !== activeGroup) return false
+    return true
+  })
 
   // Group swells by groupId for display
   const groupedSwells = new Map<string | null, SwellWithMotions[]>()
