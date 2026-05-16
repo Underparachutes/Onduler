@@ -60,25 +60,34 @@ export function DashboardView(props: Props) {
   }
 
   const hasMotions = props.motions.length > 0
+  const safeTop = 'calc(env(safe-area-inset-top, 0px) + 3rem)'
 
   return (
-    <div className="flex min-h-full flex-col items-center px-4 py-12">
+    <div className="flex min-h-full flex-col items-center px-4 pb-12">
       <div className="w-full max-w-[22rem]">
         {openForm === 'motion' && (
-          <AddMotionForm
-            groups={props.allGroups}
-            groupsEnabled={props.groupsEnabled}
-            trackingMode={props.trackingMode}
-            onClose={() => setOpenForm(null)}
-          />
+          <div style={{ paddingTop: safeTop }}>
+            <AddMotionForm
+              groups={props.allGroups}
+              groupsEnabled={props.groupsEnabled}
+              trackingMode={props.trackingMode}
+              onClose={() => setOpenForm(null)}
+            />
+          </div>
         )}
         {openForm === 'group' && (
-          <AddGroupForm onClose={() => setOpenForm(null)} />
+          <div style={{ paddingTop: safeTop }}>
+            <AddGroupForm onClose={() => setOpenForm(null)} />
+          </div>
         )}
 
         {!openForm && (
           <>
-            {props.showWavePrompt && <WavePrompt durationSeconds={props.waveDurationSeconds} />}
+            {props.showWavePrompt && (
+              <div style={{ paddingTop: safeTop }}>
+                <WavePrompt durationSeconds={props.waveDurationSeconds} />
+              </div>
+            )}
 
             {hasMotions ? (
               <DailyChecklist
@@ -132,7 +141,7 @@ export function DashboardView(props: Props) {
               />
             ) : (
               <>
-                <div className="mb-6 flex items-center justify-between">
+                <div className="mb-6 flex items-center justify-between" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 3rem)' }}>
                   <p className="text-xs uppercase tracking-widest text-th-muted">Onduler</p>
                   <div ref={menuRef} className="relative">
                     <button
