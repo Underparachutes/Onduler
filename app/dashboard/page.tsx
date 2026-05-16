@@ -80,7 +80,7 @@ export default async function DashboardPage() {
     .eq('user_id', user.id)
     .eq('hidden', false)
     .not('parent_id', 'is', null)
-    .order('default_points', { ascending: false })
+    .order('sort_order', { ascending: true, nullsFirst: false })
 
   const submotionsMap: Record<string, { id: string; name: string; default_points: number; default_hours: number }[]> = {}
   submotionsRaw?.forEach(m => {

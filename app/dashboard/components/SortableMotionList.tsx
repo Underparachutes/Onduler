@@ -93,14 +93,17 @@ export function SortableMotionRow({ motion, done, hasSubmotions, trackingMode, o
         </div>
       </button>
 
-      {/* Kebab — opens detail sheet */}
       <button
         onPointerDown={e => e.stopPropagation()}
         onClick={onOpenSheet}
-        className="shrink-0 px-2 py-3 text-base leading-none text-th-faint transition-colors hover:text-th-muted"
+        className="shrink-0 p-2 text-th-faint transition-colors hover:text-th-muted"
         aria-label="Open details"
       >
-        ···
+        <svg viewBox="0 0 16 16" fill="currentColor" className="h-4 w-4">
+          <circle cx="8" cy="3" r="1.5" />
+          <circle cx="8" cy="8" r="1.5" />
+          <circle cx="8" cy="13" r="1.5" />
+        </svg>
       </button>
     </div>
   )

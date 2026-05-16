@@ -32,7 +32,8 @@ export default async function SwellsPage() {
       .select('id, name, default_points, default_hours, parent_id')
       .eq('user_id', user.id)
       .eq('hidden', false)
-      .not('parent_id', 'is', null),
+      .not('parent_id', 'is', null)
+      .order('sort_order', { ascending: true, nullsFirst: false }),
     supabase
       .from('user_settings')
       .select('groups_enabled, tracking_mode')

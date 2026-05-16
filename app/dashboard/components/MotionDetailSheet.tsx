@@ -2,8 +2,26 @@
 
 import { useActionState, useEffect, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  TouchSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+  arrayMove,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { quickLogMotion, unlogMotion } from '@/app/actions/logs'
-import { createSubmotion, hideMotion, updateMotion, deleteMotion, setMotionSwells, setMotionGroup, updateSubmotionDirect } from '@/app/actions/motions'
+import { createSubmotion, hideMotion, updateMotion, deleteMotion, setMotionSwells, setMotionGroup, updateSubmotionDirect, reorderMotions } from '@/app/actions/motions'
 import { formatPts, formatHrs } from '@/lib/format'
 
 type Swell = { id: string; name: string; color: string }
@@ -13,6 +31,138 @@ type Motion = { id: string; name: string; default_points: number; default_hours:
 type Submotion = { id: string; name: string; default_points: number; default_hours: number }
 type UpdateState = { error?: string; success?: boolean } | null
 type TrackingMode = 'points' | 'hours'
+
+type SortableSubmotionProps = {
+  sub: Submotion
+  done: boolean
+  isEditing: boolean
+  editSubName: string
+  editSubPts: string
+  isSavingSub: boolean
+  isDeletingSub: boolean
+  confirmingSubDel: string | null
+  onSetEditSubName: (v: string) => void
+  onSetEditSubPts: (v: string) => void
+  onSaveEdit: (sub: Submotion) => void
+  onCancelEdit: () => void
+  onDeleteSub: (id: string) => void
+  onLog: (sub: Submotion) => void
+  onStartEdit: (sub: Submotion) => void
+}
+
+function SortableSubmotion({
+  sub, done, isEditing, editSubName, editSubPts, isSavingSub, isDeletingSub, confirmingSubDel,
+  onSetEditSubName, onSetEditSubPts, onSaveEdit, onCancelEdit, onDeleteSub, onLog, onStartEdit,
+}: SortableSubmotionProps) {
+  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } =
+    useSortable({ id: sub.id })
+
+  if (isEditing) {
+    return (
+      <div
+        ref={setNodeRef}
+        {...attributes}
+        style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1 }}
+        className="rounded-lg border border-th-focus bg-th-surface px-4 py-3 flex flex-col gap-2"
+      >
+        <input
+          autoFocus
+          value={editSubName}
+          onChange={e => onSetEditSubName(e.target.value)}
+          placeholder="Name"
+          className="rounded border border-th-border bg-th-bg px-2 py-1 text-sm text-th-text outline-none focus:border-th-focus"
+        />
+        <div className="flex items-center gap-2">
+          <label className="text-xs text-th-muted shrink-0">Pts</label>
+          <input
+            type="number"
+            min="1"
+            value={editSubPts}
+            onChange={e => onSetEditSubPts(e.target.value)}
+            className="w-16 rounded border border-th-border bg-th-bg px-2 py-1 text-sm text-th-text outline-none focus:border-th-focus"
+          />
+        </div>
+        <div className="flex items-center gap-2 pt-1">
+          <button
+            onClick={() => onSaveEdit(sub)}
+            disabled={isSavingSub || isDeletingSub || !editSubName.trim() || parseInt(editSubPts) < 1}
+            className="rounded-lg bg-th-btn px-3 py-1 text-xs font-medium text-th-btn-text transition-colors hover:bg-th-btn-hover disabled:opacity-50"
+          >
+            {isSavingSub ? 'Saving…' : 'Save'}
+          </button>
+          <button
+            onClick={onCancelEdit}
+            className="text-xs text-th-faint hover:text-th-muted transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => onDeleteSub(sub.id)}
+            disabled={isSavingSub || isDeletingSub}
+            className={`ml-auto text-xs transition-colors disabled:opacity-50 ${confirmingSubDel === sub.id ? 'font-medium text-orange-500' : 'text-th-faint hover:text-red-500'}`}
+          >
+            {isDeletingSub && confirmingSubDel === sub.id ? 'Deleting…' : confirmingSubDel === sub.id ? 'Tap again to delete' : 'Delete'}
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div
+      ref={setNodeRef}
+      {...attributes}
+      suppressHydrationWarning
+      style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1 }}
+      className="flex items-center gap-1 select-none"
+    >
+      <span
+        ref={setActivatorNodeRef}
+        {...listeners}
+        style={{ touchAction: 'none' }}
+        className="shrink-0 flex items-center px-1 py-3 text-th-faint cursor-grab active:cursor-grabbing"
+        aria-label="Drag to reorder"
+      >
+        <svg width="10" height="14" viewBox="0 0 12 16" fill="currentColor" opacity="0.4">
+          <circle cx="4" cy="3" r="1.5" />
+          <circle cx="8" cy="3" r="1.5" />
+          <circle cx="4" cy="8" r="1.5" />
+          <circle cx="8" cy="8" r="1.5" />
+          <circle cx="4" cy="13" r="1.5" />
+          <circle cx="8" cy="13" r="1.5" />
+        </svg>
+      </span>
+      <button
+        onClick={() => onLog(sub)}
+        className={`flex flex-1 items-center gap-3 rounded-lg px-3 py-3 text-left transition-colors ${
+          done ? 'opacity-50 cursor-default' : 'hover:bg-th-surface active:scale-[0.99]'
+        }`}
+      >
+        <div className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 transition-all ${done ? 'border-th-btn text-th-btn' : 'border-th-border'}`}>
+          {done && (
+            <svg viewBox="0 0 12 10" fill="none" className="h-3 w-3">
+              <path d="M1 5l3.5 3.5L11 1" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          )}
+        </div>
+        <span className={`flex-1 text-sm ${done ? 'line-through text-th-muted' : 'text-th-text'}`}>{sub.name}</span>
+        <span className={`text-sm font-semibold ${done ? 'text-th-faint' : 'text-th-secondary'}`}>+{sub.default_points}</span>
+      </button>
+      <button
+        onPointerDown={e => e.stopPropagation()}
+        onClick={() => onStartEdit(sub)}
+        className="shrink-0 p-2 text-th-faint transition-colors hover:text-th-muted"
+        aria-label="Edit submotion"
+      >
+        <svg viewBox="0 0 16 16" fill="currentColor" className="h-4 w-4">
+          <circle cx="8" cy="3" r="1.5" />
+          <circle cx="8" cy="8" r="1.5" />
+          <circle cx="8" cy="13" r="1.5" />
+        </svg>
+      </button>
+    </div>
+  )
+}
 
 type Props = {
   motion: Motion
@@ -47,6 +197,29 @@ export function MotionDetailSheet({
   const [confirming, setConfirming] = useState(false)
   const confirmTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  // Submotion ordering + drag-and-drop
+  const [orderedSubs, setOrderedSubs] = useState(submotions)
+  const [, startReorderSub] = useTransition()
+  const subSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { delay: 250, tolerance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  )
+
+  useEffect(() => { setOrderedSubs(submotions) }, [submotions])
+
+  function handleSubDragEnd(event: DragEndEvent) {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+    const next = arrayMove(
+      orderedSubs,
+      orderedSubs.findIndex(s => s.id === active.id),
+      orderedSubs.findIndex(s => s.id === over.id)
+    )
+    setOrderedSubs(next)
+    startReorderSub(async () => { await reorderMotions(next.map(s => s.id)) })
+  }
+
   // Add submotion (budget auto-divides from parent)
   const [addName, setAddName] = useState('')
   const [isAdding, startAdding] = useTransition()
@@ -56,6 +229,11 @@ export function MotionDetailSheet({
   const [editSubName, setEditSubName] = useState('')
   const [editSubPts, setEditSubPts] = useState('')
   const [isSavingSub, startSavingSub] = useTransition()
+
+  // Delete submotion with two-tap confirm
+  const [confirmingSubDel, setConfirmingSubDel] = useState<string | null>(null)
+  const [isDeletingSub, startDeletingSub] = useTransition()
+  const subDelTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   function startEditSub(sub: Submotion) {
     setEditingSubId(sub.id)
@@ -67,6 +245,8 @@ export function MotionDetailSheet({
     setEditingSubId(null)
     setEditSubName('')
     setEditSubPts('')
+    setConfirmingSubDel(null)
+    if (subDelTimer.current) clearTimeout(subDelTimer.current)
   }
 
   function saveEditSub(sub: Submotion) {
@@ -78,6 +258,21 @@ export function MotionDetailSheet({
       setEditingSubId(null)
       router.refresh()
     })
+  }
+
+  function handleDeleteSub(subId: string) {
+    if (confirmingSubDel !== subId) {
+      setConfirmingSubDel(subId)
+      subDelTimer.current = setTimeout(() => setConfirmingSubDel(null), 3000)
+    } else {
+      if (subDelTimer.current) clearTimeout(subDelTimer.current)
+      startDeletingSub(async () => {
+        await deleteMotion(subId)
+        setEditingSubId(null)
+        setConfirmingSubDel(null)
+        router.refresh()
+      })
+    }
   }
 
   // Swells assignment with weights
@@ -99,7 +294,10 @@ export function MotionDetailSheet({
   }, [updateState, onClose, router])
 
   useEffect(() => {
-    return () => { if (confirmTimer.current) clearTimeout(confirmTimer.current) }
+    return () => {
+      if (confirmTimer.current) clearTimeout(confirmTimer.current)
+      if (subDelTimer.current) clearTimeout(subDelTimer.current)
+    }
   }, [])
 
   function handleSubLog(sub: Submotion) {
@@ -201,84 +399,35 @@ export function MotionDetailSheet({
         )}
 
         {/* Submotions */}
-        {submotions.length > 0 && (
+        {orderedSubs.length > 0 && (
           <div className="mb-6">
             <p className="mb-3 text-xs font-medium uppercase tracking-widest text-th-faint">Submotions</p>
-            <div className="flex flex-col gap-2">
-              {submotions.map(sub => {
-                const done = localDone.has(sub.id)
-                const isEditing = editingSubId === sub.id
-
-                if (isEditing) {
-                  return (
-                    <div key={sub.id} className="rounded-lg border border-th-focus bg-th-surface px-4 py-3 flex flex-col gap-2">
-                      <input
-                        autoFocus
-                        value={editSubName}
-                        onChange={e => setEditSubName(e.target.value)}
-                        placeholder="Name"
-                        className="rounded border border-th-border bg-th-bg px-2 py-1 text-sm text-th-text outline-none focus:border-th-focus"
-                      />
-                      <div className="flex items-center gap-2">
-                        <label className="text-xs text-th-muted shrink-0">Pts</label>
-                        <input
-                          type="number"
-                          min="1"
-                          value={editSubPts}
-                          onChange={e => setEditSubPts(e.target.value)}
-                          className="w-16 rounded border border-th-border bg-th-bg px-2 py-1 text-sm text-th-text outline-none focus:border-th-focus"
-                        />
-                      </div>
-                      <div className="flex items-center gap-2 pt-1">
-                        <button
-                          onClick={() => saveEditSub(sub)}
-                          disabled={isSavingSub || !editSubName.trim() || parseInt(editSubPts) < 1}
-                          className="rounded-lg bg-th-btn px-3 py-1 text-xs font-medium text-th-btn-text transition-colors hover:bg-th-btn-hover disabled:opacity-50"
-                        >
-                          {isSavingSub ? 'Saving…' : 'Save'}
-                        </button>
-                        <button
-                          onClick={cancelEditSub}
-                          className="text-xs text-th-faint hover:text-th-muted transition-colors"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
-                  )
-                }
-
-                return (
-                  <div key={sub.id} className="flex items-center gap-2">
-                    <button
-                      onClick={() => handleSubLog(sub)}
-                      className={`flex flex-1 items-center gap-3 rounded-lg border px-4 py-3 text-left transition-colors ${
-                        done ? 'border-th-border opacity-50' : 'border-th-border hover:bg-th-surface active:scale-[0.99]'
-                      }`}
-                    >
-                      <div className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 transition-all ${done ? 'border-th-btn text-th-btn' : 'border-th-border'}`}>
-                        {done && (
-                          <svg viewBox="0 0 12 10" fill="none" className="h-3 w-3">
-                            <path d="M1 5l3.5 3.5L11 1" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                          </svg>
-                        )}
-                      </div>
-                      <span className={`flex-1 text-sm ${done ? 'line-through text-th-muted' : 'text-th-text'}`}>{sub.name}</span>
-                      <span className={`text-sm font-semibold ${done ? 'text-th-faint' : 'text-th-secondary'}`}>+{sub.default_points}</span>
-                    </button>
-                    <button
-                      onClick={() => startEditSub(sub)}
-                      className="shrink-0 p-1.5 text-th-faint hover:text-th-muted transition-colors"
-                      aria-label="Edit submotion"
-                    >
-                      <svg viewBox="0 0 16 16" fill="none" className="h-3.5 w-3.5" strokeWidth="1.5" stroke="currentColor">
-                        <path d="M11.5 2.5l2 2L5 13H3v-2L11.5 2.5z" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                    </button>
-                  </div>
-                )
-              })}
-            </div>
+            <DndContext sensors={subSensors} collisionDetection={closestCenter} onDragEnd={handleSubDragEnd}>
+              <SortableContext items={orderedSubs.map(s => s.id)} strategy={verticalListSortingStrategy}>
+                <div className="flex flex-col gap-2">
+                  {orderedSubs.map(sub => (
+                    <SortableSubmotion
+                      key={sub.id}
+                      sub={sub}
+                      done={localDone.has(sub.id)}
+                      isEditing={editingSubId === sub.id}
+                      editSubName={editSubName}
+                      editSubPts={editSubPts}
+                      isSavingSub={isSavingSub}
+                      isDeletingSub={isDeletingSub}
+                      confirmingSubDel={confirmingSubDel}
+                      onSetEditSubName={setEditSubName}
+                      onSetEditSubPts={setEditSubPts}
+                      onSaveEdit={saveEditSub}
+                      onCancelEdit={cancelEditSub}
+                      onDeleteSub={handleDeleteSub}
+                      onLog={handleSubLog}
+                      onStartEdit={startEditSub}
+                    />
+                  ))}
+                </div>
+              </SortableContext>
+            </DndContext>
           </div>
         )}
 
