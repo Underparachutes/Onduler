@@ -562,44 +562,48 @@ export function MotionDetailSheet({
   return (
     <div className="fixed inset-0 z-50 flex items-end">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative w-full rounded-t-2xl bg-th-bg px-6 pt-4 pb-10 shadow-xl max-h-[88vh] overflow-y-auto">
-        <div className="mx-auto mb-5 h-1 w-10 rounded-full bg-th-border" />
+      <div className="relative flex w-full flex-col rounded-t-2xl bg-th-bg shadow-xl max-h-[88vh]">
+        {/* Fixed header */}
+        <div className="shrink-0 px-6 pt-4">
+          <div className="mx-auto mb-5 h-1 w-10 rounded-full bg-th-border" />
+          <div className="mb-1 flex items-start justify-between gap-4">
+            <input
+              value={headerName}
+              onChange={e => setHeaderName(e.target.value)}
+              onBlur={blurName}
+              className="min-w-0 flex-1 bg-transparent text-xl font-semibold text-th-text outline-none"
+            />
+            <button onClick={onClose} className="mt-0.5 shrink-0 text-th-faint transition-colors hover:text-th-muted">
+              <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" strokeWidth="2" strokeLinecap="round">
+                <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" />
+              </svg>
+            </button>
+          </div>
+          <div className="mb-4 flex items-center gap-3">
+            <label className="shrink-0 text-xs text-th-muted">Pts</label>
+            <input
+              type="number"
+              min="1"
+              value={headerPts}
+              onChange={e => setHeaderPts(e.target.value)}
+              onBlur={blurPts}
+              className="w-16 rounded-lg border border-th-border bg-th-surface px-3 py-2 text-sm text-th-text outline-none focus:border-th-focus"
+            />
+            <label className="shrink-0 text-xs text-th-muted">Hrs</label>
+            <input
+              type="number"
+              min="0.25"
+              step="0.25"
+              value={headerHrs}
+              onChange={e => setHeaderHrs(e.target.value)}
+              onBlur={blurHrs}
+              className="w-16 rounded-lg border border-th-border bg-th-surface px-3 py-2 text-sm text-th-text outline-none focus:border-th-focus"
+            />
+          </div>
+        </div>
 
-        {/* Editable header */}
-        <div className="mb-1 flex items-start justify-between gap-4">
-          <input
-            value={headerName}
-            onChange={e => setHeaderName(e.target.value)}
-            onBlur={blurName}
-            className="min-w-0 flex-1 bg-transparent text-xl font-semibold text-th-text outline-none"
-          />
-          <button onClick={onClose} className="mt-0.5 shrink-0 text-th-faint transition-colors hover:text-th-muted">
-            <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" strokeWidth="2" strokeLinecap="round">
-              <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" />
-            </svg>
-          </button>
-        </div>
-        <div className="mb-6 flex items-center gap-3">
-          <label className="shrink-0 text-xs text-th-muted">Pts</label>
-          <input
-            type="number"
-            min="1"
-            value={headerPts}
-            onChange={e => setHeaderPts(e.target.value)}
-            onBlur={blurPts}
-            className="w-16 rounded-lg border border-th-border bg-th-surface px-3 py-2 text-sm text-th-text outline-none focus:border-th-focus"
-          />
-          <label className="shrink-0 text-xs text-th-muted">Hrs</label>
-          <input
-            type="number"
-            min="0.25"
-            step="0.25"
-            value={headerHrs}
-            onChange={e => setHeaderHrs(e.target.value)}
-            onBlur={blurHrs}
-            className="w-16 rounded-lg border border-th-border bg-th-surface px-3 py-2 text-sm text-th-text outline-none focus:border-th-focus"
-          />
-        </div>
+        {/* Scrollable content */}
+        <div className="flex-1 overflow-y-auto px-6">
 
         {/* Unlog — primary action when logged */}
         {isLogged && (
@@ -798,21 +802,25 @@ export function MotionDetailSheet({
           </div>
         )}
 
-        {/* Hide + Delete */}
-        <div className="flex items-center justify-between border-t border-th-border pt-4">
-          <button
-            onClick={handleHide}
-            className="text-sm text-th-faint transition-colors hover:text-th-muted"
-          >
-            Hide from checklist
-          </button>
-          <button
-            onClick={handleDelete}
-            disabled={deleting}
-            className={`text-xs transition-colors disabled:opacity-50 ${confirming ? 'font-medium text-orange-500' : 'text-th-faint hover:text-red-500'}`}
-          >
-            {deleting ? 'Deleting…' : confirming ? 'Tap again to confirm delete' : 'Delete'}
-          </button>
+        </div>
+
+        {/* Fixed footer */}
+        <div className="shrink-0 px-6 pb-10">
+          <div className="flex items-center justify-between border-t border-th-border pt-4">
+            <button
+              onClick={handleHide}
+              className="text-sm text-th-faint transition-colors hover:text-th-muted"
+            >
+              Hide from checklist
+            </button>
+            <button
+              onClick={handleDelete}
+              disabled={deleting}
+              className={`text-xs transition-colors disabled:opacity-50 ${confirming ? 'font-medium text-orange-500' : 'text-th-faint hover:text-red-500'}`}
+            >
+              {deleting ? 'Deleting…' : confirming ? 'Tap again to confirm delete' : 'Delete'}
+            </button>
+          </div>
         </div>
       </div>
     </div>
