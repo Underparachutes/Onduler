@@ -78,41 +78,42 @@ export function DashboardView(props: Props) {
 
         {!openForm && (
           <>
-            <div className="mb-6 flex items-center justify-between">
-              <p className="text-xs uppercase tracking-widest text-th-muted">Onduler</p>
-              <div ref={menuRef} className="relative">
-                <button
-                  onClick={handlePlus}
-                  aria-label="Add"
-                  className="flex items-center justify-center text-3xl font-light leading-none text-th-muted transition-colors hover:text-th-text"
-                >
-                  +
-                </button>
-                {menuOpen && (
-                  <div className="absolute right-0 top-full z-10 mt-2 w-44 overflow-hidden rounded-lg border border-th-border bg-th-bg shadow-lg">
-                    <button
-                      onClick={() => { setMenuOpen(false); setOpenForm('motion') }}
-                      className="block w-full px-4 py-3 text-left text-sm text-th-text transition-colors hover:bg-th-surface"
-                    >
-                      Add a motion
-                    </button>
-                    <div className="border-t border-th-border" />
-                    <button
-                      onClick={() => { setMenuOpen(false); setOpenForm('group') }}
-                      className="block w-full px-4 py-3 text-left text-sm text-th-text transition-colors hover:bg-th-surface"
-                    >
-                      Add a group
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-
             {props.showWavePrompt && <WavePrompt durationSeconds={props.waveDurationSeconds} />}
 
             {hasMotions ? (
               <DailyChecklist
                 key={`${props.motions.length}-${props.trackingMode}`}
+                topBar={
+                  <div className="mb-2 flex items-center justify-between">
+                    <p className="text-xs uppercase tracking-widest text-th-muted">Onduler</p>
+                    <div ref={menuRef} className="relative">
+                      <button
+                        onClick={handlePlus}
+                        aria-label="Add"
+                        className="flex items-center justify-center text-3xl font-light leading-none text-th-muted transition-colors hover:text-th-text"
+                      >
+                        +
+                      </button>
+                      {menuOpen && (
+                        <div className="absolute right-0 top-full z-10 mt-2 w-44 overflow-hidden rounded-lg border border-th-border bg-th-bg shadow-lg">
+                          <button
+                            onClick={() => { setMenuOpen(false); setOpenForm('motion') }}
+                            className="block w-full px-4 py-3 text-left text-sm text-th-text transition-colors hover:bg-th-surface"
+                          >
+                            Add a motion
+                          </button>
+                          <div className="border-t border-th-border" />
+                          <button
+                            onClick={() => { setMenuOpen(false); setOpenForm('group') }}
+                            className="block w-full px-4 py-3 text-left text-sm text-th-text transition-colors hover:bg-th-surface"
+                          >
+                            Add a group
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                }
                 groupsEnabled={props.groupsEnabled}
                 motions={props.motions}
                 groups={props.groups}
@@ -130,10 +131,24 @@ export function DashboardView(props: Props) {
                 allGroups={props.allGroups}
               />
             ) : (
-              <div className="rounded-lg border border-th-border p-6 text-center">
-                <p className="mb-1 text-sm font-medium text-th-text">Nothing here yet.</p>
-                <p className="text-sm text-th-muted">Tap + to add your first motion</p>
-              </div>
+              <>
+                <div className="mb-6 flex items-center justify-between">
+                  <p className="text-xs uppercase tracking-widest text-th-muted">Onduler</p>
+                  <div ref={menuRef} className="relative">
+                    <button
+                      onClick={handlePlus}
+                      aria-label="Add"
+                      className="flex items-center justify-center text-3xl font-light leading-none text-th-muted transition-colors hover:text-th-text"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+                <div className="rounded-lg border border-th-border p-6 text-center">
+                  <p className="mb-1 text-sm font-medium text-th-text">Nothing here yet.</p>
+                  <p className="text-sm text-th-muted">Tap + to add your first motion</p>
+                </div>
+              </>
             )}
           </>
         )}

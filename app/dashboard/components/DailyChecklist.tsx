@@ -36,6 +36,7 @@ type Submotion = { id: string; name: string; default_points: number; default_hou
 type TrackingMode = 'points' | 'hours'
 
 type Props = {
+  topBar: React.ReactNode
   groupsEnabled: boolean
   motions: Motion[]
   groups: Group[]
@@ -141,6 +142,7 @@ function MotionDragOverlay({
 }
 
 export function DailyChecklist({
+  topBar,
   groupsEnabled,
   motions,
   groups,
@@ -379,6 +381,7 @@ export function DailyChecklist({
       <>
         <div>
           <div className="sticky top-0 z-10 bg-th-bg pb-3">
+            {topBar}
             {dateHeader}
             {progressBar}
             <div className="mb-2">
@@ -431,6 +434,7 @@ export function DailyChecklist({
     <>
       <div>
         <div className="sticky top-0 z-10 bg-th-bg pb-3">
+          {topBar}
           {dateHeader}
           {progressBar}
 
