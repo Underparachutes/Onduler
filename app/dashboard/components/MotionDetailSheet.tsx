@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState, useEffect, useRef, useState, useTransition } from 'react'
+import { useEffect, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   DndContext,
@@ -21,7 +21,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { quickLogMotion, unlogMotion } from '@/app/actions/logs'
-import { createSubmotion, hideMotion, updateMotion, deleteMotion, setMotionSwells, setMotionGroup, updateSubmotionDirect, reorderMotions } from '@/app/actions/motions'
+import { createSubmotion, hideMotion, deleteMotion, setMotionSwells, setMotionGroup, updateSubmotionDirect, updateMotionDirect, reorderMotions } from '@/app/actions/motions'
 import { formatPts, formatHrs } from '@/lib/format'
 
 type Swell = { id: string; name: string; color: string }
@@ -29,7 +29,6 @@ type MotionSwell = { id: string; name: string; color: string; weight: number }
 type Group = { id: string; name: string; color: string }
 type Motion = { id: string; name: string; default_points: number; default_hours: number; swells: MotionSwell[]; groupId: string | null }
 type Submotion = { id: string; name: string; default_points: number; default_hours: number }
-type UpdateState = { error?: string; success?: boolean } | null
 type TrackingMode = 'points' | 'hours'
 
 type SortableSubmotionProps = {
@@ -188,14 +187,61 @@ export function MotionDetailSheet({
   const [localDone, setLocalDone] = useState(() => new Set(doneMotionIds))
   const [, startTransition] = useTransition()
 
-  // Edit form
-  const updateById = updateMotion.bind(null, motion.id)
-  const [updateState, formAction, updatePending] = useActionState<UpdateState, FormData>(updateById, null)
+  // Editable header — auto-save on blur
+  const [headerName, setHeaderName] = useState(motion.name)
+  const [headerPts, setHeaderPts] = useState(String(motion.default_points))
+  const [headerHrs, setHeaderHrs] = useState(String(motion.default_hours))
+  const [, startHeaderSave] = useTransition()
+  const lastValidName = useRef(motion.name)
+  const lastValidPts = useRef(String(motion.default_points))
+  const lastValidHrs = useRef(String(motion.default_hours))
+
+  function blurName() {
+    const trimmed = headerName.trim()
+    if (!trimmed) { setHeaderName(lastValidName.current); return }
+    if (trimmed === lastValidName.current) return
+    lastValidName.current = trimmed
+    setHeaderName(trimmed)
+    startHeaderSave(async () => {
+      await updateMotionDirect(motion.id, trimmed, parseInt(lastValidPts.current), parseFloat(lastValidHrs.current))
+      router.refresh()
+    })
+  }
+
+  function blurPts() {
+    const num = parseInt(headerPts)
+    if (isNaN(num) || num < 1) { setHeaderPts(lastValidPts.current); return }
+    const str = String(num)
+    if (str === lastValidPts.current) return
+    lastValidPts.current = str
+    setHeaderPts(str)
+    startHeaderSave(async () => {
+      await updateMotionDirect(motion.id, lastValidName.current, num, parseFloat(lastValidHrs.current))
+      router.refresh()
+    })
+  }
+
+  function blurHrs() {
+    const num = parseFloat(headerHrs)
+    if (isNaN(num) || num < 0.25) { setHeaderHrs(lastValidHrs.current); return }
+    const rounded = Math.round(num * 4) / 4
+    const str = String(rounded)
+    if (str === lastValidHrs.current) return
+    lastValidHrs.current = str
+    setHeaderHrs(str)
+    startHeaderSave(async () => {
+      await updateMotionDirect(motion.id, lastValidName.current, parseInt(lastValidPts.current), rounded)
+      router.refresh()
+    })
+  }
 
   // Delete with two-tap confirm
   const [deleting, startDelete] = useTransition()
   const [confirming, setConfirming] = useState(false)
   const confirmTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Submotions collapse
+  const [submotionsCollapsed, setSubmotionsCollapsed] = useState(false)
 
   // Submotion ordering + drag-and-drop
   const [orderedSubs, setOrderedSubs] = useState(submotions)
@@ -290,10 +336,6 @@ export function MotionDetailSheet({
   const [, startGroups] = useTransition()
 
   useEffect(() => {
-    if (updateState?.success) { router.refresh(); onClose() }
-  }, [updateState, onClose, router])
-
-  useEffect(() => {
     return () => {
       if (confirmTimer.current) clearTimeout(confirmTimer.current)
       if (subDelTimer.current) clearTimeout(subDelTimer.current)
@@ -375,18 +417,41 @@ export function MotionDetailSheet({
       <div className="relative w-full rounded-t-2xl bg-th-bg px-6 pt-4 pb-10 shadow-xl max-h-[88vh] overflow-y-auto">
         <div className="mx-auto mb-5 h-1 w-10 rounded-full bg-th-border" />
 
-        {/* Header */}
+        {/* Editable header */}
         <div className="mb-1 flex items-start justify-between gap-4">
-          <h2 className="text-xl font-semibold text-th-text">{motion.name}</h2>
+          <input
+            value={headerName}
+            onChange={e => setHeaderName(e.target.value)}
+            onBlur={blurName}
+            className="min-w-0 flex-1 bg-transparent text-xl font-semibold text-th-text outline-none"
+          />
           <button onClick={onClose} className="mt-0.5 shrink-0 text-th-faint transition-colors hover:text-th-muted">
             <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" strokeWidth="2" strokeLinecap="round">
               <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" />
             </svg>
           </button>
         </div>
-        <p className="mb-6 text-sm text-th-muted">
-          {formatPts(motion.default_points)} · {formatHrs(motion.default_hours)}
-        </p>
+        <div className="mb-6 flex items-center gap-3">
+          <label className="shrink-0 text-xs text-th-muted">Pts</label>
+          <input
+            type="number"
+            min="1"
+            value={headerPts}
+            onChange={e => setHeaderPts(e.target.value)}
+            onBlur={blurPts}
+            className="w-16 rounded-lg border border-th-border bg-th-surface px-3 py-2 text-sm text-th-text outline-none focus:border-th-focus"
+          />
+          <label className="shrink-0 text-xs text-th-muted">Hrs</label>
+          <input
+            type="number"
+            min="0.25"
+            step="0.25"
+            value={headerHrs}
+            onChange={e => setHeaderHrs(e.target.value)}
+            onBlur={blurHrs}
+            className="w-16 rounded-lg border border-th-border bg-th-surface px-3 py-2 text-sm text-th-text outline-none focus:border-th-focus"
+          />
+        </div>
 
         {/* Unlog — primary action when logged */}
         {isLogged && (
@@ -401,131 +466,51 @@ export function MotionDetailSheet({
         {/* Submotions */}
         {orderedSubs.length > 0 && (
           <div className="mb-6">
-            <p className="mb-3 text-xs font-medium uppercase tracking-widest text-th-faint">Submotions</p>
-            <DndContext sensors={subSensors} collisionDetection={closestCenter} onDragEnd={handleSubDragEnd}>
-              <SortableContext items={orderedSubs.map(s => s.id)} strategy={verticalListSortingStrategy}>
-                <div className="flex flex-col gap-2">
-                  {orderedSubs.map(sub => (
-                    <SortableSubmotion
-                      key={sub.id}
-                      sub={sub}
-                      done={localDone.has(sub.id)}
-                      isEditing={editingSubId === sub.id}
-                      editSubName={editSubName}
-                      editSubPts={editSubPts}
-                      isSavingSub={isSavingSub}
-                      isDeletingSub={isDeletingSub}
-                      confirmingSubDel={confirmingSubDel}
-                      onSetEditSubName={setEditSubName}
-                      onSetEditSubPts={setEditSubPts}
-                      onSaveEdit={saveEditSub}
-                      onCancelEdit={cancelEditSub}
-                      onDeleteSub={handleDeleteSub}
-                      onLog={handleSubLog}
-                      onStartEdit={startEditSub}
-                    />
-                  ))}
-                </div>
-              </SortableContext>
-            </DndContext>
-          </div>
-        )}
-
-        {/* Edit motion */}
-        <div className="mb-6">
-          <p className="mb-3 text-xs font-medium uppercase tracking-widest text-th-faint">Edit</p>
-          <form action={formAction} className="flex flex-col gap-3">
-            <input
-              name="name"
-              defaultValue={motion.name}
-              required
-              className="rounded-lg border border-th-border bg-th-surface px-3 py-2 text-sm text-th-text outline-none focus:border-th-focus"
-            />
-            <div className="flex items-center gap-3">
-              <label className="shrink-0 text-xs text-th-muted">Pts</label>
-              <input
-                name="default_points"
-                type="number"
-                defaultValue={motion.default_points}
-                min="1"
-                className="w-16 rounded-lg border border-th-border bg-th-surface px-3 py-2 text-sm text-th-text outline-none focus:border-th-focus"
-              />
-              <label className="shrink-0 text-xs text-th-muted">Hrs</label>
-              <input
-                name="default_hours"
-                type="number"
-                defaultValue={motion.default_hours}
-                min="0.25"
-                step="0.25"
-                className="w-16 rounded-lg border border-th-border bg-th-surface px-3 py-2 text-sm text-th-text outline-none focus:border-th-focus"
-              />
-            </div>
-            {updateState?.error && <p className="text-xs text-red-500">{updateState.error}</p>}
-            <div className="flex items-center gap-2">
-              <button
-                type="submit"
-                disabled={updatePending || deleting}
-                className="rounded-lg bg-th-btn px-3 py-1.5 text-xs font-medium text-th-btn-text transition-colors hover:bg-th-btn-hover disabled:opacity-50"
+            <button
+              onClick={() => setSubmotionsCollapsed(c => !c)}
+              className="mb-3 flex items-center gap-1.5 text-xs font-medium uppercase tracking-widest text-th-faint"
+            >
+              <svg
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className={`h-3 w-3 transition-transform ${submotionsCollapsed ? '-rotate-90' : ''}`}
               >
-                {updatePending ? 'Saving…' : 'Save'}
-              </button>
-              <button
-                type="button"
-                onClick={handleDelete}
-                disabled={updatePending || deleting}
-                className={`ml-auto text-xs transition-colors disabled:opacity-50 ${confirming ? 'font-medium text-orange-500' : 'text-th-faint hover:text-red-500'}`}
-              >
-                {deleting ? 'Deleting…' : confirming ? 'Tap again to confirm delete' : 'Delete'}
-              </button>
-            </div>
-          </form>
-        </div>
-
-        {/* Swells assignment with weights */}
-        {allSwells.length > 0 && (
-          <div className="mb-6">
-            <p className="mb-3 text-xs font-medium uppercase tracking-widest text-th-faint">Swells</p>
-            <div className="flex flex-wrap gap-2">
-              {allSwells.map(s => {
-                const active = localSwellWeights.has(s.id)
-                const pct = Math.round((localSwellWeights.get(s.id) ?? 1) * 100)
-                return (
-                  <div key={s.id} className="flex items-center gap-1">
-                    <button
-                      onClick={() => toggleSwell(s.id)}
-                      className="rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wide transition-colors"
-                      style={active
-                        ? { backgroundColor: s.color, borderColor: s.color, color: '#fff' }
-                        : { borderColor: 'var(--color-th-border)', color: 'var(--color-th-muted)' }}
-                    >
-                      {s.name}
-                    </button>
-                    {active && (
-                      <div className="flex items-center gap-0.5">
-                        <input
-                          type="number"
-                          min="1"
-                          max="100"
-                          value={swellPctDraft.get(s.id) ?? String(pct)}
-                          onChange={e => setSwellPctDraft(prev => new Map(prev).set(s.id, e.target.value))}
-                          onBlur={e => {
-                            const num = parseInt(e.target.value)
-                            if (!isNaN(num) && num >= 1 && num <= 100) {
-                              updateSwellWeight(s.id, num)
-                            } else {
-                              // Revert draft to last valid value
-                              setSwellPctDraft(prev => new Map(prev).set(s.id, String(pct)))
-                            }
-                          }}
-                          className="w-10 rounded border border-th-border bg-th-surface px-1 py-0.5 text-center text-xs text-th-text outline-none focus:border-th-focus"
-                        />
-                        <span className="text-xs text-th-faint">%</span>
-                      </div>
-                    )}
+                <path d="M4 6l4 4 4-4" />
+              </svg>
+              Submotions
+            </button>
+            {!submotionsCollapsed && (
+              <DndContext sensors={subSensors} collisionDetection={closestCenter} onDragEnd={handleSubDragEnd}>
+                <SortableContext items={orderedSubs.map(s => s.id)} strategy={verticalListSortingStrategy}>
+                  <div className="flex flex-col gap-2">
+                    {orderedSubs.map(sub => (
+                      <SortableSubmotion
+                        key={sub.id}
+                        sub={sub}
+                        done={localDone.has(sub.id)}
+                        isEditing={editingSubId === sub.id}
+                        editSubName={editSubName}
+                        editSubPts={editSubPts}
+                        isSavingSub={isSavingSub}
+                        isDeletingSub={isDeletingSub}
+                        confirmingSubDel={confirmingSubDel}
+                        onSetEditSubName={setEditSubName}
+                        onSetEditSubPts={setEditSubPts}
+                        onSaveEdit={saveEditSub}
+                        onCancelEdit={cancelEditSub}
+                        onDeleteSub={handleDeleteSub}
+                        onLog={handleSubLog}
+                        onStartEdit={startEditSub}
+                      />
+                    ))}
                   </div>
-                )
-              })}
-            </div>
+                </SortableContext>
+              </DndContext>
+            )}
           </div>
         )}
 
@@ -547,6 +532,53 @@ export function MotionDetailSheet({
                   >
                     {g.name}
                   </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Swells assignment with weights — one per line */}
+        {allSwells.length > 0 && (
+          <div className="mb-6">
+            <p className="mb-3 text-xs font-medium uppercase tracking-widest text-th-faint">Swells</p>
+            <div className="flex flex-col gap-2">
+              {allSwells.map(s => {
+                const active = localSwellWeights.has(s.id)
+                const pct = Math.round((localSwellWeights.get(s.id) ?? 1) * 100)
+                return (
+                  <div key={s.id} className="flex items-center gap-2">
+                    <button
+                      onClick={() => toggleSwell(s.id)}
+                      className="rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wide transition-colors"
+                      style={active
+                        ? { backgroundColor: s.color, borderColor: s.color, color: '#fff' }
+                        : { borderColor: 'var(--color-th-border)', color: 'var(--color-th-muted)' }}
+                    >
+                      {s.name}
+                    </button>
+                    {active && (
+                      <div className="ml-auto flex items-center gap-0.5">
+                        <input
+                          type="number"
+                          min="1"
+                          max="100"
+                          value={swellPctDraft.get(s.id) ?? String(pct)}
+                          onChange={e => setSwellPctDraft(prev => new Map(prev).set(s.id, e.target.value))}
+                          onBlur={e => {
+                            const num = parseInt(e.target.value)
+                            if (!isNaN(num) && num >= 1 && num <= 100) {
+                              updateSwellWeight(s.id, num)
+                            } else {
+                              setSwellPctDraft(prev => new Map(prev).set(s.id, String(pct)))
+                            }
+                          }}
+                          className="w-10 rounded border border-th-border bg-th-surface px-1 py-0.5 text-center text-xs text-th-text outline-none focus:border-th-focus"
+                        />
+                        <span className="text-xs text-th-faint">%</span>
+                      </div>
+                    )}
+                  </div>
                 )
               })}
             </div>
@@ -580,13 +612,20 @@ export function MotionDetailSheet({
           )}
         </div>
 
-        {/* Hide */}
-        <div className="border-t border-th-border pt-4">
+        {/* Hide + Delete */}
+        <div className="flex items-center justify-between border-t border-th-border pt-4">
           <button
             onClick={handleHide}
             className="text-sm text-th-faint transition-colors hover:text-th-muted"
           >
             Hide from checklist
+          </button>
+          <button
+            onClick={handleDelete}
+            disabled={deleting}
+            className={`text-xs transition-colors disabled:opacity-50 ${confirming ? 'font-medium text-orange-500' : 'text-th-faint hover:text-red-500'}`}
+          >
+            {deleting ? 'Deleting…' : confirming ? 'Tap again to confirm delete' : 'Delete'}
           </button>
         </div>
       </div>

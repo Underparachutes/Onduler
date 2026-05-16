@@ -110,6 +110,45 @@ export async function setMotionSwells(
   return { success: true }
 }
 
+export async function updateMotionDirect(
+  id: string,
+  name: string,
+  points: number,
+  hours: number
+) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const trimmed = name.trim()
+  if (!trimmed) return { error: 'Name is required' }
+  if (points < 1) return { error: 'Points must be at least 1' }
+  if (hours < 0.25) return { error: 'Hours must be at least 0.25' }
+
+  const { error } = await supabase
+    .from('motions')
+    .update({ name: trimmed, default_points: points, default_hours: hours })
+    .eq('id', id)
+    .eq('user_id', user.id)
+
+  if (error) return { error: error.message }
+
+  const { count } = await supabase
+    .from('motions')
+    .select('id', { count: 'exact', head: true })
+    .eq('parent_id', id)
+    .eq('user_id', user.id)
+
+  if (count && count > 0) {
+    await rebalanceSubmotionBudget(supabase, id, user.id)
+  }
+
+  revalidatePath('/dashboard')
+  revalidatePath('/swells')
+  revalidatePath('/settings')
+  return { success: true }
+}
+
 export async function updateSubmotionDirect(id: string, name: string, points: number) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
