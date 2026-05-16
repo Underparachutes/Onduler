@@ -60,7 +60,7 @@ export function DashboardView(props: Props) {
   }
 
   const hasMotions = props.motions.length > 0
-  const safeTop = 'calc(env(safe-area-inset-top, 0px) + 3rem)'
+  const safeTop = 'calc(env(safe-area-inset-top, 0px) + 0.5rem)'
 
   return (
     <div className="flex min-h-full flex-col items-center px-4 pb-12">
@@ -141,7 +141,7 @@ export function DashboardView(props: Props) {
               />
             ) : (
               <>
-                <div className="mb-6 flex items-center justify-between" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 3rem)' }}>
+                <div className="mb-6 flex items-center justify-between" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.5rem)' }}>
                   <p className="text-xs uppercase tracking-widest text-th-muted">Onduler</p>
                   <div ref={menuRef} className="relative">
                     <button

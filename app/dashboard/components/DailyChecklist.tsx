@@ -380,7 +380,7 @@ export function DailyChecklist({
     return (
       <>
         <div>
-          <div className="sticky top-0 z-10 bg-th-bg pb-3" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 3rem)' }}>
+          <div className="sticky top-0 z-10 bg-th-bg pb-3" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.5rem)' }}>
             {topBar}
             {dateHeader}
             {progressBar}
@@ -433,7 +433,7 @@ export function DailyChecklist({
   return (
     <>
       <div>
-        <div className="sticky top-0 z-10 bg-th-bg pb-3" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 3rem)' }}>
+        <div className="sticky top-0 z-10 bg-th-bg pb-3" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.5rem)' }}>
           {topBar}
           {dateHeader}
           {progressBar}
