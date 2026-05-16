@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useActionState } from 'react'
+import { useState, useActionState, useTransition, useRef, useEffect } from 'react'
 import { updateSwell, deleteSwell } from '@/app/actions/swells'
 import { formatPts, formatHrs } from '@/lib/format'
 
@@ -24,7 +24,24 @@ export function SwellRow({ swell, swellPtsToday, swellHrsToday, ptsToday, hrsTod
   const [editing, setEditing] = useState(false)
   const updateById = updateSwell.bind(null, swell.id)
   const [state, action, isPending] = useActionState(updateById, null)
-  const deleteById = deleteSwell.bind(null, swell.id)
+
+  const [deleting, startDelete] = useTransition()
+  const [confirming, setConfirming] = useState(false)
+  const confirmTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    return () => { if (confirmTimer.current) clearTimeout(confirmTimer.current) }
+  }, [])
+
+  function handleDelete() {
+    if (!confirming) {
+      setConfirming(true)
+      confirmTimer.current = setTimeout(() => setConfirming(false), 3000)
+    } else {
+      if (confirmTimer.current) clearTimeout(confirmTimer.current)
+      startDelete(async () => { await deleteSwell(swell.id) })
+    }
+  }
 
   const isHours = trackingMode === 'hours'
 
@@ -105,11 +122,14 @@ export function SwellRow({ swell, swellPtsToday, swellHrsToday, ptsToday, hrsTod
             >
               Cancel
             </button>
-            <form action={deleteById} className="ml-auto">
-              <button type="submit" className="text-xs text-th-faint transition-colors hover:text-red-500">
-                Delete
-              </button>
-            </form>
+            <button
+              type="button"
+              onClick={handleDelete}
+              disabled={isPending || deleting}
+              className={`ml-auto text-xs transition-colors disabled:opacity-50 ${confirming ? 'font-medium text-orange-500' : 'text-th-faint hover:text-red-500'}`}
+            >
+              {deleting ? 'Deleting…' : confirming ? 'Tap again to confirm delete' : 'Delete'}
+            </button>
           </div>
         </form>
         {state?.error && <p className="mb-2 text-xs text-red-500">{state.error}</p>}
