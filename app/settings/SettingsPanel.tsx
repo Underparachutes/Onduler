@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useActionState, useTransition } from 'react'
 import { setTheme } from '@/app/actions/theme'
 import {
   setGroupsEnabled,
@@ -11,6 +11,7 @@ import {
   setTrackingMode,
 } from '@/app/actions/settings'
 import { unhideMotion } from '@/app/actions/motions'
+import { changePassword } from '@/app/actions/auth'
 import { formatPts, formatHrs } from '@/lib/format'
 import { EditGroupForm } from './EditGroupForm'
 
@@ -306,6 +307,7 @@ export function SettingsPanel({
           <p className="text-xs text-th-muted">Signed in as</p>
           <p className="mt-0.5 text-sm text-th-text">{email}</p>
         </div>
+        <ChangePasswordForm />
       </section>
 
       {/* Data */}
@@ -322,5 +324,64 @@ export function SettingsPanel({
         </div>
       </section>
     </div>
+  )
+}
+
+function ChangePasswordForm() {
+  const [open, setOpen] = useState(false)
+  const [state, action, isPending] = useActionState(changePassword, null)
+
+  if (!open) {
+    return (
+      <div className="px-4 py-3">
+        <button
+          onClick={() => setOpen(true)}
+          className="text-sm text-th-secondary hover:underline"
+        >
+          Change password
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <form action={action} className="flex flex-col gap-3 px-4 py-3">
+      <input
+        type="password"
+        name="new_password"
+        placeholder="New password"
+        required
+        minLength={6}
+        autoComplete="new-password"
+        className="rounded-lg border border-th-border bg-th-surface px-3 py-2 text-sm text-th-text outline-none focus:border-th-focus"
+      />
+      <input
+        type="password"
+        name="confirm_password"
+        placeholder="Confirm password"
+        required
+        minLength={6}
+        autoComplete="new-password"
+        className="rounded-lg border border-th-border bg-th-surface px-3 py-2 text-sm text-th-text outline-none focus:border-th-focus"
+      />
+      {state?.error && <p className="text-xs text-red-500">{state.error}</p>}
+      {state?.success && <p className="text-xs text-green-600">Password updated</p>}
+      <div className="flex items-center gap-2">
+        <button
+          type="submit"
+          disabled={isPending}
+          className="rounded-lg bg-th-btn px-3 py-2 text-xs font-medium text-th-btn-text disabled:opacity-40"
+        >
+          {isPending ? 'Updating…' : 'Update password'}
+        </button>
+        <button
+          type="button"
+          onClick={() => setOpen(false)}
+          className="text-xs text-th-faint transition-colors hover:text-th-muted"
+        >
+          Cancel
+        </button>
+      </div>
+    </form>
   )
 }
