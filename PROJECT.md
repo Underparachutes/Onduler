@@ -19,7 +19,7 @@ Most habit apps treat every day like it should look the same. Onduler doesn't. T
 | Term | Meaning |
 |---|---|
 | **Motion** | A trackable daily activity (the code table is also `motions`) |
-| **Swell** | A goal/target area — has an optional points target and/or hours target. Celebration fires when target is hit. Motions can belong to many swells. |
+| **Swell** | A weekly recurring philosophy the user wants their life to feel full of — has a weekly points target or weekly hours target. Celebration fires each time cumulative weekly progress crosses the target; the cycle resets at end-of-Sunday. Motions can belong to many swells. |
 | **Group** | An organizational bucket for motions and swells. No target, no scoring. Each motion and each swell belongs to one group (or none). |
 | **Tide** | Default daily mode |
 | **Wave** | Period of focus, recovery, or disruption — app does not punish this |
@@ -74,8 +74,10 @@ Most habit apps treat every day like it should look the same. Onduler doesn't. T
 - Bottom nav: Today / Swells / Log / Settings, persistent across app pages
 
 **Deferred / not yet built:**
+- Weekly repeating swell model (decision locked May 2026 — currently swells still operate as one-time lifetime targets in code; weekly cycle math, Sunday-anchored reset, and celebration trigger all pending)
+- Onboarding rework to the two-question framing ("What do you want your life to feel like?" → swells, "What in your daily life makes you feel that?" → motions; no skip on swells)
+- "Motions not feeding any swell" diagnostic surface
 - Groups assignment UX (easier to assign existing motions to groups — model TBD)
-- Swell target celebration trigger (progress bars show, but no celebration fires on completion)
 - Bolinas theme (visual design system not implemented — current "Bolinas" is a placeholder)
 - Stripe / monetization
 
@@ -83,7 +85,9 @@ Most habit apps treat every day like it should look the same. Onduler doesn't. T
 
 | Session | Goal |
 |---|---|
-| **Next** | Swell target celebration trigger — fire celebration when cumulative pts/hrs hits target |
+| **Next** | Convert swells to the weekly repeating model — schema interpretation (targets are weekly), Sunday-anchored cycle math, celebration fires when cumulative weekly progress crosses target, automatic reset, "this week" vs "last week" on the swell card |
+| **After** | Onboarding rework — opens with "What do you want your life to feel like?" (swells, no skip) then "What in your daily life makes you feel that?" (motions). Replaces the current quick-start / build-your-own flow |
+| **After** | "Motions not feeding any swell" diagnostic surface — quietly surface the gap between stated wants and daily actions, so the user can either add a swell or drop the motion |
 | **After** | Groups assignment UX — decide model, build assignment from motion card or group page |
 | **After** | Bolinas theme design system |
 | **After** | Stripe, premium gating, additional themes |
@@ -134,6 +138,24 @@ No `swell_groups` table. No `motion_groups` junction (already removed). Single s
 
 **Shipped (May 2026).** `swells.group_id` FK is live. UI wired: group assignment on swell detail, grouped display on swells page, group filter. ADR: `docs/decisions/0001-groups-schema.md`.
 
+### Swells repeat weekly, Sunday-anchored (May 2026)
+
+All swells run on a single weekly cycle anchored to Sunday. The old "set a lifetime target, fire one celebration, done" mode is removed. A swell's target is now a weekly target; celebration fires when cumulative weekly progress crosses it; the cycle resets at end-of-Sunday and the counter starts at zero again.
+
+**Why.** Swells are not destinations. They are philosophies the user wants their life to feel full of — creativity, beauty, connection, freedom, good food — which require steady weekly feeding, not one-time completion. The one-shot-celebration framing implied that life-want goals get *finished*, which is the wrong frame and the wrong product. A weekly cycle matches how lives are already structured (work week / weekend), gives the diagnostic "which want am I feeding most?" a stable reference window, and pairs philosophically with the wave/tide vocabulary — Onduler is about rhythms.
+
+**Sunday anchor.** Celebrations land during the Sunday window — a small emotional counterweight to Sunday-evening dread. A missed week is not punishment; it's a wave, and the app's posture stays "we'll be here when you're back."
+
+**Motions can stay unassigned.** A motion does not have to feed a swell. The gap — motions you do daily that don't feed any stated want — is itself a useful diagnostic surface: the user either adds a swell to cover it, or asks whether the motion belongs in their daily life at all. Future feature, not in scope for the weekly-model session.
+
+**Onboarding implication.** The two-question framing — "What do you want your life to feel like?" (swells, no skip) then "What in your daily life makes you feel that?" (motions) — replaces the current quick-start / build-your-own flow. Listing swells is required to engage with the app. The onboarding rework is its own session after the weekly-model session lands.
+
+**Schema impact.** `swells.target_points` and `swells.target_hours` now mean "per week." No `repeats` flag — one mode only. Cycle state is derived from `logs.logged_at` and the Sunday week definition, not stored on the swell. Lifetime totals can still be shown as a stat but do not drive celebration.
+
+**Locked defaults.** 100 pts/week or 5 hrs/week in their respective modes (replaces the old 1000 pts / 10000 hrs lifetime defaults).
+
+**Migration.** None required. Single-user (Josh), one week of data, no production users. Old swell targets get reinterpreted as weekly when the session ships.
+
 ## Working agreements
 
 - Sessions are numbered. Session start = recap + next step. Session end = summary + queue next session.
@@ -147,7 +169,8 @@ No `swell_groups` table. No `motion_groups` junction (already removed). Single s
 - Follow the mirror principle in reports and empty states.
 - **Bottom nav is the primary navigation on mobile; back is for sub-routes only.** Top-level pages reached via bottom nav (Today, Swells, Log, Settings) hide their back button at mobile widths — users navigate via bottom nav. Sub-routes (motion detail sheet, inline edit forms, Add Motion/Swell/Group, Settings group-edit) keep their back/cancel because there's no bottom-nav route back to them. Desktop shows back everywhere; mobile shows back only where the bottom nav can't get you back.
 - **Every tap that triggers cross-page navigation needs press feedback at 0ms.** Bottom nav items, back/cancel links, and any "go somewhere" control must respond visually the instant the user touches them (`active:scale-[0.97]` or equivalent). Otherwise the inherent server-round-trip latency reads as broken. The press feedback doesn't make navigation faster; it makes the user feel heard.
-- **Tracking currency is app-wide, not per-swell.** The user picks Points or Hours once in Settings — that choice flows to every surface in the app: daily progress bar, daily goal, swell targets, log/report stats. There's no mixed state where some swells are tracked in points and others in hours. Both `default_points` and `default_hours` are always populated on every motion (default 1 each), and both are recorded on every log row, so switching modes later doesn't lose data — only the displayed currency changes. Defaults stay deliberate: 1000 pts (≈ 40 days at 25 pts/day, habit-formation horizon) or 10000 hrs (Gladwell mastery threshold) as the swell target default in their respective modes. Most users will leave hours at the default and accumulate a passive baseline.
+- **Tracking currency is app-wide, not per-swell.** The user picks Points or Hours once in Settings — that choice flows to every surface in the app: daily progress bar, daily goal, swell targets, log/report stats. There's no mixed state where some swells are tracked in points and others in hours. Both `default_points` and `default_hours` are always populated on every motion (default 1 each), and both are recorded on every log row, so switching modes later doesn't lose data — only the displayed currency changes. Swell target defaults are **weekly**: 100 pts/week or 5 hrs/week in their respective modes. Users tune up or down from there based on what they want to feed and how heavily.
+- **Swells run on a Sunday-anchored weekly cycle. One mode only.** Every swell has a weekly target. Celebration fires the moment cumulative weekly progress crosses the target. The cycle resets at end-of-Sunday — last week's total is preserved for historical view, this week's counter starts at zero. There is no "lifetime target, fire once, done" mode; that mental model is gone. Cycle state is *derived* from `logs.logged_at` and the Sunday week definition — not stored on the swell. Monthly views are a view-only zoom (four weekly bars stacked or summed); the celebration cycle stays weekly. Sunday is chosen deliberately: a small win lands during Sunday-evening dread, and a missed week is a wave, not a punishment.
 - **Add-anything uses the keyboard-takes-over pattern, not bottom sheets.** Anywhere the user creates a new entity — motion, swell, group — tapping the "+" affordance immediately focuses a text input and the mobile keyboard fills the bottom half of the screen. The form (name field, optional secondary fields like pts/hrs/color) sits compactly above the keyboard. No modal chrome, no sheet animation, no header bar. The keyboard *is* the experience. Cancel via system back gesture or a small cancel control. The form should feel fast enough that the user can add five motions in fifteen seconds without thinking about the UI. Bottom sheets are reserved for editing existing entities (motion detail sheet), not for creation.
 - **List-row visual treatment doesn't escalate to card chrome just to add interactivity.** A list of items rendered as plain rows (e.g., the group list under the Settings → Groups toggle) stays as plain rows even when each row becomes tappable to edit. Don't add borders, elevation, shadows, or container backgrounds to "signal" interactivity. The cursor change, subtle hover state, and inherent affordance of a list row are sufficient. This is part of the paper-list aesthetic — fewer visual containers, more breathing room.
 - **Smart color defaults from the active theme palette.** Anywhere the UI offers a color picker (group color, swell color, future surfaces), the *default* color is randomly selected from the current theme's accent palette — not a hardcoded gray fallback. The user can always change it, but the default should set them up for success: pick a new group, get a color that already harmonizes with the theme they chose. This applies retroactively to any current color-pickable surface and prospectively to any new one.
