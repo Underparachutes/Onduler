@@ -60,7 +60,7 @@ Most habit apps treat every day like it should look the same. Onduler doesn't. T
 - Motions: create, edit (name/pts/hrs), delete, log, unlog, drag-to-reorder, hide/unhide
 - Dashboard interaction model: tap card to log, long-press to drag-reorder, kebab opens detail sheet
 - Motion detail sheet: edit name/pts/hrs, two-tap delete, swells chip assignment with contribution weights, groups chip assignment, submotions, unlog, hide toggle
-- Submotions: create (via detail sheet), log/unlog independently; shown only in detail sheet (not checklist); budget auto-divides parent's pts/hrs equally across submotions on add/remove/parent edit
+- Submotions: create (via detail sheet), log/unlog independently; shown only in detail sheet (not checklist); budget auto-divides parent's pts/hrs equally across submotions on add/remove/parent edit *(decision May 2026: feature will be hidden behind a `SUBMOTIONS_ENABLED` constant — schema and code stay intact, UI surfaces gated; turn back on later if needed without rework)*
 - Search: filter motions by name in flat mode checklist
 - Groups: create, edit, delete, reorder (drag), enable/disable via settings toggle
 - Swells: create, edit (name/color/weekly target), delete, assign motions via toggle chips with per-swell contribution weight (1–100%), weekly progress bars with weighted aggregation, "last week" reference stat, checkmark on target hit, hide-done uses weekly completion
