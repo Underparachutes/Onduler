@@ -25,6 +25,7 @@ type SwellWithMotions = {
   color: string
   target_points: number | null
   target_hours: number | null
+  groupId: string | null
   motions: Motion[]
 }
 
@@ -35,6 +36,8 @@ type Props = {
   unassigned: Motion[]
   ptsToday: Record<string, number>
   hrsToday: Record<string, number>
+  ptsAllTime: Record<string, number>
+  hrsAllTime: Record<string, number>
   swellStubs: Swell[]
   submotionsMap: Record<string, Submotion[]>
   doneMotionIds: string[]
@@ -42,10 +45,33 @@ type Props = {
   groupsEnabled: boolean
   trackingMode: TrackingMode
   hasAnyMotions: boolean
+  weeklyPoints: { week: string; points: number }[]
 }
 
 export function SwellsView(props: Props) {
   const [openForm, setOpenForm] = useState<null | 'swell'>(null)
+
+  // Prompt 2: only show groups that are applied to ≥1 swell
+  const activeGroupIds = new Set(props.swells.map(s => s.groupId).filter(Boolean) as string[])
+  const visibleGroups = props.allGroups.filter(g => activeGroupIds.has(g.id))
+
+  // Prompt 3: compute combined target
+  const isHours = props.trackingMode === 'hours'
+  const combinedTarget = props.swells.reduce((sum, s) => {
+    if (isHours) return sum + (s.target_hours ? Number(s.target_hours) : 0)
+    return sum + (s.target_points ?? 0)
+  }, 0)
+
+  // All-time total across all swells (weighted)
+  const allTimeTotal = props.swells.reduce((sum, s) => {
+    return sum + s.motions.reduce((mSum, m) => {
+      const w = m.swellWeights?.[s.id] ?? 1
+      if (isHours) return mSum + (props.hrsAllTime[m.id] ?? 0) * w
+      return mSum + Math.floor((props.ptsAllTime[m.id] ?? 0) * w)
+    }, 0)
+  }, 0)
+
+  const maxWeekPoints = Math.max(...props.weeklyPoints.map(w => w.points), 1)
 
   return (
     <div className="flex min-h-full flex-col items-center px-4 pb-12">
@@ -74,6 +100,60 @@ export function SwellsView(props: Props) {
               </div>
 
               <h1 className="text-2xl font-semibold tracking-tight text-th-text">Swells</h1>
+
+              {/* Top bar: all-time total vs combined target */}
+              {props.swells.length > 0 && (
+                <div className="mt-3">
+                  <div className="mb-2 flex items-baseline justify-between gap-3">
+                    <p className="text-lg font-semibold text-th-text">
+                      {isHours ? allTimeTotal.toFixed(allTimeTotal % 1 === 0 ? 0 : 1) : Math.round(allTimeTotal)}
+                      <span className="ml-1 text-xs font-normal uppercase tracking-widest text-th-muted">{isHours ? 'hrs' : 'pts'} all-time</span>
+                    </p>
+                    {combinedTarget > 0 && (
+                      <p className="shrink-0 text-xs text-th-faint">
+                        / {isHours ? combinedTarget.toFixed(combinedTarget % 1 === 0 ? 0 : 1) : combinedTarget} target
+                      </p>
+                    )}
+                  </div>
+
+                  {combinedTarget > 0 && (
+                    <div className="mb-3">
+                      <div className="mb-1.5 rounded-full bg-th-surface" style={{ height: '5px' }}>
+                        <div
+                          className="h-full rounded-full bg-th-btn transition-all duration-500"
+                          style={{ width: `${Math.min((allTimeTotal / combinedTarget) * 100, 100)}%` }}
+                        />
+                      </div>
+                      <div className="flex justify-between text-xs text-th-faint">
+                        <span>{Math.round(allTimeTotal)} / {combinedTarget}</span>
+                        <span>{Math.round(Math.min((allTimeTotal / combinedTarget) * 100, 100))}%</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Weekly chart */}
+                  {props.weeklyPoints.length > 0 && (
+                    <div className="mb-3">
+                      <p className="mb-1.5 text-xs text-th-faint">Points earned by week</p>
+                      <div className="flex items-end gap-0.5" style={{ height: '48px' }}>
+                        {props.weeklyPoints.slice(-12).map((w) => (
+                          <div
+                            key={w.week}
+                            className="flex-1 rounded-sm bg-th-btn opacity-70"
+                            style={{ height: `${Math.max((w.points / maxWeekPoints) * 100, 4)}%` }}
+                            title={`${w.week}: ${w.points} pts`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Group filter strip (Prompt 2: only groups applied to ≥1 swell) */}
+              {props.groupsEnabled && visibleGroups.length > 0 && (
+                <SwellGroupFilter groups={visibleGroups} swells={props.swells} />
+              )}
             </div>
 
             {props.swells.length === 0 && !props.hasAnyMotions && (
@@ -85,6 +165,8 @@ export function SwellsView(props: Props) {
               unassigned={props.unassigned}
               ptsToday={props.ptsToday}
               hrsToday={props.hrsToday}
+              ptsAllTime={props.ptsAllTime}
+              hrsAllTime={props.hrsAllTime}
               swellStubs={props.swellStubs}
               submotionsMap={props.submotionsMap}
               doneMotionIds={props.doneMotionIds}
@@ -95,6 +177,32 @@ export function SwellsView(props: Props) {
           </>
         )}
       </div>
+    </div>
+  )
+}
+
+function SwellGroupFilter({ groups, swells }: { groups: Group[]; swells: { groupId: string | null }[] }) {
+  const [activeGroup, setActiveGroup] = useState<string | null>(null)
+
+  // If the active group no longer has any swells, clear the filter
+  if (activeGroup && !swells.some(s => s.groupId === activeGroup)) {
+    setActiveGroup(null)
+  }
+
+  return (
+    <div className="mt-2 flex flex-wrap gap-2">
+      {groups.map(g => (
+        <button
+          key={g.id}
+          onClick={() => setActiveGroup(activeGroup === g.id ? null : g.id)}
+          className="rounded-full border px-3 py-1 text-xs font-medium transition-colors"
+          style={activeGroup === g.id ? { backgroundColor: g.color, borderColor: g.color, color: '#fff' } : {}}
+        >
+          <span className={activeGroup !== g.id ? 'text-th-muted' : ''}>
+            {g.name.toUpperCase()}
+          </span>
+        </button>
+      ))}
     </div>
   )
 }

@@ -421,8 +421,10 @@ export function DailyChecklist({
     )
   }
 
-  // Groups mode
-  const visibleGroupIds = activeGroup ? [activeGroup] : groups.map(g => g.id)
+  // Groups mode — only show groups that have ≥1 motion (Prompt 2)
+  const groupsWithMotions = groups.filter(g => (containers[g.id]?.length ?? 0) > 0)
+  const effectiveActiveGroup = activeGroup && groupsWithMotions.some(g => g.id === activeGroup) ? activeGroup : null
+  const visibleGroupIds = effectiveActiveGroup ? [effectiveActiveGroup] : groupsWithMotions.map(g => g.id)
   const ungroupedItems = containers['ungrouped'] ?? []
   const hasVisibleUngrouped = ungroupedItems.some(m => !localHiddenIds.has(m.id))
   const showUngrouped = !activeGroup && (hasVisibleUngrouped || !!dragActiveId)
@@ -440,7 +442,7 @@ export function DailyChecklist({
 
           <div className="flex items-center gap-2">
             <div className="flex flex-1 flex-wrap gap-2">
-              {groups.map(g => (
+              {groupsWithMotions.map(g => (
                 <button
                   key={g.id}
                   onClick={() => setActiveGroup(activeGroup === g.id ? null : g.id)}

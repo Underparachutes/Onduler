@@ -18,7 +18,7 @@ export default async function SwellsPage() {
   ] = await Promise.all([
     supabase
       .from('swells')
-      .select('id, name, color, target_points, target_hours')
+      .select('id, name, color, target_points, target_hours, group_id, sort_order')
       .eq('user_id', user.id)
       .order('sort_order', { ascending: true }),
     supabase
@@ -47,11 +47,17 @@ export default async function SwellsPage() {
     getTodayStart(),
   ])
 
-  const { data: todayLogs } = await supabase
-    .from('logs')
-    .select('motion_id, points, hours')
-    .eq('user_id', user.id)
-    .gte('logged_at', todayStart.toISOString())
+  const [{ data: todayLogs }, { data: allLogs }] = await Promise.all([
+    supabase
+      .from('logs')
+      .select('motion_id, points, hours')
+      .eq('user_id', user.id)
+      .gte('logged_at', todayStart.toISOString()),
+    supabase
+      .from('logs')
+      .select('motion_id, points, hours, logged_at')
+      .eq('user_id', user.id),
+  ])
 
   const ptsToday: Record<string, number> = {}
   const hrsToday: Record<string, number> = {}
@@ -59,6 +65,15 @@ export default async function SwellsPage() {
     if (log.motion_id) {
       ptsToday[log.motion_id] = (ptsToday[log.motion_id] ?? 0) + log.points
       hrsToday[log.motion_id] = (hrsToday[log.motion_id] ?? 0) + Number(log.hours)
+    }
+  }
+
+  const ptsAllTime: Record<string, number> = {}
+  const hrsAllTime: Record<string, number> = {}
+  for (const log of allLogs ?? []) {
+    if (log.motion_id) {
+      ptsAllTime[log.motion_id] = (ptsAllTime[log.motion_id] ?? 0) + log.points
+      hrsAllTime[log.motion_id] = (hrsAllTime[log.motion_id] ?? 0) + Number(log.hours)
     }
   }
 
@@ -103,6 +118,7 @@ export default async function SwellsPage() {
 
   const swellList = (swells ?? []).map(s => ({
     ...s,
+    groupId: (s as Record<string, unknown>).group_id as string | null,
     motions: motions.filter(m => m.swellIds.includes(s.id)),
   }))
 
@@ -112,12 +128,35 @@ export default async function SwellsPage() {
   const trackingMode: 'points' | 'hours' = (settings?.tracking_mode as 'points' | 'hours') ?? 'points'
   const allGroups = groups ?? []
 
+  // Build weekly points data for the chart (Prompt 3)
+  const weeklyPoints: { week: string; points: number }[] = []
+  const weekMap = new Map<string, number>()
+  for (const log of allLogs ?? []) {
+    if (!log.motion_id) continue
+    const d = new Date(log.logged_at)
+    const day = d.getDay()
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1)
+    const weekStart = new Date(d.getFullYear(), d.getMonth(), diff)
+    const key = weekStart.toISOString().slice(0, 10)
+    // Only count points that contribute to swells
+    const motion = motions.find(m => m.id === log.motion_id)
+    if (motion && motion.swellIds.length > 0) {
+      weekMap.set(key, (weekMap.get(key) ?? 0) + log.points)
+    }
+  }
+  const sortedWeeks = Array.from(weekMap.entries()).sort((a, b) => a[0].localeCompare(b[0]))
+  for (const [week, points] of sortedWeeks) {
+    weeklyPoints.push({ week, points })
+  }
+
   return (
     <SwellsView
       swells={swellList}
       unassigned={unassigned}
       ptsToday={ptsToday}
       hrsToday={hrsToday}
+      ptsAllTime={ptsAllTime}
+      hrsAllTime={hrsAllTime}
       swellStubs={swellStubs}
       submotionsMap={submotionsMap}
       doneMotionIds={doneMotionIds}
@@ -125,6 +164,7 @@ export default async function SwellsPage() {
       groupsEnabled={groupsEnabled}
       trackingMode={trackingMode}
       hasAnyMotions={motions.length > 0}
+      weeklyPoints={weeklyPoints}
     />
   )
 }

@@ -6,8 +6,16 @@ export const THEME_PALETTES: Record<ThemeName, string[]> = {
   biarritz: ['#c9621e', '#2a5f68', '#d4a574', '#1e5b8a', '#8aabaf', '#a8511a'],
 }
 
+// Ring buffer of last 3 colors picked, per session. Avoids visual repetition.
+const recentColors: string[] = []
+const AVOID_COUNT = 3
+
 export function getRandomThemeAccent(theme: string): string {
   const palette = THEME_PALETTES[theme as ThemeName] ?? THEME_PALETTES.default
-  return palette[Math.floor(Math.random() * palette.length)]
+  const avoidN = Math.min(AVOID_COUNT, palette.length - 1)
+  const candidates = palette.filter(c => !recentColors.slice(-avoidN).includes(c))
+  const pick = candidates[Math.floor(Math.random() * candidates.length)]
+  recentColors.push(pick)
+  if (recentColors.length > AVOID_COUNT) recentColors.shift()
+  return pick
 }
-

@@ -68,3 +68,59 @@ export async function deleteSwell(id: string) {
   await supabase.from('swells').delete().eq('id', id).eq('user_id', user.id)
   revalidatePath('/swells')
 }
+
+export async function setSwellGroup(swellId: string, groupId: string | null) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  await supabase
+    .from('swells')
+    .update({ group_id: groupId })
+    .eq('id', swellId)
+    .eq('user_id', user.id)
+
+  revalidatePath('/swells')
+  revalidatePath('/dashboard')
+  return { success: true }
+}
+
+export async function reorderSwells(orderedIds: string[]) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return
+
+  await Promise.all(
+    orderedIds.map((id, index) =>
+      supabase.from('swells').update({ sort_order: index }).eq('id', id).eq('user_id', user.id)
+    )
+  )
+
+  revalidatePath('/swells')
+}
+
+export async function updateSwellDirect(
+  id: string,
+  name: string,
+  color: string,
+  targetPoints: number | null,
+  targetHours: number | null
+) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const trimmed = name.trim()
+  if (!trimmed) return { error: 'Name is required' }
+
+  const { error } = await supabase
+    .from('swells')
+    .update({ name: trimmed, color, target_points: targetPoints, target_hours: targetHours })
+    .eq('id', id)
+    .eq('user_id', user.id)
+
+  if (error) return { error: error.message }
+
+  revalidatePath('/swells')
+  return { success: true }
+}

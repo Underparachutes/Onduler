@@ -1,7 +1,26 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  TouchSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+  arrayMove,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { unlogMotion } from '@/app/actions/logs'
+import { reorderSwells } from '@/app/actions/swells'
 import { MotionDetailSheet } from '@/app/dashboard/components/MotionDetailSheet'
 import { SwellRow } from './SwellRow'
 import { formatPts, formatHrs } from '@/lib/format'
@@ -26,6 +45,7 @@ type SwellWithMotions = {
   color: string
   target_points: number | null
   target_hours: number | null
+  groupId: string | null
   motions: Motion[]
 }
 
@@ -36,6 +56,8 @@ type Props = {
   unassigned: Motion[]
   ptsToday: Record<string, number>
   hrsToday: Record<string, number>
+  ptsAllTime: Record<string, number>
+  hrsAllTime: Record<string, number>
   swellStubs: Swell[]
   submotionsMap: Record<string, Submotion[]>
   doneMotionIds: string[]
@@ -44,11 +66,46 @@ type Props = {
   trackingMode: TrackingMode
 }
 
+function SortableSwellItem({ swell, children }: { swell: SwellWithMotions; children: React.ReactNode }) {
+  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } =
+    useSortable({ id: swell.id })
+
+  return (
+    <div
+      ref={setNodeRef}
+      {...attributes}
+      style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 }}
+    >
+      <div className="flex items-start gap-1">
+        <span
+          ref={setActivatorNodeRef}
+          {...listeners}
+          style={{ touchAction: 'none' }}
+          className="mt-1 shrink-0 flex items-center px-1 py-1 text-th-faint cursor-grab active:cursor-grabbing"
+          aria-label="Drag to reorder"
+        >
+          <svg width="10" height="14" viewBox="0 0 12 16" fill="currentColor" opacity="0.4">
+            <circle cx="4" cy="3" r="1.5" />
+            <circle cx="8" cy="3" r="1.5" />
+            <circle cx="4" cy="8" r="1.5" />
+            <circle cx="8" cy="8" r="1.5" />
+            <circle cx="4" cy="13" r="1.5" />
+            <circle cx="8" cy="13" r="1.5" />
+          </svg>
+        </span>
+        <div className="flex-1 min-w-0">{children}</div>
+      </div>
+    </div>
+  )
+}
+
 export function SwellsList({
   swells,
   unassigned,
   ptsToday,
   hrsToday,
+  ptsAllTime,
+  hrsAllTime,
   swellStubs,
   submotionsMap,
   doneMotionIds,
@@ -60,12 +117,41 @@ export function SwellsList({
   const [openSheetId, setOpenSheetId] = useState<string | null>(null)
   const [localDone, setLocalDone] = useState<Set<string>>(() => new Set(doneMotionIds))
   const [localHiddenIds, setLocalHiddenIds] = useState<Set<string>>(new Set())
+  const [expandedSwells, setExpandedSwells] = useState<Set<string>>(new Set())
+  const [orderedSwells, setOrderedSwells] = useState(swells)
   const [, startTransition] = useTransition()
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { delay: 250, tolerance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  )
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+    const oldIdx = orderedSwells.findIndex(s => s.id === active.id)
+    const newIdx = orderedSwells.findIndex(s => s.id === over.id)
+    const next = arrayMove(orderedSwells, oldIdx, newIdx)
+    setOrderedSwells(next)
+    startTransition(async () => { await reorderSwells(next.map(s => s.id)) })
+  }
+
+  function toggleExpand(swellId: string) {
+    setExpandedSwells(prev => {
+      const next = new Set(prev)
+      if (next.has(swellId)) next.delete(swellId)
+      else next.add(swellId)
+      return next
+    })
+  }
 
   const ptsTodayMap = new Map(Object.entries(ptsToday))
   const hrsTodayMap = new Map(Object.entries(hrsToday))
+  const ptsAllTimeMap = new Map(Object.entries(ptsAllTime))
+  const hrsAllTimeMap = new Map(Object.entries(hrsAllTime))
 
-  const allMotions = [...swells.flatMap(s => s.motions), ...unassigned]
+  const allMotions = [...orderedSwells.flatMap(s => s.motions), ...unassigned]
   const openSheetMotion = openSheetId
     ? allMotions.find(m => m.id === openSheetId) ?? null
     : null
@@ -75,26 +161,47 @@ export function SwellsList({
   return (
     <>
       <div className="mb-8 flex flex-col gap-6">
-        {swells.map(swell => (
-          <SwellRow
-            key={swell.id}
-            swell={swell}
-            swellPtsToday={swell.motions.reduce((sum, m) => {
-              const w = m.swellWeights?.[swell.id] ?? 1
-              return sum + Math.floor((ptsTodayMap.get(m.id) ?? 0) * w)
-            }, 0)}
-            swellHrsToday={swell.motions.reduce((sum, m) => {
-              const w = m.swellWeights?.[swell.id] ?? 1
-              return sum + (hrsTodayMap.get(m.id) ?? 0) * w
-            }, 0)}
-            ptsToday={ptsTodayMap}
-            hrsToday={hrsTodayMap}
-            allSwells={swellStubs}
-            localHiddenIds={localHiddenIds}
-            trackingMode={trackingMode}
-            onOpenMotion={setOpenSheetId}
-          />
-        ))}
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={orderedSwells.map(s => s.id)} strategy={verticalListSortingStrategy}>
+            {orderedSwells.map(swell => {
+              const swellPtsAllTime = swell.motions.reduce((sum, m) => {
+                const w = m.swellWeights?.[swell.id] ?? 1
+                return sum + Math.floor((ptsAllTimeMap.get(m.id) ?? 0) * w)
+              }, 0)
+              const swellHrsAllTime = swell.motions.reduce((sum, m) => {
+                const w = m.swellWeights?.[swell.id] ?? 1
+                return sum + (hrsAllTimeMap.get(m.id) ?? 0) * w
+              }, 0)
+              return (
+                <SortableSwellItem key={swell.id} swell={swell}>
+                  <SwellRow
+                    swell={swell}
+                    swellPtsToday={swell.motions.reduce((sum, m) => {
+                      const w = m.swellWeights?.[swell.id] ?? 1
+                      return sum + Math.floor((ptsTodayMap.get(m.id) ?? 0) * w)
+                    }, 0)}
+                    swellHrsToday={swell.motions.reduce((sum, m) => {
+                      const w = m.swellWeights?.[swell.id] ?? 1
+                      return sum + (hrsTodayMap.get(m.id) ?? 0) * w
+                    }, 0)}
+                    swellPtsAllTime={swellPtsAllTime}
+                    swellHrsAllTime={swellHrsAllTime}
+                    ptsToday={ptsTodayMap}
+                    hrsToday={hrsTodayMap}
+                    allSwells={swellStubs}
+                    allGroups={allGroups}
+                    groupsEnabled={groupsEnabled}
+                    localHiddenIds={localHiddenIds}
+                    trackingMode={trackingMode}
+                    expanded={expandedSwells.has(swell.id)}
+                    onToggleExpand={() => toggleExpand(swell.id)}
+                    onOpenMotion={setOpenSheetId}
+                  />
+                </SortableSwellItem>
+              )
+            })}
+          </SortableContext>
+        </DndContext>
       </div>
 
       {visibleUnassigned.length > 0 && (
