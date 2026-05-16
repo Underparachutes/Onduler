@@ -48,29 +48,33 @@ export function SwellsView(props: Props) {
   const [openForm, setOpenForm] = useState<null | 'swell'>(null)
 
   return (
-    <div className="flex min-h-full flex-col items-center px-4 py-12">
+    <div className="flex min-h-full flex-col items-center px-4 pb-12">
       <div className="w-full max-w-[22rem]">
         {openForm === 'swell' ? (
-          <AddSwellForm trackingMode={props.trackingMode} onClose={() => setOpenForm(null)} />
+          <div style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.5rem)' }}>
+            <AddSwellForm trackingMode={props.trackingMode} onClose={() => setOpenForm(null)} />
+          </div>
         ) : (
           <>
-            <div className="mb-6 flex items-center justify-between">
-              <p className="text-xs uppercase tracking-widest text-th-muted">Onduler</p>
-              <div className="flex items-center gap-3">
-                <Link href="/dashboard" className="hidden text-xs text-th-faint transition-all hover:text-th-muted active:scale-[0.97] sm:inline">
-                  ← Back
-                </Link>
-                <button
-                  onClick={() => setOpenForm('swell')}
-                  aria-label="Add a swell"
-                  className="flex items-center justify-center text-3xl font-light leading-none text-th-muted transition-colors hover:text-th-text"
-                >
-                  +
-                </button>
+            <div className="sticky top-0 z-10 bg-th-bg pb-3" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.5rem)' }}>
+              <div className="mb-2 flex items-center justify-between">
+                <p className="text-xs uppercase tracking-widest text-th-muted">Onduler</p>
+                <div className="flex items-center gap-3">
+                  <Link href="/dashboard" className="hidden text-xs text-th-faint transition-all hover:text-th-muted active:scale-[0.97] sm:inline">
+                    ← Back
+                  </Link>
+                  <button
+                    onClick={() => setOpenForm('swell')}
+                    aria-label="Add a swell"
+                    className="flex items-center justify-center text-3xl font-light leading-none text-th-muted transition-colors hover:text-th-text"
+                  >
+                    +
+                  </button>
+                </div>
               </div>
-            </div>
 
-            <h1 className="mb-8 text-2xl font-semibold tracking-tight text-th-text">Swells</h1>
+              <h1 className="text-2xl font-semibold tracking-tight text-th-text">Swells</h1>
+            </div>
 
             {props.swells.length === 0 && !props.hasAnyMotions && (
               <p className="mb-8 text-sm text-th-muted">No motions yet. Add some from Today first.</p>
