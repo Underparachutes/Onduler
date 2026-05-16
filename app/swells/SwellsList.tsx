@@ -56,8 +56,10 @@ type Props = {
   unassigned: Motion[]
   ptsToday: Record<string, number>
   hrsToday: Record<string, number>
-  ptsAllTime: Record<string, number>
-  hrsAllTime: Record<string, number>
+  ptsThisWeek: Record<string, number>
+  hrsThisWeek: Record<string, number>
+  ptsLastWeek: Record<string, number>
+  hrsLastWeek: Record<string, number>
   swellStubs: Swell[]
   submotionsMap: Record<string, Submotion[]>
   doneMotionIds: string[]
@@ -106,8 +108,10 @@ export function SwellsList({
   unassigned,
   ptsToday,
   hrsToday,
-  ptsAllTime,
-  hrsAllTime,
+  ptsThisWeek,
+  hrsThisWeek,
+  ptsLastWeek,
+  hrsLastWeek,
   swellStubs,
   submotionsMap,
   doneMotionIds,
@@ -159,8 +163,10 @@ export function SwellsList({
 
   const ptsTodayMap = new Map(Object.entries(ptsToday))
   const hrsTodayMap = new Map(Object.entries(hrsToday))
-  const ptsAllTimeMap = new Map(Object.entries(ptsAllTime))
-  const hrsAllTimeMap = new Map(Object.entries(hrsAllTime))
+  const ptsThisWeekMap = new Map(Object.entries(ptsThisWeek))
+  const hrsThisWeekMap = new Map(Object.entries(hrsThisWeek))
+  const ptsLastWeekMap = new Map(Object.entries(ptsLastWeek))
+  const hrsLastWeekMap = new Map(Object.entries(hrsLastWeek))
 
   const allMotions = [...orderedSwells.flatMap(s => s.motions), ...unassigned]
   const openSheetMotion = openSheetId
@@ -170,34 +176,36 @@ export function SwellsList({
   const visibleUnassigned = unassigned.filter(m => !localHiddenIds.has(m.id))
 
   function renderSwellRow(swell: SwellWithMotions) {
-    const swellPtsAllTime = swell.motions.reduce((sum, m) => {
+    const swellPtsThisWeek = swell.motions.reduce((sum, m) => {
       const w = m.swellWeights?.[swell.id] ?? 1
-      return sum + Math.floor((ptsAllTimeMap.get(m.id) ?? 0) * w)
+      return sum + Math.floor((ptsThisWeekMap.get(m.id) ?? 0) * w)
+    }, 0)
+    const swellHrsThisWeek = swell.motions.reduce((sum, m) => {
+      const w = m.swellWeights?.[swell.id] ?? 1
+      return sum + (hrsThisWeekMap.get(m.id) ?? 0) * w
     }, 0)
     if (hideDone) {
       const isHrs = trackingMode === 'hours'
-      const val = isHrs ? swell.motions.reduce((sum, m) => sum + (hrsAllTimeMap.get(m.id) ?? 0) * (m.swellWeights?.[swell.id] ?? 1), 0) : swellPtsAllTime
+      const val = isHrs ? swellHrsThisWeek : swellPtsThisWeek
       const tgt = isHrs ? (swell.target_hours ? Number(swell.target_hours) : null) : swell.target_points
       if (tgt && val >= tgt) return null
     }
-    const swellHrsAllTime = swell.motions.reduce((sum, m) => {
+    const swellPtsLastWeek = swell.motions.reduce((sum, m) => {
       const w = m.swellWeights?.[swell.id] ?? 1
-      return sum + (hrsAllTimeMap.get(m.id) ?? 0) * w
+      return sum + Math.floor((ptsLastWeekMap.get(m.id) ?? 0) * w)
+    }, 0)
+    const swellHrsLastWeek = swell.motions.reduce((sum, m) => {
+      const w = m.swellWeights?.[swell.id] ?? 1
+      return sum + (hrsLastWeekMap.get(m.id) ?? 0) * w
     }, 0)
     return (
       <SortableSwellItem key={swell.id} swell={swell}>
         <SwellRow
           swell={swell}
-          swellPtsToday={swell.motions.reduce((sum, m) => {
-            const w = m.swellWeights?.[swell.id] ?? 1
-            return sum + Math.floor((ptsTodayMap.get(m.id) ?? 0) * w)
-          }, 0)}
-          swellHrsToday={swell.motions.reduce((sum, m) => {
-            const w = m.swellWeights?.[swell.id] ?? 1
-            return sum + (hrsTodayMap.get(m.id) ?? 0) * w
-          }, 0)}
-          swellPtsAllTime={swellPtsAllTime}
-          swellHrsAllTime={swellHrsAllTime}
+          swellPtsThisWeek={swellPtsThisWeek}
+          swellHrsThisWeek={swellHrsThisWeek}
+          swellPtsLastWeek={swellPtsLastWeek}
+          swellHrsLastWeek={swellHrsLastWeek}
           ptsToday={ptsTodayMap}
           hrsToday={hrsTodayMap}
           allSwells={swellStubs}

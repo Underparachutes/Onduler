@@ -37,8 +37,10 @@ type Props = {
   unassigned: Motion[]
   ptsToday: Record<string, number>
   hrsToday: Record<string, number>
-  ptsAllTime: Record<string, number>
-  hrsAllTime: Record<string, number>
+  ptsThisWeek: Record<string, number>
+  hrsThisWeek: Record<string, number>
+  ptsLastWeek: Record<string, number>
+  hrsLastWeek: Record<string, number>
   swellStubs: Swell[]
   submotionsMap: Record<string, Submotion[]>
   doneMotionIds: string[]
@@ -103,15 +105,14 @@ export function SwellsView(props: Props) {
     return sum + (s.target_points ?? 0)
   }, 0)
 
-  const allTimeTotal = props.swells.reduce((sum, s) => {
+  const weeklyTotal = props.swells.reduce((sum, s) => {
     return sum + s.motions.reduce((mSum, m) => {
       const w = m.swellWeights?.[s.id] ?? 1
-      if (isHours) return mSum + (props.hrsAllTime[m.id] ?? 0) * w
-      return mSum + Math.floor((props.ptsAllTime[m.id] ?? 0) * w)
+      if (isHours) return mSum + (props.hrsThisWeek[m.id] ?? 0) * w
+      return mSum + Math.floor((props.ptsThisWeek[m.id] ?? 0) * w)
     }, 0)
   }, 0)
 
-  const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
   const formatValue = (n: number) => isHours ? n.toFixed(n % 1 === 0 ? 0 : 2).replace(/\.?0+$/, '') : String(Math.round(n))
 
   return (
@@ -163,27 +164,27 @@ export function SwellsView(props: Props) {
                 </div>
               </div>
 
-              {/* Date + total (mirroring motions page) */}
+              {/* Weekly total */}
               <div className="mb-2 flex items-baseline justify-between gap-3">
-                <h1 className="min-w-0 text-lg font-semibold tracking-tight text-th-text">{today}</h1>
+                <h1 className="min-w-0 text-lg font-semibold tracking-tight text-th-text">This week</h1>
                 <p className="shrink-0 text-lg font-semibold text-th-text">
-                  {formatValue(allTimeTotal)}
+                  {formatValue(weeklyTotal)}
                   <span className="ml-1 text-xs font-normal uppercase tracking-widest text-th-muted">{isHours ? 'hrs' : 'pts'}</span>
                 </p>
               </div>
 
-              {/* Progress bar */}
+              {/* Weekly progress bar */}
               {combinedTarget > 0 && props.swells.length > 0 && (
                 <div className="mb-3">
                   <div className="mb-1.5 rounded-full bg-th-surface" style={{ height: '5px' }}>
                     <div
                       className="h-full rounded-full bg-th-btn transition-all duration-500"
-                      style={{ width: `${Math.min((allTimeTotal / combinedTarget) * 100, 100)}%` }}
+                      style={{ width: `${Math.min((weeklyTotal / combinedTarget) * 100, 100)}%` }}
                     />
                   </div>
                   <div className="flex justify-between text-xs text-th-faint">
-                    <span>{formatValue(allTimeTotal)} / {formatValue(combinedTarget)} goal</span>
-                    <span>{Math.round(Math.min((allTimeTotal / combinedTarget) * 100, 100))}%</span>
+                    <span>{formatValue(weeklyTotal)} / {formatValue(combinedTarget)} weekly</span>
+                    <span>{Math.round(Math.min((weeklyTotal / combinedTarget) * 100, 100))}%</span>
                   </div>
                 </div>
               )}
@@ -235,8 +236,10 @@ export function SwellsView(props: Props) {
               unassigned={props.unassigned}
               ptsToday={props.ptsToday}
               hrsToday={props.hrsToday}
-              ptsAllTime={props.ptsAllTime}
-              hrsAllTime={props.hrsAllTime}
+              ptsThisWeek={props.ptsThisWeek}
+              hrsThisWeek={props.hrsThisWeek}
+              ptsLastWeek={props.ptsLastWeek}
+              hrsLastWeek={props.hrsLastWeek}
               swellStubs={props.swellStubs}
               submotionsMap={props.submotionsMap}
               doneMotionIds={props.doneMotionIds}

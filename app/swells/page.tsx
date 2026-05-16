@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { getTodayStart } from '@/lib/timezone'
+import { getTodayStart, getWeekStart, getLastWeekStart } from '@/lib/timezone'
 import { SwellsView } from './SwellsView'
 
 export default async function SwellsPage() {
@@ -47,7 +47,9 @@ export default async function SwellsPage() {
     getTodayStart(),
   ])
 
-  const [{ data: todayLogs }, { data: allLogs }] = await Promise.all([
+  const [weekStart, lastWeekStart] = await Promise.all([getWeekStart(), getLastWeekStart()])
+
+  const [{ data: todayLogs }, { data: thisWeekLogs }, { data: lastWeekLogs }] = await Promise.all([
     supabase
       .from('logs')
       .select('motion_id, points, hours')
@@ -55,8 +57,15 @@ export default async function SwellsPage() {
       .gte('logged_at', todayStart.toISOString()),
     supabase
       .from('logs')
-      .select('motion_id, points, hours, logged_at')
-      .eq('user_id', user.id),
+      .select('motion_id, points, hours')
+      .eq('user_id', user.id)
+      .gte('logged_at', weekStart.toISOString()),
+    supabase
+      .from('logs')
+      .select('motion_id, points, hours')
+      .eq('user_id', user.id)
+      .gte('logged_at', lastWeekStart.toISOString())
+      .lt('logged_at', weekStart.toISOString()),
   ])
 
   const ptsToday: Record<string, number> = {}
@@ -68,12 +77,21 @@ export default async function SwellsPage() {
     }
   }
 
-  const ptsAllTime: Record<string, number> = {}
-  const hrsAllTime: Record<string, number> = {}
-  for (const log of allLogs ?? []) {
+  const ptsThisWeek: Record<string, number> = {}
+  const hrsThisWeek: Record<string, number> = {}
+  for (const log of thisWeekLogs ?? []) {
     if (log.motion_id) {
-      ptsAllTime[log.motion_id] = (ptsAllTime[log.motion_id] ?? 0) + log.points
-      hrsAllTime[log.motion_id] = (hrsAllTime[log.motion_id] ?? 0) + Number(log.hours)
+      ptsThisWeek[log.motion_id] = (ptsThisWeek[log.motion_id] ?? 0) + log.points
+      hrsThisWeek[log.motion_id] = (hrsThisWeek[log.motion_id] ?? 0) + Number(log.hours)
+    }
+  }
+
+  const ptsLastWeek: Record<string, number> = {}
+  const hrsLastWeek: Record<string, number> = {}
+  for (const log of lastWeekLogs ?? []) {
+    if (log.motion_id) {
+      ptsLastWeek[log.motion_id] = (ptsLastWeek[log.motion_id] ?? 0) + log.points
+      hrsLastWeek[log.motion_id] = (hrsLastWeek[log.motion_id] ?? 0) + Number(log.hours)
     }
   }
 
@@ -134,8 +152,10 @@ export default async function SwellsPage() {
       unassigned={unassigned}
       ptsToday={ptsToday}
       hrsToday={hrsToday}
-      ptsAllTime={ptsAllTime}
-      hrsAllTime={hrsAllTime}
+      ptsThisWeek={ptsThisWeek}
+      hrsThisWeek={hrsThisWeek}
+      ptsLastWeek={ptsLastWeek}
+      hrsLastWeek={hrsLastWeek}
       swellStubs={swellStubs}
       submotionsMap={submotionsMap}
       doneMotionIds={doneMotionIds}

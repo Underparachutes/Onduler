@@ -11,10 +11,10 @@ type TrackingMode = 'points' | 'hours'
 
 type Props = {
   swell: { id: string; name: string; color: string; target_points: number | null; target_hours: number | null; groupId: string | null; motions: Motion[] }
-  swellPtsToday: number
-  swellHrsToday: number
-  swellPtsAllTime: number
-  swellHrsAllTime: number
+  swellPtsThisWeek: number
+  swellHrsThisWeek: number
+  swellPtsLastWeek: number
+  swellHrsLastWeek: number
   ptsToday: Map<string, number>
   hrsToday: Map<string, number>
   allSwells: SwellStub[]
@@ -29,7 +29,7 @@ type Props = {
 }
 
 export function SwellRow({
-  swell, swellPtsAllTime, swellHrsAllTime,
+  swell, swellPtsThisWeek, swellHrsThisWeek, swellPtsLastWeek, swellHrsLastWeek,
   allGroups, groupsEnabled, localHiddenIds, trackingMode,
   expanded, onToggleExpand, onOpenMotion,
 }: Props) {
@@ -91,10 +91,11 @@ export function SwellRow({
       ? false
       : isHours
 
-  // All-time values for display
-  const allTimeValue = isHours ? swellHrsAllTime : swellPtsAllTime
+  const weekValue = isHours ? swellHrsThisWeek : swellPtsThisWeek
+  const lastWeekValue = isHours ? swellHrsLastWeek : swellPtsLastWeek
   const target = isHours ? (swell.target_hours !== null ? Number(swell.target_hours) : null) : swell.target_points
-  const progress = target ? Math.min((allTimeValue / target) * 100, 100) : null
+  const progress = target ? Math.min((weekValue / target) * 100, 100) : null
+  const hitTarget = target !== null && weekValue >= target
   const formatValue = (n: number) => isHours ? formatHrs(n) : formatPts(n)
 
   if (editing) {
@@ -117,27 +118,27 @@ export function SwellRow({
         </div>
         {showHoursField ? (
           <div className="flex items-center gap-2">
-            <label className="shrink-0 text-xs text-th-muted">Target hrs</label>
+            <label className="shrink-0 text-xs text-th-muted">Weekly hrs</label>
             <input
               ref={targetHrsRef}
               type="number"
               defaultValue={swell.target_hours ?? ''}
               min="0.25"
               step="0.25"
-              placeholder="None"
+              placeholder="5"
               inputMode="decimal"
               className="flex-1 rounded-lg border border-th-border bg-th-surface px-3 py-2 text-sm text-th-text outline-none focus:border-th-focus"
             />
           </div>
         ) : (
           <div className="flex items-center gap-2">
-            <label className="shrink-0 text-xs text-th-muted">Target pts</label>
+            <label className="shrink-0 text-xs text-th-muted">Weekly pts</label>
             <input
               ref={targetPtsRef}
               type="number"
               defaultValue={swell.target_points ?? ''}
               min="1"
-              placeholder="None"
+              placeholder="100"
               inputMode="numeric"
               className="flex-1 rounded-lg border border-th-border bg-th-surface px-3 py-2 text-sm text-th-text outline-none focus:border-th-focus"
             />
@@ -206,7 +207,10 @@ export function SwellRow({
           <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: swell.color }}>
             {swell.name}
           </p>
-          <span className="text-xs text-th-faint">{formatValue(allTimeValue)}</span>
+          <span className="text-xs text-th-faint">
+            {formatValue(weekValue)}{target !== null && ` / ${formatValue(target)}`}
+          </span>
+          {hitTarget && <span className="text-xs text-th-faint">&#10003;</span>}
         </button>
         <button
           onPointerDown={e => e.stopPropagation()}
@@ -223,7 +227,7 @@ export function SwellRow({
       </div>
 
       {progress !== null && target !== null && (
-        <div className="mb-3">
+        <div className="mb-1">
           <div className="rounded-full bg-th-surface" style={{ height: '4px' }}>
             <div
               className="h-full rounded-full transition-all"
@@ -231,6 +235,12 @@ export function SwellRow({
             />
           </div>
         </div>
+      )}
+
+      {target !== null && (
+        <p className="mb-3 text-xs text-th-faint">
+          Last week: {formatValue(lastWeekValue)}
+        </p>
       )}
 
       {/* Motions list — collapsed by default (Prompt 5) */}

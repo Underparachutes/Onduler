@@ -59,29 +59,29 @@ export function AddSwellForm({ trackingMode, onClose }: Props) {
 
         {isHours ? (
           <div className="flex items-center gap-2">
-            <label htmlFor="target_hours" className="shrink-0 text-xs text-th-muted">Target hours</label>
+            <label htmlFor="target_hours" className="shrink-0 text-xs text-th-muted">Weekly hrs</label>
             <input
               id="target_hours"
               type="number"
               name="target_hours"
               min="0.25"
               step="0.25"
-              placeholder="optional"
-              defaultValue="10000"
+              placeholder="5"
+              defaultValue="5"
               inputMode="decimal"
               className="w-full rounded-lg border border-th-border bg-th-surface px-3 py-2.5 text-sm text-th-text outline-none focus:border-th-focus"
             />
           </div>
         ) : (
           <div className="flex items-center gap-2">
-            <label htmlFor="target_points" className="shrink-0 text-xs text-th-muted">Target points</label>
+            <label htmlFor="target_points" className="shrink-0 text-xs text-th-muted">Weekly pts</label>
             <input
               id="target_points"
               type="number"
               name="target_points"
               min="1"
-              placeholder="optional"
-              defaultValue="1000"
+              placeholder="100"
+              defaultValue="100"
               inputMode="numeric"
               className="w-full rounded-lg border border-th-border bg-th-surface px-3 py-2.5 text-sm text-th-text outline-none focus:border-th-focus"
             />
