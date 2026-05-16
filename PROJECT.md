@@ -20,7 +20,7 @@ Most habit apps treat every day like it should look the same. Onduler doesn't. T
 |---|---|
 | **Motion** | A trackable daily activity (the code table is also `motions`) |
 | **Swell** | A goal/target area — has an optional points target and/or hours target. Celebration fires when target is hit. Motions can belong to many swells. |
-| **Group** | An organizational bucket for motions. No target, no scoring. Motions can belong to many groups. |
+| **Group** | An organizational bucket for motions and swells. No target, no scoring. Each motion and each swell belongs to one group (or none). |
 | **Tide** | Default daily mode |
 | **Wave** | Period of focus, recovery, or disruption — app does not punish this |
 
@@ -42,14 +42,13 @@ Most habit apps treat every day like it should look the same. Onduler doesn't. T
 
 | Table | Key columns | Notes |
 |---|---|---|
-| `motions` | id, user_id, name, default_points, default_hours (default 1.0), parent_id (submotions), hidden, sort_order | parent_id enables submotions; hidden removes from daily checklist |
-| `swells` | id, user_id, name, color, target_points (nullable), target_hours (nullable), sort_order | Either/both targets optional |
-| `groups` | id, user_id, name, color, sort_order | Organizational only, no targets |
-| `motion_swells` | motion_id, swell_id | Junction: many-to-many |
-| `motion_groups` | motion_id, group_id | Junction: many-to-many |
+| `motions` | id, user_id, name, default_points, default_hours (default 1.0), group_id (nullable), parent_id (submotions), hidden, sort_order | parent_id enables submotions; hidden removes from daily checklist; group_id is the (single, optional) organizing folder |
+| `swells` | id, user_id, name, color, target_points (nullable), target_hours (nullable), group_id (nullable), color_picked_in, sort_order | Either/both targets optional; group_id is the (single, optional) organizing folder |
+| `groups` | id, user_id, name, color, color_picked_in, sort_order | Organizational only, no targets; shared across motions and swells |
+| `motion_swells` | motion_id, swell_id, contribution_weight | Junction: many-to-many, weighted |
 | `logs` | id, user_id, motion_id, points, hours, logged_at | hours defaults to motion's default_hours at log time |
 | `wave_checkins` | id, user_id, energy, alignment, duration_seconds, checked_in_at | |
-| `user_settings` | user_id, groups_enabled, daily_goal, theme, celebration_enabled, haptic_enabled, onboarding_complete | |
+| `user_settings` | user_id, groups_enabled, daily_goal, daily_goal_hours, tracking_mode, theme, celebration_enabled, haptic_enabled, onboarding_complete | |
 
 ## Current state of the build
 
@@ -96,7 +95,7 @@ Most habit apps treat every day like it should look the same. Onduler doesn't. T
 
 Groups and Swells solve non-overlapping problems and should not be collapsed into one concept.
 
-- **Groups** are organizational containers. One motion belongs to one group (or none). Pure UX utility — they help the user mentally cluster and filter their motions. They answer the question *where does this live in my list?*
+- **Groups** are organizational containers. One motion belongs to one group (or none); one swell belongs to one group (or none). Pure UX utility — they help the user mentally cluster and filter their lists. They answer the question *where does this live in my list?*
 - **Swells** are aspirational goals. A motion can contribute to many swells; a swell is fed by many motions. Each motion→swell link carries its own `contribution_weight`, enabling the additive points model (e.g., meditation can contribute 100% to "be healthy" and 40% to "be a better partner" simultaneously). They answer the question *why does this matter?*
 
 Locked schema target:
@@ -104,7 +103,7 @@ Locked schema target:
 ```
 groups        (id, user_id, name, sort_order)
 motions       (id, user_id, group_id NULLABLE, name, base_points, ...)
-swells        (id, user_id, name, target, ...)
+swells        (id, user_id, group_id NULLABLE, name, target, ...)
 motion_swells (motion_id, swell_id, contribution_weight)
 ```
 
@@ -113,6 +112,27 @@ motion_swells (motion_id, swell_id, contribution_weight)
 **Why this matters.** Most habit apps either have flat lists (no organization) or single-goal tagging (no additive credit). Collapsing Groups and Swells would either lose the additive points benefit (if everything became 1:many) or make the motion list unscannable (if everything became many:many). The two-concept model is Onduler's distinctive structural choice — don't propose simplifying it away.
 
 **Implementation gap (as of May 2026).** Schema now matches the locked target: `motions.group_id` FK is live, and `motion_swells.contribution_weight` is active in all aggregation paths (swells page, log page, swell progress bars). The old `motion_groups` junction is gone.
+
+### Groups on swells (May 2026)
+
+Groups now apply to swells the same way they apply to motions. Each swell belongs to one group (or none); the `groups` table is shared across motions and swells. A single "Health" group can have both motions and swells pointing at it.
+
+**Why.** Same folder logic as motions — "where does this live in my list?" — applied to swells. Two user modes drop out of the same shape:
+
+- The user who wants **mirrored organization** between motions and swells uses the same groups on both sides. Filtering by a group on the motions page and navigating to swells keeps the filter, and the corresponding swells appear. Feels consistent.
+- The user who wants **independent organization** assigns groups to motions and swells separately, with little or no overlap. Filtering on one side surfaces nothing on the other, which correctly reflects that the group isn't used there. Feels independent.
+
+The misalignment diagnostic (does my daily motion clustering match my long-term swell clustering?) remains visible at the group level without requiring M:N or separate group tables.
+
+**Locked schema for the extension:**
+
+```
+swells (id, user_id, ..., group_id NULLABLE FK → groups, ...)
+```
+
+No `swell_groups` table. No `motion_groups` junction (already removed). Single shared `groups` table.
+
+**Shipped (May 2026).** `swells.group_id` FK is live. UI wired: group assignment on swell detail, grouped display on swells page, group filter. ADR: `docs/decisions/0001-groups-schema.md`.
 
 ## Working agreements
 

@@ -18,12 +18,13 @@ DROP TABLE IF EXISTS user_settings CASCADE;
 -- (groups must precede motions: motions.group_id references groups.id)
 
 CREATE TABLE groups (
-  id         uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id    uuid        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  name       text        NOT NULL,
-  color      text        NOT NULL DEFAULT '#6366f1',
-  sort_order int         NOT NULL DEFAULT 0,
-  created_at timestamptz NOT NULL DEFAULT now()
+  id              uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id         uuid        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  name            text        NOT NULL,
+  color           text        NOT NULL DEFAULT '#6366f1',
+  color_picked_in text        NOT NULL DEFAULT 'light' CHECK (color_picked_in IN ('light', 'dark')),
+  sort_order      int         NOT NULL DEFAULT 0,
+  created_at      timestamptz NOT NULL DEFAULT now()
 );
 
 CREATE TABLE motions (
@@ -40,14 +41,16 @@ CREATE TABLE motions (
 );
 
 CREATE TABLE swells (
-  id            uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id       uuid        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  name          text        NOT NULL,
-  color         text        NOT NULL DEFAULT '#6b7280',
-  target_points int,
-  target_hours  numeric(8,2),
-  sort_order    int         NOT NULL DEFAULT 0,
-  created_at    timestamptz NOT NULL DEFAULT now()
+  id              uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id         uuid        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  name            text        NOT NULL,
+  color           text        NOT NULL DEFAULT '#6b7280',
+  target_points   int,
+  target_hours    numeric(8,2),
+  group_id        uuid        REFERENCES groups(id) ON DELETE SET NULL,
+  color_picked_in text        NOT NULL DEFAULT 'light' CHECK (color_picked_in IN ('light', 'dark')),
+  sort_order      int         NOT NULL DEFAULT 0,
+  created_at      timestamptz NOT NULL DEFAULT now()
 );
 
 -- junction: one motion can belong to many swells (with contribution weight)
@@ -82,6 +85,8 @@ CREATE TABLE user_settings (
   onboarding_mode     text,
   theme               text    NOT NULL DEFAULT 'default',
   daily_goal          int     NOT NULL DEFAULT 20,
+  daily_goal_hours    numeric NOT NULL DEFAULT 4.00,
+  tracking_mode       text    NOT NULL DEFAULT 'points' CHECK (tracking_mode IN ('points', 'hours')),
   groups_enabled      boolean NOT NULL DEFAULT false,
   celebration_enabled boolean NOT NULL DEFAULT true,
   haptic_enabled      boolean NOT NULL DEFAULT true
@@ -118,6 +123,7 @@ CREATE INDEX ON motions (parent_id);
 CREATE INDEX ON motions (group_id);
 CREATE INDEX ON motions (user_id, group_id);
 CREATE INDEX ON swells (user_id);
+CREATE INDEX ON swells (group_id);
 CREATE INDEX ON groups (user_id);
 CREATE INDEX ON motion_swells (swell_id);
 CREATE INDEX ON logs (user_id, logged_at DESC);
