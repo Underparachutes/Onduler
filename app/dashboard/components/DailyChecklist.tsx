@@ -299,31 +299,26 @@ export function DailyChecklist({
   }
 
   const dateHeader = (
-    <div className="mb-8 flex items-end justify-between gap-3">
-      <h1 className="min-w-0 text-2xl font-semibold tracking-tight text-th-text">{today}</h1>
-      <div className="shrink-0 text-right">
-        <p className="text-2xl font-semibold leading-none text-th-text">{isHours ? localValue.toFixed(localValue % 1 === 0 ? 0 : 2).replace(/\.?0+$/, '') : localValue}</p>
-        <p className="mt-1 text-xs uppercase tracking-widest text-th-muted">{isHours ? 'hrs today' : 'pts today'}</p>
-      </div>
+    <div className="mb-2 flex items-baseline justify-between gap-3">
+      <h1 className="min-w-0 text-lg font-semibold tracking-tight text-th-text">{today}</h1>
+      <p className="shrink-0 text-lg font-semibold text-th-text">
+        {isHours ? localValue.toFixed(localValue % 1 === 0 ? 0 : 2).replace(/\.?0+$/, '') : localValue}
+        <span className="ml-1 text-xs font-normal uppercase tracking-widest text-th-muted">{isHours ? 'hrs' : 'pts'}</span>
+      </p>
     </div>
   )
 
   const progressBar = (
-    <div className="mb-6 rounded-lg p-4">
-      <div className="mb-2 flex justify-between text-xs text-th-muted">
-        <span>Daily progress</span>
-        <span>{Math.round(progress)}%</span>
-      </div>
-      <div className="mb-3 rounded-full bg-th-surface" style={{ height: '6px' }}>
+    <div className="mb-3">
+      <div className="mb-1.5 rounded-full bg-th-surface" style={{ height: '5px' }}>
         <div
           className="h-full rounded-full bg-th-btn transition-all duration-500"
           style={{ width: `${progress}%` }}
         />
       </div>
       <div className="flex justify-between text-xs text-th-faint">
-        <span>{formatValue(localValue)} earned</span>
-        {editingGoal ? (
-          <span className="flex items-center gap-1">
+        <span>{formatValue(localValue)} / {editingGoal ? (
+          <span className="inline-flex items-center gap-1">
             <input
               autoFocus
               type="number"
@@ -335,7 +330,6 @@ export function DailyChecklist({
               onKeyDown={e => { if (e.key === 'Enter') commitGoal(); if (e.key === 'Escape') { setGoalInput(String(localGoal)); setEditingGoal(false) } }}
               className="w-12 rounded border border-th-border bg-th-surface px-1 py-0 text-xs text-th-text outline-none focus:border-th-focus"
             />
-            <span>{isHours ? 'hr goal' : 'pt goal'}</span>
           </span>
         ) : (
           <button
@@ -344,7 +338,8 @@ export function DailyChecklist({
           >
             {formatValue(localGoal)} goal
           </button>
-        )}
+        )}</span>
+        <span>{Math.round(progress)}%</span>
       </div>
     </div>
   )
@@ -383,24 +378,26 @@ export function DailyChecklist({
     return (
       <>
         <div>
-          {dateHeader}
-          {progressBar}
-          <div className="mb-3">
-            <input
-              type="search"
-              placeholder="Search motions…"
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              className="w-full rounded-lg border border-th-border bg-th-surface px-3 py-2 text-sm text-th-text outline-none focus:border-th-focus placeholder:text-th-faint"
-            />
-          </div>
-          <div className="mb-4 flex justify-end">
-            <button
-              onClick={() => setHideDone(!hideDone)}
-              className="text-xs text-th-faint transition-colors hover:text-th-muted"
-            >
-              {hideDone ? 'Show all' : 'Hide done'}
-            </button>
+          <div className="sticky top-0 z-10 bg-th-bg pb-3">
+            {dateHeader}
+            {progressBar}
+            <div className="mb-2">
+              <input
+                type="search"
+                placeholder="Search motions…"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                className="w-full rounded-lg border border-th-border bg-th-surface px-3 py-2 text-sm text-th-text outline-none focus:border-th-focus placeholder:text-th-faint"
+              />
+            </div>
+            <div className="flex justify-end">
+              <button
+                onClick={() => setHideDone(!hideDone)}
+                className="text-xs text-th-faint transition-colors hover:text-th-muted"
+              >
+                {hideDone ? 'Show all' : 'Hide done'}
+              </button>
+            </div>
           </div>
           <SortableMotionList
             motions={motions}
@@ -433,30 +430,32 @@ export function DailyChecklist({
   return (
     <>
       <div>
-        {dateHeader}
-        {progressBar}
+        <div className="sticky top-0 z-10 bg-th-bg pb-3">
+          {dateHeader}
+          {progressBar}
 
-        <div className="mb-6 flex items-center gap-2">
-          <div className="flex flex-1 flex-wrap gap-2">
-            {groups.map(g => (
-              <button
-                key={g.id}
-                onClick={() => setActiveGroup(activeGroup === g.id ? null : g.id)}
-                className="rounded-full border px-3 py-1 text-xs font-medium transition-colors"
-                style={activeGroup === g.id ? { backgroundColor: g.color, borderColor: g.color, color: '#fff' } : {}}
-              >
-                <span className={activeGroup !== g.id ? 'text-th-muted' : ''}>
-                  {g.name.toUpperCase()}
-                </span>
-              </button>
-            ))}
+          <div className="flex items-center gap-2">
+            <div className="flex flex-1 flex-wrap gap-2">
+              {groups.map(g => (
+                <button
+                  key={g.id}
+                  onClick={() => setActiveGroup(activeGroup === g.id ? null : g.id)}
+                  className="rounded-full border px-3 py-1 text-xs font-medium transition-colors"
+                  style={activeGroup === g.id ? { backgroundColor: g.color, borderColor: g.color, color: '#fff' } : {}}
+                >
+                  <span className={activeGroup !== g.id ? 'text-th-muted' : ''}>
+                    {g.name.toUpperCase()}
+                  </span>
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => setHideDone(!hideDone)}
+              className="shrink-0 text-xs text-th-faint transition-colors hover:text-th-muted"
+            >
+              {hideDone ? 'Show all' : 'Hide done'}
+            </button>
           </div>
-          <button
-            onClick={() => setHideDone(!hideDone)}
-            className="shrink-0 text-xs text-th-faint transition-colors hover:text-th-muted"
-          >
-            {hideDone ? 'Show all' : 'Hide done'}
-          </button>
         </div>
 
         <DndContext
