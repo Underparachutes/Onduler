@@ -25,12 +25,14 @@ type Props = {
   expanded: boolean
   onToggleExpand: () => void
   onOpenMotion: (id: string) => void
+  hideDone: boolean
+  weeklyPoints: { week: string; points: number }[]
 }
 
 export function SwellRow({
   swell, swellPtsAllTime, swellHrsAllTime,
   allGroups, groupsEnabled, localHiddenIds, trackingMode,
-  expanded, onToggleExpand, onOpenMotion,
+  expanded, onToggleExpand, onOpenMotion, weeklyPoints,
 }: Props) {
   const [editing, setEditing] = useState(false)
   const updateById = updateSwell.bind(null, swell.id)
@@ -181,6 +183,8 @@ export function SwellRow({
     )
   }
 
+  const maxWeek = Math.max(...weeklyPoints.map(w => w.points), 1)
+
   return (
     <div>
       <button
@@ -199,7 +203,6 @@ export function SwellRow({
           >
             <path d="M4 6l4 4 4-4" />
           </svg>
-          <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: swell.color }} />
           <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: swell.color }}>
             {swell.name}
           </p>
@@ -215,19 +218,27 @@ export function SwellRow({
         </div>
       </button>
 
+      {/* Weekly points bar chart */}
+      {weeklyPoints.length > 0 && (
+        <div className="mb-3 flex items-end gap-0.5" style={{ height: '32px' }}>
+          {weeklyPoints.slice(-12).map((w) => (
+            <div
+              key={w.week}
+              className="flex-1 rounded-sm opacity-70"
+              style={{ height: `${Math.max((w.points / maxWeek) * 100, 4)}%`, backgroundColor: swell.color }}
+              title={`${w.week}: ${w.points} pts`}
+            />
+          ))}
+        </div>
+      )}
+
       {progress !== null && target !== null && (
-        <div className="mb-3 flex flex-col gap-1.5">
-          <div className="flex items-center gap-2">
-            <span className="w-16 shrink-0 text-right text-[10px] text-th-faint">
-              {isHours ? allTimeValue.toFixed(1) : Math.round(allTimeValue)}/{target} {isHours ? 'hrs' : 'pts'}
-            </span>
-            <div className="flex-1 rounded-full bg-th-surface" style={{ height: '4px' }}>
-              <div
-                className="h-full rounded-full transition-all"
-                style={{ width: `${progress}%`, backgroundColor: swell.color }}
-              />
-            </div>
-            <span className="w-8 text-right text-[10px] text-th-faint">{Math.round(progress)}%</span>
+        <div className="mb-3">
+          <div className="rounded-full bg-th-surface" style={{ height: '4px' }}>
+            <div
+              className="h-full rounded-full transition-all"
+              style={{ width: `${progress}%`, backgroundColor: swell.color }}
+            />
           </div>
         </div>
       )}

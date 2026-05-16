@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useTransition } from 'react'
+import { useState, useEffect, useRef, useTransition } from 'react'
 import {
   DndContext,
   DragOverlay,
@@ -165,6 +165,17 @@ export function DailyChecklist({
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
   const [activeGroup, setActiveGroup] = useState<string | null>(null)
   const [hideDone, setHideDone] = useState(false)
+  useEffect(() => {
+    const stored = localStorage.getItem('onduler-hide-done-motions')
+    if (stored === 'true') setHideDone(true)
+  }, [])
+  function toggleHideDone() {
+    setHideDone(prev => {
+      const next = !prev
+      localStorage.setItem('onduler-hide-done-motions', String(next))
+      return next
+    })
+  }
   const [localDone, setLocalDone] = useState(() => new Set(doneMotionIds))
   const [, startTransition] = useTransition()
   const [localValue, setLocalValue] = useState(todayValue)
@@ -395,7 +406,7 @@ export function DailyChecklist({
             </div>
             <div className="flex justify-end">
               <button
-                onClick={() => setHideDone(!hideDone)}
+                onClick={toggleHideDone}
                 className="text-xs text-th-faint transition-colors hover:text-th-muted"
               >
                 {hideDone ? 'Show all' : 'Hide done'}
@@ -456,7 +467,7 @@ export function DailyChecklist({
               ))}
             </div>
             <button
-              onClick={() => setHideDone(!hideDone)}
+              onClick={toggleHideDone}
               className="shrink-0 text-xs text-th-faint transition-colors hover:text-th-muted"
             >
               {hideDone ? 'Show all' : 'Hide done'}

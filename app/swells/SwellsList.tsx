@@ -64,6 +64,8 @@ type Props = {
   allGroups: Group[]
   groupsEnabled: boolean
   trackingMode: TrackingMode
+  hideDone: boolean
+  swellWeeklyPoints: Record<string, { week: string; points: number }[]>
 }
 
 function SortableSwellItem({ swell, children }: { swell: SwellWithMotions; children: React.ReactNode }) {
@@ -112,6 +114,8 @@ export function SwellsList({
   allGroups,
   groupsEnabled,
   trackingMode,
+  hideDone,
+  swellWeeklyPoints,
 }: Props) {
   const isHours = trackingMode === 'hours'
   const [openSheetId, setOpenSheetId] = useState<string | null>(null)
@@ -168,6 +172,13 @@ export function SwellsList({
                 const w = m.swellWeights?.[swell.id] ?? 1
                 return sum + Math.floor((ptsAllTimeMap.get(m.id) ?? 0) * w)
               }, 0)
+              // Hide swells that have reached their target
+              if (hideDone) {
+                const isHrs = trackingMode === 'hours'
+                const val = isHrs ? swell.motions.reduce((sum, m) => sum + (hrsAllTimeMap.get(m.id) ?? 0) * (m.swellWeights?.[swell.id] ?? 1), 0) : swellPtsAllTime
+                const tgt = isHrs ? (swell.target_hours ? Number(swell.target_hours) : null) : swell.target_points
+                if (tgt && val >= tgt) return null
+              }
               const swellHrsAllTime = swell.motions.reduce((sum, m) => {
                 const w = m.swellWeights?.[swell.id] ?? 1
                 return sum + (hrsAllTimeMap.get(m.id) ?? 0) * w
@@ -196,6 +207,8 @@ export function SwellsList({
                     expanded={expandedSwells.has(swell.id)}
                     onToggleExpand={() => toggleExpand(swell.id)}
                     onOpenMotion={setOpenSheetId}
+                    hideDone={hideDone}
+                    weeklyPoints={swellWeeklyPoints[swell.id] ?? []}
                   />
                 </SortableSwellItem>
               )
