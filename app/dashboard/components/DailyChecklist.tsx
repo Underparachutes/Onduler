@@ -24,6 +24,7 @@ import { quickLogMotion, unlogMotion } from '@/app/actions/logs'
 import { setDailyGoal, setDailyGoalHours } from '@/app/actions/settings'
 import { reassignMotionToGroup, reorderMotions } from '@/app/actions/motions'
 import { formatPts, formatHrs } from '@/lib/format'
+import { SUBMOTIONS_ENABLED } from '@/lib/features'
 import { CelebrationOverlay, type CelebrationState } from './CelebrationOverlay'
 import { MotionDetailSheet } from './MotionDetailSheet'
 import { SortableMotionList, SortableMotionRow } from './SortableMotionList'
@@ -92,7 +93,7 @@ function DroppableGroup({
               key={motion.id}
               motion={motion}
               done={localDone.has(motion.id)}
-              hasSubmotions={(submotionsMap[motion.id]?.length ?? 0) > 0}
+              hasSubmotions={SUBMOTIONS_ENABLED && (submotionsMap[motion.id]?.length ?? 0) > 0}
               trackingMode={trackingMode}
               onLog={(e) => onLog(motion, e.clientX, e.clientY)}
               onOpenSheet={() => onOpenSheet(motion.id)}
@@ -117,7 +118,7 @@ function MotionDragOverlay({
   submotionsMap: Record<string, Submotion[]>
   trackingMode: TrackingMode
 }) {
-  const hasSubmotions = (submotionsMap[motion.id]?.length ?? 0) > 0
+  const hasSubmotions = SUBMOTIONS_ENABLED && (submotionsMap[motion.id]?.length ?? 0) > 0
   return (
     <div className="flex items-center gap-1 select-none rotate-1 shadow-xl">
       <div className={`flex flex-1 items-center gap-3 rounded-lg border px-3 py-3 bg-th-bg ${done ? 'border-th-border opacity-50' : 'border-th-btn'}`}>

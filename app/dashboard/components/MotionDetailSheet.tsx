@@ -23,6 +23,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { quickLogMotion, unlogMotion } from '@/app/actions/logs'
 import { createSubmotion, hideMotion, deleteMotion, setMotionSwells, setMotionGroup, updateSubmotionDirect, updateMotionDirect, reorderMotions } from '@/app/actions/motions'
 import { formatPts, formatHrs } from '@/lib/format'
+import { SUBMOTIONS_ENABLED } from '@/lib/features'
 
 type Swell = { id: string; name: string; color: string }
 type MotionSwell = { id: string; name: string; color: string; weight: number }
@@ -616,7 +617,7 @@ export function MotionDetailSheet({
         )}
 
         {/* Submotions */}
-        <div className="mb-6">
+        {SUBMOTIONS_ENABLED && <div className="mb-6">
           <div className="mb-3 flex items-center gap-2">
             {orderedSubs.length > 0 && (
               <button
@@ -729,7 +730,7 @@ export function MotionDetailSheet({
               </SortableContext>
             </DndContext>
           )}
-        </div>
+        </div>}
 
         {/* Groups assignment */}
         {groupsEnabled && allGroups.length > 0 && (
