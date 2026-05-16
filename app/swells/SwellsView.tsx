@@ -45,7 +45,6 @@ type Props = {
   groupsEnabled: boolean
   trackingMode: TrackingMode
   hasAnyMotions: boolean
-  swellWeeklyPoints: Record<string, { week: string; points: number }[]>
 }
 
 function usePersistedHideDone(key: string): [boolean, () => void] {
@@ -176,7 +175,6 @@ export function SwellsView(props: Props) {
               groupsEnabled={props.groupsEnabled}
               trackingMode={props.trackingMode}
               hideDone={hideDone}
-              swellWeeklyPoints={props.swellWeeklyPoints}
             />
           </>
         )}

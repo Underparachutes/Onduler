@@ -128,26 +128,6 @@ export default async function SwellsPage() {
   const trackingMode: 'points' | 'hours' = (settings?.tracking_mode as 'points' | 'hours') ?? 'points'
   const allGroups = groups ?? []
 
-  // Build per-swell weekly points data
-  const swellWeeklyPoints: Record<string, { week: string; points: number }[]> = {}
-  for (const s of swellList) {
-    const weekMap = new Map<string, number>()
-    for (const log of allLogs ?? []) {
-      if (!log.motion_id) continue
-      const motion = s.motions.find(m => m.id === log.motion_id)
-      if (!motion) continue
-      const w = motion.swellWeights?.[s.id] ?? 1
-      const d = new Date(log.logged_at)
-      const day = d.getDay()
-      const diff = d.getDate() - day + (day === 0 ? -6 : 1)
-      const weekStart = new Date(d.getFullYear(), d.getMonth(), diff)
-      const key = weekStart.toISOString().slice(0, 10)
-      weekMap.set(key, (weekMap.get(key) ?? 0) + Math.floor(log.points * w))
-    }
-    const sorted = Array.from(weekMap.entries()).sort((a, b) => a[0].localeCompare(b[0]))
-    swellWeeklyPoints[s.id] = sorted.map(([week, points]) => ({ week, points }))
-  }
-
   return (
     <SwellsView
       swells={swellList}
@@ -163,7 +143,6 @@ export default async function SwellsPage() {
       groupsEnabled={groupsEnabled}
       trackingMode={trackingMode}
       hasAnyMotions={motions.length > 0}
-      swellWeeklyPoints={swellWeeklyPoints}
     />
   )
 }

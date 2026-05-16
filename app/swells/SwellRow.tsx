@@ -26,13 +26,12 @@ type Props = {
   onToggleExpand: () => void
   onOpenMotion: (id: string) => void
   hideDone: boolean
-  weeklyPoints: { week: string; points: number }[]
 }
 
 export function SwellRow({
   swell, swellPtsAllTime, swellHrsAllTime,
   allGroups, groupsEnabled, localHiddenIds, trackingMode,
-  expanded, onToggleExpand, onOpenMotion, weeklyPoints,
+  expanded, onToggleExpand, onOpenMotion,
 }: Props) {
   const [editing, setEditing] = useState(false)
   const updateById = updateSwell.bind(null, swell.id)
@@ -183,54 +182,31 @@ export function SwellRow({
     )
   }
 
-  const maxWeek = Math.max(...weeklyPoints.map(w => w.points), 1)
-
   return (
     <div>
-      <button
-        onClick={onToggleExpand}
-        className="mb-2 flex w-full items-center justify-between text-left"
-      >
-        <div className="flex items-center gap-2">
-          <svg
-            viewBox="0 0 16 16"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className={`h-3 w-3 text-th-faint transition-transform ${expanded ? '' : '-rotate-90'}`}
-          >
-            <path d="M4 6l4 4 4-4" />
-          </svg>
+      <div className="mb-2 flex items-center gap-1">
+        <button
+          onClick={onToggleExpand}
+          className="flex flex-1 items-center gap-2 text-left"
+        >
           <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: swell.color }}>
             {swell.name}
           </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <span className="text-xs text-th-faint">{formatValue(allTimeValue)} total</span>
-          <button
-            onClick={(e) => { e.stopPropagation(); setEditing(true) }}
-            className="text-xs text-th-faint transition-colors hover:text-th-muted"
-          >
-            Edit
-          </button>
-        </div>
-      </button>
-
-      {/* Weekly points bar chart */}
-      {weeklyPoints.length > 0 && (
-        <div className="mb-3 flex items-end gap-0.5" style={{ height: '32px' }}>
-          {weeklyPoints.slice(-12).map((w) => (
-            <div
-              key={w.week}
-              className="flex-1 rounded-sm opacity-70"
-              style={{ height: `${Math.max((w.points / maxWeek) * 100, 4)}%`, backgroundColor: swell.color }}
-              title={`${w.week}: ${w.points} pts`}
-            />
-          ))}
-        </div>
-      )}
+          <span className="text-xs text-th-faint">{formatValue(allTimeValue)}</span>
+        </button>
+        <button
+          onPointerDown={e => e.stopPropagation()}
+          onClick={() => setEditing(true)}
+          className="shrink-0 p-2 text-th-faint transition-colors hover:text-th-muted"
+          aria-label="Edit swell"
+        >
+          <svg viewBox="0 0 16 16" fill="currentColor" className="h-4 w-4">
+            <circle cx="8" cy="3" r="1.5" />
+            <circle cx="8" cy="8" r="1.5" />
+            <circle cx="8" cy="13" r="1.5" />
+          </svg>
+        </button>
+      </div>
 
       {progress !== null && target !== null && (
         <div className="mb-3">

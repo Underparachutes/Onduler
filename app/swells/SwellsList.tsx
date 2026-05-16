@@ -65,7 +65,6 @@ type Props = {
   groupsEnabled: boolean
   trackingMode: TrackingMode
   hideDone: boolean
-  swellWeeklyPoints: Record<string, { week: string; points: number }[]>
 }
 
 function SortableSwellItem({ swell, children }: { swell: SwellWithMotions; children: React.ReactNode }) {
@@ -115,7 +114,6 @@ export function SwellsList({
   groupsEnabled,
   trackingMode,
   hideDone,
-  swellWeeklyPoints,
 }: Props) {
   const isHours = trackingMode === 'hours'
   const [openSheetId, setOpenSheetId] = useState<string | null>(null)
@@ -162,57 +160,86 @@ export function SwellsList({
 
   const visibleUnassigned = unassigned.filter(m => !localHiddenIds.has(m.id))
 
+  function renderSwellRow(swell: SwellWithMotions) {
+    const swellPtsAllTime = swell.motions.reduce((sum, m) => {
+      const w = m.swellWeights?.[swell.id] ?? 1
+      return sum + Math.floor((ptsAllTimeMap.get(m.id) ?? 0) * w)
+    }, 0)
+    if (hideDone) {
+      const isHrs = trackingMode === 'hours'
+      const val = isHrs ? swell.motions.reduce((sum, m) => sum + (hrsAllTimeMap.get(m.id) ?? 0) * (m.swellWeights?.[swell.id] ?? 1), 0) : swellPtsAllTime
+      const tgt = isHrs ? (swell.target_hours ? Number(swell.target_hours) : null) : swell.target_points
+      if (tgt && val >= tgt) return null
+    }
+    const swellHrsAllTime = swell.motions.reduce((sum, m) => {
+      const w = m.swellWeights?.[swell.id] ?? 1
+      return sum + (hrsAllTimeMap.get(m.id) ?? 0) * w
+    }, 0)
+    return (
+      <SortableSwellItem key={swell.id} swell={swell}>
+        <SwellRow
+          swell={swell}
+          swellPtsToday={swell.motions.reduce((sum, m) => {
+            const w = m.swellWeights?.[swell.id] ?? 1
+            return sum + Math.floor((ptsTodayMap.get(m.id) ?? 0) * w)
+          }, 0)}
+          swellHrsToday={swell.motions.reduce((sum, m) => {
+            const w = m.swellWeights?.[swell.id] ?? 1
+            return sum + (hrsTodayMap.get(m.id) ?? 0) * w
+          }, 0)}
+          swellPtsAllTime={swellPtsAllTime}
+          swellHrsAllTime={swellHrsAllTime}
+          ptsToday={ptsTodayMap}
+          hrsToday={hrsTodayMap}
+          allSwells={swellStubs}
+          allGroups={allGroups}
+          groupsEnabled={groupsEnabled}
+          localHiddenIds={localHiddenIds}
+          trackingMode={trackingMode}
+          expanded={expandedSwells.has(swell.id)}
+          onToggleExpand={() => toggleExpand(swell.id)}
+          onOpenMotion={setOpenSheetId}
+          hideDone={hideDone}
+        />
+      </SortableSwellItem>
+    )
+  }
+
+  // Group swells by groupId for display
+  const groupedSwells = new Map<string | null, SwellWithMotions[]>()
+  for (const swell of orderedSwells) {
+    const gid = swell.groupId
+    if (!groupedSwells.has(gid)) groupedSwells.set(gid, [])
+    groupedSwells.get(gid)!.push(swell)
+  }
+
+  const groupOrder = allGroups.map(g => g.id)
+
   return (
     <>
       <div className="mb-8 flex flex-col gap-6">
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext items={orderedSwells.map(s => s.id)} strategy={verticalListSortingStrategy}>
-            {orderedSwells.map(swell => {
-              const swellPtsAllTime = swell.motions.reduce((sum, m) => {
-                const w = m.swellWeights?.[swell.id] ?? 1
-                return sum + Math.floor((ptsAllTimeMap.get(m.id) ?? 0) * w)
-              }, 0)
-              // Hide swells that have reached their target
-              if (hideDone) {
-                const isHrs = trackingMode === 'hours'
-                const val = isHrs ? swell.motions.reduce((sum, m) => sum + (hrsAllTimeMap.get(m.id) ?? 0) * (m.swellWeights?.[swell.id] ?? 1), 0) : swellPtsAllTime
-                const tgt = isHrs ? (swell.target_hours ? Number(swell.target_hours) : null) : swell.target_points
-                if (tgt && val >= tgt) return null
-              }
-              const swellHrsAllTime = swell.motions.reduce((sum, m) => {
-                const w = m.swellWeights?.[swell.id] ?? 1
-                return sum + (hrsAllTimeMap.get(m.id) ?? 0) * w
-              }, 0)
+            {groupOrder.map(gid => {
+              const groupSwells = groupedSwells.get(gid)
+              if (!groupSwells || groupSwells.length === 0) return null
+              const group = allGroups.find(g => g.id === gid)
               return (
-                <SortableSwellItem key={swell.id} swell={swell}>
-                  <SwellRow
-                    swell={swell}
-                    swellPtsToday={swell.motions.reduce((sum, m) => {
-                      const w = m.swellWeights?.[swell.id] ?? 1
-                      return sum + Math.floor((ptsTodayMap.get(m.id) ?? 0) * w)
-                    }, 0)}
-                    swellHrsToday={swell.motions.reduce((sum, m) => {
-                      const w = m.swellWeights?.[swell.id] ?? 1
-                      return sum + (hrsTodayMap.get(m.id) ?? 0) * w
-                    }, 0)}
-                    swellPtsAllTime={swellPtsAllTime}
-                    swellHrsAllTime={swellHrsAllTime}
-                    ptsToday={ptsTodayMap}
-                    hrsToday={hrsTodayMap}
-                    allSwells={swellStubs}
-                    allGroups={allGroups}
-                    groupsEnabled={groupsEnabled}
-                    localHiddenIds={localHiddenIds}
-                    trackingMode={trackingMode}
-                    expanded={expandedSwells.has(swell.id)}
-                    onToggleExpand={() => toggleExpand(swell.id)}
-                    onOpenMotion={setOpenSheetId}
-                    hideDone={hideDone}
-                    weeklyPoints={swellWeeklyPoints[swell.id] ?? []}
-                  />
-                </SortableSwellItem>
+                <div key={gid}>
+                  <p
+                    className="mb-2 text-xs font-semibold uppercase tracking-widest"
+                    style={{ color: group?.color }}
+                  >
+                    {group?.name}
+                  </p>
+                  <div className="flex flex-col gap-4">
+                    {groupSwells.map(renderSwellRow)}
+                  </div>
+                </div>
               )
             })}
+            {/* Ungrouped swells */}
+            {(groupedSwells.get(null) ?? []).map(renderSwellRow)}
           </SortableContext>
         </DndContext>
       </div>
