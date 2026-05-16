@@ -53,6 +53,8 @@ type Props = {
   hapticEnabled: boolean
   allSwells: Swell[]
   allGroups: { id: string; name: string; color: string }[]
+  swellWeeklyProgress: Record<string, number>
+  swellTargets: Record<string, number>
 }
 
 function DroppableGroup({
@@ -159,6 +161,8 @@ export function DailyChecklist({
   hapticEnabled,
   allSwells,
   allGroups,
+  swellWeeklyProgress,
+  swellTargets,
 }: Props) {
   const isHours = trackingMode === 'hours'
   const todayValue = isHours ? todayHours : todayPoints
@@ -184,6 +188,7 @@ export function DailyChecklist({
   const [localHiddenIds, setLocalHiddenIds] = useState<Set<string>>(new Set())
   const [searchQuery, setSearchQuery] = useState('')
   const [celebration, setCelebration] = useState<CelebrationState | null>(null)
+  const swellProgressRef = useRef({ ...swellWeeklyProgress })
   const [localGoal, setLocalGoal] = useState(goalValue)
   const [editingGoal, setEditingGoal] = useState(false)
   const [goalInput, setGoalInput] = useState(String(goalValue))
@@ -215,18 +220,39 @@ export function DailyChecklist({
     return 'glow'
   }
 
+  function checkSwellCrossing(motion: Motion): boolean {
+    for (const ms of motion.swells) {
+      const target = swellTargets[ms.id]
+      if (target === undefined) continue
+      const current = swellProgressRef.current[ms.id] ?? 0
+      const contribution = isHours ? Number(motion.default_hours) * ms.weight : motion.default_points * ms.weight
+      if (current < target && current + contribution >= target) return true
+    }
+    return false
+  }
+
+  function updateSwellProgress(motion: Motion, sign: 1 | -1) {
+    for (const ms of motion.swells) {
+      const contribution = isHours ? Number(motion.default_hours) * ms.weight : motion.default_points * ms.weight
+      swellProgressRef.current[ms.id] = (swellProgressRef.current[ms.id] ?? 0) + contribution * sign
+    }
+  }
+
   function handleLog(motion: Motion, clientX = 0, clientY = 0) {
     const done = localDone.has(motion.id)
     const delta = motionDelta(motion)
     if (done) {
       setLocalDone(prev => { const next = new Set(prev); next.delete(motion.id); return next })
       setLocalValue(prev => Math.max(0, prev - delta))
+      updateSwellProgress(motion, -1)
       startTransition(async () => { await unlogMotion(motion.id) })
     } else {
       if (hapticEnabled && 'vibrate' in navigator) navigator.vibrate(50)
-      if (celebrationEnabled) setCelebration({ x: clientX, y: clientY, type: getAnimType() })
+      const crossesSwell = celebrationEnabled && checkSwellCrossing(motion)
+      if (celebrationEnabled) setCelebration({ x: clientX, y: clientY, type: crossesSwell ? 'wave' : getAnimType() })
       setLocalDone(prev => new Set([...prev, motion.id]))
       setLocalValue(prev => prev + delta)
+      updateSwellProgress(motion, 1)
       startTransition(async () => { await quickLogMotion(motion.id) })
       if (undoTimeoutRef.current) clearTimeout(undoTimeoutRef.current)
       undoTimeoutRef.current = setTimeout(() => setUndoToast(null), 3500)

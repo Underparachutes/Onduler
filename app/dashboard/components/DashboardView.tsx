@@ -33,6 +33,8 @@ type Props = {
   allGroups: Group[]
   showWavePrompt: boolean
   waveDurationSeconds: number | null
+  swellWeeklyProgress: Record<string, number>
+  swellTargets: Record<string, number>
 }
 
 export function DashboardView(props: Props) {
@@ -138,6 +140,8 @@ export function DashboardView(props: Props) {
                 hapticEnabled={props.hapticEnabled}
                 allSwells={props.allSwells}
                 allGroups={props.allGroups}
+                swellWeeklyProgress={props.swellWeeklyProgress}
+                swellTargets={props.swellTargets}
               />
             ) : (
               <>

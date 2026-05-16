@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { getTodayStart } from '@/lib/timezone'
+import { getTodayStart, getWeekStart } from '@/lib/timezone'
 import { DashboardView } from './components/DashboardView'
 
 export default async function DashboardPage() {
@@ -52,17 +52,33 @@ export default async function DashboardPage() {
     }
   }
 
-  // Today's logs
-  const todayStart = await getTodayStart()
-  const { data: todayLogs } = await supabase
-    .from('logs')
-    .select('motion_id, points, hours')
-    .eq('user_id', user.id)
-    .gte('logged_at', todayStart.toISOString())
+  // Today's logs + this week's logs
+  const [todayStart, weekStart] = await Promise.all([getTodayStart(), getWeekStart()])
+  const [{ data: todayLogs }, { data: weekLogs }] = await Promise.all([
+    supabase
+      .from('logs')
+      .select('motion_id, points, hours')
+      .eq('user_id', user.id)
+      .gte('logged_at', todayStart.toISOString()),
+    supabase
+      .from('logs')
+      .select('motion_id, points, hours')
+      .eq('user_id', user.id)
+      .gte('logged_at', weekStart.toISOString()),
+  ])
 
   const todayPoints = todayLogs?.reduce((sum, l) => sum + l.points, 0) ?? 0
   const todayHours = todayLogs?.reduce((sum, l) => sum + Number(l.hours), 0) ?? 0
   const doneMotionIds = (todayLogs ?? []).map(l => l.motion_id).filter(Boolean) as string[]
+
+  const ptsThisWeek: Record<string, number> = {}
+  const hrsThisWeek: Record<string, number> = {}
+  for (const log of weekLogs ?? []) {
+    if (log.motion_id) {
+      ptsThisWeek[log.motion_id] = (ptsThisWeek[log.motion_id] ?? 0) + log.points
+      hrsThisWeek[log.motion_id] = (hrsThisWeek[log.motion_id] ?? 0) + Number(log.hours)
+    }
+  }
 
   // Fetch top-level motions with swell and group data
   const { data: motionsRaw } = await supabase
@@ -117,7 +133,7 @@ export default async function DashboardPage() {
 
   const { data: swellsData } = await supabase
     .from('swells')
-    .select('id, name, color')
+    .select('id, name, color, target_points, target_hours')
     .eq('user_id', user.id)
     .order('sort_order', { ascending: true })
 
@@ -136,6 +152,23 @@ export default async function DashboardPage() {
     motions: motions.filter(m => m.groupId === g.id),
   }))
   const ungroupedMotions = motions.filter(m => m.groupId === null)
+
+  // Compute per-swell weekly progress for celebration trigger
+  const swellWeeklyProgress: Record<string, number> = {}
+  const swellTargets: Record<string, number> = {}
+  for (const swell of swellsData ?? []) {
+    const isHrs = trackingMode === 'hours'
+    const target = isHrs ? (swell.target_hours ? Number(swell.target_hours) : null) : swell.target_points
+    if (target !== null) swellTargets[swell.id] = target
+
+    const contributing = motions.filter(m => m.swellWeights[swell.id] !== undefined)
+    const progress = contributing.reduce((sum, m) => {
+      const w = m.swellWeights[swell.id] ?? 1
+      const motionVal = isHrs ? (hrsThisWeek[m.id] ?? 0) : (ptsThisWeek[m.id] ?? 0)
+      return sum + motionVal * w
+    }, 0)
+    swellWeeklyProgress[swell.id] = isHrs ? progress : Math.floor(progress)
+  }
 
   return (
     <DashboardView
@@ -156,6 +189,8 @@ export default async function DashboardPage() {
       allGroups={groupsData}
       showWavePrompt={showWavePrompt}
       waveDurationSeconds={waveDurationSeconds}
+      swellWeeklyProgress={swellWeeklyProgress}
+      swellTargets={swellTargets}
     />
   )
 }
