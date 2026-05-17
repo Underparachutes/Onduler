@@ -1,11 +1,11 @@
 'use client'
 
 import { useState, useTransition, useRef, useEffect } from 'react'
+import Link from 'next/link'
 import { updateSwellDirect, deleteSwell, setSwellGroup } from '@/app/actions/swells'
 import { formatPts, formatHrs } from '@/lib/format'
 
 type Motion = { id: string; name: string; default_points: number; default_hours: number; swellIds: string[]; swellWeights: Record<string, number> }
-type SwellStub = { id: string; name: string; color: string }
 type Group = { id: string; name: string; color: string }
 type TrackingMode = 'points' | 'hours'
 
@@ -15,23 +15,14 @@ type Props = {
   swellHrsThisWeek: number
   swellPtsLastWeek: number
   swellHrsLastWeek: number
-  ptsToday: Map<string, number>
-  hrsToday: Map<string, number>
-  allSwells: SwellStub[]
   allGroups: Group[]
   groupsEnabled: boolean
-  localHiddenIds: Set<string>
   trackingMode: TrackingMode
-  expanded: boolean
-  onToggleExpand: () => void
-  onOpenMotion: (id: string) => void
-  hideDone: boolean
 }
 
 export function SwellRow({
   swell, swellPtsThisWeek, swellHrsThisWeek, swellPtsLastWeek, swellHrsLastWeek,
-  allGroups, groupsEnabled, localHiddenIds, trackingMode,
-  expanded, onToggleExpand, onOpenMotion,
+  allGroups, groupsEnabled, trackingMode,
 }: Props) {
   const [editing, setEditing] = useState(false)
   const [saving, startSave] = useTransition()
@@ -200,9 +191,9 @@ export function SwellRow({
   return (
     <div>
       <div className="mb-2 flex items-center gap-1">
-        <button
-          onClick={onToggleExpand}
-          className="flex flex-1 items-center gap-2 text-left"
+        <Link
+          href={`/swells/${swell.id}`}
+          className="flex flex-1 items-center gap-2 text-left transition-all active:scale-[0.97]"
         >
           <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: swell.color }}>
             {swell.name}
@@ -211,7 +202,7 @@ export function SwellRow({
             {formatValue(weekValue)}{target !== null && ` / ${formatValue(target)}`}
           </span>
           {hitTarget && <span className="text-xs text-th-faint">&#10003;</span>}
-        </button>
+        </Link>
         <button
           onPointerDown={e => e.stopPropagation()}
           onClick={() => setEditing(true)}
@@ -241,43 +232,6 @@ export function SwellRow({
         <p className="mb-3 text-xs text-th-faint">
           Last week: {formatValue(lastWeekValue)}
         </p>
-      )}
-
-      {/* Motions list — collapsed by default (Prompt 5) */}
-      {expanded && (
-        <>
-          {swell.motions.filter(m => !localHiddenIds.has(m.id)).length === 0 ? (
-            <p className="rounded-lg border border-th-border px-4 py-3 text-xs text-th-faint">
-              No motions assigned yet.
-            </p>
-          ) : (
-            <div className="flex flex-col gap-2">
-              {swell.motions
-                .filter(m => !localHiddenIds.has(m.id))
-                .map(motion => {
-                  const w = motion.swellWeights?.[swell.id] ?? 1
-                  const weightedPts = Math.floor(motion.default_points * w)
-                  const weightedHrs = motion.default_hours * w
-                  const showWeight = w < 1
-                  return (
-                    <button
-                      key={motion.id}
-                      onClick={() => onOpenMotion(motion.id)}
-                      className="flex items-center gap-3 rounded-lg px-3 py-3 text-left transition-colors hover:bg-th-surface"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-th-text">{motion.name}</p>
-                      </div>
-                      <span className="shrink-0 text-sm font-semibold text-th-secondary">
-                        {isHours ? formatHrs(weightedHrs) : formatPts(weightedPts)}
-                        {showWeight && <span className="ml-1 text-xs font-normal text-th-faint">({Math.round(w * 100)}%)</span>}
-                      </span>
-                    </button>
-                  )
-                })}
-            </div>
-          )}
-        </>
       )}
     </div>
   )

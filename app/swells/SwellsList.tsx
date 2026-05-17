@@ -54,8 +54,6 @@ type TrackingMode = 'points' | 'hours'
 type Props = {
   swells: SwellWithMotions[]
   unassigned: Motion[]
-  ptsToday: Record<string, number>
-  hrsToday: Record<string, number>
   ptsThisWeek: Record<string, number>
   hrsThisWeek: Record<string, number>
   ptsLastWeek: Record<string, number>
@@ -106,8 +104,6 @@ function SortableSwellItem({ swell, children }: { swell: SwellWithMotions; child
 export function SwellsList({
   swells,
   unassigned,
-  ptsToday,
-  hrsToday,
   ptsThisWeek,
   hrsThisWeek,
   ptsLastWeek,
@@ -125,7 +121,6 @@ export function SwellsList({
   const [openSheetId, setOpenSheetId] = useState<string | null>(null)
   const [localDone, setLocalDone] = useState<Set<string>>(() => new Set(doneMotionIds))
   const [localHiddenIds, setLocalHiddenIds] = useState<Set<string>>(new Set())
-  const [expandedSwells, setExpandedSwells] = useState<Set<string>>(new Set())
   const [orderedSwells, setOrderedSwells] = useState(swells)
   const [, startTransition] = useTransition()
 
@@ -151,25 +146,13 @@ export function SwellsList({
     startTransition(async () => { await reorderSwells(next.map(s => s.id)) })
   }
 
-  function toggleExpand(swellId: string) {
-    setExpandedSwells(prev => {
-      const next = new Set(prev)
-      if (next.has(swellId)) next.delete(swellId)
-      else next.add(swellId)
-      return next
-    })
-  }
-
-  const ptsTodayMap = new Map(Object.entries(ptsToday))
-  const hrsTodayMap = new Map(Object.entries(hrsToday))
   const ptsThisWeekMap = new Map(Object.entries(ptsThisWeek))
   const hrsThisWeekMap = new Map(Object.entries(hrsThisWeek))
   const ptsLastWeekMap = new Map(Object.entries(ptsLastWeek))
   const hrsLastWeekMap = new Map(Object.entries(hrsLastWeek))
 
-  const allMotions = [...orderedSwells.flatMap(s => s.motions), ...unassigned]
   const openSheetMotion = openSheetId
-    ? allMotions.find(m => m.id === openSheetId) ?? null
+    ? unassigned.find(m => m.id === openSheetId) ?? null
     : null
 
   const visibleUnassigned = unassigned.filter(m => !localHiddenIds.has(m.id))
@@ -205,17 +188,9 @@ export function SwellsList({
           swellHrsThisWeek={swellHrsThisWeek}
           swellPtsLastWeek={swellPtsLastWeek}
           swellHrsLastWeek={swellHrsLastWeek}
-          ptsToday={ptsTodayMap}
-          hrsToday={hrsTodayMap}
-          allSwells={swellStubs}
           allGroups={allGroups}
           groupsEnabled={groupsEnabled}
-          localHiddenIds={localHiddenIds}
           trackingMode={trackingMode}
-          expanded={expandedSwells.has(swell.id)}
-          onToggleExpand={() => toggleExpand(swell.id)}
-          onOpenMotion={setOpenSheetId}
-          hideDone={hideDone}
         />
       </SortableSwellItem>
     )

@@ -35,8 +35,6 @@ type TrackingMode = 'points' | 'hours'
 type Props = {
   swells: SwellWithMotions[]
   unassigned: Motion[]
-  ptsToday: Record<string, number>
-  hrsToday: Record<string, number>
   ptsThisWeek: Record<string, number>
   hrsThisWeek: Record<string, number>
   ptsLastWeek: Record<string, number>
@@ -234,8 +232,6 @@ export function SwellsView(props: Props) {
             <SwellsList
               swells={props.swells}
               unassigned={props.unassigned}
-              ptsToday={props.ptsToday}
-              hrsToday={props.hrsToday}
               ptsThisWeek={props.ptsThisWeek}
               hrsThisWeek={props.hrsThisWeek}
               ptsLastWeek={props.ptsLastWeek}

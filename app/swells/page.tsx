@@ -68,15 +68,6 @@ export default async function SwellsPage() {
       .lt('logged_at', weekStart.toISOString()),
   ])
 
-  const ptsToday: Record<string, number> = {}
-  const hrsToday: Record<string, number> = {}
-  for (const log of todayLogs ?? []) {
-    if (log.motion_id) {
-      ptsToday[log.motion_id] = (ptsToday[log.motion_id] ?? 0) + log.points
-      hrsToday[log.motion_id] = (hrsToday[log.motion_id] ?? 0) + Number(log.hours)
-    }
-  }
-
   const ptsThisWeek: Record<string, number> = {}
   const hrsThisWeek: Record<string, number> = {}
   for (const log of thisWeekLogs ?? []) {
@@ -150,8 +141,6 @@ export default async function SwellsPage() {
     <SwellsView
       swells={swellList}
       unassigned={unassigned}
-      ptsToday={ptsToday}
-      hrsToday={hrsToday}
       ptsThisWeek={ptsThisWeek}
       hrsThisWeek={hrsThisWeek}
       ptsLastWeek={ptsLastWeek}
