@@ -74,9 +74,9 @@ Most habit apps treat every day like it should look the same. Onduler doesn't. T
 - Themes: Default, Bolinas, Biarritz
 - Bottom nav: Today / Swells / Log / Settings, persistent across app pages
 - Parallelized SSR data fetching: dashboard, log, and settings pages collapsed from 6–9 sequential DB round trips to 2–4 via `Promise.all`. Wave detection extracted into a helper so its two-query subchain runs in parallel with the rest of the dashboard load
+- "Motions not feeding any swell" diagnostic surface on the swells page: quiet section labeled "Not feeding any swell" with subhead "Adopt them into one, or let them go." Each row offers inline Add to a swell (opens detail sheet) and Hide (optimistic). Section hides entirely when there are no orphan motions
 
 **Deferred / not yet built:**
-- "Motions not feeding any swell" diagnostic surface
 - Groups assignment UX (easier to assign existing motions to groups — model TBD)
 - Bolinas theme (visual design system not implemented — current "Bolinas" is a placeholder)
 - Stripe / monetization
@@ -85,8 +85,7 @@ Most habit apps treat every day like it should look the same. Onduler doesn't. T
 
 | Session | Goal |
 |---|---|
-| **Next** | "Motions not feeding any swell" diagnostic surface — quietly surface the gap between stated wants and daily actions, so the user can either add a swell or drop the motion |
-| **After** | Groups assignment UX — decide model, build assignment from motion card or group page |
+| **Next** | Groups assignment UX — decide model, build assignment from motion card or group page |
 | **After** | Archetype starter packs — preset swell mixes the user can pick at onboarding instead of building from the menu one swell at a time (e.g. The Maker = Creativity / Work / Mind, The Caretaker = Family / Home / Mind, The Athlete = Movement / Food / Mind, The Wanderer = Adventure / Movement / Creativity). Internally framed as skill-tree builds — "invest here to live like a maker"; user-facing copy stays in Onduler's surf voice, no RPG vocabulary surfaced. |
 | **After** | Bolinas theme design system |
 | **After** | Stripe, premium gating, additional themes |
