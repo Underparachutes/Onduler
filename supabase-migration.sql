@@ -6,6 +6,7 @@
 
 
 -- 1. DROP OLD TABLES
+DROP TABLE IF EXISTS milestones CASCADE;
 DROP TABLE IF EXISTS logs CASCADE;
 DROP TABLE IF EXISTS activities CASCADE;
 DROP TABLE IF EXISTS goals CASCADE;
@@ -54,10 +55,13 @@ CREATE TABLE swells (
 );
 
 -- junction: one motion can belong to many swells (with contribution weight)
+-- position_x/y are nullable: NULL = auto-layout, non-null = user-placed in the swell's constellation
 CREATE TABLE motion_swells (
   motion_id           uuid         NOT NULL REFERENCES motions(id) ON DELETE CASCADE,
   swell_id            uuid         NOT NULL REFERENCES swells(id)  ON DELETE CASCADE,
   contribution_weight numeric(5,2) NOT NULL DEFAULT 1.00,
+  position_x          real         NULL,
+  position_y          real         NULL,
   PRIMARY KEY (motion_id, swell_id)
 );
 
@@ -77,6 +81,20 @@ CREATE TABLE wave_checkins (
   alignment        numeric     NOT NULL,
   duration_seconds int,
   checked_in_at    timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE milestones (
+  id           uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id      uuid        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  swell_id     uuid        NOT NULL REFERENCES swells(id) ON DELETE CASCADE,
+  name         text        NOT NULL,
+  kind         text        NOT NULL CHECK (kind IN ('recurring', 'one_shot')),
+  cadence      text        NULL,            -- recurring: 'weekly', 'monthly', etc.
+  target_count int         NULL,            -- recurring: hits per cadence window
+  completed_at timestamptz NULL,            -- one_shot: when marked done
+  bonus_points int         NOT NULL DEFAULT 0,
+  sort_order   int         NOT NULL DEFAULT 0,
+  created_at   timestamptz NOT NULL DEFAULT now()
 );
 
 CREATE TABLE user_settings (
@@ -100,6 +118,7 @@ ALTER TABLE swells       ENABLE ROW LEVEL SECURITY;
 ALTER TABLE groups       ENABLE ROW LEVEL SECURITY;
 ALTER TABLE motion_swells ENABLE ROW LEVEL SECURITY;
 ALTER TABLE logs         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE milestones   ENABLE ROW LEVEL SECURITY;
 ALTER TABLE wave_checkins ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_settings ENABLE ROW LEVEL SECURITY;
 
@@ -107,6 +126,7 @@ CREATE POLICY "own motions"       ON motions       FOR ALL USING (auth.uid() = u
 CREATE POLICY "own swells"        ON swells        FOR ALL USING (auth.uid() = user_id);
 CREATE POLICY "own groups"        ON groups        FOR ALL USING (auth.uid() = user_id);
 CREATE POLICY "own logs"          ON logs          FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "own milestones"    ON milestones    FOR ALL USING (auth.uid() = user_id);
 CREATE POLICY "own wave_checkins" ON wave_checkins FOR ALL USING (auth.uid() = user_id);
 CREATE POLICY "own user_settings" ON user_settings FOR ALL USING (auth.uid() = user_id);
 
@@ -128,4 +148,6 @@ CREATE INDEX ON groups (user_id);
 CREATE INDEX ON motion_swells (swell_id);
 CREATE INDEX ON logs (user_id, logged_at DESC);
 CREATE INDEX ON logs (motion_id);
+CREATE INDEX milestones_swell_id_idx ON milestones (swell_id);
+CREATE INDEX milestones_user_id_idx  ON milestones (user_id);
 CREATE INDEX ON wave_checkins (user_id);
