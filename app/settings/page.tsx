@@ -9,7 +9,13 @@ export default async function SettingsPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const [{ data: settings }, { data: groups }, { data: hiddenMotions }] = await Promise.all([
+  const [
+    { data: settings },
+    { data: groups },
+    { data: hiddenMotions },
+    { data: assignableMotions },
+    { data: assignableSwells },
+  ] = await Promise.all([
     supabase
       .from('user_settings')
       .select('theme, groups_enabled, daily_goal, daily_goal_hours, tracking_mode, celebration_enabled, haptic_enabled')
@@ -25,6 +31,18 @@ export default async function SettingsPage() {
       .select('id, name')
       .eq('user_id', user.id)
       .eq('hidden', true)
+      .order('name', { ascending: true }),
+    supabase
+      .from('motions')
+      .select('id, name, group_id')
+      .eq('user_id', user.id)
+      .eq('hidden', false)
+      .is('parent_id', null)
+      .order('name', { ascending: true }),
+    supabase
+      .from('swells')
+      .select('id, name, color, group_id')
+      .eq('user_id', user.id)
       .order('name', { ascending: true }),
   ])
 
@@ -54,6 +72,8 @@ export default async function SettingsPage() {
           email={user.email ?? ''}
           groups={groups ?? []}
           hiddenMotions={hiddenMotions ?? []}
+          assignableMotions={assignableMotions ?? []}
+          assignableSwells={assignableSwells ?? []}
         />
 
         <div className="mt-8 border-t border-th-border pt-6">

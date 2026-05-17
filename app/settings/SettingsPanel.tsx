@@ -28,6 +28,8 @@ const TRACKING_MODES = [
 
 type Group = { id: string; name: string; color: string }
 type HiddenMotion = { id: string; name: string }
+type AssignableMotion = { id: string; name: string; group_id: string | null }
+type AssignableSwell = { id: string; name: string; color: string; group_id: string | null }
 type TrackingMode = 'points' | 'hours'
 
 type Props = {
@@ -41,6 +43,8 @@ type Props = {
   email: string
   groups: Group[]
   hiddenMotions: HiddenMotion[]
+  assignableMotions: AssignableMotion[]
+  assignableSwells: AssignableSwell[]
 }
 
 export function SettingsPanel({
@@ -54,6 +58,8 @@ export function SettingsPanel({
   email,
   groups,
   hiddenMotions,
+  assignableMotions,
+  assignableSwells,
 }: Props) {
   const [currentTheme, setCurrentTheme] = useState(theme)
   const [currentMode, setCurrentMode] = useState<TrackingMode>(trackingMode)
@@ -123,7 +129,15 @@ export function SettingsPanel({
   const editingGroup = editingGroupId ? groups.find(g => g.id === editingGroupId) ?? null : null
 
   if (editingGroup) {
-    return <EditGroupForm group={editingGroup} onClose={() => setEditingGroupId(null)} />
+    return (
+      <EditGroupForm
+        group={editingGroup}
+        allGroups={groups}
+        motions={assignableMotions}
+        swells={assignableSwells}
+        onClose={() => setEditingGroupId(null)}
+      />
+    )
   }
 
   const visibleHidden = hiddenMotions.filter(m => !localHiddenIds.has(m.id))
