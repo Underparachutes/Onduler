@@ -73,6 +73,7 @@ Most habit apps treat every day like it should look the same. Onduler doesn't. T
 - PWA: manifest, icons
 - Themes: Default, Bolinas, Biarritz
 - Bottom nav: Today / Swells / Log / Settings, persistent across app pages
+- Parallelized SSR data fetching: dashboard, log, and settings pages collapsed from 6–9 sequential DB round trips to 2–4 via `Promise.all`. Wave detection extracted into a helper so its two-query subchain runs in parallel with the rest of the dashboard load
 
 **Deferred / not yet built:**
 - "Motions not feeding any swell" diagnostic surface
@@ -84,8 +85,7 @@ Most habit apps treat every day like it should look the same. Onduler doesn't. T
 
 | Session | Goal |
 |---|---|
-| **Next** | Snappier loads — parallelize the independent DB queries on dashboard, swells, and log pages. Each page currently fires 6–7 sequential round trips before render, easily 1–2s of waterfall on Vercel + Supabase. Pure refactor with `Promise.all`, no behavior change. |
-| **After** | "Motions not feeding any swell" diagnostic surface — quietly surface the gap between stated wants and daily actions, so the user can either add a swell or drop the motion |
+| **Next** | "Motions not feeding any swell" diagnostic surface — quietly surface the gap between stated wants and daily actions, so the user can either add a swell or drop the motion |
 | **After** | Groups assignment UX — decide model, build assignment from motion card or group page |
 | **After** | Archetype starter packs — preset swell mixes the user can pick at onboarding instead of building from the menu one swell at a time (e.g. The Maker = Creativity / Work / Mind, The Caretaker = Family / Home / Mind, The Athlete = Movement / Food / Mind, The Wanderer = Adventure / Movement / Creativity). Internally framed as skill-tree builds — "invest here to live like a maker"; user-facing copy stays in Onduler's surf voice, no RPG vocabulary surfaced. |
 | **After** | Bolinas theme design system |
