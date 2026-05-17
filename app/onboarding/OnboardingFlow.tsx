@@ -7,8 +7,35 @@ import { getRandomThemeAccent } from '@/lib/theme-colors'
 type Step = 'swells' | 'motions' | 'personalize'
 type TrackingMode = 'points' | 'hours'
 
-type StagedSwell = { name: string; color: string }
-type StagedMotion = { name: string; swellIndices: number[] }
+type SwellEntry = {
+  id: number
+  name: string
+  description: string
+  color: string
+  picked: boolean
+  custom: boolean
+}
+
+type MotionEntry = {
+  id: number
+  swellId: number
+  name: string
+}
+
+const SEEDED_SWELLS: { name: string; description: string; motionHint: string }[] = [
+  { name: 'Movement', description: 'exercise, sport, walking, being in your body', motionHint: 'e.g. walk, lift, swim' },
+  { name: 'Mind', description: 'meditation, journaling, reading, learning', motionHint: 'e.g. meditate, journal, read' },
+  { name: 'Food', description: 'cooking, eating well, nourishment', motionHint: 'e.g. cook, eat slowly' },
+  { name: 'Home', description: 'your space, comfort, domestic life', motionHint: 'e.g. tidy, repair, plant' },
+  { name: 'Family', description: 'partner, kids, parents, siblings', motionHint: 'e.g. call mom, dinner together' },
+  { name: 'Friends', description: 'broader social life, community', motionHint: 'e.g. text a friend, host' },
+  { name: 'Work', description: 'your livelihood, career, craft as profession', motionHint: 'e.g. focused work, ship something' },
+  { name: 'Money', description: 'finances, savings, side income', motionHint: 'e.g. budget, invest' },
+  { name: 'Creativity', description: 'making things, art, music, writing', motionHint: 'e.g. write, paint, play' },
+  { name: 'Adventure', description: 'travel, novelty, trying new things', motionHint: 'e.g. try something new' },
+]
+
+const CUSTOM_HINT = 'e.g. add an action'
 
 const THEMES = [
   { id: 'default', label: 'Default', desc: 'Clean and minimal' },
@@ -19,20 +46,18 @@ const THEMES = [
 export function OnboardingFlow() {
   const [step, setStep] = useState<Step>('swells')
 
-  const [swells, setSwells] = useState<StagedSwell[]>([])
-  const [motions, setMotions] = useState<StagedMotion[]>([])
+  const [swellEntries, setSwellEntries] = useState<SwellEntry[]>([])
+  const [nextSwellId, setNextSwellId] = useState(SEEDED_SWELLS.length)
 
-  const [swellName, setSwellName] = useState('')
-  const [swellColor, setSwellColor] = useState('#6b7280')
-  const [editingSwellIdx, setEditingSwellIdx] = useState<number | null>(null)
+  const [editingSwellId, setEditingSwellId] = useState<number | null>(null)
   const [editSwellName, setEditSwellName] = useState('')
   const [editSwellColor, setEditSwellColor] = useState('#6b7280')
 
-  const [motionName, setMotionName] = useState('')
-  const [motionSwellIndices, setMotionSwellIndices] = useState<Set<number>>(new Set())
-  const [editingMotionIdx, setEditingMotionIdx] = useState<number | null>(null)
+  const [motions, setMotions] = useState<MotionEntry[]>([])
+  const [nextMotionId, setNextMotionId] = useState(0)
+  const [motionDrafts, setMotionDrafts] = useState<Record<number, string>>({})
+  const [editingMotionId, setEditingMotionId] = useState<number | null>(null)
   const [editMotionName, setEditMotionName] = useState('')
-  const [editMotionSwellIndices, setEditMotionSwellIndices] = useState<Set<number>>(new Set())
 
   const [theme, setTheme] = useState('default')
   const [trackingMode, setTrackingMode] = useState<TrackingMode>('points')
@@ -44,116 +69,118 @@ export function OnboardingFlow() {
 
   useEffect(() => {
     const t = document.documentElement.dataset.theme ?? 'default'
-    setSwellColor(getRandomThemeAccent(t))
+    setSwellEntries(
+      SEEDED_SWELLS.map((s, i) => ({
+        id: i,
+        name: s.name,
+        description: s.description,
+        color: getRandomThemeAccent(t),
+        picked: false,
+        custom: false,
+      }))
+    )
   }, [])
 
-  function addSwell() {
-    const name = swellName.trim()
-    if (!name) return
-    setSwells(prev => [...prev, { name, color: swellColor }])
-    setSwellName('')
-    const t = document.documentElement.dataset.theme ?? 'default'
-    setSwellColor(getRandomThemeAccent(t))
+  const pickedSwells = swellEntries.filter(s => s.picked)
+
+  function togglePicked(id: number) {
+    setSwellEntries(prev =>
+      prev.map(s => (s.id === id ? { ...s, picked: !s.picked } : s))
+    )
   }
 
-  function startEditSwell(idx: number) {
-    setEditingSwellIdx(idx)
-    setEditSwellName(swells[idx].name)
-    setEditSwellColor(swells[idx].color)
+  function removeCustomSwell(id: number) {
+    setSwellEntries(prev => prev.filter(s => s.id !== id))
+    setMotions(prev => prev.filter(m => m.swellId !== id))
+    setMotionDrafts(prev => {
+      const next = { ...prev }
+      delete next[id]
+      return next
+    })
+    if (editingSwellId === id) setEditingSwellId(null)
+  }
+
+  function addCustomSwell() {
+    const t = document.documentElement.dataset.theme ?? 'default'
+    const newId = nextSwellId
+    setNextSwellId(prev => prev + 1)
+    setSwellEntries(prev => [
+      ...prev,
+      {
+        id: newId,
+        name: '',
+        description: '',
+        color: getRandomThemeAccent(t),
+        picked: true,
+        custom: true,
+      },
+    ])
+    setEditingSwellId(newId)
+    setEditSwellName('')
+    setEditSwellColor(getRandomThemeAccent(t))
+  }
+
+  function startEditSwell(id: number) {
+    const s = swellEntries.find(s => s.id === id)
+    if (!s) return
+    setEditingSwellId(id)
+    setEditSwellName(s.name)
+    setEditSwellColor(s.color)
   }
 
   function saveEditSwell() {
-    if (editingSwellIdx === null) return
+    if (editingSwellId === null) return
     const name = editSwellName.trim()
     if (!name) return
-    setSwells(prev =>
-      prev.map((s, i) => (i === editingSwellIdx ? { name, color: editSwellColor } : s))
+    setSwellEntries(prev =>
+      prev.map(s =>
+        s.id === editingSwellId ? { ...s, name, color: editSwellColor } : s
+      )
     )
-    setEditingSwellIdx(null)
+    setEditingSwellId(null)
   }
 
   function cancelEditSwell() {
-    setEditingSwellIdx(null)
+    const editing = swellEntries.find(s => s.id === editingSwellId)
+    if (editing && editing.custom && !editing.name) {
+      removeCustomSwell(editing.id)
+    }
+    setEditingSwellId(null)
   }
 
-  function removeSwell(idx: number) {
-    setSwells(prev => prev.filter((_, i) => i !== idx))
-    setMotions(prev =>
-      prev.map(m => ({
-        ...m,
-        swellIndices: m.swellIndices.filter(i => i !== idx).map(i => (i > idx ? i - 1 : i)),
-      }))
-    )
-    setMotionSwellIndices(prev => {
-      const next = new Set<number>()
-      prev.forEach(i => {
-        if (i === idx) return
-        next.add(i > idx ? i - 1 : i)
-      })
-      return next
-    })
-    if (editingSwellIdx === idx) setEditingSwellIdx(null)
+  function addMotion(swellId: number) {
+    const draft = (motionDrafts[swellId] ?? '').trim()
+    if (!draft) return
+    const newId = nextMotionId
+    setNextMotionId(prev => prev + 1)
+    setMotions(prev => [...prev, { id: newId, swellId, name: draft }])
+    setMotionDrafts(prev => ({ ...prev, [swellId]: '' }))
   }
 
-  function toggleMotionSwell(idx: number) {
-    setMotionSwellIndices(prev => {
-      const next = new Set(prev)
-      if (next.has(idx)) next.delete(idx)
-      else next.add(idx)
-      return next
-    })
-  }
-
-  function toggleEditMotionSwell(idx: number) {
-    setEditMotionSwellIndices(prev => {
-      const next = new Set(prev)
-      if (next.has(idx)) next.delete(idx)
-      else next.add(idx)
-      return next
-    })
-  }
-
-  function addMotion() {
-    const name = motionName.trim()
-    if (!name) return
-    setMotions(prev => [
-      ...prev,
-      { name, swellIndices: Array.from(motionSwellIndices).sort((a, b) => a - b) },
-    ])
-    setMotionName('')
-    setMotionSwellIndices(new Set())
-  }
-
-  function startEditMotion(idx: number) {
-    setEditingMotionIdx(idx)
-    setEditMotionName(motions[idx].name)
-    setEditMotionSwellIndices(new Set(motions[idx].swellIndices))
+  function startEditMotion(id: number) {
+    const m = motions.find(m => m.id === id)
+    if (!m) return
+    setEditingMotionId(id)
+    setEditMotionName(m.name)
   }
 
   function saveEditMotion() {
-    if (editingMotionIdx === null) return
+    if (editingMotionId === null) return
     const name = editMotionName.trim()
     if (!name) return
     setMotions(prev =>
-      prev.map((m, i) =>
-        i === editingMotionIdx
-          ? {
-              name,
-              swellIndices: Array.from(editMotionSwellIndices).sort((a, b) => a - b),
-            }
-          : m
-      )
+      prev.map(m => (m.id === editingMotionId ? { ...m, name } : m))
     )
-    setEditingMotionIdx(null)
+    setEditingMotionId(null)
   }
 
   function cancelEditMotion() {
-    setEditingMotionIdx(null)
+    setEditingMotionId(null)
   }
 
-  function removeMotion(idx: number) {
-    setMotions(prev => prev.filter((_, i) => i !== idx))
-    if (editingMotionIdx === idx) setEditingMotionIdx(null)
+  function removeMotion(id: number) {
+    setMotions(prev => prev.filter(m => m.id !== id))
+    if (editingMotionId === id) setEditingMotionId(null)
   }
 
   function previewTheme(t: string) {
@@ -177,8 +204,20 @@ export function OnboardingFlow() {
           celebration_enabled: celebrationEnabled,
         }
 
+    const finalSwells = pickedSwells.map(s => ({ name: s.name, color: s.color }))
+    const swellIndexById: Record<number, number> = {}
+    pickedSwells.forEach((s, i) => {
+      swellIndexById[s.id] = i
+    })
+    const finalMotions = motions
+      .filter(m => swellIndexById[m.swellId] !== undefined)
+      .map(m => ({
+        name: m.name,
+        swellIndices: [swellIndexById[m.swellId]],
+      }))
+
     startTransition(async () => {
-      const result = await completeOnboarding(swells, motions, prefs)
+      const result = await completeOnboarding(finalSwells, finalMotions, prefs)
       if (result?.error) setError(result.error)
     })
   }
@@ -186,262 +225,232 @@ export function OnboardingFlow() {
   if (step === 'swells') {
     return (
       <ScreenShell
-        title="What do you want your life to feel like?"
-        description="Add the things you want your life to feel full of. You can add more later. We call these swells."
+        title="Choose your swells."
+        description="Swells are nouns — the areas of life you want to invest in. Pick a few or add your own. You can edit them anytime."
       >
-        {swells.length > 0 && (
-          <div className="flex flex-col gap-2">
-            {swells.map((s, i) =>
-              editingSwellIdx === i ? (
-                <div
-                  key={i}
-                  className="flex flex-col gap-2 rounded-lg border border-th-btn bg-th-surface p-3"
-                >
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={editSwellName}
-                      onChange={e => setEditSwellName(e.target.value)}
-                      onKeyDown={e => e.key === 'Enter' && saveEditSwell()}
-                      autoFocus
-                      className="flex-1 rounded-lg border border-th-border bg-th-bg px-3 py-2 text-base text-th-text outline-none focus:border-th-focus"
-                    />
-                    <input
-                      type="color"
-                      value={editSwellColor}
-                      onChange={e => setEditSwellColor(e.target.value)}
-                      className="h-10 w-10 shrink-0 cursor-pointer rounded-lg border border-th-border bg-th-bg p-1"
-                      aria-label="Swell color"
-                    />
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={cancelEditSwell}
-                      className="flex-1 rounded-lg border border-th-border py-2 text-sm text-th-muted transition-colors hover:bg-th-bg"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={saveEditSwell}
-                      disabled={!editSwellName.trim()}
-                      className="flex-1 rounded-lg bg-th-btn py-2 text-sm font-medium text-th-btn-text transition-colors hover:bg-th-btn-hover disabled:opacity-40"
-                    >
-                      Save
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div
-                  key={i}
-                  className="flex items-center gap-3 rounded-lg border border-th-border px-4 py-3"
-                >
-                  <span
-                    className="h-4 w-4 shrink-0 rounded-full"
-                    style={{ backgroundColor: s.color }}
+        <div className="flex flex-col gap-2">
+          {swellEntries.map(s =>
+            editingSwellId === s.id ? (
+              <div
+                key={s.id}
+                className="flex flex-col gap-2 rounded-lg border border-th-btn bg-th-surface p-3"
+              >
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={editSwellName}
+                    onChange={e => setEditSwellName(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault()
+                        saveEditSwell()
+                      }
+                    }}
+                    autoFocus
+                    placeholder="Swell name"
+                    className="flex-1 rounded-lg border border-th-border bg-th-bg px-3 py-2 text-base text-th-text outline-none focus:border-th-focus"
                   />
+                  <input
+                    type="color"
+                    value={editSwellColor}
+                    onChange={e => setEditSwellColor(e.target.value)}
+                    className="h-10 w-10 shrink-0 cursor-pointer rounded-lg border border-th-border bg-th-bg p-1"
+                    aria-label="Swell color"
+                  />
+                </div>
+                <div className="flex gap-2">
                   <button
-                    onClick={() => startEditSwell(i)}
-                    className="flex-1 text-left text-sm text-th-text"
+                    onClick={cancelEditSwell}
+                    className="flex-1 rounded-lg border border-th-border py-2 text-sm text-th-muted transition-colors hover:bg-th-bg"
                   >
-                    {s.name}
+                    Cancel
                   </button>
                   <button
-                    onClick={() => removeSwell(i)}
-                    className="text-sm text-th-faint transition-colors hover:text-red-500"
-                    aria-label={`Remove ${s.name}`}
+                    onClick={saveEditSwell}
+                    disabled={!editSwellName.trim()}
+                    className="flex-1 rounded-lg bg-th-btn py-2 text-sm font-medium text-th-btn-text transition-colors hover:bg-th-btn-hover disabled:opacity-40"
                   >
-                    ×
+                    Save
                   </button>
                 </div>
-              )
-            )}
-          </div>
-        )}
+              </div>
+            ) : s.picked ? (
+              <div
+                key={s.id}
+                className="flex items-center gap-3 rounded-lg border-2 px-4 py-3 transition-colors"
+                style={{ borderColor: s.color }}
+              >
+                <span
+                  className="h-4 w-4 shrink-0 rounded-full"
+                  style={{ backgroundColor: s.color }}
+                />
+                <button
+                  onClick={() => startEditSwell(s.id)}
+                  className="flex-1 text-left text-sm font-medium text-th-text"
+                >
+                  {s.name}
+                </button>
+                <button
+                  onClick={() =>
+                    s.custom ? removeCustomSwell(s.id) : togglePicked(s.id)
+                  }
+                  className="text-sm text-th-faint transition-colors hover:text-red-500"
+                  aria-label={s.custom ? `Remove ${s.name}` : `Unpick ${s.name}`}
+                >
+                  ×
+                </button>
+              </div>
+            ) : (
+              <button
+                key={s.id}
+                onClick={() => togglePicked(s.id)}
+                className="flex flex-col gap-0.5 rounded-lg border border-th-border px-4 py-3 text-left transition-colors hover:bg-th-surface active:scale-[0.99]"
+              >
+                <span className="text-sm font-medium text-th-text">{s.name}</span>
+                <span className="text-xs text-th-muted">{s.description}</span>
+              </button>
+            )
+          )}
 
-        <div className="flex gap-2">
-          <input
-            type="text"
-            placeholder="e.g. Be present"
-            value={swellName}
-            onChange={e => setSwellName(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && addSwell()}
-            className="flex-1 rounded-lg border border-th-border bg-th-surface px-3 py-2.5 text-base text-th-text outline-none focus:border-th-focus"
-          />
-          <input
-            type="color"
-            value={swellColor}
-            onChange={e => setSwellColor(e.target.value)}
-            className="h-11 w-11 shrink-0 cursor-pointer rounded-lg border border-th-border bg-th-surface p-1"
-            aria-label="Swell color"
-          />
           <button
-            onClick={addSwell}
-            disabled={!swellName.trim()}
-            className="shrink-0 rounded-lg border border-th-border px-4 text-sm text-th-muted transition-colors hover:bg-th-surface disabled:opacity-40"
+            onClick={addCustomSwell}
+            className="rounded-lg border border-dashed border-th-border px-4 py-3 text-left text-sm text-th-muted transition-colors hover:bg-th-surface active:scale-[0.99]"
           >
-            Add
+            + Add your own
           </button>
         </div>
 
         <button
           onClick={() => setStep('motions')}
-          disabled={swells.length === 0}
+          disabled={pickedSwells.length === 0 || pickedSwells.some(s => !s.name)}
           className="w-full rounded-lg bg-th-btn py-3 text-sm font-medium text-th-btn-text transition-all hover:bg-th-btn-hover active:scale-[0.97] disabled:opacity-40"
         >
-          {swells.length === 0 ? 'Add at least one' : 'Next →'}
+          {pickedSwells.length === 0 ? 'Pick at least one' : 'Next →'}
         </button>
       </ScreenShell>
     )
   }
 
   if (step === 'motions') {
+    const seededHintByName: Record<string, string> = {}
+    SEEDED_SWELLS.forEach(s => {
+      seededHintByName[s.name] = s.motionHint
+    })
+
     return (
       <ScreenShell
         onBack={() => setStep('swells')}
-        title="What in your daily life makes you feel that?"
-        description="Add the daily motions that feed your swells. You can add more later. We call these motions."
+        title="What do you do for each?"
+        description="Motions are verbs — the daily actions that feed each swell. Add a few or skip and add them later."
       >
-        {motions.length > 0 && (
-          <div className="flex flex-col gap-2">
-            {motions.map((m, i) =>
-              editingMotionIdx === i ? (
-                <div
-                  key={i}
-                  className="flex flex-col gap-3 rounded-lg border border-th-btn bg-th-surface p-3"
-                >
+        <div className="flex flex-col gap-6">
+          {pickedSwells.map(s => {
+            const swellMotions = motions.filter(m => m.swellId === s.id)
+            const hint = seededHintByName[s.name] ?? CUSTOM_HINT
+            const draft = motionDrafts[s.id] ?? ''
+            return (
+              <div key={s.id} className="flex flex-col gap-2">
+                <div className="flex items-center gap-2">
+                  <span
+                    className="h-3 w-3 shrink-0 rounded-full"
+                    style={{ backgroundColor: s.color }}
+                  />
+                  <p
+                    className="text-sm font-semibold uppercase tracking-wide"
+                    style={{ color: s.color }}
+                  >
+                    {s.name}
+                  </p>
+                </div>
+
+                {swellMotions.length > 0 && (
+                  <div className="flex flex-col gap-2">
+                    {swellMotions.map(m =>
+                      editingMotionId === m.id ? (
+                        <div
+                          key={m.id}
+                          className="flex flex-col gap-2 rounded-lg border border-th-btn bg-th-surface p-3"
+                        >
+                          <input
+                            type="text"
+                            value={editMotionName}
+                            onChange={e => setEditMotionName(e.target.value)}
+                            onKeyDown={e => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault()
+                                saveEditMotion()
+                              }
+                            }}
+                            autoFocus
+                            className="rounded-lg border border-th-border bg-th-bg px-3 py-2 text-base text-th-text outline-none focus:border-th-focus"
+                          />
+                          <div className="flex gap-2">
+                            <button
+                              onClick={cancelEditMotion}
+                              className="flex-1 rounded-lg border border-th-border py-2 text-sm text-th-muted transition-colors hover:bg-th-bg"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              onClick={saveEditMotion}
+                              disabled={!editMotionName.trim()}
+                              className="flex-1 rounded-lg bg-th-btn py-2 text-sm font-medium text-th-btn-text transition-colors hover:bg-th-btn-hover disabled:opacity-40"
+                            >
+                              Save
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div
+                          key={m.id}
+                          className="flex items-center gap-3 rounded-lg border border-th-border px-4 py-3"
+                        >
+                          <button
+                            onClick={() => startEditMotion(m.id)}
+                            className="flex-1 text-left text-sm text-th-text"
+                          >
+                            {m.name}
+                          </button>
+                          <button
+                            onClick={() => removeMotion(m.id)}
+                            className="text-sm text-th-faint transition-colors hover:text-red-500"
+                            aria-label={`Remove ${m.name}`}
+                          >
+                            ×
+                          </button>
+                        </div>
+                      )
+                    )}
+                  </div>
+                )}
+
+                <div className="flex gap-2">
                   <input
                     type="text"
-                    value={editMotionName}
-                    onChange={e => setEditMotionName(e.target.value)}
+                    placeholder={hint}
+                    value={draft}
+                    onChange={e =>
+                      setMotionDrafts(prev => ({ ...prev, [s.id]: e.target.value }))
+                    }
                     onKeyDown={e => {
                       if (e.key === 'Enter') {
                         e.preventDefault()
-                        saveEditMotion()
+                        addMotion(s.id)
                       }
                     }}
-                    autoFocus
-                    className="rounded-lg border border-th-border bg-th-bg px-3 py-2 text-base text-th-text outline-none focus:border-th-focus"
+                    className="flex-1 rounded-lg border border-th-border bg-th-surface px-3 py-2.5 text-base text-th-text outline-none focus:border-th-focus"
                   />
-                  {swells.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5">
-                      {swells.map((s, idx) => {
-                        const on = editMotionSwellIndices.has(idx)
-                        return (
-                          <button
-                            key={idx}
-                            onClick={() => toggleEditMotionSwell(idx)}
-                            className="rounded-full px-2.5 py-1 text-xs font-medium transition-all active:scale-[0.97]"
-                            style={{
-                              backgroundColor: on ? s.color : 'transparent',
-                              color: on ? '#fff' : s.color,
-                              border: `1px solid ${s.color}`,
-                            }}
-                          >
-                            {s.name}
-                          </button>
-                        )
-                      })}
-                    </div>
-                  )}
-                  <div className="flex gap-2">
-                    <button
-                      onClick={cancelEditMotion}
-                      className="flex-1 rounded-lg border border-th-border py-2 text-sm text-th-muted transition-colors hover:bg-th-bg"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={saveEditMotion}
-                      disabled={!editMotionName.trim()}
-                      className="flex-1 rounded-lg bg-th-btn py-2 text-sm font-medium text-th-btn-text transition-colors hover:bg-th-btn-hover disabled:opacity-40"
-                    >
-                      Save
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div
-                  key={i}
-                  className="flex flex-col gap-1.5 rounded-lg border border-th-border px-4 py-3"
-                >
-                  <div className="flex items-center gap-3">
-                    <button
-                      onClick={() => startEditMotion(i)}
-                      className="flex-1 text-left text-sm text-th-text"
-                    >
-                      {m.name}
-                    </button>
-                    <button
-                      onClick={() => removeMotion(i)}
-                      className="text-sm text-th-faint transition-colors hover:text-red-500"
-                      aria-label={`Remove ${m.name}`}
-                    >
-                      ×
-                    </button>
-                  </div>
-                  {m.swellIndices.length > 0 && (
-                    <div className="flex flex-wrap gap-1">
-                      {m.swellIndices.map(idx => (
-                        <span
-                          key={idx}
-                          className="rounded-full px-2 py-0.5 text-[10px] font-medium text-white"
-                          style={{ backgroundColor: swells[idx]?.color }}
-                        >
-                          {swells[idx]?.name}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )
-            )}
-          </div>
-        )}
-
-        <div className="flex flex-col gap-3">
-          <div className="flex gap-2">
-            <input
-              type="text"
-              placeholder="Motion name"
-              value={motionName}
-              onChange={e => setMotionName(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === 'Enter') {
-                  e.preventDefault()
-                  addMotion()
-                }
-              }}
-              className="flex-1 rounded-lg border border-th-border bg-th-surface px-3 py-2.5 text-base text-th-text outline-none focus:border-th-focus"
-            />
-            <button
-              onClick={addMotion}
-              disabled={!motionName.trim()}
-              className="shrink-0 rounded-lg border border-th-border px-4 text-sm text-th-muted transition-colors hover:bg-th-surface disabled:opacity-40"
-            >
-              Add
-            </button>
-          </div>
-          {swells.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
-              {swells.map((s, i) => {
-                const on = motionSwellIndices.has(i)
-                return (
                   <button
-                    key={i}
-                    onClick={() => toggleMotionSwell(i)}
-                    className="rounded-full px-2.5 py-1 text-xs font-medium transition-all active:scale-[0.97]"
-                    style={{
-                      backgroundColor: on ? s.color : 'transparent',
-                      color: on ? '#fff' : s.color,
-                      border: `1px solid ${s.color}`,
-                    }}
+                    onClick={() => addMotion(s.id)}
+                    disabled={!draft.trim()}
+                    className="shrink-0 rounded-lg border border-th-border px-4 text-sm text-th-muted transition-colors hover:bg-th-surface disabled:opacity-40"
                   >
-                    {s.name}
+                    Add
                   </button>
-                )
-              })}
-            </div>
-          )}
+                </div>
+              </div>
+            )
+          })}
         </div>
 
         <button

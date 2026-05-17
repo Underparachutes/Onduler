@@ -147,7 +147,24 @@ All swells run on a single weekly cycle anchored to Sunday. The old "set a lifet
 
 **Motions can stay unassigned.** A motion does not have to feed a swell. The gap — motions you do daily that don't feed any stated want — is itself a useful diagnostic surface: the user either adds a swell to cover it, or asks whether the motion belongs in their daily life at all. Future feature, not in scope for the weekly-model session.
 
-**Onboarding implication.** Swell-first, then motions per swell. The swell step is a noun-shaped menu of common life areas (Movement, Home, Food, Family, Creativity, Reflection, Work, Travel, etc.) with custom add, replacing the current quick-start / build-your-own flow. Listing swells is required to engage with the app. The noun/verb framing surfaces explicitly in onboarding copy: "Swells are nouns. Motions are verbs." See ADR 0002. The onboarding rework is its own session after the weekly-model session lands.
+**Onboarding implication.** Swell-first, then motions per swell. The swell step is a noun-shaped menu of common life areas with custom add, replacing the current quick-start / build-your-own flow. Listing swells is required to engage with the app. The noun/verb framing surfaces explicitly in onboarding copy: "Swells are nouns. Motions are verbs." See ADR 0002. The onboarding rework is its own session after the weekly-model session lands.
+
+**Canonical swell menu (10).** The seeded menu in onboarding is:
+
+| Swell | Description |
+|---|---|
+| Movement | exercise, sport, walking, being in your body |
+| Mind | meditation, journaling, reading, learning |
+| Food | cooking, eating well, nourishment |
+| Home | your space, comfort, domestic life |
+| Family | partner, kids, parents, siblings |
+| Friends | broader social life, community |
+| Work | your livelihood, career, craft as profession |
+| Money | finances, savings, side income |
+| Creativity | making things, art, music, writing |
+| Adventure | travel, novelty, trying new things |
+
+The user can rename, recolor, deselect, or add custom swells. Descriptions are shown as sub-text under the swell name in the menu and disappear once the swell is picked.
 
 **Schema impact.** `swells.target_points` and `swells.target_hours` now mean "per week." No `repeats` flag — one mode only. Cycle state is derived from `logs.logged_at` and the Sunday week definition, not stored on the swell. Lifetime totals can still be shown as a stat but do not drive celebration.
 
