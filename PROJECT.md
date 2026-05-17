@@ -55,7 +55,7 @@ Most habit apps treat every day like it should look the same. Onduler doesn't. T
 **As of this session (May 2026), the following is working:**
 
 - Auth (login / signup / sign out) — verified working on mobile (iOS)
-- Onboarding flow (quick start + build your own) — verified working on mobile
+- Onboarding flow (noun-shaped swell menu → per-swell motions → personalize) — verified working on web. 10 seeded swells (Movement, Mind, Food, Home, Family, Friends, Work, Money, Creativity, Adventure) with descriptions; pick-then-add menu; per-swell motion sections with verb hints; theme + tracking mode + haptics + celebrations on the personalize screen with skip-to-defaults
 - Dashboard: daily checklist with flat mode and groups mode, hide-done toggle, daily progress bar, wave detection
 - Motions: create, edit (name/pts/hrs), delete, log, unlog, drag-to-reorder, hide/unhide
 - Dashboard interaction model: tap card to log, long-press to drag-reorder, kebab opens detail sheet
@@ -75,7 +75,6 @@ Most habit apps treat every day like it should look the same. Onduler doesn't. T
 - Bottom nav: Today / Swells / Log / Settings, persistent across app pages
 
 **Deferred / not yet built:**
-- Onboarding rework — swell-first via a noun-shaped menu of common life areas (Movement, Home, Food, Family, Creativity, Reflection, Work, Travel, etc.) with custom add, then motions per swell. Swells required, no skip. See ADR 0002.
 - "Motions not feeding any swell" diagnostic surface
 - Groups assignment UX (easier to assign existing motions to groups — model TBD)
 - Bolinas theme (visual design system not implemented — current "Bolinas" is a placeholder)
@@ -85,7 +84,7 @@ Most habit apps treat every day like it should look the same. Onduler doesn't. T
 
 | Session | Goal |
 |---|---|
-| **Next** | Onboarding rework — swell-first via a noun-shaped menu (Movement, Home, Food, Family, Creativity, Reflection, Work, Travel, etc.) with custom add, then motions per swell. Replaces the current quick-start / build-your-own flow. Mental model surfaced explicitly: swells are nouns, motions are verbs. See ADR 0002. |
+| **Next** | Snappier loads — parallelize the independent DB queries on dashboard, swells, and log pages. Each page currently fires 6–7 sequential round trips before render, easily 1–2s of waterfall on Vercel + Supabase. Pure refactor with `Promise.all`, no behavior change. |
 | **After** | "Motions not feeding any swell" diagnostic surface — quietly surface the gap between stated wants and daily actions, so the user can either add a swell or drop the motion |
 | **After** | Groups assignment UX — decide model, build assignment from motion card or group page |
 | **After** | Bolinas theme design system |
