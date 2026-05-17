@@ -39,9 +39,9 @@ const CUSTOM_HINT = 'e.g. add an action'
 
 const ARCHETYPE_PACKS: { key: string; label: string; swellNames: string[] }[] = [
   { key: 'maker', label: 'The Maker', swellNames: ['Creativity', 'Work', 'Mind'] },
-  { key: 'caretaker', label: 'The Caretaker', swellNames: ['Family', 'Home', 'Mind'] },
   { key: 'athlete', label: 'The Athlete', swellNames: ['Movement', 'Food', 'Mind'] },
   { key: 'wanderer', label: 'The Wanderer', swellNames: ['Adventure', 'Movement', 'Creativity'] },
+  { key: 'scholar', label: 'The Scholar', swellNames: ['Mind', 'Work', 'Creativity'] },
 ]
 
 const THEMES = [
