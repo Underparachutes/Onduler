@@ -21,9 +21,9 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import { unlogMotion } from '@/app/actions/logs'
 import { reorderSwells } from '@/app/actions/swells'
+import { hideMotion } from '@/app/actions/motions'
 import { MotionDetailSheet } from '@/app/dashboard/components/MotionDetailSheet'
 import { SwellRow } from './SwellRow'
-import { formatPts, formatHrs } from '@/lib/format'
 
 type Swell = { id: string; name: string; color: string }
 type MotionSwell = { id: string; name: string; color: string; weight: number }
@@ -122,7 +122,6 @@ export function SwellsList({
   searchQuery,
   activeGroup,
 }: Props & { activeGroup: string | null }) {
-  const isHours = trackingMode === 'hours'
   const [openSheetId, setOpenSheetId] = useState<string | null>(null)
   const [localDone, setLocalDone] = useState<Set<string>>(() => new Set(doneMotionIds))
   const [localHiddenIds, setLocalHiddenIds] = useState<Set<string>>(new Set())
@@ -276,21 +275,33 @@ export function SwellsList({
 
       {visibleUnassigned.length > 0 && (
         <div className="mb-8">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-th-muted">Unassigned</p>
-          <div className="flex flex-col gap-2">
+          <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-th-muted">Not feeding any swell</p>
+          <p className="mb-3 text-xs text-th-faint">Adopt them into one, or let them go.</p>
+          <div className="flex flex-col gap-1">
             {visibleUnassigned.map(motion => (
-              <button
-                key={motion.id}
-                onClick={() => setOpenSheetId(motion.id)}
-                className="flex items-center gap-3 rounded-lg px-3 py-3 text-left transition-colors hover:bg-th-surface"
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-th-text">{motion.name}</p>
+              <div key={motion.id} className="flex flex-col gap-1 px-3 py-2.5">
+                <p className="text-sm font-medium text-th-text">{motion.name}</p>
+                <div className="flex items-center gap-3 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setOpenSheetId(motion.id)}
+                    className="text-th-muted transition-all hover:text-th-text active:scale-[0.97]"
+                  >
+                    Add to a swell
+                  </button>
+                  <span className="text-th-faint">·</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLocalHiddenIds(prev => new Set([...prev, motion.id]))
+                      startTransition(async () => { await hideMotion(motion.id) })
+                    }}
+                    className="text-th-muted transition-all hover:text-th-text active:scale-[0.97]"
+                  >
+                    Hide
+                  </button>
                 </div>
-                <span className="shrink-0 text-sm font-semibold text-th-secondary">
-                  {isHours ? formatHrs(motion.default_hours) : formatPts(motion.default_points)}
-                </span>
-              </button>
+              </div>
             ))}
           </div>
         </div>
