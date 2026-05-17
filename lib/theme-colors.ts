@@ -1,7 +1,7 @@
 export type ThemeName = 'default' | 'bolinas' | 'biarritz'
 
 export const THEME_PALETTES: Record<ThemeName, string[]> = {
-  default: ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'],
+  default: ['#33A656', '#FFA213', '#ADEEC5', '#195845', '#B74531', '#86ECFF'],
   bolinas: ['#3f5c39', '#8a7a5e', '#5a4e42', '#a09384', '#7a6f8e', '#bc8a5f'],
   biarritz: ['#c9621e', '#2a5f68', '#d4a574', '#1e5b8a', '#8aabaf', '#a8511a'],
 }

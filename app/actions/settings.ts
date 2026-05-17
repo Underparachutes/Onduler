@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/server'
 
 export async function completeOnboarding(
   swells: { name: string; color: string }[],
-  motions: { name: string; default_points: number; swellIndices: number[] }[],
+  motions: { name: string; swellIndices: number[] }[],
   prefs: {
     theme: string
     tracking_mode: 'points' | 'hours'
@@ -42,7 +42,7 @@ export async function completeOnboarding(
     const motionRows = motions.map((m, i) => ({
       user_id: user.id,
       name: m.name,
-      default_points: m.default_points,
+      default_points: 1,
       default_hours: 1.0,
       sort_order: i,
     }))
