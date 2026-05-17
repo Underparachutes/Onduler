@@ -19,7 +19,7 @@ Most habit apps treat every day like it should look the same. Onduler doesn't. T
 | Term | Meaning |
 |---|---|
 | **Motion** | A trackable daily activity (the code table is also `motions`) |
-| **Swell** | A weekly recurring philosophy the user wants their life to feel full of — has a weekly points target or weekly hours target. Celebration fires each time cumulative weekly progress crosses the target; the cycle resets at end-of-Sunday. Motions can belong to many swells. |
+| **Swell** | A noun-shaped area of life the user wants to invest in (e.g. Movement, Home, Food, Family, Creativity, Reflection). Has a weekly points target or weekly hours target. Celebration fires each time cumulative weekly progress crosses the target; the cycle resets at end-of-Sunday. Motions can belong to many swells. **Mental model: swells are nouns, motions are verbs.** See ADR 0002. |
 | **Group** | An organizational bucket for motions and swells. No target, no scoring. Each motion and each swell belongs to one group (or none). |
 | **Tide** | Default daily mode |
 | **Wave** | Period of focus, recovery, or disruption — app does not punish this |
@@ -75,7 +75,7 @@ Most habit apps treat every day like it should look the same. Onduler doesn't. T
 - Bottom nav: Today / Swells / Log / Settings, persistent across app pages
 
 **Deferred / not yet built:**
-- Onboarding rework to the two-question framing ("What do you want your life to feel like?" → swells, "What in your daily life makes you feel that?" → motions; no skip on swells)
+- Onboarding rework — swell-first via a noun-shaped menu of common life areas (Movement, Home, Food, Family, Creativity, Reflection, Work, Travel, etc.) with custom add, then motions per swell. Swells required, no skip. See ADR 0002.
 - "Motions not feeding any swell" diagnostic surface
 - Groups assignment UX (easier to assign existing motions to groups — model TBD)
 - Bolinas theme (visual design system not implemented — current "Bolinas" is a placeholder)
@@ -85,7 +85,7 @@ Most habit apps treat every day like it should look the same. Onduler doesn't. T
 
 | Session | Goal |
 |---|---|
-| **Next** | Onboarding rework — opens with "What do you want your life to feel like?" (swells, no skip) then "What in your daily life makes you feel that?" (motions). Replaces the current quick-start / build-your-own flow |
+| **Next** | Onboarding rework — swell-first via a noun-shaped menu (Movement, Home, Food, Family, Creativity, Reflection, Work, Travel, etc.) with custom add, then motions per swell. Replaces the current quick-start / build-your-own flow. Mental model surfaced explicitly: swells are nouns, motions are verbs. See ADR 0002. |
 | **After** | "Motions not feeding any swell" diagnostic surface — quietly surface the gap between stated wants and daily actions, so the user can either add a swell or drop the motion |
 | **After** | Groups assignment UX — decide model, build assignment from motion card or group page |
 | **After** | Bolinas theme design system |
@@ -147,13 +147,27 @@ All swells run on a single weekly cycle anchored to Sunday. The old "set a lifet
 
 **Motions can stay unassigned.** A motion does not have to feed a swell. The gap — motions you do daily that don't feed any stated want — is itself a useful diagnostic surface: the user either adds a swell to cover it, or asks whether the motion belongs in their daily life at all. Future feature, not in scope for the weekly-model session.
 
-**Onboarding implication.** The two-question framing — "What do you want your life to feel like?" (swells, no skip) then "What in your daily life makes you feel that?" (motions) — replaces the current quick-start / build-your-own flow. Listing swells is required to engage with the app. The onboarding rework is its own session after the weekly-model session lands.
+**Onboarding implication.** Swell-first, then motions per swell. The swell step is a noun-shaped menu of common life areas (Movement, Home, Food, Family, Creativity, Reflection, Work, Travel, etc.) with custom add, replacing the current quick-start / build-your-own flow. Listing swells is required to engage with the app. The noun/verb framing surfaces explicitly in onboarding copy: "Swells are nouns. Motions are verbs." See ADR 0002. The onboarding rework is its own session after the weekly-model session lands.
 
 **Schema impact.** `swells.target_points` and `swells.target_hours` now mean "per week." No `repeats` flag — one mode only. Cycle state is derived from `logs.logged_at` and the Sunday week definition, not stored on the swell. Lifetime totals can still be shown as a stat but do not drive celebration.
 
 **Locked defaults.** 100 pts/week or 5 hrs/week in their respective modes (replaces the old 1000 pts / 10000 hrs lifetime defaults).
 
 **Migration.** None required. Single-user (Josh), one week of data, no production users. Old swell targets get reinterpreted as weekly when the session ships.
+
+### Swells are noun-shaped life areas, motions are verb-shaped actions (May 2026)
+
+The mental model for users and copy is: **Swells are nouns. Motions are verbs.** A Swell is a noun-shaped area of life the user wants to invest in — Movement, Home, Food, Family, Creativity, Reflection, Work, Travel, and so on. A Motion is a verb-shaped daily action — kayak, cook, decorate, journal, make a playlist. The previous framing of Swells as "philosophies the user wants their life to feel full of" was poetically correct but freeze-inducing in practice; the noun/verb pattern unsticks users in one sentence.
+
+**No schema change.** A Swell is still a row with a name and a weekly target. The reframing is in onboarding copy, default suggestions, and UI hints — not in the data model.
+
+**Onboarding shift.** The swell step becomes a pick-then-add menu of common life areas with custom entry as a follow-up. The previously-planned open-ended "What do you want your life to feel like?" prompt is replaced. Motions are then added per swell.
+
+**Contribution-weight default.** New motion→swell links default to `contribution_weight = 100`. The split-percentage affordance remains in the motion detail sheet but is not surfaced until the user has at least one link saved. In the noun-shape model, most users assign one swell per motion at full weight; weighted multi-swell contributions become an enrichment for users who want them, not a load-bearing requirement.
+
+**Vocabulary unchanged.** The user-facing word stays "Swell." "Domains" remains on the never-use list. The noun-shape framing is an internal teaching pattern, not a rename.
+
+ADR: `docs/decisions/0002-swells-are-nouns.md`.
 
 ## Working agreements
 
@@ -166,6 +180,7 @@ All swells run on a single weekly cycle anchored to Sunday. The old "set a lifet
 - Apply vocabulary from this file consistently in all UI copy.
 - Apply count-based pluralization in all UI strings.
 - Follow the mirror principle in reports and empty states.
+- **Swells are nouns, motions are verbs.** This is the teaching pattern that snaps the whole model into place. Apply it in onboarding copy, empty states, and any UI hint that orients a new user. Swell name suggestions are noun-shaped life areas (Movement, Home, Food, Family, Creativity, Reflection, Work, Travel, etc.); motion name suggestions are verb-shaped actions (kayak, cook, decorate, journal, make a playlist). See ADR 0002.
 - **Bottom nav is the primary navigation on mobile; back is for sub-routes only.** Top-level pages reached via bottom nav (Today, Swells, Log, Settings) hide their back button at mobile widths — users navigate via bottom nav. Sub-routes (motion detail sheet, inline edit forms, Add Motion/Swell/Group, Settings group-edit) keep their back/cancel because there's no bottom-nav route back to them. Desktop shows back everywhere; mobile shows back only where the bottom nav can't get you back.
 - **Every tap that triggers cross-page navigation needs press feedback at 0ms.** Bottom nav items, back/cancel links, and any "go somewhere" control must respond visually the instant the user touches them (`active:scale-[0.97]` or equivalent). Otherwise the inherent server-round-trip latency reads as broken. The press feedback doesn't make navigation faster; it makes the user feel heard.
 - **Tracking currency is app-wide, not per-swell.** The user picks Points or Hours once in Settings — that choice flows to every surface in the app: daily progress bar, daily goal, swell targets, log/report stats. There's no mixed state where some swells are tracked in points and others in hours. Both `default_points` and `default_hours` are always populated on every motion (default 1 each), and both are recorded on every log row, so switching modes later doesn't lose data — only the displayed currency changes. Swell target defaults are **weekly**: 100 pts/week or 5 hrs/week in their respective modes. Users tune up or down from there based on what they want to feed and how heavily.
