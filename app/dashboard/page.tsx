@@ -3,6 +3,40 @@ import { createClient } from '@/lib/supabase/server'
 import { getTodayStart, getWeekStart } from '@/lib/timezone'
 import { DashboardView } from './components/DashboardView'
 
+type SupabaseClient = Awaited<ReturnType<typeof createClient>>
+
+async function detectWave(
+  supabase: SupabaseClient
+): Promise<{ showWavePrompt: boolean; waveDurationSeconds: number | null }> {
+  const { data: lastLogData } = await supabase
+    .from('logs')
+    .select('logged_at')
+    .order('logged_at', { ascending: false })
+    .limit(1)
+
+  const lastLog = lastLogData?.[0] ?? null
+  if (!lastLog) return { showWavePrompt: false, waveDurationSeconds: null }
+
+  const msSinceLog = Date.now() - new Date(lastLog.logged_at).getTime()
+  const hoursSinceLog = msSinceLog / (1000 * 60 * 60)
+  if (hoursSinceLog < 72) return { showWavePrompt: false, waveDurationSeconds: null }
+
+  const { data: recentCheckinData } = await supabase
+    .from('wave_checkins')
+    .select('id')
+    .gt('checked_in_at', lastLog.logged_at)
+    .limit(1)
+
+  if (recentCheckinData && recentCheckinData.length > 0) {
+    return { showWavePrompt: false, waveDurationSeconds: null }
+  }
+
+  return {
+    showWavePrompt: true,
+    waveDurationSeconds: Math.floor(msSinceLog / 1000),
+  }
+}
+
 export default async function DashboardPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -23,38 +57,17 @@ export default async function DashboardPage() {
   const celebrationEnabled = settings?.celebration_enabled ?? true
   const hapticEnabled = settings?.haptic_enabled ?? true
 
-  // Wave detection
-  const { data: lastLogData } = await supabase
-    .from('logs')
-    .select('logged_at')
-    .order('logged_at', { ascending: false })
-    .limit(1)
-
-  const lastLog = lastLogData?.[0] ?? null
-  let showWavePrompt = false
-  let waveDurationSeconds: number | null = null
-
-  if (lastLog) {
-    const hoursSinceLog =
-      (Date.now() - new Date(lastLog.logged_at).getTime()) / (1000 * 60 * 60)
-    if (hoursSinceLog >= 72) {
-      const { data: recentCheckinData } = await supabase
-        .from('wave_checkins')
-        .select('id')
-        .gt('checked_in_at', lastLog.logged_at)
-        .limit(1)
-      if (!recentCheckinData || recentCheckinData.length === 0) {
-        showWavePrompt = true
-        waveDurationSeconds = Math.floor(
-          (Date.now() - new Date(lastLog.logged_at).getTime()) / 1000,
-        )
-      }
-    }
-  }
-
-  // Today's logs + this week's logs
   const [todayStart, weekStart] = await Promise.all([getTodayStart(), getWeekStart()])
-  const [{ data: todayLogs }, { data: weekLogs }] = await Promise.all([
+
+  const [
+    { data: todayLogs },
+    { data: weekLogs },
+    { data: motionsRaw },
+    { data: submotionsRaw },
+    { data: swellsData },
+    groupsResult,
+    waveResult,
+  ] = await Promise.all([
     supabase
       .from('logs')
       .select('motion_id, points, hours')
@@ -65,7 +78,37 @@ export default async function DashboardPage() {
       .select('motion_id, points, hours')
       .eq('user_id', user.id)
       .gte('logged_at', weekStart.toISOString()),
+    supabase
+      .from('motions')
+      .select('id, name, default_points, default_hours, group_id, motion_swells(contribution_weight, swells(id, name, color))')
+      .eq('user_id', user.id)
+      .eq('hidden', false)
+      .is('parent_id', null)
+      .order('sort_order', { ascending: true, nullsFirst: false }),
+    supabase
+      .from('motions')
+      .select('id, name, default_points, default_hours, parent_id, motion_swells(contribution_weight, swells(id, name, color))')
+      .eq('user_id', user.id)
+      .eq('hidden', false)
+      .not('parent_id', 'is', null)
+      .order('sort_order', { ascending: true, nullsFirst: false }),
+    supabase
+      .from('swells')
+      .select('id, name, color, target_points, target_hours')
+      .eq('user_id', user.id)
+      .order('sort_order', { ascending: true }),
+    groupsEnabled
+      ? supabase
+          .from('groups')
+          .select('id, name, color')
+          .eq('user_id', user.id)
+          .order('sort_order', { ascending: true })
+      : Promise.resolve({ data: [] as { id: string; name: string; color: string }[] }),
+    detectWave(supabase),
   ])
+
+  const groupsData = groupsResult.data ?? []
+  const { showWavePrompt, waveDurationSeconds } = waveResult
 
   const todayPoints = todayLogs?.reduce((sum, l) => sum + l.points, 0) ?? 0
   const todayHours = todayLogs?.reduce((sum, l) => sum + Number(l.hours), 0) ?? 0
@@ -79,24 +122,6 @@ export default async function DashboardPage() {
       hrsThisWeek[log.motion_id] = (hrsThisWeek[log.motion_id] ?? 0) + Number(log.hours)
     }
   }
-
-  // Fetch top-level motions with swell and group data
-  const { data: motionsRaw } = await supabase
-    .from('motions')
-    .select('id, name, default_points, default_hours, group_id, motion_swells(contribution_weight, swells(id, name, color))')
-    .eq('user_id', user.id)
-    .eq('hidden', false)
-    .is('parent_id', null)
-    .order('sort_order', { ascending: true, nullsFirst: false })
-
-  // Fetch submotions separately (not shown in checklist, shown in detail sheet)
-  const { data: submotionsRaw } = await supabase
-    .from('motions')
-    .select('id, name, default_points, default_hours, parent_id, motion_swells(contribution_weight, swells(id, name, color))')
-    .eq('user_id', user.id)
-    .eq('hidden', false)
-    .not('parent_id', 'is', null)
-    .order('sort_order', { ascending: true, nullsFirst: false })
 
   const submotionsMap: Record<string, { id: string; name: string; default_points: number; default_hours: number; swells: { id: string; name: string; color: string; weight: number }[] }[]> = {}
   submotionsRaw?.forEach(m => {
@@ -130,22 +155,6 @@ export default async function DashboardPage() {
       swellWeights,
     }
   })
-
-  const { data: swellsData } = await supabase
-    .from('swells')
-    .select('id, name, color, target_points, target_hours')
-    .eq('user_id', user.id)
-    .order('sort_order', { ascending: true })
-
-  let groupsData: { id: string; name: string; color: string }[] = []
-  if (groupsEnabled) {
-    const { data } = await supabase
-      .from('groups')
-      .select('id, name, color')
-      .eq('user_id', user.id)
-      .order('sort_order', { ascending: true })
-    groupsData = data ?? []
-  }
 
   const groupsWithMotions = groupsData.map(g => ({
     ...g,

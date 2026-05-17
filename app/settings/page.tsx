@@ -9,24 +9,24 @@ export default async function SettingsPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: settings } = await supabase
-    .from('user_settings')
-    .select('theme, groups_enabled, daily_goal, daily_goal_hours, tracking_mode, celebration_enabled, haptic_enabled')
-    .eq('user_id', user.id)
-    .single()
-
-  const { data: groups } = await supabase
-    .from('groups')
-    .select('id, name, color')
-    .eq('user_id', user.id)
-    .order('sort_order')
-
-  const { data: hiddenMotions } = await supabase
-    .from('motions')
-    .select('id, name')
-    .eq('user_id', user.id)
-    .eq('hidden', true)
-    .order('name', { ascending: true })
+  const [{ data: settings }, { data: groups }, { data: hiddenMotions }] = await Promise.all([
+    supabase
+      .from('user_settings')
+      .select('theme, groups_enabled, daily_goal, daily_goal_hours, tracking_mode, celebration_enabled, haptic_enabled')
+      .eq('user_id', user.id)
+      .single(),
+    supabase
+      .from('groups')
+      .select('id, name, color')
+      .eq('user_id', user.id)
+      .order('sort_order'),
+    supabase
+      .from('motions')
+      .select('id, name')
+      .eq('user_id', user.id)
+      .eq('hidden', true)
+      .order('name', { ascending: true }),
+  ])
 
   return (
     <div className="flex min-h-full flex-col items-center px-4 py-12">

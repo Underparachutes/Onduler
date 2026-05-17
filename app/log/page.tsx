@@ -25,15 +25,6 @@ export default async function LogPage({
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: settings } = await supabase
-    .from('user_settings')
-    .select('tracking_mode')
-    .eq('user_id', user.id)
-    .single()
-  const trackingMode: 'points' | 'hours' = (settings?.tracking_mode as 'points' | 'hours') ?? 'points'
-  const isHours = trackingMode === 'hours'
-  const formatValue = (n: number) => isHours ? formatHrs(round1(n)) : formatPts(n)
-
   const todayStart = await getTodayStart()
   const startDate =
     period === 'all'
@@ -55,11 +46,21 @@ export default async function LogPage({
 
   if (startDate) checkinQuery = checkinQuery.gte('checked_in_at', startDate.toISOString())
 
-  const [{ data: logs }, { data: waveCheckins }, { data: swells }] = await Promise.all([
+  const [
+    { data: logs },
+    { data: waveCheckins },
+    { data: swells },
+    { data: settings },
+  ] = await Promise.all([
     logsQuery,
     checkinQuery,
     supabase.from('swells').select('id, name, color, target_points, target_hours').eq('user_id', user.id).order('sort_order'),
+    supabase.from('user_settings').select('tracking_mode').eq('user_id', user.id).single(),
   ])
+
+  const trackingMode: 'points' | 'hours' = (settings?.tracking_mode as 'points' | 'hours') ?? 'points'
+  const isHours = trackingMode === 'hours'
+  const formatValue = (n: number) => isHours ? formatHrs(round1(n)) : formatPts(n)
 
   const totalPoints = logs?.reduce((sum, l) => sum + l.points, 0) ?? 0
   const totalHours = logs?.reduce((sum, l) => sum + Number(l.hours), 0) ?? 0
