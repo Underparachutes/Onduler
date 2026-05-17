@@ -64,6 +64,7 @@ Most habit apps treat every day like it should look the same. Onduler doesn't. T
 - Search: filter motions by name in flat mode checklist
 - Groups: create, edit, delete, reorder (drag), enable/disable via settings toggle
 - Swells: create, edit (name/color/weekly target), delete, assign motions via toggle chips with per-swell contribution weight (1–100%), weekly progress bars with weighted aggregation, "last week" reference stat, checkmark on target hit, hide-done uses weekly completion
+- Celebration trigger: wave/bloom animation fires the moment a motion log crosses a swell's weekly target
 - Many-to-many: motions ↔ swells (with contribution_weight), motions ↔ groups
 - Log (reports) page: period filter, stats, swells breakdown, daily chart, activity feed, waves
 - Settings: theme picker, groups toggle, daily goal, celebration/haptic toggles
@@ -74,7 +75,6 @@ Most habit apps treat every day like it should look the same. Onduler doesn't. T
 - Bottom nav: Today / Swells / Log / Settings, persistent across app pages
 
 **Deferred / not yet built:**
-- Celebration trigger when weekly swell target is crossed (animation fires on the swells page — logic pending, weekly math is in place)
 - Onboarding rework to the two-question framing ("What do you want your life to feel like?" → swells, "What in your daily life makes you feel that?" → motions; no skip on swells)
 - "Motions not feeding any swell" diagnostic surface
 - Groups assignment UX (easier to assign existing motions to groups — model TBD)
@@ -85,8 +85,7 @@ Most habit apps treat every day like it should look the same. Onduler doesn't. T
 
 | Session | Goal |
 |---|---|
-| **Next** | Celebration trigger — fire the wave/bloom animation on the swells page when weekly progress crosses the swell's target. Also: update existing swell targets in the DB from old lifetime values to reasonable weekly values |
-| **After** | Onboarding rework — opens with "What do you want your life to feel like?" (swells, no skip) then "What in your daily life makes you feel that?" (motions). Replaces the current quick-start / build-your-own flow |
+| **Next** | Onboarding rework — opens with "What do you want your life to feel like?" (swells, no skip) then "What in your daily life makes you feel that?" (motions). Replaces the current quick-start / build-your-own flow |
 | **After** | "Motions not feeding any swell" diagnostic surface — quietly surface the gap between stated wants and daily actions, so the user can either add a swell or drop the motion |
 | **After** | Groups assignment UX — decide model, build assignment from motion card or group page |
 | **After** | Bolinas theme design system |
