@@ -75,19 +75,18 @@ Most habit apps treat every day like it should look the same. Onduler doesn't. T
 - Bottom nav: Today / Swells / Log / Settings, persistent across app pages
 - Parallelized SSR data fetching: dashboard, log, and settings pages collapsed from 6–9 sequential DB round trips to 2–4 via `Promise.all`. Wave detection extracted into a helper so its two-query subchain runs in parallel with the rest of the dashboard load
 - "Motions not feeding any swell" diagnostic surface on the swells page: quiet section labeled "Not feeding any swell" with subhead "Adopt them into one, or let them go." Each row offers inline Add to a swell (opens detail sheet) and Hide (optimistic). Section hides entirely when there are no orphan motions
+- Group-centric assignment: tapping a group in Settings shows two tappable lists (Motions, Swells) under the name/color form. Items already in another group show "in [other]" and reassign on tap. Optimistic updates via existing `setMotionGroup` / `setSwellGroup`
+- Onboarding archetype starter packs: 2×2 grid above the swell list (The Maker / The Caretaker / The Athlete / The Wanderer). Tap a pack to pre-pick its three swells; tap the active pack again to clear. Picked swells sort to the top of the list so selections cluster together. Active pack highlight clears when user modifies picks. Each theme palette bumped to 10 colors; onboarding seeds the 10 swells from a shuffled palette so each gets a distinct color
 
 **Deferred / not yet built:**
-- Groups assignment UX (easier to assign existing motions to groups — model TBD)
-- Bolinas theme (visual design system not implemented — current "Bolinas" is a placeholder)
+- Bolinas theme (visual design system not implemented — current "Bolinas" is a palette swap on a placeholder)
 - Stripe / monetization
 
 ## Roadmap (next sessions)
 
 | Session | Goal |
 |---|---|
-| **Next** | Groups assignment UX — decide model, build assignment from motion card or group page |
-| **After** | Archetype starter packs — preset swell mixes the user can pick at onboarding instead of building from the menu one swell at a time (e.g. The Maker = Creativity / Work / Mind, The Caretaker = Family / Home / Mind, The Athlete = Movement / Food / Mind, The Wanderer = Adventure / Movement / Creativity). Internally framed as skill-tree builds — "invest here to live like a maker"; user-facing copy stays in Onduler's surf voice, no RPG vocabulary surfaced. |
-| **After** | Bolinas theme design system |
+| **Next** | Bolinas theme design system — current Bolinas is a palette swap on the default visual layout; build the full visual design system (typography, surface treatment, accents, motion) so the theme feels distinct from Default |
 | **After** | Stripe, premium gating, additional themes |
 | **After** | LLM-assisted import — user prompts their LLM with an Onduler-provided template, uploads the markdown output, Onduler bulk-creates swells/motions/groups |
 
