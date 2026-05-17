@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useState, useTransition } from 'react'
+import { useEffect, useMemo, useState, useTransition } from 'react'
 import { completeOnboarding } from '@/app/actions/settings'
-import { getRandomThemeAccent } from '@/lib/theme-colors'
+import { getRandomThemeAccent, getShuffledThemePalette } from '@/lib/theme-colors'
 
 type Step = 'swells' | 'motions' | 'personalize'
 type TrackingMode = 'points' | 'hours'
@@ -37,6 +37,13 @@ const SEEDED_SWELLS: { name: string; description: string; motionHint: string }[]
 
 const CUSTOM_HINT = 'e.g. add an action'
 
+const ARCHETYPE_PACKS: { key: string; label: string; swellNames: string[] }[] = [
+  { key: 'maker', label: 'The Maker', swellNames: ['Creativity', 'Work', 'Mind'] },
+  { key: 'caretaker', label: 'The Caretaker', swellNames: ['Family', 'Home', 'Mind'] },
+  { key: 'athlete', label: 'The Athlete', swellNames: ['Movement', 'Food', 'Mind'] },
+  { key: 'wanderer', label: 'The Wanderer', swellNames: ['Adventure', 'Movement', 'Creativity'] },
+]
+
 const THEMES = [
   { id: 'default', label: 'Default', desc: 'Clean and minimal' },
   { id: 'bolinas', label: 'Bolinas', desc: 'Fog, driftwood, coastal sage' },
@@ -69,12 +76,13 @@ export function OnboardingFlow() {
 
   useEffect(() => {
     const t = document.documentElement.dataset.theme ?? 'default'
+    const palette = getShuffledThemePalette(t)
     setSwellEntries(
       SEEDED_SWELLS.map((s, i) => ({
         id: i,
         name: s.name,
         description: s.description,
-        color: getRandomThemeAccent(t),
+        color: palette[i % palette.length],
         picked: false,
         custom: false,
       }))
@@ -82,6 +90,35 @@ export function OnboardingFlow() {
   }, [])
 
   const pickedSwells = swellEntries.filter(s => s.picked)
+
+  const activePackKey = useMemo(() => {
+    const pickedSeededNames = new Set(
+      swellEntries.filter(s => s.picked && !s.custom).map(s => s.name)
+    )
+    return (
+      ARCHETYPE_PACKS.find(
+        p =>
+          p.swellNames.length === pickedSeededNames.size &&
+          p.swellNames.every(n => pickedSeededNames.has(n))
+      )?.key ?? null
+    )
+  }, [swellEntries])
+
+  function applyPack(key: string) {
+    const pack = ARCHETYPE_PACKS.find(p => p.key === key)
+    if (!pack) return
+    const isActive = activePackKey === key
+    const packNames = new Set(isActive ? [] : pack.swellNames)
+    setSwellEntries(prev =>
+      prev.map(s => (s.custom ? s : { ...s, picked: packNames.has(s.name) }))
+    )
+  }
+
+  const displayedSwells = useMemo(() => {
+    const picked = swellEntries.filter(s => s.picked)
+    const unpicked = swellEntries.filter(s => !s.picked)
+    return [...picked, ...unpicked]
+  }, [swellEntries])
 
   function togglePicked(id: number) {
     setSwellEntries(prev =>
@@ -229,7 +266,31 @@ export function OnboardingFlow() {
         description="Swells are nouns — the areas of life you want to invest in. Pick a few or add your own. You can edit them anytime."
       >
         <div className="flex flex-col gap-2">
-          {swellEntries.map(s =>
+          <p className="text-xs font-medium uppercase tracking-widest text-th-faint">Or try a mix</p>
+          <div className="grid grid-cols-2 gap-2">
+            {ARCHETYPE_PACKS.map(p => {
+              const active = activePackKey === p.key
+              return (
+                <button
+                  key={p.key}
+                  onClick={() => applyPack(p.key)}
+                  className={`flex flex-col gap-1 rounded-lg border px-3 py-2.5 text-left transition-colors active:scale-[0.99] ${
+                    active
+                      ? 'border-th-btn bg-th-surface'
+                      : 'border-th-border hover:bg-th-surface'
+                  }`}
+                >
+                  <span className="text-sm font-medium text-th-text">{p.label}</span>
+                  <span className="text-xs leading-snug text-th-muted">
+                    {p.swellNames.join(' · ')}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+
+          <p className="mt-4 text-xs font-medium uppercase tracking-widest text-th-faint">All swells</p>
+          {displayedSwells.map(s =>
             editingSwellId === s.id ? (
               <div
                 key={s.id}
