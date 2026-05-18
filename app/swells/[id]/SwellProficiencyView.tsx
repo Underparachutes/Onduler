@@ -1,9 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useTransition } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { formatPts, formatHrs } from '@/lib/format'
 import { ceilDisplay, monthlyTargetDisplay, lifetimeTargetDisplay, type DayKey } from '@/lib/periods'
+import { setSwellHidden } from '@/app/actions/swells'
 import { MilestonesSection, type Milestone } from './MilestonesSection'
 
 type Swell = {
@@ -12,6 +14,7 @@ type Swell = {
   color: string
   target_points: number | null
   target_hours: number | null
+  hidden: boolean
 }
 
 type Bucket = { count: number; pts: number; hrs: number }
@@ -159,6 +162,20 @@ export function SwellProficiencyView({
 
   const motionCountLabel = motions.length === 1 ? '1 motion' : `${motions.length} motions`
 
+  const router = useRouter()
+  const [, startHide] = useTransition()
+  function toggleHidden() {
+    const next = !swell.hidden
+    startHide(async () => {
+      await setSwellHidden(swell.id, next)
+      // Hiding moves the swell out of the main list; bouncing back to the
+      // swells page makes the action feel resolved. Restoring keeps the user
+      // on the proficiency view since the swell is now visible again.
+      if (next) router.push('/swells')
+      else router.refresh()
+    })
+  }
+
   // SVG geometry — extra vertical space at the bottom so the 6-o'clock label fits.
   const size = 280
   const center = size / 2
@@ -177,6 +194,13 @@ export function SwellProficiencyView({
             >
               ← Swells
             </Link>
+            <button
+              type="button"
+              onClick={toggleHidden}
+              className="text-xs text-th-faint transition-colors hover:text-th-muted active:scale-[0.97]"
+            >
+              {swell.hidden ? 'Restore' : 'Hide'}
+            </button>
           </div>
 
           <div className="mb-2 flex items-center gap-2">

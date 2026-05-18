@@ -68,6 +68,7 @@ export default async function LogPage({
       .from('swells')
       .select('id, name, color, target_points, target_hours')
       .eq('user_id', user.id)
+      .eq('hidden', false)
       .order('sort_order'),
     supabase
       .from('user_settings')

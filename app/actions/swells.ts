@@ -69,6 +69,29 @@ export async function deleteSwell(id: string) {
   revalidatePath('/swells')
 }
 
+// Hide / restore a swell. Hidden swells stay in the database with all their
+// logs, motions, and contributions intact — they just disappear from
+// user-visible aggregation surfaces (dashboard, /log radar, /swells main
+// list). Restored from the "Hidden swells" expander on the swells page.
+export async function setSwellHidden(id: string, hidden: boolean) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const { error } = await supabase
+    .from('swells')
+    .update({ hidden })
+    .eq('id', id)
+    .eq('user_id', user.id)
+
+  if (error) return { error: error.message }
+  revalidatePath('/swells')
+  revalidatePath('/dashboard')
+  revalidatePath('/log')
+  revalidatePath(`/swells/${id}`)
+  return { success: true }
+}
+
 export async function setSwellGroup(swellId: string, groupId: string | null) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()

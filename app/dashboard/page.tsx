@@ -101,6 +101,7 @@ export default async function DashboardPage() {
       .from('swells')
       .select('id, name, color, target_points, target_hours')
       .eq('user_id', user.id)
+      .eq('hidden', false)
       .order('sort_order', { ascending: true }),
     supabase
       .from('milestone_hits')

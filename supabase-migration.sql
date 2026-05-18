@@ -51,6 +51,7 @@ CREATE TABLE swells (
   target_hours    numeric(8,2),
   group_id        uuid        REFERENCES groups(id) ON DELETE SET NULL,
   color_picked_in text        NOT NULL DEFAULT 'light' CHECK (color_picked_in IN ('light', 'dark')),
+  hidden          boolean     NOT NULL DEFAULT false,
   sort_order      int         NOT NULL DEFAULT 0,
   created_at      timestamptz NOT NULL DEFAULT now()
 );
@@ -160,6 +161,7 @@ CREATE INDEX ON motions (group_id);
 CREATE INDEX ON motions (user_id, group_id);
 CREATE INDEX ON swells (user_id);
 CREATE INDEX ON swells (group_id);
+CREATE INDEX swells_hidden_idx ON swells (user_id, hidden);
 CREATE INDEX ON groups (user_id);
 CREATE INDEX ON motion_swells (swell_id);
 CREATE INDEX ON logs (user_id, logged_at DESC);

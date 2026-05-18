@@ -45,7 +45,7 @@ export default async function SwellDetailPage({ params }: { params: Promise<{ id
   ] = await Promise.all([
     supabase
       .from('swells')
-      .select('id, name, color, target_points, target_hours')
+      .select('id, name, color, target_points, target_hours, hidden')
       .eq('id', id)
       .eq('user_id', user.id)
       .maybeSingle(),
@@ -283,6 +283,7 @@ export default async function SwellDetailPage({ params }: { params: Promise<{ id
         color: swell.color,
         target_points: swell.target_points,
         target_hours: swell.target_hours !== null ? Number(swell.target_hours) : null,
+        hidden: !!(swell as { hidden?: boolean }).hidden,
       }}
       weekPts={weekPts}
       weekHrs={weekHrs}

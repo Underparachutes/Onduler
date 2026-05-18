@@ -19,7 +19,7 @@ export default async function SwellsPage() {
   ] = await Promise.all([
     supabase
       .from('swells')
-      .select('id, name, color, target_points, target_hours, group_id, sort_order')
+      .select('id, name, color, target_points, target_hours, group_id, hidden, sort_order')
       .eq('user_id', user.id)
       .order('sort_order', { ascending: true }),
     supabase
@@ -149,14 +149,26 @@ export default async function SwellsPage() {
     })
   })
 
+  // Partition visible / hidden swells. Hidden swells stay fetched so the
+  // "Hidden swells" expander on the page can list them with a restore button;
+  // motion-swell junctions touching a hidden swell are dropped from
+  // motion.swells so the orphan diagnostic correctly counts motions that
+  // only feed hidden swells as "not feeding any swell" from the user's view.
+  const allSwells = swells ?? []
+  const hiddenSwellIds = new Set(allSwells.filter(s => s.hidden).map(s => s.id))
+  const visibleSwells = allSwells.filter(s => !s.hidden)
+  const hiddenSwells = allSwells.filter(s => s.hidden)
+
   const motions = (motionsRaw ?? []).map(m => {
     const rawJunctions = (m.motion_swells ?? []) as unknown as { contribution_weight: number; swells: { id: string; name: string; color: string } | null }[]
     const motionSwells = rawJunctions
-      .filter(ms => ms.swells !== null)
+      .filter(ms => ms.swells !== null && !hiddenSwellIds.has(ms.swells.id))
       .map(ms => ({ ...ms.swells!, weight: Number(ms.contribution_weight) || 1 }))
     const swellWeights: Record<string, number> = {}
     rawJunctions.forEach(ms => {
-      if (ms.swells) swellWeights[ms.swells.id] = Number(ms.contribution_weight) || 1
+      if (ms.swells && !hiddenSwellIds.has(ms.swells.id)) {
+        swellWeights[ms.swells.id] = Number(ms.contribution_weight) || 1
+      }
     })
     return {
       id: m.id,
@@ -170,14 +182,17 @@ export default async function SwellsPage() {
     }
   })
 
-  const swellList = (swells ?? []).map(s => ({
+  const swellList = visibleSwells.map(s => ({
     ...s,
     groupId: (s as Record<string, unknown>).group_id as string | null,
     motions: motions.filter(m => m.swellIds.includes(s.id)),
   }))
 
   const unassigned = motions.filter(m => m.swellIds.length === 0)
-  const swellStubs = (swells ?? []).map(s => ({ id: s.id, name: s.name, color: s.color }))
+  // swellStubs powers the "Add to a swell" detail-sheet picker — hidden
+  // swells stay out so the user doesn't accidentally feed something they hid.
+  const swellStubs = visibleSwells.map(s => ({ id: s.id, name: s.name, color: s.color }))
+  const hiddenSwellsList = hiddenSwells.map(s => ({ id: s.id, name: s.name, color: s.color }))
   const groupsEnabled = settings?.groups_enabled ?? false
   const trackingMode: 'points' | 'hours' = (settings?.tracking_mode as 'points' | 'hours') ?? 'points'
   const allGroups = groups ?? []
@@ -192,6 +207,7 @@ export default async function SwellsPage() {
       hrsLastWeek={hrsLastWeek}
       swellBonusThisWeek={swellBonusThisWeek}
       swellBonusLastWeek={swellBonusLastWeek}
+      hiddenSwells={hiddenSwellsList}
       swellStubs={swellStubs}
       submotionsMap={submotionsMap}
       doneMotionIds={doneMotionIds}

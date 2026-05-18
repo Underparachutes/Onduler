@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useTransition } from 'react'
 import Link from 'next/link'
 import { ceilDisplay } from '@/lib/periods'
+import { setSwellHidden } from '@/app/actions/swells'
 import { SwellsList } from './SwellsList'
 import { AddSwellForm } from './AddSwellForm'
 import { AddGroupForm } from '@/app/dashboard/components/AddGroupForm'
@@ -49,6 +50,7 @@ type Props = {
   groupsEnabled: boolean
   trackingMode: TrackingMode
   hasAnyMotions: boolean
+  hiddenSwells: Swell[]
 }
 
 function usePersistedHideDone(key: string): [boolean, () => void] {
@@ -255,10 +257,67 @@ export function SwellsView(props: Props) {
               searchQuery={searchQuery}
               activeGroup={activeGroup}
             />
+
+            {props.hiddenSwells.length > 0 && (
+              <HiddenSwellsSection hiddenSwells={props.hiddenSwells} />
+            )}
           </>
         )}
       </div>
     </div>
+  )
+}
+
+function HiddenSwellsSection({ hiddenSwells }: { hiddenSwells: Swell[] }) {
+  const [open, setOpen] = useState(false)
+  const [pending, startRestore] = useTransition()
+
+  if (hiddenSwells.length === 0) return null
+
+  function restore(id: string) {
+    startRestore(async () => { await setSwellHidden(id, false) })
+  }
+
+  const count = hiddenSwells.length
+  const countLabel = count === 1 ? '1 hidden swell' : `${count} hidden swells`
+
+  return (
+    <section className="mt-8">
+      <button
+        type="button"
+        onClick={() => setOpen(v => !v)}
+        className="text-[11px] text-th-faint transition-colors hover:text-th-muted active:scale-[0.97]"
+      >
+        {countLabel} {open ? '↑' : '↓'}
+      </button>
+      {open && (
+        <ul className="mt-2 flex flex-col gap-1">
+          {hiddenSwells.map(s => (
+            <li key={s.id} className="flex items-center gap-2 px-1 py-1.5">
+              <span
+                aria-hidden
+                className="inline-block h-2 w-2 shrink-0 rounded-full"
+                style={{ backgroundColor: s.color, opacity: 0.55 }}
+              />
+              <Link
+                href={`/swells/${s.id}`}
+                className="min-w-0 flex-1 truncate text-sm text-th-muted transition-colors hover:text-th-text"
+              >
+                {s.name}
+              </Link>
+              <button
+                type="button"
+                onClick={() => restore(s.id)}
+                disabled={pending}
+                className="shrink-0 text-[11px] text-th-faint transition-colors hover:text-th-text active:scale-[0.97] disabled:opacity-40"
+              >
+                Restore
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   )
 }
 
