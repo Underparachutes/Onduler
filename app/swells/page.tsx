@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getTodayStart, getWeekStart, getLastWeekStart } from '@/lib/timezone'
+import { bonusBySwell } from '@/lib/waypoints'
 import { SwellsView } from './SwellsView'
 
 export default async function SwellsPage() {
@@ -49,7 +50,15 @@ export default async function SwellsPage() {
 
   const [weekStart, lastWeekStart] = await Promise.all([getWeekStart(), getLastWeekStart()])
 
-  const [{ data: todayLogs }, { data: thisWeekLogs }, { data: lastWeekLogs }] = await Promise.all([
+  const [
+    { data: todayLogs },
+    { data: thisWeekLogs },
+    { data: lastWeekLogs },
+    { data: thisWeekHits },
+    { data: lastWeekHits },
+    { data: thisWeekOneShots },
+    { data: lastWeekOneShots },
+  ] = await Promise.all([
     supabase
       .from('logs')
       .select('motion_id, points, hours')
@@ -66,7 +75,43 @@ export default async function SwellsPage() {
       .eq('user_id', user.id)
       .gte('logged_at', lastWeekStart.toISOString())
       .lt('logged_at', weekStart.toISOString()),
+    supabase
+      .from('milestone_hits')
+      .select('hit_at, milestones(swell_id, bonus_points)')
+      .eq('user_id', user.id)
+      .gte('hit_at', weekStart.toISOString()),
+    supabase
+      .from('milestone_hits')
+      .select('hit_at, milestones(swell_id, bonus_points)')
+      .eq('user_id', user.id)
+      .gte('hit_at', lastWeekStart.toISOString())
+      .lt('hit_at', weekStart.toISOString()),
+    supabase
+      .from('milestones')
+      .select('swell_id, bonus_points, completed_at')
+      .eq('user_id', user.id)
+      .eq('kind', 'one_shot')
+      .not('completed_at', 'is', null)
+      .gte('completed_at', weekStart.toISOString()),
+    supabase
+      .from('milestones')
+      .select('swell_id, bonus_points, completed_at')
+      .eq('user_id', user.id)
+      .eq('kind', 'one_shot')
+      .not('completed_at', 'is', null)
+      .gte('completed_at', lastWeekStart.toISOString())
+      .lt('completed_at', weekStart.toISOString()),
   ])
+
+  // Bonus-points maps for the swells page aggregate header + per-swell rows.
+  // Points-mode only — see ADR 0004 §7 (bonus_points int doesn't map to 0.25-hr
+  // increments). The view ignores these maps in hours mode.
+  const thisWeekBonusBySwell = bonusBySwell(thisWeekHits ?? [], thisWeekOneShots ?? [])
+  const lastWeekBonusBySwell = bonusBySwell(lastWeekHits ?? [], lastWeekOneShots ?? [])
+  const swellBonusThisWeek: Record<string, number> = {}
+  const swellBonusLastWeek: Record<string, number> = {}
+  for (const [k, v] of thisWeekBonusBySwell) swellBonusThisWeek[k] = v
+  for (const [k, v] of lastWeekBonusBySwell) swellBonusLastWeek[k] = v
 
   const ptsThisWeek: Record<string, number> = {}
   const hrsThisWeek: Record<string, number> = {}
@@ -145,6 +190,8 @@ export default async function SwellsPage() {
       hrsThisWeek={hrsThisWeek}
       ptsLastWeek={ptsLastWeek}
       hrsLastWeek={hrsLastWeek}
+      swellBonusThisWeek={swellBonusThisWeek}
+      swellBonusLastWeek={swellBonusLastWeek}
       swellStubs={swellStubs}
       submotionsMap={submotionsMap}
       doneMotionIds={doneMotionIds}

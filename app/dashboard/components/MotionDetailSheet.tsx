@@ -25,6 +25,7 @@ import { createSubmotion, hideMotion, deleteMotion, setMotionSwells, setMotionGr
 import { formatPts, formatHrs } from '@/lib/format'
 import { SUBMOTIONS_ENABLED } from '@/lib/features'
 import { applyWeightEdit, defaultWeightForNewSwell, totalAllocation } from '@/lib/contributions'
+import { CadenceSection } from './CadenceSection'
 
 type Swell = { id: string; name: string; color: string }
 type MotionSwell = { id: string; name: string; color: string; weight: number }
@@ -820,6 +821,13 @@ export function MotionDetailSheet({
           </div>
           )
         })()}
+
+        <CadenceSection
+          motionId={motion.id}
+          motionName={motion.name}
+          motionSwells={motion.swells}
+          trackingMode={trackingMode}
+        />
 
         </div>
 

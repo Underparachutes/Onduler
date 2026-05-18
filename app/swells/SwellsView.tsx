@@ -40,6 +40,8 @@ type Props = {
   hrsThisWeek: Record<string, number>
   ptsLastWeek: Record<string, number>
   hrsLastWeek: Record<string, number>
+  swellBonusThisWeek: Record<string, number>
+  swellBonusLastWeek: Record<string, number>
   swellStubs: Swell[]
   submotionsMap: Record<string, Submotion[]>
   doneMotionIds: string[]
@@ -105,11 +107,14 @@ export function SwellsView(props: Props) {
   }, 0)
 
   const weeklyTotal = props.swells.reduce((sum, s) => {
-    return sum + s.motions.reduce((mSum, m) => {
+    const motionContrib = s.motions.reduce((mSum, m) => {
       const w = m.swellWeights?.[s.id] ?? 1
       if (isHours) return mSum + (props.hrsThisWeek[m.id] ?? 0) * w
       return mSum + Math.floor((props.ptsThisWeek[m.id] ?? 0) * w)
     }, 0)
+    // Bonus points accrue only in points mode (see ADR 0004 §7).
+    const bonus = isHours ? 0 : (props.swellBonusThisWeek[s.id] ?? 0)
+    return sum + motionContrib + bonus
   }, 0)
 
   const formatValue = (n: number) => String(ceilDisplay(n, isHours))
@@ -238,6 +243,8 @@ export function SwellsView(props: Props) {
               hrsThisWeek={props.hrsThisWeek}
               ptsLastWeek={props.ptsLastWeek}
               hrsLastWeek={props.hrsLastWeek}
+              swellBonusThisWeek={props.swellBonusThisWeek}
+              swellBonusLastWeek={props.swellBonusLastWeek}
               swellStubs={props.swellStubs}
               submotionsMap={props.submotionsMap}
               doneMotionIds={props.doneMotionIds}

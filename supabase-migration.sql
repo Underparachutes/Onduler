@@ -6,6 +6,7 @@
 
 
 -- 1. DROP OLD TABLES
+DROP TABLE IF EXISTS milestone_hits CASCADE;
 DROP TABLE IF EXISTS milestones CASCADE;
 DROP TABLE IF EXISTS logs CASCADE;
 DROP TABLE IF EXISTS activities CASCADE;
@@ -84,6 +85,7 @@ CREATE TABLE milestones (
   id           uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id      uuid        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   swell_id     uuid        NOT NULL REFERENCES swells(id) ON DELETE CASCADE,
+  motion_id    uuid        NULL REFERENCES motions(id) ON DELETE SET NULL, -- recurring: linked motion for auto-progress
   name         text        NOT NULL,
   kind         text        NOT NULL CHECK (kind IN ('recurring', 'one_shot')),
   cadence      text        NULL,            -- recurring: 'weekly', 'monthly', etc.
@@ -92,6 +94,16 @@ CREATE TABLE milestones (
   bonus_points int         NOT NULL DEFAULT 0,
   sort_order   int         NOT NULL DEFAULT 0,
   created_at   timestamptz NOT NULL DEFAULT now()
+);
+
+-- Event log: one row per recurring cycle hit (or any manual hit-mark).
+-- Bonus points accrue to the parent milestone's swell at hit_at; the
+-- proficiency view, swell aggregates, and activity feed all join here.
+CREATE TABLE milestone_hits (
+  id           uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id      uuid        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  milestone_id uuid        NOT NULL REFERENCES milestones(id) ON DELETE CASCADE,
+  hit_at       timestamptz NOT NULL DEFAULT now()
 );
 
 CREATE TABLE user_settings (
@@ -117,17 +129,19 @@ ALTER TABLE swells       ENABLE ROW LEVEL SECURITY;
 ALTER TABLE groups       ENABLE ROW LEVEL SECURITY;
 ALTER TABLE motion_swells ENABLE ROW LEVEL SECURITY;
 ALTER TABLE logs         ENABLE ROW LEVEL SECURITY;
-ALTER TABLE milestones   ENABLE ROW LEVEL SECURITY;
+ALTER TABLE milestones      ENABLE ROW LEVEL SECURITY;
+ALTER TABLE milestone_hits  ENABLE ROW LEVEL SECURITY;
 ALTER TABLE wave_checkins ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_settings ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "own motions"       ON motions       FOR ALL USING (auth.uid() = user_id);
-CREATE POLICY "own swells"        ON swells        FOR ALL USING (auth.uid() = user_id);
-CREATE POLICY "own groups"        ON groups        FOR ALL USING (auth.uid() = user_id);
-CREATE POLICY "own logs"          ON logs          FOR ALL USING (auth.uid() = user_id);
-CREATE POLICY "own milestones"    ON milestones    FOR ALL USING (auth.uid() = user_id);
-CREATE POLICY "own wave_checkins" ON wave_checkins FOR ALL USING (auth.uid() = user_id);
-CREATE POLICY "own user_settings" ON user_settings FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "own motions"        ON motions        FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "own swells"         ON swells         FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "own groups"         ON groups         FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "own logs"           ON logs           FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "own milestones"     ON milestones     FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "own milestone_hits" ON milestone_hits FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "own wave_checkins"  ON wave_checkins  FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "own user_settings"  ON user_settings  FOR ALL USING (auth.uid() = user_id);
 
 -- motion_swells: ownership via the motion
 CREATE POLICY "own motion_swells" ON motion_swells FOR ALL USING (
@@ -149,4 +163,8 @@ CREATE INDEX ON logs (user_id, logged_at DESC);
 CREATE INDEX ON logs (motion_id);
 CREATE INDEX milestones_swell_id_idx ON milestones (swell_id);
 CREATE INDEX milestones_user_id_idx  ON milestones (user_id);
+CREATE INDEX milestones_motion_id_idx ON milestones (motion_id);
+CREATE INDEX milestone_hits_milestone_id_idx ON milestone_hits (milestone_id);
+CREATE INDEX milestone_hits_user_id_idx ON milestone_hits (user_id);
+CREATE INDEX milestone_hits_hit_at_idx ON milestone_hits (hit_at);
 CREATE INDEX ON wave_checkins (user_id);

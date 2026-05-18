@@ -35,6 +35,9 @@ type Props = {
   weekHrs: number
   lifetimePts: number
   lifetimeHrs: number
+  // Calendar-month bonus accrual (points mode only). The View sums motion
+  // month buckets, then adds this to produce the displayed monthValue.
+  monthBonus: number
   weeksActive: number
   weeksSinceFirstLog: number
   motions: MotionStat[]
@@ -72,6 +75,7 @@ export function SwellProficiencyView({
   weekHrs,
   lifetimePts,
   lifetimeHrs,
+  monthBonus,
   weeksActive,
   weeksSinceFirstLog,
   motions,
@@ -118,10 +122,12 @@ export function SwellProficiencyView({
 
   // Swell-level totals for the constellation center text. Month is summed from
   // per-motion buckets; lifetime comes pre-aggregated from the page query.
+  // Bonus from waypoint hits/one-shot completions in the month adds in points
+  // mode only (see ADR 0004 §7).
   const monthValue = motions.reduce(
     (sum, m) => sum + (isHours ? m.month.hrs : m.month.pts),
     0,
-  )
+  ) + (isHours ? 0 : monthBonus)
   // Calendar-month target derives from the weekly target via ADR 0005 §2.
   // Lifetime target only meaningful once the user has more than one week of
   // history — otherwise it collapses to the week target and the LIFETIME tab

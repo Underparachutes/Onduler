@@ -58,6 +58,8 @@ type Props = {
   hrsThisWeek: Record<string, number>
   ptsLastWeek: Record<string, number>
   hrsLastWeek: Record<string, number>
+  swellBonusThisWeek: Record<string, number>
+  swellBonusLastWeek: Record<string, number>
   swellStubs: Swell[]
   submotionsMap: Record<string, Submotion[]>
   doneMotionIds: string[]
@@ -108,6 +110,8 @@ export function SwellsList({
   hrsThisWeek,
   ptsLastWeek,
   hrsLastWeek,
+  swellBonusThisWeek,
+  swellBonusLastWeek,
   swellStubs,
   submotionsMap,
   doneMotionIds,
@@ -158,16 +162,18 @@ export function SwellsList({
   const visibleUnassigned = unassigned.filter(m => !localHiddenIds.has(m.id))
 
   function renderSwellRow(swell: SwellWithMotions) {
+    const isHrs = trackingMode === 'hours'
+    const bonusThis = isHrs ? 0 : (swellBonusThisWeek[swell.id] ?? 0)
+    const bonusLast = isHrs ? 0 : (swellBonusLastWeek[swell.id] ?? 0)
     const swellPtsThisWeek = swell.motions.reduce((sum, m) => {
       const w = m.swellWeights?.[swell.id] ?? 1
       return sum + Math.floor((ptsThisWeekMap.get(m.id) ?? 0) * w)
-    }, 0)
+    }, 0) + bonusThis
     const swellHrsThisWeek = swell.motions.reduce((sum, m) => {
       const w = m.swellWeights?.[swell.id] ?? 1
       return sum + (hrsThisWeekMap.get(m.id) ?? 0) * w
     }, 0)
     if (hideDone) {
-      const isHrs = trackingMode === 'hours'
       const val = isHrs ? swellHrsThisWeek : swellPtsThisWeek
       const tgt = isHrs ? (swell.target_hours ? Number(swell.target_hours) : null) : swell.target_points
       if (tgt && val >= tgt) return null
@@ -175,7 +181,7 @@ export function SwellsList({
     const swellPtsLastWeek = swell.motions.reduce((sum, m) => {
       const w = m.swellWeights?.[swell.id] ?? 1
       return sum + Math.floor((ptsLastWeekMap.get(m.id) ?? 0) * w)
-    }, 0)
+    }, 0) + bonusLast
     const swellHrsLastWeek = swell.motions.reduce((sum, m) => {
       const w = m.swellWeights?.[swell.id] ?? 1
       return sum + (hrsLastWeekMap.get(m.id) ?? 0) * w

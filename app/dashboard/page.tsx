@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getTodayStart, getWeekStart } from '@/lib/timezone'
+import { bonusBySwell } from '@/lib/waypoints'
 import { DashboardView } from './components/DashboardView'
 
 type SupabaseClient = Awaited<ReturnType<typeof createClient>>
@@ -65,6 +66,8 @@ export default async function DashboardPage() {
     { data: motionsRaw },
     { data: submotionsRaw },
     { data: swellsData },
+    { data: weekWaypointHits },
+    { data: weekOneShots },
     groupsResult,
     waveResult,
   ] = await Promise.all([
@@ -97,6 +100,18 @@ export default async function DashboardPage() {
       .select('id, name, color, target_points, target_hours')
       .eq('user_id', user.id)
       .order('sort_order', { ascending: true }),
+    supabase
+      .from('milestone_hits')
+      .select('hit_at, milestones(swell_id, bonus_points)')
+      .eq('user_id', user.id)
+      .gte('hit_at', weekStart.toISOString()),
+    supabase
+      .from('milestones')
+      .select('swell_id, bonus_points, completed_at')
+      .eq('user_id', user.id)
+      .eq('kind', 'one_shot')
+      .not('completed_at', 'is', null)
+      .gte('completed_at', weekStart.toISOString()),
     groupsEnabled
       ? supabase
           .from('groups')
@@ -162,6 +177,16 @@ export default async function DashboardPage() {
   }))
   const ungroupedMotions = motions.filter(m => m.groupId === null)
 
+  // Bonus points from waypoint hits + one-shot completions this week. Points
+  // mode only — the bonus_points column is integer points; hours-mode bonus
+  // accrual is a future polish (the column doesn't map cleanly to 0.25-hr
+  // increments). See ADR 0004 §7.
+  const weeklyBonusBySwell = bonusBySwell(
+    weekWaypointHits ?? [],
+    weekOneShots ?? [],
+    weekStart.toISOString(),
+  )
+
   // Compute per-swell weekly progress for celebration trigger
   const swellWeeklyProgress: Record<string, number> = {}
   const swellTargets: Record<string, number> = {}
@@ -176,7 +201,8 @@ export default async function DashboardPage() {
       const motionVal = isHrs ? (hrsThisWeek[m.id] ?? 0) : (ptsThisWeek[m.id] ?? 0)
       return sum + motionVal * w
     }, 0)
-    swellWeeklyProgress[swell.id] = isHrs ? progress : Math.floor(progress)
+    const bonus = isHrs ? 0 : (weeklyBonusBySwell.get(swell.id) ?? 0)
+    swellWeeklyProgress[swell.id] = isHrs ? progress : Math.floor(progress) + bonus
   }
 
   return (

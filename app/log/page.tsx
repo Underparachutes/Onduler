@@ -12,6 +12,7 @@ import {
   weeksSinceFirstLog,
   type DayKey,
 } from '@/lib/periods'
+import { bonusBySwell, type WaypointHitRow, type OneShotCompletionRow } from '@/lib/waypoints'
 import { SwellRadar, type RadarSwell } from '@/app/components/SwellRadar'
 import type { BuildKey } from '@/lib/builds'
 
@@ -51,6 +52,8 @@ export default async function LogPage({
     { data: settings },
     { data: thisWeekWaveCheckins },
     { data: firstLogRow },
+    { data: allWaypointHits },
+    { data: allOneShotCompletions },
   ] = await Promise.all([
     supabase
       .from('logs')
@@ -84,6 +87,16 @@ export default async function LogPage({
       .order('logged_at', { ascending: true })
       .limit(1)
       .maybeSingle(),
+    supabase
+      .from('milestone_hits')
+      .select('hit_at, milestones(swell_id, bonus_points)')
+      .eq('user_id', user.id),
+    supabase
+      .from('milestones')
+      .select('swell_id, bonus_points, completed_at')
+      .eq('user_id', user.id)
+      .eq('kind', 'one_shot')
+      .not('completed_at', 'is', null),
   ])
 
   const trackingMode: 'points' | 'hours' = (settings?.tracking_mode as 'points' | 'hours') ?? 'points'
@@ -141,6 +154,36 @@ export default async function LogPage({
       : allLogsList
   const radarActualsMap = actualsFor(radarSourceLogs)
 
+  // Bonus points per swell for the active period. Filter raw hit/completion
+  // rows by Pacific day key against the period window, then aggregate.
+  // Points-mode only — bonus_points doesn't currency-translate to hours
+  // (see ADR 0004 §7; the integer column can't carry 0.25-hr precision).
+  const weekStartKey = pacificDayKey(weekStart)
+  const periodStartKey: DayKey | null =
+    period === 'week' ? weekStartKey : period === 'month' ? monthStart : null
+  const filterByPeriodKey = <T extends { hit_at?: string; completed_at?: string | null }>(rows: T[], readAt: (r: T) => string | null | undefined): T[] => {
+    if (!periodStartKey) return rows
+    return rows.filter(r => {
+      const at = readAt(r)
+      if (!at) return false
+      return pacificDayKey(at) >= periodStartKey
+    })
+  }
+  const hitsInPeriod = filterByPeriodKey(
+    (allWaypointHits ?? []) as WaypointHitRow[],
+    h => h.hit_at,
+  )
+  const oneShotsInPeriod = filterByPeriodKey(
+    (allOneShotCompletions ?? []) as OneShotCompletionRow[],
+    m => m.completed_at,
+  )
+  const periodBonusBySwell = isHours
+    ? new Map<string, number>()
+    : bonusBySwell(hitsInPeriod, oneShotsInPeriod)
+  for (const [swellId, bonus] of periodBonusBySwell) {
+    radarActualsMap.set(swellId, (radarActualsMap.get(swellId) ?? 0) + bonus)
+  }
+
   // Wave-month detection runs off the calendar-month log-day set.
   const monthLogs = period === 'month' ? radarSourceLogs : allLogsList.filter(l => inPeriod(l, 'month'))
   const monthLogDays = new Set<DayKey>()
@@ -161,7 +204,11 @@ export default async function LogPage({
 
   const totalPoints = periodLogs.reduce((sum, l) => sum + l.points, 0)
   const totalHours = periodLogs.reduce((sum, l) => sum + Number(l.hours), 0)
-  const totalValue = isHours ? totalHours : totalPoints
+  // Bonus accrues to swell totals; total stat should include it (points only).
+  const periodBonusTotal = isHours
+    ? 0
+    : Array.from(periodBonusBySwell.values()).reduce((s, v) => s + v, 0)
+  const totalValue = isHours ? totalHours : totalPoints + periodBonusTotal
 
   // Swells breakdown — period-filtered.
   const swellAccum = new Map<string, { name: string; color: string; points: number; hours: number }>()
@@ -177,6 +224,14 @@ export default async function LogPage({
         existing.hours += Number(log.hours) * weight
       }
     })
+  }
+
+  // Fold period-bonus into per-swell breakdown totals (points mode only).
+  if (!isHours) {
+    for (const [swellId, bonus] of periodBonusBySwell) {
+      const existing = swellAccum.get(swellId)
+      if (existing) existing.points += bonus
+    }
   }
 
   const swellBreakdown = Array.from(swellAccum.values())
