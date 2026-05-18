@@ -12,5 +12,5 @@
 DELETE FROM logs
 WHERE user_id = '86f20c8d-0a02-4f4c-8834-743c368e6f46'
   AND logged_at >= '2026-02-22'
-  AND logged_at < '2026-05-18 12:00:00+00'
+  AND logged_at < '2026-05-19'
   AND date_trunc('second', logged_at) = logged_at;
