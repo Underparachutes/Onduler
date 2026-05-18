@@ -4,9 +4,9 @@
 
 Always read `PROJECT.md` in this folder at the start of every session before responding to anything. PROJECT.md is the source of truth — product spec, vocabulary, design principles, data model, roadmap, and working agreements. Do not rely on memory from prior sessions; the file is the contract.
 
-## Trigger phrase: "Onduler, go"
+## Trigger phrase: "Onduler, Onduler"
 
-When the user says **"Onduler, go"**, that means they're ready to build. Do the following, in order:
+When the user says **"Onduler, Onduler"**, that means they're ready to build. Do the following, in order:
 
 1. **Recap where we left off.** Look at recent git log and the "Current state of the build" and "Roadmap" sections in PROJECT.md. Briefly summarize what was last shipped and what's next.
 2. **Propose the next concrete step** based on the roadmap. Pick the next session's work, or pick up an unfinished thread from the prior session. State the choice and the rough scope.

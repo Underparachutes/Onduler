@@ -229,7 +229,7 @@ ADR: `docs/decisions/0004-builds-and-the-proficiency-view.md`.
 ## Working agreements
 
 - Sessions are numbered. Session start = recap + next step. Session end = summary + queue next session.
-- The trigger phrase is **"Onduler, go."**
+- The trigger phrase is **"Onduler, Onduler."**
 - Not a pro dev. Walk through steps explicitly.
 - Direct tone, no flattery, push back when wrong.
 - Stack is locked unless something genuinely won't work.
