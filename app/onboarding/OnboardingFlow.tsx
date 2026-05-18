@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, useTransition } from 'react'
 import { completeOnboarding } from '@/app/actions/settings'
 import { getRandomThemeAccent, getShuffledThemePalette } from '@/lib/theme-colors'
+import { BUILD_PRESETS } from '@/lib/builds'
 
 type Step = 'swells' | 'motions' | 'personalize'
 type TrackingMode = 'points' | 'hours'
@@ -37,12 +38,11 @@ const SEEDED_SWELLS: { name: string; description: string; motionHint: string }[]
 
 const CUSTOM_HINT = 'e.g. add an action'
 
-const ARCHETYPE_PACKS: { key: string; label: string; swellNames: string[] }[] = [
-  { key: 'maker', label: 'The Maker', swellNames: ['Creativity', 'Work', 'Mind'] },
-  { key: 'athlete', label: 'The Athlete', swellNames: ['Movement', 'Food', 'Mind'] },
-  { key: 'wanderer', label: 'The Wanderer', swellNames: ['Adventure', 'Movement', 'Creativity'] },
-  { key: 'scholar', label: 'The Scholar', swellNames: ['Mind', 'Work', 'Creativity'] },
-]
+const ARCHETYPE_PACKS = BUILD_PRESETS.map(p => ({
+  key: p.key,
+  label: p.label,
+  swellNames: p.seededSwells,
+}))
 
 const THEMES = [
   { id: 'default', label: 'Default', desc: 'Clean and minimal' },
