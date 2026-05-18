@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { formatPts, formatHrs } from '@/lib/format'
 
@@ -11,6 +12,20 @@ type Swell = {
   target_hours: number | null
 }
 
+type Bucket = { count: number; pts: number; hrs: number }
+type MotionStat = {
+  id: string
+  name: string
+  weight: number
+  default_points: number
+  default_hours: number
+  week: Bucket
+  month: Bucket
+  lifetime: Bucket
+}
+
+type TimeView = 'week' | 'month' | 'lifetime'
+
 type Props = {
   swell: Swell
   weekPts: number
@@ -18,9 +33,15 @@ type Props = {
   lifetimePts: number
   lifetimeHrs: number
   weeksActive: number
-  motionCount: number
+  motions: MotionStat[]
   trackingMode: 'points' | 'hours'
 }
+
+const TIME_OPTIONS: { value: TimeView; label: string }[] = [
+  { value: 'week', label: 'Week' },
+  { value: 'month', label: 'Month' },
+  { value: 'lifetime', label: 'Lifetime' },
+]
 
 export function SwellProficiencyView({
   swell,
@@ -29,9 +50,11 @@ export function SwellProficiencyView({
   lifetimePts,
   lifetimeHrs,
   weeksActive,
-  motionCount,
+  motions,
   trackingMode,
 }: Props) {
+  const [timeView, setTimeView] = useState<TimeView>('week')
+
   const isHours = trackingMode === 'hours'
   const weekValue = isHours ? weekHrs : weekPts
   const lifetimeValue = isHours ? lifetimeHrs : lifetimePts
@@ -41,6 +64,17 @@ export function SwellProficiencyView({
   const formatValue = (n: number) => isHours ? formatHrs(Math.round(n * 10) / 10) : formatPts(Math.round(n))
 
   const weeksLabel = weeksActive === 1 ? '1 week running' : `${weeksActive} weeks running`
+
+  const sortedMotions = [...motions].sort((a, b) => {
+    if (b.weight !== a.weight) return b.weight - a.weight
+    return a.name.localeCompare(b.name)
+  })
+
+  function bucketOf(m: MotionStat): Bucket {
+    return m[timeView]
+  }
+
+  const motionCountLabel = motions.length === 1 ? '1 motion' : `${motions.length} motions`
 
   return (
     <div className="flex min-h-full flex-col items-center px-4 pb-12">
@@ -93,24 +127,74 @@ export function SwellProficiencyView({
           )}
         </div>
 
-        {/* Motions placeholder — chunk 2 will render the list / constellation here */}
         <section className="mt-6">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-th-muted">
-            Motions feeding this swell
-          </p>
-          {motionCount === 0 ? (
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <p className="text-xs font-semibold uppercase tracking-widest text-th-muted">
+              Motions feeding this swell
+            </p>
+            <div className="flex shrink-0 gap-1">
+              {TIME_OPTIONS.map(({ value, label }) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setTimeView(value)}
+                  className={`rounded-md border px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider transition-colors ${
+                    timeView === value
+                      ? 'border-th-text bg-th-text text-th-btn-text'
+                      : 'border-th-border text-th-muted hover:bg-th-surface'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {motions.length === 0 ? (
             <p className="rounded-lg border border-th-border px-4 py-3 text-xs text-th-faint">
               No motions assigned yet.
             </p>
           ) : (
-            <p className="rounded-lg border border-dashed border-th-border px-4 py-3 text-xs text-th-faint">
-              {motionCount === 1 ? '1 motion' : `${motionCount} motions`} — list and constellation coming soon.
-            </p>
+            <>
+              <ul className="flex flex-col">
+                {sortedMotions.map(m => {
+                  const b = bucketOf(m)
+                  const value = isHours ? b.hrs : b.pts
+                  const showWeight = m.weight < 1
+                  const countLabel = b.count === 1 ? '1 log' : `${b.count} logs`
+                  return (
+                    <li
+                      key={m.id}
+                      className="flex items-center gap-3 px-1 py-2.5"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium text-th-text">{m.name}</p>
+                        <p className="text-[11px] text-th-faint">
+                          {countLabel}
+                          {showWeight && (
+                            <>
+                              <span className="mx-1.5 text-th-faint">·</span>
+                              <span>{Math.round(m.weight * 100)}%</span>
+                            </>
+                          )}
+                        </p>
+                      </div>
+                      <span className="shrink-0 text-sm font-medium text-th-text tabular-nums">
+                        {value > 0 ? formatValue(value) : <span className="text-th-faint">—</span>}
+                      </span>
+                    </li>
+                  )
+                })}
+              </ul>
+              <p className="mt-2 px-1 text-[10px] uppercase tracking-widest text-th-faint">
+                {motionCountLabel} · sorted by contribution
+              </p>
+            </>
           )}
         </section>
 
         {/* Milestones placeholder — chunk 5 will land the create/edit UI here */}
-        <section className="mt-6">
+        <section className="mt-8">
           <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-th-muted">
             Milestones
           </p>

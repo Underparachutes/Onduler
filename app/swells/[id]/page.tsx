@@ -75,20 +75,60 @@ export default async function SwellDetailPage({ params }: { params: Promise<{ id
         .in('motion_id', motionIds)
     : { data: [] as { motion_id: string | null; points: number; hours: number; logged_at: string }[] }
 
+  // "Month" view = the last 4 ISO weeks (current week + 3 prior), per ADR 0004's
+  // "Month shows the last 4 weekly bars stacked."
+  const monthStart = new Date(weekStart.getTime() - 21 * 24 * 60 * 60 * 1000)
+
+  type Bucket = { count: number; pts: number; hrs: number }
+  const emptyBucket = (): Bucket => ({ count: 0, pts: 0, hrs: 0 })
+  const perMotion: Record<string, { week: Bucket; month: Bucket; lifetime: Bucket }> = {}
+  for (const id of motionIds) {
+    perMotion[id] = { week: emptyBucket(), month: emptyBucket(), lifetime: emptyBucket() }
+  }
+
   let weekPts = 0, weekHrs = 0, lifetimePts = 0, lifetimeHrs = 0
   const weekKeys = new Set<string>()
   for (const log of allLogs ?? []) {
     if (!log.motion_id) continue
     const w = weights[log.motion_id] ?? 1
-    lifetimePts += Math.floor(log.points * w)
-    lifetimeHrs += Number(log.hours) * w
+    const wPts = Math.floor(log.points * w)
+    const wHrs = Number(log.hours) * w
+    const stats = perMotion[log.motion_id]
+    if (stats) {
+      stats.lifetime.count += 1
+      stats.lifetime.pts += wPts
+      stats.lifetime.hrs += wHrs
+    }
+    lifetimePts += wPts
+    lifetimeHrs += wHrs
     const loggedAt = new Date(log.logged_at)
     weekKeys.add(pacificMondayKey(loggedAt))
+    if (loggedAt >= monthStart && stats) {
+      stats.month.count += 1
+      stats.month.pts += wPts
+      stats.month.hrs += wHrs
+    }
     if (loggedAt >= weekStart) {
-      weekPts += Math.floor(log.points * w)
-      weekHrs += Number(log.hours) * w
+      weekPts += wPts
+      weekHrs += wHrs
+      if (stats) {
+        stats.week.count += 1
+        stats.week.pts += wPts
+        stats.week.hrs += wHrs
+      }
     }
   }
+
+  const motionList = motions.map(m => ({
+    id: m.id,
+    name: m.name,
+    weight: m.weight,
+    default_points: m.default_points,
+    default_hours: m.default_hours,
+    week: perMotion[m.id].week,
+    month: perMotion[m.id].month,
+    lifetime: perMotion[m.id].lifetime,
+  }))
 
   const trackingMode: 'points' | 'hours' = (settings?.tracking_mode as 'points' | 'hours') ?? 'points'
 
@@ -106,7 +146,7 @@ export default async function SwellDetailPage({ params }: { params: Promise<{ id
       lifetimePts={lifetimePts}
       lifetimeHrs={lifetimeHrs}
       weeksActive={weekKeys.size}
-      motionCount={motions.length}
+      motions={motionList}
       trackingMode={trackingMode}
     />
   )
