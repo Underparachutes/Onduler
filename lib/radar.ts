@@ -25,12 +25,34 @@ export function vertexAt(
   return { x: center.x + Math.cos(angle) * r, y: center.y + Math.sin(angle) * r }
 }
 
-export function midpoint(a: Point, b: Point): Point {
-  return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }
+// Where the chord between the two adjacent target peaks (axis `index` at R_a
+// and axis `index+1` at R_b) crosses the bisector radial between them.
+// Reduces to R × cos(π/N) when R_a = R_b = R (the regular-N-gon case).
+// Used for both wedge corners and the wedge separator endpoints, so wedges
+// and slices share the same boundary geometry even when targets differ.
+export function wedgeBoundary(
+  index: number,
+  targets: number[],
+  chartMax: number,
+  radius: number,
+  center: Point = { x: 0, y: 0 },
+): Point {
+  const count = targets.length
+  if (count === 0 || chartMax <= 0) return center
+  const next = (index + 1) % count
+  const half = Math.PI / count
+  const rA = (Math.max(0, targets[index]) / chartMax) * radius
+  const rB = (Math.max(0, targets[next]) / chartMax) * radius
+  const sum = rA + rB
+  const r = sum <= 0 ? 0 : (2 * rA * rB / sum) * Math.cos(half)
+  const angle = axisAngleRad(index, count) + half
+  return { x: center.x + Math.cos(angle) * r, y: center.y + Math.sin(angle) * r }
 }
 
-// Kite-shaped wedge for axis `index`: center → mid(prev,this) → this → mid(this,next) → center.
-// The N wedges tile the target polygon's interior with no gaps or overlaps.
+// Pie-slice wedge for axis `index`: center → boundary(prev,this) → peak →
+// boundary(this,next) → center. Boundaries are the chord-bisector
+// intersections, so the wedge and slice geometries share the same radial
+// boundaries even when adjacent targets differ.
 export function wedgePath(
   index: number,
   targets: number[],
@@ -41,31 +63,79 @@ export function wedgePath(
   const count = targets.length
   if (count === 0) return ''
   const prevIdx = (index - 1 + count) % count
-  const nextIdx = (index + 1) % count
-  const vThis = vertexAt(index, count, targets[index], chartMax, radius, center)
-  const mPrev = midpoint(
-    vertexAt(prevIdx, count, targets[prevIdx], chartMax, radius, center),
-    vThis,
-  )
-  const mNext = midpoint(
-    vThis,
-    vertexAt(nextIdx, count, targets[nextIdx], chartMax, radius, center),
-  )
-  return `M ${center.x},${center.y} L ${mPrev.x},${mPrev.y} L ${vThis.x},${vThis.y} L ${mNext.x},${mNext.y} Z`
+  const ccw = wedgeBoundary(prevIdx, targets, chartMax, radius, center)
+  const peak = vertexAt(index, count, targets[index], chartMax, radius, center)
+  const cw = wedgeBoundary(index, targets, chartMax, radius, center)
+  return `M ${center.x},${center.y} L ${ccw.x},${ccw.y} L ${peak.x},${peak.y} L ${cw.x},${cw.y} Z`
 }
 
-// Closed polygon through every axis vertex at its value. Used for the
-// stroke-only actual polygon — unfed axes collapse the vertex to center,
-// pinching the line diagonally across the wedge (the gap-as-signal).
-export function polygonPath(
-  values: number[],
+// Shoulder vertex for an axis: sits on the boundary radial between axis
+// `index` and its neighbor at `axisAngle ± π/N`, at radius
+// `cos(π/N) × actualRadius`. `side`: +1 for CW (between i and i+1), -1
+// for CCW (between i and i-1). The cos factor lands the shoulder on the
+// boundary radial in a way that, when peaks are equal, the polygon becomes
+// the regular N-gon.
+export function shoulderVertex(
+  index: number,
+  count: number,
+  actualValue: number,
+  chartMax: number,
+  radius: number,
+  center: Point = { x: 0, y: 0 },
+  side: number = 1,
+): Point {
+  if (count === 0 || chartMax <= 0) return center
+  const half = Math.PI / count
+  const angle = axisAngleRad(index, count) + side * half
+  const r = (Math.max(0, actualValue) / chartMax) * radius * Math.cos(half)
+  return { x: center.x + Math.cos(angle) * r, y: center.y + Math.sin(angle) * r }
+}
+
+// 3N-vertex actuals polygon. Sequence around the chart:
+//   Peak_0, S_CW(0), S_CCW(1), Peak_1, S_CW(1), S_CCW(2), ...
+// The "dive" between adjacent peaks happens along their shared boundary
+// radial (from S_CW(i) to S_CCW(i+1)), never across a wedge interior.
+// Unfed axes collapse peak + both shoulders to center — the dive stays on
+// the boundary radials of that axis's wedge, preserving gap-as-signal.
+export function actualPolygonPath(
+  actuals: number[],
   chartMax: number,
   radius: number,
   center: Point = { x: 0, y: 0 },
 ): string {
-  if (values.length === 0) return ''
-  const pts = values.map((v, i) => vertexAt(i, values.length, v, chartMax, radius, center))
-  return pts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x},${p.y}`).join(' ') + ' Z'
+  const n = actuals.length
+  if (n === 0) return ''
+  const parts: string[] = []
+  for (let i = 0; i < n; i++) {
+    const peak = vertexAt(i, n, actuals[i], chartMax, radius, center)
+    const sCw = shoulderVertex(i, n, actuals[i], chartMax, radius, center, 1)
+    const next = (i + 1) % n
+    const sCcwNext = shoulderVertex(next, n, actuals[next], chartMax, radius, center, -1)
+    parts.push(`${i === 0 ? 'M' : 'L'} ${peak.x},${peak.y}`)
+    parts.push(`L ${sCw.x},${sCw.y}`)
+    parts.push(`L ${sCcwNext.x},${sCcwNext.y}`)
+  }
+  parts.push('Z')
+  return parts.join(' ')
+}
+
+// One axis's filled slice: center → S_CCW(i) → Peak_i → S_CW(i) → center.
+// Returns empty path when actual ≤ 0 (degenerate, nothing to render).
+export function slicePath(
+  index: number,
+  actuals: number[],
+  chartMax: number,
+  radius: number,
+  center: Point = { x: 0, y: 0 },
+): string {
+  const n = actuals.length
+  if (n === 0 || chartMax <= 0) return ''
+  const value = actuals[index]
+  if (!isFinite(value) || value <= 0) return ''
+  const sCcw = shoulderVertex(index, n, value, chartMax, radius, center, -1)
+  const peak = vertexAt(index, n, value, chartMax, radius, center)
+  const sCw = shoulderVertex(index, n, value, chartMax, radius, center, 1)
+  return `M ${center.x},${center.y} L ${sCcw.x},${sCcw.y} L ${peak.x},${peak.y} L ${sCw.x},${sCw.y} Z`
 }
 
 // Per-axis max blend of primary and secondary build targets. Secondary

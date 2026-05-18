@@ -5,7 +5,9 @@ import {
   axisAngleRad,
   vertexAt,
   wedgePath,
-  polygonPath,
+  wedgeBoundary,
+  actualPolygonPath,
+  slicePath,
   blendTargets,
   scaleConfigFor,
   chartCeiling,
@@ -203,7 +205,7 @@ export function SwellRadar({
     return { x, y, anchor }
   }
 
-  const actualPolygon = polygonPath(actuals, chartMax, RADIUS, CENTER)
+  const actualPolygon = actualPolygonPath(actuals, chartMax, RADIUS, CENTER)
   const draggedLabel = drag != null ? swells[drag.index].name : null
 
   // Reset preview rows — only the build-claimed axes where the seeded value
@@ -217,7 +219,7 @@ export function SwellRadar({
   })).filter(r => r.to > 0 && Math.abs(r.from - r.to) > 0.01)
 
   return (
-    <div className="relative mb-8 rounded-lg border border-th-border bg-th-surface px-3 pt-4 pb-3">
+    <div className="relative mb-8">
       {/* Wave week wash */}
       {waveWeekRamp != null && (
         <div
@@ -230,7 +232,7 @@ export function SwellRadar({
       <div className="relative mb-2 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <p className="text-xs font-semibold uppercase tracking-widest text-th-muted">
-            Your shape this week
+            Your swells this week
           </p>
           {buildLabel && (
             <span className="rounded-full bg-th-bg px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-th-faint">
@@ -289,16 +291,31 @@ export function SwellRadar({
             />
           ))}
 
-          {/* Radial separator lines from center to each target vertex */}
+          {/* Filled slices per swell — fuel-gauge shape inside each wedge */}
+          {swells.map((s, i) => {
+            const d = slicePath(i, actuals, chartMax, RADIUS, CENTER)
+            if (!d) return null
+            return (
+              <path
+                key={`slice-${s.id}`}
+                d={d}
+                fill={s.color}
+                fillOpacity={0.65}
+              />
+            )
+          })}
+
+          {/* Separator lines along the bisector radials — N boundaries
+              between adjacent wedges, each ending at the chord intersection. */}
           {swells.map((_, i) => {
-            const v = vertexAt(i, count, displayTargets[i], chartMax, RADIUS, CENTER)
+            const b = wedgeBoundary(i, displayTargets, chartMax, RADIUS, CENTER)
             return (
               <line
                 key={`sep-${i}`}
                 x1={CENTER.x}
                 y1={CENTER.y}
-                x2={v.x}
-                y2={v.y}
+                x2={b.x}
+                y2={b.y}
                 stroke="var(--color-th-text, currentColor)"
                 strokeWidth="0.5"
                 opacity="0.32"
@@ -306,12 +323,12 @@ export function SwellRadar({
             )
           })}
 
-          {/* Actual polygon — stroke only, pinches on unfed axes */}
+          {/* Actuals polygon outline — 3N-vertex shoulder polygon, stroke over slices */}
           <path
             d={actualPolygon}
             fill="none"
             stroke="var(--color-th-text, currentColor)"
-            strokeWidth="2"
+            strokeWidth="1.5"
             strokeLinejoin="round"
             strokeOpacity="0.85"
           />

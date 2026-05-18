@@ -26,18 +26,20 @@ User-facing copy uses surf voice: swell, motion, tide, wave, shape. Never tasks,
 - Auto-rescale on overshoot: if any vertex (target or actual) would exceed `chart_radius_px`, increase `chart_max_pts` so the largest vertex lands at ~85% of `chart_radius_px`. Chart redraws smoothly; nothing else moves.
 - Floor: 100 pts/wk or 5 hrs/wk. Don't shrink below that even if all values are tiny — keeps the chart from looking exaggerated when the user is on a wave.
 
-**Wedges.** Each axis owns a kite-shaped wedge with vertices:
+**Wedges.** Each axis owns a pie-slice wedge with vertices:
 
 ```
-center → midpoint(prev_target_vertex, this_target_vertex)
+center → intersect(chord(prev_target_vertex, this_target_vertex), left_radial)
        → this_target_vertex
-       → midpoint(this_target_vertex, next_target_vertex)
+       → intersect(chord(this_target_vertex, next_target_vertex), right_radial)
        → center
 ```
 
-The six wedges (or N wedges) tile the target ring polygon's interior with no gaps or overlaps. Each is filled with that swell's color (`swells.color`) at `fill-opacity: 0.32` (or `0.4` for greens, which are perceptually quieter). No stroke on the wedge fills.
+The two side corners sit on the bisector radials at `axis_angle ± π/N`. The intersection radius is `(2 R_a R_b / (R_a + R_b)) × cos(π/N)` — harmonic mean of the two adjacent target radii times `cos(π/N)`. When `R_a = R_b = R` this reduces to `R × cos(π/N)`, so the equal-target case is the same regular N-gon kite as before. When targets differ, the wedge boundary stays on the bisector radial — wedge and slice share the same radial boundaries, so the polygon's "dive" between unequal neighbors stays cleanly on the boundary line.
 
-**Wedge separator lines.** Thin radial lines from center to each target vertex, `stroke="var(--color-text-tertiary)" stroke-width="0.5" opacity="0.45"`. Doubles as the axis line. No additional grid hexagons.
+The N wedges tile the target ring's interior with no gaps or overlaps. Each is filled with that swell's color (`swells.color`) at `fill-opacity: 0.32` (or `0.4` for greens, which are perceptually quieter). No stroke on the wedge fills.
+
+**Wedge separator lines.** Thin lines along the bisector radials, one per boundary between adjacent wedges. Each runs from center to the chord-intersection point shared by the two neighboring wedges. `stroke="var(--color-text-tertiary)" stroke-width="0.5" opacity="0.45"`. No additional grid hexagons.
 
 **Target ring outline.** Implicit — it's the outer boundary of the wedge tiling. Don't draw a separate polygon outline; it would be redundant and add visual noise.
 
@@ -90,8 +92,8 @@ Each target vertex has a drag handle: `circle r="5" fill="var(--color-background
 
 **Live preview.** On every pointer move:
 - Move the dragged vertex to its new position.
-- Recompute the two midpoints adjacent to that vertex (`mid(prev, this)` and `mid(this, next)`).
-- Reflow the two adjacent wedges to share the new boundaries.
+- Recompute the two chord-bisector intersections adjacent to that vertex (`intersect(prev, this)` and `intersect(this, next)`) — see the wedge geometry above.
+- Reflow the two adjacent wedges to share the new boundary radii.
 - Update the live value pill.
 
 **Live value pill** (fixed corner of the chart panel, bottom-left): `<rect rx="13">` with surf-blue fill and white text. Format: `"{swell_name} · {value} {currency}/wk"`. Reads from the dragged vertex's current value.
