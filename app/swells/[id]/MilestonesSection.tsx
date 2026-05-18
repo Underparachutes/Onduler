@@ -159,7 +159,7 @@ function AddMilestoneForm({ swellId, onClose }: { swellId: string; onClose: () =
             onClick={() => setKind(k)}
             className={`rounded-md border px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider transition-colors ${
               kind === k
-                ? 'border-th-text bg-th-text text-th-btn-text'
+                ? 'border-th-text bg-th-text text-th-bg'
                 : 'border-th-border text-th-muted hover:bg-th-surface'
             }`}
           >

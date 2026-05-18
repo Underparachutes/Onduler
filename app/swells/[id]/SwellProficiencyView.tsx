@@ -225,7 +225,7 @@ export function SwellProficiencyView({
                   onClick={() => setTimeView(value)}
                   className={`rounded-md border px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider transition-colors ${
                     timeView === value
-                      ? 'border-th-text bg-th-text text-th-btn-text'
+                      ? 'border-th-text bg-th-text text-th-bg'
                       : 'border-th-border text-th-muted hover:bg-th-surface'
                   }`}
                 >
