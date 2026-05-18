@@ -24,6 +24,7 @@ import { quickLogMotion, unlogMotion } from '@/app/actions/logs'
 import { createSubmotion, hideMotion, deleteMotion, setMotionSwells, setMotionGroup, updateSubmotionDirect, updateMotionDirect, reorderMotions } from '@/app/actions/motions'
 import { formatPts, formatHrs } from '@/lib/format'
 import { SUBMOTIONS_ENABLED } from '@/lib/features'
+import { applyWeightEdit, defaultWeightForNewSwell, totalAllocation } from '@/lib/contributions'
 
 type Swell = { id: string; name: string; color: string }
 type MotionSwell = { id: string; name: string; color: string; weight: number }
@@ -359,17 +360,11 @@ export function MotionDetailSheet({
     return Array.from(weights.entries()).map(([swellId, weight]) => ({ swellId, weight }))
   }
 
-  function toggleSwellInMap(prev: Map<string, number>, swellId: string): Map<string, number> {
-    const next = new Map(prev)
-    if (next.has(swellId)) next.delete(swellId)
-    else next.set(swellId, 1)
-    return next
-  }
-
-  function togglePctDraftInMap(prev: Map<string, string>, swellId: string, weights: Map<string, number>): Map<string, string> {
-    const next = new Map(prev)
-    if (weights.has(swellId)) next.delete(swellId)
-    else next.set(swellId, '100')
+  // Draft strings mirror the weights map. After a rebalance, refresh every
+  // entry so the inputs show the auto-adjusted others, not the stale typed value.
+  function syncPctDraft(weights: Map<string, number>): Map<string, string> {
+    const next = new Map<string, string>()
+    for (const [id, w] of weights.entries()) next.set(id, String(Math.round(w * 100)))
     return next
   }
 
@@ -393,10 +388,15 @@ export function MotionDetailSheet({
 
   function toggleEditSubSwell(swellId: string) {
     if (!editingSubId) return
-    const nextWeights = toggleSwellInMap(editSubSwellWeights, swellId)
-    setEditSubSwellPctDraft(prev => togglePctDraftInMap(prev, swellId, editSubSwellWeights))
-    setEditSubSwellWeights(nextWeights)
-    startTransition(async () => { await setMotionSwells(editingSubId, swellEntriesToArray(nextWeights)) })
+    const next = new Map(editSubSwellWeights)
+    if (next.has(swellId)) {
+      next.delete(swellId)
+    } else {
+      next.set(swellId, defaultWeightForNewSwell(editSubSwellWeights))
+    }
+    setEditSubSwellWeights(next)
+    setEditSubSwellPctDraft(syncPctDraft(next))
+    startTransition(async () => { await setMotionSwells(editingSubId, swellEntriesToArray(next)) })
   }
 
   function editSubSwellPctChange(swellId: string, value: string) {
@@ -406,16 +406,15 @@ export function MotionDetailSheet({
   function editSubSwellPctBlur(swellId: string, value: string) {
     if (!editingSubId) return
     const num = parseInt(value)
-    const pct = Math.round((editSubSwellWeights.get(swellId) ?? 1) * 100)
-    if (!isNaN(num) && num >= 1 && num <= 100) {
-      const clamped = Math.max(0, Math.min(num, 100))
-      const next = new Map(editSubSwellWeights)
-      next.set(swellId, clamped / 100)
-      setEditSubSwellWeights(next)
-      startTransition(async () => { await setMotionSwells(editingSubId!, swellEntriesToArray(next)) })
-    } else {
+    if (isNaN(num) || num < 1 || num > 100) {
+      const pct = Math.round((editSubSwellWeights.get(swellId) ?? 0) * 100)
       setEditSubSwellPctDraft(prev => new Map(prev).set(swellId, String(pct)))
+      return
     }
+    const next = applyWeightEdit(editSubSwellWeights, swellId, num / 100)
+    setEditSubSwellWeights(next)
+    setEditSubSwellPctDraft(syncPctDraft(next))
+    startTransition(async () => { await setMotionSwells(editingSubId!, swellEntriesToArray(next)) })
   }
 
   function saveEditSub(sub: Submotion) {
@@ -501,8 +500,14 @@ export function MotionDetailSheet({
   }
 
   function toggleAddSwell(swellId: string) {
-    setAddSwellPctDraft(prev => togglePctDraftInMap(prev, swellId, addSwellWeights))
-    setAddSwellWeights(prev => toggleSwellInMap(prev, swellId))
+    const next = new Map(addSwellWeights)
+    if (next.has(swellId)) {
+      next.delete(swellId)
+    } else {
+      next.set(swellId, defaultWeightForNewSwell(addSwellWeights))
+    }
+    setAddSwellWeights(next)
+    setAddSwellPctDraft(syncPctDraft(next))
   }
 
   function addSwellPctChange(swellId: string, value: string) {
@@ -511,12 +516,14 @@ export function MotionDetailSheet({
 
   function addSwellPctBlur(swellId: string, value: string) {
     const num = parseInt(value)
-    const pct = Math.round((addSwellWeights.get(swellId) ?? 1) * 100)
-    if (!isNaN(num) && num >= 1 && num <= 100) {
-      setAddSwellWeights(prev => { const n = new Map(prev); n.set(swellId, Math.max(0, Math.min(num, 100)) / 100); return n })
-    } else {
+    if (isNaN(num) || num < 1 || num > 100) {
+      const pct = Math.round((addSwellWeights.get(swellId) ?? 0) * 100)
       setAddSwellPctDraft(prev => new Map(prev).set(swellId, String(pct)))
+      return
     }
+    const next = applyWeightEdit(addSwellWeights, swellId, num / 100)
+    setAddSwellWeights(next)
+    setAddSwellPctDraft(syncPctDraft(next))
   }
 
   function handleDelete() {
@@ -537,20 +544,18 @@ export function MotionDetailSheet({
     const next = new Map(localSwellWeights)
     if (next.has(swellId)) {
       next.delete(swellId)
-      setSwellPctDraft(prev => { const d = new Map(prev); d.delete(swellId); return d })
     } else {
-      next.set(swellId, 1)
-      setSwellPctDraft(prev => new Map(prev).set(swellId, '100'))
+      next.set(swellId, defaultWeightForNewSwell(localSwellWeights))
     }
     setLocalSwellWeights(next)
+    setSwellPctDraft(syncPctDraft(next))
     startSwells(async () => { await setMotionSwells(motion.id, swellEntries(next)) })
   }
 
   function updateSwellWeight(swellId: string, pct: number) {
-    const clamped = Math.max(0, Math.min(pct, 100))
-    const next = new Map(localSwellWeights)
-    next.set(swellId, clamped / 100)
+    const next = applyWeightEdit(localSwellWeights, swellId, pct / 100)
     setLocalSwellWeights(next)
+    setSwellPctDraft(syncPctDraft(next))
     startSwells(async () => { await setMotionSwells(motion.id, swellEntries(next)) })
   }
 
@@ -757,9 +762,21 @@ export function MotionDetailSheet({
         )}
 
         {/* Swells assignment with weights — one per line */}
-        {allSwells.length > 0 && (
+        {allSwells.length > 0 && (() => {
+          const allocatedPct = Math.round(totalAllocation(localSwellWeights) * 100)
+          const remainingPct = Math.max(0, 100 - allocatedPct)
+          return (
           <div className="mb-6">
-            <p className="mb-3 text-xs font-medium uppercase tracking-widest text-th-faint">Swells</p>
+            <div className="mb-3 flex items-baseline justify-between gap-2">
+              <p className="text-xs font-medium uppercase tracking-widest text-th-faint">Swells</p>
+              {localSwellWeights.size > 0 && (
+                <p className="text-[11px] text-th-faint">
+                  {allocatedPct === 100
+                    ? '100% allocated'
+                    : `${allocatedPct}% allocated · ${remainingPct}% remaining`}
+                </p>
+              )}
+            </div>
             <div className="flex flex-col gap-2">
               {allSwells.map(s => {
                 const active = localSwellWeights.has(s.id)
@@ -801,7 +818,8 @@ export function MotionDetailSheet({
               })}
             </div>
           </div>
-        )}
+          )
+        })()}
 
         </div>
 

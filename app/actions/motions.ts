@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { normalizeEntries } from '@/lib/contributions'
 
 export async function createMotion(prevState: unknown, formData: FormData) {
   const supabase = await createClient()
@@ -96,11 +97,12 @@ export async function setMotionSwells(
   await supabase.from('motion_swells').delete().eq('motion_id', motionId)
 
   if (entries.length > 0) {
+    const normalized = normalizeEntries(entries)
     await supabase.from('motion_swells').insert(
-      entries.map(({ swellId, weight }) => ({
+      normalized.map(({ swellId, weight }) => ({
         motion_id: motionId,
         swell_id: swellId,
-        contribution_weight: Math.max(0, Math.min(weight, 1)),
+        contribution_weight: weight,
       }))
     )
   }
