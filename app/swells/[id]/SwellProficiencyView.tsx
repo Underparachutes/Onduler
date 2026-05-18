@@ -125,6 +125,27 @@ export function SwellProficiencyView({
   const orbitRadius = 100
   const centerNodeRadius = 36
 
+  function nodeRadius(m: MotionStat) {
+    return 14 + m.weight * 10
+  }
+  function nodeSvgPos(m: MotionStat, autoIdx: number, total: number): { x: number; y: number } {
+    const stored = positions[m.id]
+    if (stored) {
+      // Clamp on render too — old saved positions may sit outside the current
+      // bounds (or a weight change may have shrunk the allowed range), and an
+      // off-screen node can't be grabbed to drag back.
+      const maxAbs = 1 - nodeRadius(m) / center
+      const x = clamp(stored.x, -maxAbs, maxAbs)
+      const y = clamp(stored.y, -maxAbs, maxAbs)
+      return { x: center + x * center, y: center + y * center }
+    }
+    const angle = (2 * Math.PI * autoIdx) / total - Math.PI / 2
+    return {
+      x: center + orbitRadius * Math.cos(angle),
+      y: center + orbitRadius * Math.sin(angle),
+    }
+  }
+
   function pointerToNormalized(e: ReactPointerEvent<Element>): { x: number; y: number } | null {
     const svg = svgRef.current
     if (!svg) return null
@@ -153,8 +174,7 @@ export function SwellProficiencyView({
     const m = motions.find(x => x.id === motionId)
     if (!m) return
     // Per-node clamp so the whole node stays inside the viewBox, not just its center.
-    const radius = 14 + m.weight * 10
-    const maxAbs = 1 - radius / center
+    const maxAbs = 1 - nodeRadius(m) / center
     const x = clamp(raw.x, -maxAbs, maxAbs)
     const y = clamp(raw.y, -maxAbs, maxAbs)
     setPositions(prev => ({ ...prev, [motionId]: { x, y } }))
@@ -274,16 +294,7 @@ export function SwellProficiencyView({
               >
                 {/* Connector lines: drawn first so nodes sit on top */}
                 {constellationMotions.map((m, i) => {
-                  const stored = positions[m.id]
-                  let x: number, y: number
-                  if (stored) {
-                    x = center + stored.x * center
-                    y = center + stored.y * center
-                  } else {
-                    const angle = (2 * Math.PI * i) / constellationMotions.length - Math.PI / 2
-                    x = center + orbitRadius * Math.cos(angle)
-                    y = center + orbitRadius * Math.sin(angle)
-                  }
+                  const { x, y } = nodeSvgPos(m, i, constellationMotions.length)
                   const op = activityOpacity(m)
                   const sw = 1 + m.weight * 2
                   return (
@@ -324,17 +335,8 @@ export function SwellProficiencyView({
 
                 {/* Motion nodes — draggable */}
                 {constellationMotions.map((m, i) => {
-                  const stored = positions[m.id]
-                  let x: number, y: number
-                  if (stored) {
-                    x = center + stored.x * center
-                    y = center + stored.y * center
-                  } else {
-                    const angle = (2 * Math.PI * i) / constellationMotions.length - Math.PI / 2
-                    x = center + orbitRadius * Math.cos(angle)
-                    y = center + orbitRadius * Math.sin(angle)
-                  }
-                  const radius = 14 + m.weight * 10
+                  const { x, y } = nodeSvgPos(m, i, constellationMotions.length)
+                  const radius = nodeRadius(m)
                   const op = activityOpacity(m)
                   const b = bucketOf(m)
                   const isDrag = draggingId === m.id
