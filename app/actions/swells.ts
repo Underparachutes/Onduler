@@ -125,27 +125,3 @@ export async function updateSwellDirect(
   return { success: true }
 }
 
-// Positions are normalized to the constellation's center: (0,0) at the center
-// node, ~0.71 = orbit radius, clamped to roughly the viewBox edges by the client.
-// NULL = auto-layout (motion sits at its angle around the orbit).
-export async function setMotionSwellPosition(
-  motionId: string,
-  swellId: string,
-  x: number | null,
-  y: number | null,
-) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Not authenticated' }
-
-  // Ownership check piggy-backs on RLS: motion_swells policy joins through
-  // motions.user_id, so a junction row owned by another user won't update.
-  const { error } = await supabase
-    .from('motion_swells')
-    .update({ position_x: x, position_y: y })
-    .eq('motion_id', motionId)
-    .eq('swell_id', swellId)
-
-  if (error) return { error: error.message }
-  return { success: true }
-}

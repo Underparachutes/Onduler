@@ -55,13 +55,10 @@ CREATE TABLE swells (
 );
 
 -- junction: one motion can belong to many swells (with contribution weight)
--- position_x/y are nullable: NULL = auto-layout, non-null = user-placed in the swell's constellation
 CREATE TABLE motion_swells (
   motion_id           uuid         NOT NULL REFERENCES motions(id) ON DELETE CASCADE,
   swell_id            uuid         NOT NULL REFERENCES swells(id)  ON DELETE CASCADE,
   contribution_weight numeric(5,2) NOT NULL DEFAULT 1.00,
-  position_x          real         NULL,
-  position_y          real         NULL,
   PRIMARY KEY (motion_id, swell_id)
 );
 

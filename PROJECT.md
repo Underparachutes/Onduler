@@ -46,7 +46,7 @@ Most habit apps treat every day like it should look the same. Onduler doesn't. T
 | `motions` | id, user_id, name, default_points, default_hours (default 1.0), group_id (nullable), parent_id (submotions), hidden, sort_order | parent_id enables submotions; hidden removes from daily checklist; group_id is the (single, optional) organizing folder |
 | `swells` | id, user_id, name, color, target_points (nullable), target_hours (nullable), group_id (nullable), color_picked_in, sort_order | Either/both targets optional; group_id is the (single, optional) organizing folder |
 | `groups` | id, user_id, name, color, color_picked_in, sort_order | Organizational only, no targets; shared across motions and swells |
-| `motion_swells` | motion_id, swell_id, contribution_weight, position_x, position_y | Junction: many-to-many, weighted. position_x/y nullable — NULL = auto-layout in constellation view |
+| `motion_swells` | motion_id, swell_id, contribution_weight | Junction: many-to-many, weighted |
 | `logs` | id, user_id, motion_id, points, hours, logged_at | hours defaults to motion's default_hours at log time |
 | `milestones` | id, user_id, swell_id, name, kind, cadence, target_count, completed_at, bonus_points, sort_order | kind in (recurring, one_shot); recurring uses cadence + target_count; one_shot uses completed_at. See ADR 0004 |
 | `wave_checkins` | id, user_id, energy, alignment, duration_seconds, checked_in_at | |

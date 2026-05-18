@@ -5,8 +5,6 @@ import { SwellProficiencyView } from './SwellProficiencyView'
 
 type RawJunction = {
   contribution_weight: number
-  position_x: number | null
-  position_y: number | null
   motions: { id: string; name: string; default_points: number; default_hours: number } | null
 }
 
@@ -44,7 +42,7 @@ export default async function SwellDetailPage({ params }: { params: Promise<{ id
       .maybeSingle(),
     supabase
       .from('motion_swells')
-      .select('contribution_weight, position_x, position_y, motions(id, name, default_points, default_hours)')
+      .select('contribution_weight, motions(id, name, default_points, default_hours)')
       .eq('swell_id', id),
     supabase
       .from('milestones')
@@ -71,8 +69,6 @@ export default async function SwellDetailPage({ params }: { params: Promise<{ id
       default_points: j.motions!.default_points,
       default_hours: Number(j.motions!.default_hours),
       weight: Number(j.contribution_weight) || 1,
-      position_x: j.position_x !== null ? Number(j.position_x) : null,
-      position_y: j.position_y !== null ? Number(j.position_y) : null,
     }))
 
   const weights: Record<string, number> = {}
@@ -137,8 +133,6 @@ export default async function SwellDetailPage({ params }: { params: Promise<{ id
     weight: m.weight,
     default_points: m.default_points,
     default_hours: m.default_hours,
-    position_x: m.position_x,
-    position_y: m.position_y,
     week: perMotion[m.id].week,
     month: perMotion[m.id].month,
     lifetime: perMotion[m.id].lifetime,
