@@ -99,6 +99,36 @@ export async function reorderSwells(orderedIds: string[]) {
   revalidatePath('/swells')
 }
 
+// Single-target edit used by the Logs radar drag. Caller passes the
+// currency it's in so we don't blow away the other currency's target.
+export async function updateSwellTarget(
+  id: string,
+  currency: 'points' | 'hours',
+  value: number,
+) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  if (!isFinite(value) || value < 0) return { error: 'Invalid target' }
+
+  const patch = currency === 'hours'
+    ? { target_hours: value === 0 ? null : value }
+    : { target_points: value === 0 ? null : Math.round(value) }
+
+  const { error } = await supabase
+    .from('swells')
+    .update(patch)
+    .eq('id', id)
+    .eq('user_id', user.id)
+
+  if (error) return { error: error.message }
+
+  revalidatePath('/log')
+  revalidatePath('/swells')
+  return { success: true }
+}
+
 export async function updateSwellDirect(
   id: string,
   name: string,

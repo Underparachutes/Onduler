@@ -1,8 +1,10 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import { getTodayStart } from '@/lib/timezone'
+import { getTodayStart, getWeekStart } from '@/lib/timezone'
 import { formatPts, formatHrs } from '@/lib/format'
+import { SwellRadar, type RadarSwell } from '@/app/components/SwellRadar'
+import type { BuildKey } from '@/lib/builds'
 
 type Period = '7' | '30' | 'all'
 
@@ -46,21 +48,62 @@ export default async function LogPage({
 
   if (startDate) checkinQuery = checkinQuery.gte('checked_in_at', startDate.toISOString())
 
+  const weekStart = await getWeekStart()
+
   const [
     { data: logs },
     { data: waveCheckins },
     { data: swells },
     { data: settings },
+    { data: thisWeekLogs },
+    { data: thisWeekWaveCheckins },
   ] = await Promise.all([
     logsQuery,
     checkinQuery,
     supabase.from('swells').select('id, name, color, target_points, target_hours').eq('user_id', user.id).order('sort_order'),
-    supabase.from('user_settings').select('tracking_mode').eq('user_id', user.id).single(),
+    supabase.from('user_settings').select('tracking_mode, primary_build, secondary_build').eq('user_id', user.id).single(),
+    supabase
+      .from('logs')
+      .select('points, hours, motions(motion_swells(contribution_weight, swells(id)))')
+      .eq('user_id', user.id)
+      .gte('logged_at', weekStart.toISOString()),
+    supabase
+      .from('wave_checkins')
+      .select('checked_in_at')
+      .eq('user_id', user.id)
+      .gte('checked_in_at', weekStart.toISOString())
+      .limit(1),
   ])
 
   const trackingMode: 'points' | 'hours' = (settings?.tracking_mode as 'points' | 'hours') ?? 'points'
   const isHours = trackingMode === 'hours'
   const formatValue = (n: number) => isHours ? formatHrs(round1(n)) : formatPts(n)
+  const primaryBuild = (settings?.primary_build as BuildKey | null) ?? null
+  const secondaryBuild = (settings?.secondary_build as BuildKey | null) ?? null
+  const isWaveWeek = (thisWeekWaveCheckins?.length ?? 0) > 0
+
+  // Per-swell actuals for THIS week — the radar is week-anchored regardless
+  // of the period filter that drives the report sections below.
+  const weeklyBySwell = new Map<string, number>()
+  swells?.forEach(s => weeklyBySwell.set(s.id, 0))
+  thisWeekLogs?.forEach(log => {
+    const motion = (Array.isArray(log.motions) ? log.motions[0] : log.motions) as unknown as { motion_swells?: { contribution_weight: number; swells: { id: string } | null }[] } | null
+    motion?.motion_swells?.forEach(ms => {
+      if (!ms.swells) return
+      const weight = Number(ms.contribution_weight) || 1
+      const inc = isHours ? Number(log.hours) * weight : Math.floor(log.points * weight)
+      const prev = weeklyBySwell.get(ms.swells.id) ?? 0
+      weeklyBySwell.set(ms.swells.id, prev + inc)
+    })
+  })
+
+  const radarSwells: RadarSwell[] = (swells ?? []).map(s => ({
+    id: s.id,
+    name: s.name,
+    color: s.color,
+    target: (isHours ? s.target_hours : s.target_points) ?? 0,
+  }))
+  const radarActuals: number[] = (swells ?? []).map(s => weeklyBySwell.get(s.id) ?? 0)
 
   const totalPoints = logs?.reduce((sum, l) => sum + l.points, 0) ?? 0
   const totalHours = logs?.reduce((sum, l) => sum + Number(l.hours), 0) ?? 0
@@ -123,6 +166,17 @@ export default async function LogPage({
         </div>
 
         <h1 className="mb-8 text-2xl font-semibold tracking-tight text-th-text">Log</h1>
+
+        {radarSwells.length >= 3 && (
+          <SwellRadar
+            swells={radarSwells}
+            actuals={radarActuals}
+            primaryBuild={primaryBuild}
+            secondaryBuild={secondaryBuild}
+            trackingMode={trackingMode}
+            waveWeekRamp={isWaveWeek ? 1 : null}
+          />
+        )}
 
         <div className="mb-8 flex gap-2">
           {PERIOD_OPTIONS.map(({ value, label }) => (
