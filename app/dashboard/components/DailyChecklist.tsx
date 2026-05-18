@@ -211,7 +211,7 @@ export function DailyChecklist({
   )
 
   const progress = Math.min((localValue / localGoal) * 100, 100)
-  const formatValue = (n: number) => isHours ? formatHrs(ceilDisplay(n)) : formatPts(ceilDisplay(n))
+  const formatValue = (n: number) => isHours ? formatHrs(ceilDisplay(n, true)) : formatPts(ceilDisplay(n))
   const motionDelta = (motion: Motion) => isHours ? Number(motion.default_hours) : motion.default_points
 
   function getAnimType(): CelebrationState['type'] {

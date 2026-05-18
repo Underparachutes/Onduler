@@ -88,7 +88,7 @@ export function SwellRow({
   const target = isHours ? (swell.target_hours !== null ? Number(swell.target_hours) : null) : swell.target_points
   const progress = target ? Math.min((weekValue / target) * 100, 100) : null
   const hitTarget = target !== null && weekValue >= target
-  const formatValue = (n: number) => isHours ? formatHrs(ceilDisplay(n)) : formatPts(ceilDisplay(n))
+  const formatValue = (n: number) => isHours ? formatHrs(ceilDisplay(n, true)) : formatPts(ceilDisplay(n))
 
   if (editing) {
     return (

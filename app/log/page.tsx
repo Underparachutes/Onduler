@@ -88,7 +88,7 @@ export default async function LogPage({
 
   const trackingMode: 'points' | 'hours' = (settings?.tracking_mode as 'points' | 'hours') ?? 'points'
   const isHours = trackingMode === 'hours'
-  const formatValue = (n: number) => (isHours ? formatHrs(ceilDisplay(n)) : formatPts(ceilDisplay(n)))
+  const formatValue = (n: number) => (isHours ? formatHrs(ceilDisplay(n, true)) : formatPts(ceilDisplay(n)))
   const primaryBuild = (settings?.primary_build as BuildKey | null) ?? null
   const secondaryBuild = (settings?.secondary_build as BuildKey | null) ?? null
   const isWaveWeek = (thisWeekWaveCheckins?.length ?? 0) > 0
@@ -203,7 +203,7 @@ export default async function LogPage({
   const maxDayValue = Math.max(...days.map(([, v]) => v), 1)
 
   const activeDays = days.filter(([, v]) => v > 0).length
-  const avgValue = activeDays > 0 ? ceilDisplay(totalValue / activeDays) : 0
+  const avgValue = activeDays > 0 ? ceilDisplay(totalValue / activeDays, isHours) : 0
 
   const waveCheckins = period === 'lifetime'
     ? allWaveCheckins ?? []
@@ -261,7 +261,7 @@ export default async function LogPage({
             {period !== 'lifetime' && (
               <div className="mb-8 grid grid-cols-3 gap-3">
                 <div className="rounded-lg p-3 text-center">
-                  <p className="text-lg font-semibold text-th-text">{ceilDisplay(totalValue)}</p>
+                  <p className="text-lg font-semibold text-th-text">{ceilDisplay(totalValue, isHours)}</p>
                   <p className="mt-0.5 text-[10px] uppercase tracking-widest text-th-muted">
                     {isHours ? 'hrs total' : 'pts total'}
                   </p>
@@ -347,7 +347,7 @@ export default async function LogPage({
                     day: 'numeric',
                     timeZone: 'America/Los_Angeles',
                   })
-                  const entryValue = isHours ? ceilDisplay(Number(log.hours)) : log.points
+                  const entryValue = isHours ? ceilDisplay(Number(log.hours), true) : log.points
                   return (
                     <div key={`${log.logged_at}-${i}`} className="flex items-center gap-2">
                       <span className="h-2 w-2 shrink-0 rounded-full bg-th-border" />

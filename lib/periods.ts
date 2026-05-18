@@ -85,25 +85,27 @@ export function consecutiveZeroDayStreak(
   return longest
 }
 
+// ceil for display. Negative or non-finite → 0. Points mode rounds up to
+// whole units; hours mode rounds up to 0.1 hr (matches the radar's
+// drag-commit precision so a 30-min target stays "0.5 hr", not "1 hr").
+// ADR 0005 §6 with the hours-mode exception noted in the working agreement.
+export function ceilDisplay(n: number, isHours: boolean = false): number {
+  if (!isFinite(n) || n <= 0) return 0
+  return isHours ? Math.ceil(n * 10) / 10 : Math.ceil(n)
+}
+
 // ceil(weekly_target × days_in_month / 7) for the month containing `today`.
 // Display-only — weekly target stays the source of truth.
-export function monthlyTargetDisplay(weeklyTarget: number, today: DayKey): number {
+export function monthlyTargetDisplay(weeklyTarget: number, today: DayKey, isHours: boolean = false): number {
   if (!isFinite(weeklyTarget) || weeklyTarget <= 0) return 0
-  return Math.ceil((weeklyTarget * daysInMonth(today)) / 7)
+  return ceilDisplay((weeklyTarget * daysInMonth(today)) / 7, isHours)
 }
 
 // ceil(weekly_target × weeks_since_first_log). Display-only.
-export function lifetimeTargetDisplay(weeklyTarget: number, weeksSince: number): number {
+export function lifetimeTargetDisplay(weeklyTarget: number, weeksSince: number, isHours: boolean = false): number {
   if (!isFinite(weeklyTarget) || weeklyTarget <= 0) return 0
   if (!isFinite(weeksSince) || weeksSince <= 0) return 0
-  return Math.ceil(weeklyTarget * weeksSince)
-}
-
-// ceil for display. Negative or non-finite → 0. The display-side counterpart
-// to the precise floats stored internally (ADR 0005 §6).
-export function ceilDisplay(n: number): number {
-  if (!isFinite(n) || n <= 0) return 0
-  return Math.ceil(n)
+  return ceilDisplay(weeklyTarget * weeksSince, isHours)
 }
 
 // Pacific calendar day key for a logged_at timestamp. Centralized so the

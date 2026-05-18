@@ -88,7 +88,7 @@ export function SwellProficiencyView({
   const target = isHours ? swell.target_hours : swell.target_points
   const progress = target ? Math.min((weekValue / target) * 100, 100) : null
   const hitTarget = target !== null && weekValue >= target
-  const formatValue = (n: number) => isHours ? formatHrs(ceilDisplay(n)) : formatPts(ceilDisplay(n))
+  const formatValue = (n: number) => isHours ? formatHrs(ceilDisplay(n, true)) : formatPts(ceilDisplay(n))
 
   const weeksLabel = weeksActive === 1 ? '1 week running' : `${weeksActive} weeks running`
 
@@ -130,11 +130,11 @@ export function SwellProficiencyView({
     timeView === 'week'
       ? { value: weekValue, target }
       : timeView === 'month'
-      ? { value: monthValue, target: target !== null ? monthlyTargetDisplay(target, todayKey) : null }
+      ? { value: monthValue, target: target !== null ? monthlyTargetDisplay(target, todayKey, isHours) : null }
       : {
           value: lifetimeValue,
           target: target !== null && weeksSinceFirstLog > 1
-            ? lifetimeTargetDisplay(target, weeksSinceFirstLog)
+            ? lifetimeTargetDisplay(target, weeksSinceFirstLog, isHours)
             : null,
         }
 
@@ -299,8 +299,8 @@ export function SwellProficiencyView({
                   fontWeight="600"
                 >
                   {centerWindow.target !== null
-                    ? `${ceilDisplay(centerWindow.value)}/${ceilDisplay(centerWindow.target)}`
-                    : `${ceilDisplay(centerWindow.value)}`}
+                    ? `${ceilDisplay(centerWindow.value, isHours)}/${ceilDisplay(centerWindow.target, isHours)}`
+                    : `${ceilDisplay(centerWindow.value, isHours)}`}
                 </text>
 
                 {/* Motion nodes */}
@@ -312,7 +312,7 @@ export function SwellProficiencyView({
                   const op = activityOpacity(m)
                   const b = bucketOf(m)
                   const value = valueOf(m)
-                  const displayValue = ceilDisplay(value)
+                  const displayValue = ceilDisplay(value, isHours)
                   const sizeFactor = radius / NODE_MAX_RADIUS
                   const countLabel = b.count === 1 ? '1 log' : `${b.count} logs`
                   return (

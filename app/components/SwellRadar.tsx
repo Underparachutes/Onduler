@@ -257,10 +257,11 @@ export function SwellRadar({
 
   // Drag pill — weekly source-of-truth on every period; monthly view shows
   // both values so users see the relationship while dragging (ADR 0005 §5).
+  // Hours mode keeps 0.1 precision per the ceil-rule exception.
   const formatPill = (weekly: number) => {
-    const weeklyDisplay = ceilDisplay(weekly)
+    const weeklyDisplay = ceilDisplay(weekly, isHours)
     if (period === 'month') {
-      const monthlyDisplay = monthlyTargetDisplay(weekly, todayKey)
+      const monthlyDisplay = monthlyTargetDisplay(weekly, todayKey, isHours)
       return `${monthlyDisplay} ${currencyShort}/mo · ${weeklyDisplay} ${currencyShort}/wk`
     }
     return `${weeklyDisplay} ${currencyShort}/wk`
@@ -527,6 +528,7 @@ export function SwellRadar({
           buildLabel={buildLabel ?? ''}
           rows={resetRows}
           currency={currencyShort}
+          isHours={isHours}
           period={period}
           todayKey={todayKey}
           onCancel={() => setResetOpen(false)}
@@ -558,6 +560,7 @@ function ResetDialog({
   buildLabel,
   rows,
   currency,
+  isHours,
   period,
   todayKey,
   onCancel,
@@ -566,6 +569,7 @@ function ResetDialog({
   buildLabel: string
   rows: ResetRow[]
   currency: string
+  isHours: boolean
   period: RadarPeriod
   todayKey: DayKey
   onCancel: () => void
@@ -576,9 +580,9 @@ function ResetDialog({
   // Weekly stays the source of truth — even when we display monthly numbers
   // (ADR 0005 §4: monthly diff with weekly in parens).
   function fmtPair(weekly: number): { primary: string; secondary: string | null } {
-    const weeklyDisplay = ceilDisplay(weekly)
+    const weeklyDisplay = ceilDisplay(weekly, isHours)
     if (period === 'month') {
-      const monthlyDisplay = monthlyTargetDisplay(weekly, todayKey)
+      const monthlyDisplay = monthlyTargetDisplay(weekly, todayKey, isHours)
       return {
         primary: `${monthlyDisplay} ${currency}/mo`,
         secondary: `(${weeklyDisplay} ${currency}/wk)`,

@@ -112,7 +112,7 @@ export function SwellsView(props: Props) {
     }, 0)
   }, 0)
 
-  const formatValue = (n: number) => String(ceilDisplay(n))
+  const formatValue = (n: number) => String(ceilDisplay(n, isHours))
 
   return (
     <div className="flex min-h-full flex-col items-center px-4 pb-12">
