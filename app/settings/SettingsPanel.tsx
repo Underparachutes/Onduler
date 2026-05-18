@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useActionState, useTransition } from 'react'
+import Link from 'next/link'
 import { setTheme } from '@/app/actions/theme'
 import {
   setGroupsEnabled,
@@ -13,6 +14,7 @@ import {
 import { unhideMotion } from '@/app/actions/motions'
 import { changePassword } from '@/app/actions/auth'
 import { formatPts, formatHrs } from '@/lib/format'
+import { getBuildPreset } from '@/lib/builds'
 import { EditGroupForm } from './EditGroupForm'
 
 const THEMES = [
@@ -40,6 +42,8 @@ type Props = {
   trackingMode: TrackingMode
   celebrationEnabled: boolean
   hapticEnabled: boolean
+  primaryBuild: string | null
+  secondaryBuild: string | null
   email: string
   groups: Group[]
   hiddenMotions: HiddenMotion[]
@@ -55,6 +59,8 @@ export function SettingsPanel({
   trackingMode,
   celebrationEnabled,
   hapticEnabled,
+  primaryBuild,
+  secondaryBuild,
   email,
   groups,
   hiddenMotions,
@@ -147,6 +153,14 @@ export function SettingsPanel({
   const currentThemeObj = THEMES.find(t => t.id === currentTheme)
   const currentModeObj = TRACKING_MODES.find(m => m.id === currentMode)
 
+  const primaryPreset = getBuildPreset(primaryBuild)
+  const secondaryPreset = getBuildPreset(secondaryBuild)
+  const shapeSummary = primaryPreset
+    ? secondaryPreset
+      ? `${primaryPreset.label} · ${secondaryPreset.label}`
+      : primaryPreset.label
+    : 'No shape picked'
+
   return (
     <div className="flex flex-col gap-8">
       {/* Appearance */}
@@ -166,6 +180,20 @@ export function SettingsPanel({
             ))}
           </select>
         </div>
+      </section>
+
+      {/* Your shape */}
+      <section>
+        <Link
+          href="/settings/shape"
+          className="flex items-center justify-between gap-3 py-3 transition-all active:scale-[0.99]"
+        >
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-th-text">Your shape</p>
+            <p className="truncate text-xs text-th-muted">{shapeSummary}</p>
+          </div>
+          <span className="shrink-0 text-sm text-th-faint">→</span>
+        </Link>
       </section>
 
       {/* Tracking */}

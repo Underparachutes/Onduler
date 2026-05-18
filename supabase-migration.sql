@@ -104,7 +104,9 @@ CREATE TABLE user_settings (
   tracking_mode       text    NOT NULL DEFAULT 'points' CHECK (tracking_mode IN ('points', 'hours')),
   groups_enabled      boolean NOT NULL DEFAULT false,
   celebration_enabled boolean NOT NULL DEFAULT true,
-  haptic_enabled      boolean NOT NULL DEFAULT true
+  haptic_enabled      boolean NOT NULL DEFAULT true,
+  primary_build       text    NULL,
+  secondary_build     text    NULL
 );
 
 

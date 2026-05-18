@@ -18,7 +18,7 @@ export default async function SettingsPage() {
   ] = await Promise.all([
     supabase
       .from('user_settings')
-      .select('theme, groups_enabled, daily_goal, daily_goal_hours, tracking_mode, celebration_enabled, haptic_enabled')
+      .select('theme, groups_enabled, daily_goal, daily_goal_hours, tracking_mode, celebration_enabled, haptic_enabled, primary_build, secondary_build')
       .eq('user_id', user.id)
       .single(),
     supabase
@@ -69,6 +69,8 @@ export default async function SettingsPage() {
           trackingMode={(settings?.tracking_mode as 'points' | 'hours') ?? 'points'}
           celebrationEnabled={settings?.celebration_enabled ?? true}
           hapticEnabled={settings?.haptic_enabled ?? true}
+          primaryBuild={settings?.primary_build ?? null}
+          secondaryBuild={settings?.secondary_build ?? null}
           email={user.email ?? ''}
           groups={groups ?? []}
           hiddenMotions={hiddenMotions ?? []}
