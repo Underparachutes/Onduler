@@ -4,6 +4,7 @@ import { useState, useTransition, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { updateSwellDirect, deleteSwell, setSwellGroup } from '@/app/actions/swells'
 import { formatPts, formatHrs } from '@/lib/format'
+import { ceilDisplay } from '@/lib/periods'
 
 type Motion = { id: string; name: string; default_points: number; default_hours: number; swellIds: string[]; swellWeights: Record<string, number> }
 type Group = { id: string; name: string; color: string }
@@ -87,7 +88,7 @@ export function SwellRow({
   const target = isHours ? (swell.target_hours !== null ? Number(swell.target_hours) : null) : swell.target_points
   const progress = target ? Math.min((weekValue / target) * 100, 100) : null
   const hitTarget = target !== null && weekValue >= target
-  const formatValue = (n: number) => isHours ? formatHrs(n) : formatPts(n)
+  const formatValue = (n: number) => isHours ? formatHrs(ceilDisplay(n)) : formatPts(ceilDisplay(n))
 
   if (editing) {
     return (

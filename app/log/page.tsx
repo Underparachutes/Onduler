@@ -3,99 +3,153 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTodayStart, getWeekStart } from '@/lib/timezone'
 import { formatPts, formatHrs } from '@/lib/format'
+import {
+  ceilDisplay,
+  consecutiveZeroDayStreak,
+  dayKeyRange,
+  monthStartKey,
+  pacificDayKey,
+  weeksSinceFirstLog,
+  type DayKey,
+} from '@/lib/periods'
 import { SwellRadar, type RadarSwell } from '@/app/components/SwellRadar'
 import type { BuildKey } from '@/lib/builds'
 
-type Period = '7' | '30' | 'all'
+type Period = 'week' | 'month' | 'lifetime'
 
 const PERIOD_OPTIONS: { value: Period; label: string }[] = [
-  { value: '7', label: '7 days' },
-  { value: '30', label: '30 days' },
-  { value: 'all', label: 'All time' },
+  { value: 'week', label: 'This week' },
+  { value: 'month', label: 'This month' },
+  { value: 'lifetime', label: 'All time' },
 ]
+
+function parsePeriod(raw: string | undefined): Period {
+  return raw === 'week' || raw === 'month' || raw === 'lifetime' ? raw : 'week'
+}
 
 export default async function LogPage({
   searchParams,
 }: {
   searchParams: Promise<{ period?: string }>
 }) {
-  const { period: rawPeriod = '7' } = await searchParams
-  const period: Period =
-    rawPeriod === '7' || rawPeriod === '30' || rawPeriod === 'all' ? rawPeriod : '7'
+  const { period: rawPeriod } = await searchParams
+  const period = parsePeriod(rawPeriod)
 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
   const todayStart = await getTodayStart()
-  const startDate =
-    period === 'all'
-      ? null
-      : new Date(todayStart.getTime() - (parseInt(period) - 1) * 24 * 60 * 60 * 1000)
-
-  let logsQuery = supabase
-    .from('logs')
-    .select('points, hours, logged_at, motions(name, motion_swells(contribution_weight, swells(id, name, color)))')
-    .eq('user_id', user.id)
-    .order('logged_at', { ascending: false })
-
-  if (startDate) logsQuery = logsQuery.gte('logged_at', startDate.toISOString())
-
-  let checkinQuery = supabase
-    .from('wave_checkins')
-    .select('energy, alignment, duration_seconds, checked_in_at')
-    .order('checked_in_at', { ascending: false })
-
-  if (startDate) checkinQuery = checkinQuery.gte('checked_in_at', startDate.toISOString())
-
   const weekStart = await getWeekStart()
+  const todayKey = pacificDayKey(todayStart)
+  const monthStart = monthStartKey(todayKey)
 
   const [
-    { data: logs },
-    { data: waveCheckins },
+    { data: allLogs },
+    { data: allWaveCheckins },
     { data: swells },
     { data: settings },
-    { data: thisWeekLogs },
     { data: thisWeekWaveCheckins },
+    { data: firstLogRow },
   ] = await Promise.all([
-    logsQuery,
-    checkinQuery,
-    supabase.from('swells').select('id, name, color, target_points, target_hours').eq('user_id', user.id).order('sort_order'),
-    supabase.from('user_settings').select('tracking_mode, primary_build, secondary_build').eq('user_id', user.id).single(),
     supabase
       .from('logs')
-      .select('points, hours, motions(motion_swells(contribution_weight, swells(id)))')
+      .select('points, hours, logged_at, motions(name, motion_swells(contribution_weight, swells(id, name, color)))')
       .eq('user_id', user.id)
-      .gte('logged_at', weekStart.toISOString()),
+      .order('logged_at', { ascending: false }),
+    supabase
+      .from('wave_checkins')
+      .select('energy, alignment, duration_seconds, checked_in_at')
+      .order('checked_in_at', { ascending: false }),
+    supabase
+      .from('swells')
+      .select('id, name, color, target_points, target_hours')
+      .eq('user_id', user.id)
+      .order('sort_order'),
+    supabase
+      .from('user_settings')
+      .select('tracking_mode, primary_build, secondary_build')
+      .eq('user_id', user.id)
+      .single(),
     supabase
       .from('wave_checkins')
       .select('checked_in_at')
       .eq('user_id', user.id)
       .gte('checked_in_at', weekStart.toISOString())
       .limit(1),
+    supabase
+      .from('logs')
+      .select('logged_at')
+      .eq('user_id', user.id)
+      .order('logged_at', { ascending: true })
+      .limit(1)
+      .maybeSingle(),
   ])
 
   const trackingMode: 'points' | 'hours' = (settings?.tracking_mode as 'points' | 'hours') ?? 'points'
   const isHours = trackingMode === 'hours'
-  const formatValue = (n: number) => isHours ? formatHrs(round1(n)) : formatPts(n)
+  const formatValue = (n: number) => (isHours ? formatHrs(ceilDisplay(n)) : formatPts(ceilDisplay(n)))
   const primaryBuild = (settings?.primary_build as BuildKey | null) ?? null
   const secondaryBuild = (settings?.secondary_build as BuildKey | null) ?? null
   const isWaveWeek = (thisWeekWaveCheckins?.length ?? 0) > 0
 
-  // Per-swell actuals for THIS week — the radar is week-anchored regardless
-  // of the period filter that drives the report sections below.
-  const weeklyBySwell = new Map<string, number>()
-  swells?.forEach(s => weeklyBySwell.set(s.id, 0))
-  thisWeekLogs?.forEach(log => {
-    const motion = (Array.isArray(log.motions) ? log.motions[0] : log.motions) as unknown as { motion_swells?: { contribution_weight: number; swells: { id: string } | null }[] } | null
-    motion?.motion_swells?.forEach(ms => {
-      if (!ms.swells) return
-      const weight = Number(ms.contribution_weight) || 1
-      const inc = isHours ? Number(log.hours) * weight : Math.floor(log.points * weight)
-      const prev = weeklyBySwell.get(ms.swells.id) ?? 0
-      weeklyBySwell.set(ms.swells.id, prev + inc)
-    })
-  })
+  const firstLogKey: DayKey | null = firstLogRow?.logged_at ? pacificDayKey(firstLogRow.logged_at) : null
+  const weeksSince = weeksSinceFirstLog(firstLogKey, todayKey)
+
+  // Period filtering against the unified all-logs fetch above.
+  const weekStartMs = weekStart.getTime()
+  const allLogsList = allLogs ?? []
+
+  function inPeriod(log: { logged_at: string }, p: Period): boolean {
+    if (p === 'lifetime') return true
+    if (p === 'week') return new Date(log.logged_at).getTime() >= weekStartMs
+    return pacificDayKey(log.logged_at) >= monthStart
+  }
+
+  type LogRow = typeof allLogsList[number]
+  type MotionShape = {
+    name?: string
+    motion_swells?: {
+      contribution_weight: number
+      swells: { id: string; name: string; color: string } | null
+    }[]
+  } | null
+  const readMotion = (log: LogRow): MotionShape =>
+    (Array.isArray(log.motions) ? log.motions[0] : log.motions) as unknown as MotionShape
+
+  function actualsFor(logs: LogRow[]): Map<string, number> {
+    const acc = new Map<string, number>()
+    swells?.forEach(s => acc.set(s.id, 0))
+    for (const log of logs) {
+      const motion = readMotion(log)
+      motion?.motion_swells?.forEach(ms => {
+        if (!ms.swells) return
+        const weight = Number(ms.contribution_weight) || 1
+        const inc = isHours ? Number(log.hours) * weight : Math.floor(log.points * weight)
+        acc.set(ms.swells.id, (acc.get(ms.swells.id) ?? 0) + inc)
+      })
+    }
+    return acc
+  }
+
+  const periodLogs = allLogsList.filter(l => inPeriod(l, period))
+  const radarSourceLogs =
+    period === 'week'
+      ? allLogsList.filter(l => inPeriod(l, 'week'))
+      : period === 'month'
+      ? allLogsList.filter(l => inPeriod(l, 'month'))
+      : allLogsList
+  const radarActualsMap = actualsFor(radarSourceLogs)
+
+  // Wave-month detection runs off the calendar-month log-day set.
+  const monthLogs = period === 'month' ? radarSourceLogs : allLogsList.filter(l => inPeriod(l, 'month'))
+  const monthLogDays = new Set<DayKey>()
+  monthLogs.forEach(l => monthLogDays.add(pacificDayKey(l.logged_at)))
+  const waveMonthStreak = consecutiveZeroDayStreak(monthLogDays, monthStart, todayKey)
+  const waveMonthActive = waveMonthStreak >= 7
+
+  const waveRamp: number | null =
+    period === 'week' ? (isWaveWeek ? 1 : null) : period === 'month' ? (waveMonthActive ? 1 : null) : null
 
   const radarSwells: RadarSwell[] = (swells ?? []).map(s => ({
     id: s.id,
@@ -103,18 +157,17 @@ export default async function LogPage({
     color: s.color,
     target: (isHours ? s.target_hours : s.target_points) ?? 0,
   }))
-  const radarActuals: number[] = (swells ?? []).map(s => weeklyBySwell.get(s.id) ?? 0)
+  const radarActuals: number[] = (swells ?? []).map(s => radarActualsMap.get(s.id) ?? 0)
 
-  const totalPoints = logs?.reduce((sum, l) => sum + l.points, 0) ?? 0
-  const totalHours = logs?.reduce((sum, l) => sum + Number(l.hours), 0) ?? 0
+  const totalPoints = periodLogs.reduce((sum, l) => sum + l.points, 0)
+  const totalHours = periodLogs.reduce((sum, l) => sum + Number(l.hours), 0)
   const totalValue = isHours ? totalHours : totalPoints
 
-  // Swells breakdown
+  // Swells breakdown — period-filtered.
   const swellAccum = new Map<string, { name: string; color: string; points: number; hours: number }>()
   swells?.forEach(s => swellAccum.set(s.id, { name: s.name, color: s.color, points: 0, hours: 0 }))
-
-  logs?.forEach(log => {
-    const motion = (Array.isArray(log.motions) ? log.motions[0] : log.motions) as unknown as { motion_swells?: { contribution_weight: number; swells: { id: string; name: string; color: string } | null }[] } | null
+  for (const log of periodLogs) {
+    const motion = readMotion(log)
     motion?.motion_swells?.forEach(ms => {
       if (!ms.swells) return
       const weight = Number(ms.contribution_weight) || 1
@@ -124,7 +177,7 @@ export default async function LogPage({
         existing.hours += Number(log.hours) * weight
       }
     })
-  })
+  }
 
   const swellBreakdown = Array.from(swellAccum.values())
     .map(s => ({ ...s, value: isHours ? s.hours : s.points }))
@@ -132,28 +185,32 @@ export default async function LogPage({
     .sort((a, b) => b.value - a.value)
   const maxSwellValue = swellBreakdown[0]?.value ?? 1
 
-  // Daily chart — bucket everything by Pacific date, not UTC
-  const pacificDateFmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Los_Angeles' })
-  const dayMap = new Map<string, number>()
-  if (period !== 'all') {
-    const numDays = parseInt(period)
-    for (let i = numDays - 1; i >= 0; i--) {
-      const d = new Date(todayStart.getTime() - i * 24 * 60 * 60 * 1000)
-      dayMap.set(pacificDateFmt.format(d), 0)
+  // Daily chart: anchor to the calendar window. Week → weekStart..today,
+  // month → 1st-of-month..today, lifetime → no chart.
+  const dayMap = new Map<DayKey, number>()
+  if (period !== 'lifetime') {
+    const startKey: DayKey = period === 'week' ? pacificDayKey(weekStart) : monthStart
+    for (const k of dayKeyRange(startKey, todayKey)) dayMap.set(k, 0)
+  }
+  for (const log of periodLogs) {
+    const day = pacificDayKey(log.logged_at)
+    if (dayMap.has(day)) {
+      const inc = isHours ? Number(log.hours) : log.points
+      dayMap.set(day, dayMap.get(day)! + inc)
     }
   }
-  logs?.forEach(log => {
-    const day = pacificDateFmt.format(new Date(log.logged_at as string))
-    const inc = isHours ? Number(log.hours) : log.points
-    if (dayMap.has(day)) dayMap.set(day, dayMap.get(day)! + inc)
-  })
-  const days = Array.from(dayMap.entries()).sort(([a], [b]) => a.localeCompare(b))
+  const days = Array.from(dayMap.entries())
   const maxDayValue = Math.max(...days.map(([, v]) => v), 1)
 
   const activeDays = days.filter(([, v]) => v > 0).length
-  const avgValue = activeDays > 0
-    ? (isHours ? round1(totalValue / activeDays) : Math.round(totalValue / activeDays))
-    : 0
+  const avgValue = activeDays > 0 ? ceilDisplay(totalValue / activeDays) : 0
+
+  const waveCheckins = period === 'lifetime'
+    ? allWaveCheckins ?? []
+    : (allWaveCheckins ?? []).filter(c => {
+        if (period === 'week') return new Date(c.checked_in_at).getTime() >= weekStartMs
+        return pacificDayKey(c.checked_in_at) >= monthStart
+      })
 
   return (
     <div className="flex min-h-full flex-col items-center px-4 py-12">
@@ -171,10 +228,13 @@ export default async function LogPage({
           <SwellRadar
             swells={radarSwells}
             actuals={radarActuals}
+            period={period}
             primaryBuild={primaryBuild}
             secondaryBuild={secondaryBuild}
             trackingMode={trackingMode}
-            waveWeekRamp={isWaveWeek ? 1 : null}
+            waveRamp={waveRamp}
+            weeksSinceFirstLog={weeksSince}
+            todayKey={todayKey}
           />
         )}
 
@@ -198,10 +258,10 @@ export default async function LogPage({
           <p className="text-sm text-th-muted">No motions logged for this period.</p>
         ) : (
           <>
-            {period !== 'all' && (
+            {period !== 'lifetime' && (
               <div className="mb-8 grid grid-cols-3 gap-3">
                 <div className="rounded-lg p-3 text-center">
-                  <p className="text-lg font-semibold text-th-text">{isHours ? round1(totalValue) : totalValue}</p>
+                  <p className="text-lg font-semibold text-th-text">{ceilDisplay(totalValue)}</p>
                   <p className="mt-0.5 text-[10px] uppercase tracking-widest text-th-muted">
                     {isHours ? 'hrs total' : 'pts total'}
                   </p>
@@ -242,16 +302,16 @@ export default async function LogPage({
               </div>
             )}
 
-            {period !== 'all' && days.length > 0 && (
+            {period !== 'lifetime' && days.length > 0 && (
               <div className="mb-8">
                 <h2 className="mb-3 text-sm font-medium text-th-text">
-                  {period === '7' ? 'This week' : 'Past 30 days'}
+                  {period === 'week' ? 'This week' : 'This month'}
                 </h2>
                 <div className="flex flex-col gap-2">
                   {days.map(([date, val]) => {
                     const d = new Date(date + 'T00:00:00Z')
                     const label =
-                      period === '7'
+                      period === 'week'
                         ? d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' })
                         : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })
                     return (
@@ -277,17 +337,17 @@ export default async function LogPage({
 
             <div className="mb-8">
               <h2 className="mb-3 text-sm font-medium text-th-text">
-                {period === 'all' ? 'All activity' : 'Recent'}
+                {period === 'lifetime' ? 'All activity' : 'Recent'}
               </h2>
               <div className="flex flex-col gap-2">
-                {logs?.slice(0, 40).map((log, i) => {
-                  const motion = Array.isArray(log.motions) ? log.motions[0] : log.motions as { name: string } | null
+                {periodLogs.slice(0, 40).map((log, i) => {
+                  const motion = readMotion(log)
                   const dateLabel = new Date(log.logged_at as string).toLocaleDateString('en-US', {
                     month: 'short',
                     day: 'numeric',
                     timeZone: 'America/Los_Angeles',
                   })
-                  const entryValue = isHours ? round1(Number(log.hours)) : log.points
+                  const entryValue = isHours ? ceilDisplay(Number(log.hours)) : log.points
                   return (
                     <div key={`${log.logged_at}-${i}`} className="flex items-center gap-2">
                       <span className="h-2 w-2 shrink-0 rounded-full bg-th-border" />
@@ -300,7 +360,7 @@ export default async function LogPage({
               </div>
             </div>
 
-            {waveCheckins && waveCheckins.length > 0 && (
+            {waveCheckins.length > 0 && (
               <div>
                 <h2 className="mb-3 text-sm font-medium text-th-text">Waves</h2>
                 <div className="flex flex-col gap-3">
@@ -347,8 +407,4 @@ export default async function LogPage({
       </div>
     </div>
   )
-}
-
-function round1(n: number): number {
-  return Math.round(n * 10) / 10
 }

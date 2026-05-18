@@ -1,17 +1,16 @@
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { getWeekStart } from '@/lib/timezone'
+import { getTodayStart, getWeekStart } from '@/lib/timezone'
+import {
+  monthStartKey,
+  pacificDayKey,
+  weeksSinceFirstLog as weeksSinceFirstLogFn,
+} from '@/lib/periods'
 import { SwellProficiencyView } from './SwellProficiencyView'
 
 type RawJunction = {
   contribution_weight: number
   motions: { id: string; name: string; default_points: number; default_hours: number } | null
-}
-
-function weeksSince(firstLogIso: string | null | undefined): number {
-  if (!firstLogIso) return 1
-  const elapsedMs = Date.now() - new Date(firstLogIso).getTime()
-  return Math.max(1, Math.ceil(elapsedMs / (7 * 24 * 60 * 60 * 1000)))
 }
 
 function pacificMondayKey(date: Date): string {
@@ -40,6 +39,7 @@ export default async function SwellDetailPage({ params }: { params: Promise<{ id
     { data: settings },
     { data: firstLogRow },
     weekStart,
+    todayStart,
   ] = await Promise.all([
     supabase
       .from('swells')
@@ -71,7 +71,10 @@ export default async function SwellDetailPage({ params }: { params: Promise<{ id
       .limit(1)
       .maybeSingle(),
     getWeekStart(),
+    getTodayStart(),
   ])
+  const todayKey = pacificDayKey(todayStart)
+  const monthStartK = monthStartKey(todayKey)
 
   if (!swell) notFound()
 
@@ -97,9 +100,8 @@ export default async function SwellDetailPage({ params }: { params: Promise<{ id
         .in('motion_id', motionIds)
     : { data: [] as { motion_id: string | null; points: number; hours: number; logged_at: string }[] }
 
-  // "Month" view = the last 4 ISO weeks (current week + 3 prior), per ADR 0004's
-  // "Month shows the last 4 weekly bars stacked."
-  const monthStart = new Date(weekStart.getTime() - 21 * 24 * 60 * 60 * 1000)
+  // "Month" view = the calendar month containing today (1st-of-month → today).
+  // ADR 0005 §1; replaces the prior "last 4 ISO weeks" rolling window.
 
   type Bucket = { count: number; pts: number; hrs: number }
   const emptyBucket = (): Bucket => ({ count: 0, pts: 0, hrs: 0 })
@@ -125,7 +127,7 @@ export default async function SwellDetailPage({ params }: { params: Promise<{ id
     lifetimeHrs += wHrs
     const loggedAt = new Date(log.logged_at)
     weekKeys.add(pacificMondayKey(loggedAt))
-    if (loggedAt >= monthStart && stats) {
+    if (pacificDayKey(loggedAt) >= monthStartK && stats) {
       stats.month.count += 1
       stats.month.pts += wPts
       stats.month.hrs += wHrs
@@ -156,8 +158,10 @@ export default async function SwellDetailPage({ params }: { params: Promise<{ id
 
   // Weeks-since-app-start anchors the Lifetime target (weekly target × weeks elapsed).
   // Distinct from weeksActive on this swell — Lifetime is meant to be honest about
-  // the whole journey, including swells you haven't fed yet.
-  const weeksSinceFirstLog = weeksSince(firstLogRow?.logged_at)
+  // the whole journey, including swells you haven't fed yet. ceil(days_since/7);
+  // ≤ 1 → proficiency view falls back to showing absolute lifetime totals.
+  const firstLogKey = firstLogRow?.logged_at ? pacificDayKey(firstLogRow.logged_at) : null
+  const weeksSinceFirstLog = weeksSinceFirstLogFn(firstLogKey, todayKey)
 
   type RawMilestone = {
     id: string
@@ -194,6 +198,7 @@ export default async function SwellDetailPage({ params }: { params: Promise<{ id
       motions={motionList}
       milestones={milestones}
       trackingMode={trackingMode}
+      todayKey={todayKey}
     />
   )
 }

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
+import { ceilDisplay } from '@/lib/periods'
 import { SwellsList } from './SwellsList'
 import { AddSwellForm } from './AddSwellForm'
 import { AddGroupForm } from '@/app/dashboard/components/AddGroupForm'
@@ -111,7 +112,7 @@ export function SwellsView(props: Props) {
     }, 0)
   }, 0)
 
-  const formatValue = (n: number) => isHours ? n.toFixed(n % 1 === 0 ? 0 : 2).replace(/\.?0+$/, '') : String(Math.round(n))
+  const formatValue = (n: number) => String(ceilDisplay(n))
 
   return (
     <div className="flex min-h-full flex-col items-center px-4 pb-12">
@@ -183,7 +184,7 @@ export function SwellsView(props: Props) {
                   </div>
                   <div className="flex justify-between text-[10px] text-th-faint">
                     <span>{formatValue(weeklyTotal)} / {formatValue(combinedTarget)} weekly</span>
-                    <span>{Math.round(Math.min((weeklyTotal / combinedTarget) * 100, 100))}%</span>
+                    <span>{ceilDisplay(Math.min((weeklyTotal / combinedTarget) * 100, 100))}%</span>
                   </div>
                 </div>
               )}

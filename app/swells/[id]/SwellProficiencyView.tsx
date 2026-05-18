@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { formatPts, formatHrs } from '@/lib/format'
+import { ceilDisplay, monthlyTargetDisplay, lifetimeTargetDisplay, type DayKey } from '@/lib/periods'
 import { MilestonesSection, type Milestone } from './MilestonesSection'
 
 type Swell = {
@@ -39,6 +40,7 @@ type Props = {
   motions: MotionStat[]
   milestones: Milestone[]
   trackingMode: 'points' | 'hours'
+  todayKey: DayKey
 }
 
 const TIME_OPTIONS: { value: TimeView; label: string }[] = [
@@ -75,6 +77,7 @@ export function SwellProficiencyView({
   motions,
   milestones,
   trackingMode,
+  todayKey,
 }: Props) {
   const [timeView, setTimeView] = useState<TimeView>('week')
   const [viewMode, setViewMode] = useState<ViewMode>('constellation')
@@ -85,7 +88,7 @@ export function SwellProficiencyView({
   const target = isHours ? swell.target_hours : swell.target_points
   const progress = target ? Math.min((weekValue / target) * 100, 100) : null
   const hitTarget = target !== null && weekValue >= target
-  const formatValue = (n: number) => isHours ? formatHrs(Math.round(n * 10) / 10) : formatPts(Math.round(n))
+  const formatValue = (n: number) => isHours ? formatHrs(ceilDisplay(n)) : formatPts(ceilDisplay(n))
 
   const weeksLabel = weeksActive === 1 ? '1 week running' : `${weeksActive} weeks running`
 
@@ -119,17 +122,20 @@ export function SwellProficiencyView({
     (sum, m) => sum + (isHours ? m.month.hrs : m.month.pts),
     0,
   )
+  // Calendar-month target derives from the weekly target via ADR 0005 §2.
   // Lifetime target only meaningful once the user has more than one week of
-  // history — otherwise it equals the week target and the LIFETIME tab reads
-  // identical to WEEK.
+  // history — otherwise it collapses to the week target and the LIFETIME tab
+  // reads identical to WEEK, so we fall back to the absolute lifetime total.
   const centerWindow: { value: number; target: number | null } =
     timeView === 'week'
       ? { value: weekValue, target }
       : timeView === 'month'
-      ? { value: monthValue, target: target !== null ? target * 4 : null }
+      ? { value: monthValue, target: target !== null ? monthlyTargetDisplay(target, todayKey) : null }
       : {
           value: lifetimeValue,
-          target: target !== null && weeksSinceFirstLog > 1 ? target * weeksSinceFirstLog : null,
+          target: target !== null && weeksSinceFirstLog > 1
+            ? lifetimeTargetDisplay(target, weeksSinceFirstLog)
+            : null,
         }
 
   // Node size = points (or hours) earned in the active window, scaled against
@@ -293,8 +299,8 @@ export function SwellProficiencyView({
                   fontWeight="600"
                 >
                   {centerWindow.target !== null
-                    ? `${Math.round(centerWindow.value)}/${Math.round(centerWindow.target)}`
-                    : `${Math.round(centerWindow.value)}`}
+                    ? `${ceilDisplay(centerWindow.value)}/${ceilDisplay(centerWindow.target)}`
+                    : `${ceilDisplay(centerWindow.value)}`}
                 </text>
 
                 {/* Motion nodes */}
@@ -306,7 +312,7 @@ export function SwellProficiencyView({
                   const op = activityOpacity(m)
                   const b = bucketOf(m)
                   const value = valueOf(m)
-                  const displayValue = Math.round(value)
+                  const displayValue = ceilDisplay(value)
                   const sizeFactor = radius / NODE_MAX_RADIUS
                   const countLabel = b.count === 1 ? '1 log' : `${b.count} logs`
                   return (

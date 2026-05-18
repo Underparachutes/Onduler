@@ -24,6 +24,7 @@ import { quickLogMotion, unlogMotion } from '@/app/actions/logs'
 import { setDailyGoal, setDailyGoalHours } from '@/app/actions/settings'
 import { reassignMotionToGroup, reorderMotions } from '@/app/actions/motions'
 import { formatPts, formatHrs } from '@/lib/format'
+import { ceilDisplay } from '@/lib/periods'
 import { SUBMOTIONS_ENABLED } from '@/lib/features'
 import { CelebrationOverlay, type CelebrationState } from './CelebrationOverlay'
 import { MotionDetailSheet } from './MotionDetailSheet'
@@ -210,7 +211,7 @@ export function DailyChecklist({
   )
 
   const progress = Math.min((localValue / localGoal) * 100, 100)
-  const formatValue = (n: number) => isHours ? formatHrs(n) : formatPts(n)
+  const formatValue = (n: number) => isHours ? formatHrs(ceilDisplay(n)) : formatPts(ceilDisplay(n))
   const motionDelta = (motion: Motion) => isHours ? Number(motion.default_hours) : motion.default_points
 
   function getAnimType(): CelebrationState['type'] {
@@ -379,7 +380,7 @@ export function DailyChecklist({
             {formatValue(localGoal)} goal
           </button>
         )}</span>
-        <span>{Math.round(progress)}%</span>
+        <span>{ceilDisplay(progress)}%</span>
       </div>
     </div>
   )

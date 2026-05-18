@@ -1,0 +1,114 @@
+// Calendar-month period helpers. See docs/decisions/0005-monthly-cycle-and-wave-month.md.
+// Pure functions only — no React, no Supabase, no DOM. All date inputs are
+// 'YYYY-MM-DD' calendar-date strings (DayKey); callers produce these from
+// the user's local timezone (the project uses Pacific date keys throughout).
+
+export type DayKey = string
+
+const MS_PER_DAY = 86_400_000
+
+function parts(key: DayKey): [number, number, number] {
+  const [y, m, d] = key.split('-').map(Number)
+  return [y, m, d]
+}
+
+function toUtcMs(key: DayKey): number {
+  const [y, m, d] = parts(key)
+  return Date.UTC(y, m - 1, d)
+}
+
+function fromUtcMs(ms: number): DayKey {
+  const d = new Date(ms)
+  const yy = d.getUTCFullYear()
+  const mm = String(d.getUTCMonth() + 1).padStart(2, '0')
+  const dd = String(d.getUTCDate()).padStart(2, '0')
+  return `${yy}-${mm}-${dd}`
+}
+
+// Days in the calendar month containing `key` (28, 29, 30, or 31).
+export function daysInMonth(key: DayKey): number {
+  const [y, m] = parts(key)
+  return new Date(Date.UTC(y, m, 0)).getUTCDate()
+}
+
+// First-of-month day key for the month containing `key`.
+export function monthStartKey(key: DayKey): DayKey {
+  const [y, m] = parts(key)
+  return `${y}-${String(m).padStart(2, '0')}-01`
+}
+
+// Inclusive day diff (to - from) in calendar days. Negative if to < from.
+export function daysBetween(from: DayKey, to: DayKey): number {
+  return Math.round((toUtcMs(to) - toUtcMs(from)) / MS_PER_DAY)
+}
+
+// ceil(days_since / 7). Same-day → 0; drives the lifetime absolute-display
+// fallback (display ratio only when result > 1). Returns 0 when firstLog
+// is missing — a user with no logs has no lifetime ratio to show.
+export function weeksSinceFirstLog(firstLog: DayKey | null, today: DayKey): number {
+  if (!firstLog) return 0
+  const diff = daysBetween(firstLog, today)
+  if (diff <= 0) return 0
+  return Math.ceil(diff / 7)
+}
+
+// Inclusive day keys from `startKey` to `endKey`, in calendar order.
+export function dayKeyRange(startKey: DayKey, endKey: DayKey): DayKey[] {
+  const startMs = toUtcMs(startKey)
+  const endMs = toUtcMs(endKey)
+  if (endMs < startMs) return []
+  const out: DayKey[] = []
+  for (let ms = startMs; ms <= endMs; ms += MS_PER_DAY) {
+    out.push(fromUtcMs(ms))
+  }
+  return out
+}
+
+// Longest consecutive zero-log streak inside [windowStart, windowEnd]
+// inclusive, in days. `loggedDayKeys` is the set of day keys that had at
+// least one log. Days outside the window are ignored.
+export function consecutiveZeroDayStreak(
+  loggedDayKeys: Set<DayKey>,
+  windowStart: DayKey,
+  windowEnd: DayKey,
+): number {
+  let longest = 0
+  let run = 0
+  for (const key of dayKeyRange(windowStart, windowEnd)) {
+    if (loggedDayKeys.has(key)) {
+      run = 0
+    } else {
+      run += 1
+      if (run > longest) longest = run
+    }
+  }
+  return longest
+}
+
+// ceil(weekly_target × days_in_month / 7) for the month containing `today`.
+// Display-only — weekly target stays the source of truth.
+export function monthlyTargetDisplay(weeklyTarget: number, today: DayKey): number {
+  if (!isFinite(weeklyTarget) || weeklyTarget <= 0) return 0
+  return Math.ceil((weeklyTarget * daysInMonth(today)) / 7)
+}
+
+// ceil(weekly_target × weeks_since_first_log). Display-only.
+export function lifetimeTargetDisplay(weeklyTarget: number, weeksSince: number): number {
+  if (!isFinite(weeklyTarget) || weeklyTarget <= 0) return 0
+  if (!isFinite(weeksSince) || weeksSince <= 0) return 0
+  return Math.ceil(weeklyTarget * weeksSince)
+}
+
+// ceil for display. Negative or non-finite → 0. The display-side counterpart
+// to the precise floats stored internally (ADR 0005 §6).
+export function ceilDisplay(n: number): number {
+  if (!isFinite(n) || n <= 0) return 0
+  return Math.ceil(n)
+}
+
+// Pacific calendar day key for a logged_at timestamp. Centralized so the
+// rest of the app stops re-instantiating the Intl formatter.
+const pacificDateFmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Los_Angeles' })
+export function pacificDayKey(loggedAt: string | Date): DayKey {
+  return pacificDateFmt.format(typeof loggedAt === 'string' ? new Date(loggedAt) : loggedAt)
+}
