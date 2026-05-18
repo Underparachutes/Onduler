@@ -242,7 +242,7 @@ export function SwellRadar({
     ;(e.currentTarget as Element).releasePointerCapture?.(e.pointerId)
     const swell = swells[drag.index]
     const committed = isHours
-      ? Math.round(drag.value * 10) / 10
+      ? Math.round(drag.value * 4) / 4
       : Math.round(drag.value)
     setDrag(null)
     setTargets(prev => {

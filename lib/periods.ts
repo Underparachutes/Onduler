@@ -86,12 +86,12 @@ export function consecutiveZeroDayStreak(
 }
 
 // ceil for display. Negative or non-finite → 0. Points mode rounds up to
-// whole units; hours mode rounds up to 0.1 hr (matches the radar's
-// drag-commit precision so a 30-min target stays "0.5 hr", not "1 hr").
-// ADR 0005 §6 with the hours-mode exception noted in the working agreement.
+// whole units; hours mode rounds up to 0.25 hr (15-min calendar blocks, the
+// granularity the rest of the app's hour inputs already use). ADR 0005 §6
+// with the hours-mode exception noted in the working agreement.
 export function ceilDisplay(n: number, isHours: boolean = false): number {
   if (!isFinite(n) || n <= 0) return 0
-  return isHours ? Math.ceil(n * 10) / 10 : Math.ceil(n)
+  return isHours ? Math.ceil(n * 4) / 4 : Math.ceil(n)
 }
 
 // ceil(weekly_target × days_in_month / 7) for the month containing `today`.
