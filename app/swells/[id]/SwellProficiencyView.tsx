@@ -119,12 +119,18 @@ export function SwellProficiencyView({
     (sum, m) => sum + (isHours ? m.month.hrs : m.month.pts),
     0,
   )
+  // Lifetime target only meaningful once the user has more than one week of
+  // history — otherwise it equals the week target and the LIFETIME tab reads
+  // identical to WEEK.
   const centerWindow: { value: number; target: number | null } =
     timeView === 'week'
       ? { value: weekValue, target }
       : timeView === 'month'
       ? { value: monthValue, target: target !== null ? target * 4 : null }
-      : { value: lifetimeValue, target: target !== null ? target * weeksSinceFirstLog : null }
+      : {
+          value: lifetimeValue,
+          target: target !== null && weeksSinceFirstLog > 1 ? target * weeksSinceFirstLog : null,
+        }
 
   // Node size = points (or hours) earned in the active window, scaled against
   // the loudest motion in the constellation. Zero-value motions still get the

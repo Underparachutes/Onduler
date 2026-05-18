@@ -4,7 +4,7 @@
 
 ## The big picture
 
-**Onduler** is a gamified personal fulfillment app built around points-based habit tracking across life domains. The goal is to bring balance to life by helping you track where you spend your energy. Domain owned: **onduler.app**.
+**Onduler** (*on-doo-LAY* — French for "to wave") is a gamified personal fulfillment app built around points-based habit tracking across life domains. The goal is to bring balance to life by helping you track where you spend your energy. Domain owned: **onduler.app**.
 
 ## The core product insight: waves and tides
 

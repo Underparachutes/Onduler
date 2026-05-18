@@ -160,10 +160,11 @@ export default async function LogPage({
                 </div>
                 <div className="rounded-lg p-3 text-center">
                   <p className="text-lg font-semibold text-th-text">
-                    {isHours ? totalPoints : round1(totalHours)}
+                    {activeDays}
+                    <span className="text-th-faint"> / {parseInt(period)}</span>
                   </p>
                   <p className="mt-0.5 text-[10px] uppercase tracking-widest text-th-muted">
-                    {isHours ? 'pts total' : 'hrs total'}
+                    active days
                   </p>
                 </div>
               </div>
