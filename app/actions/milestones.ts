@@ -56,6 +56,7 @@ export async function updateMilestone(
   swellId: string,
   patch: {
     name?: string
+    kind?: MilestoneKind
     cadence?: Cadence
     targetCount?: number | null
     bonusPoints?: number | null
@@ -71,6 +72,20 @@ export async function updateMilestone(
     const trimmed = patch.name.trim()
     if (!trimmed) return { error: 'Name required' }
     update.name = trimmed
+  }
+  if (patch.kind !== undefined) {
+    if (patch.kind !== 'recurring' && patch.kind !== 'one_shot') return { error: 'Invalid kind' }
+    update.kind = patch.kind
+    // Flipping kind clears the other kind's fields so stale state doesn't
+    // confuse aggregation paths (cadence/target_count are recurring-only;
+    // completed_at is one-shot-only). bonus_points + motion_id survive.
+    if (patch.kind === 'one_shot') {
+      update.cadence = null
+      update.target_count = null
+    } else {
+      update.completed_at = null
+      if (patch.cadence === undefined) update.cadence = 'weekly'
+    }
   }
   if (patch.cadence !== undefined) update.cadence = patch.cadence
   if (patch.targetCount !== undefined) {

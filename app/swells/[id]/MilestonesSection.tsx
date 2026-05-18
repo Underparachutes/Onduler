@@ -7,6 +7,7 @@ import {
   markRecurringHit,
   renameMilestone,
   setOneShotComplete,
+  updateMilestone,
 } from '@/app/actions/milestones'
 import { cycleProgress } from '@/lib/cadence'
 
@@ -422,6 +423,7 @@ function RecurringRow({
           {milestone.cycleHit ? 'Hit' : 'Mark'}
         </button>
       )}
+      <FlipKindAction milestoneId={milestone.id} swellId={swellId} kind="recurring" />
       <DeleteAction milestoneId={milestone.id} swellId={swellId} />
     </li>
   )
@@ -462,8 +464,40 @@ function OneShotRow({
         />
       </button>
       <MilestoneRowName milestone={milestone} swellId={swellId} completed={completed} />
+      <FlipKindAction milestoneId={milestone.id} swellId={swellId} kind="one_shot" />
       <DeleteAction milestoneId={milestone.id} swellId={swellId} />
     </li>
+  )
+}
+
+function FlipKindAction({
+  milestoneId,
+  swellId,
+  kind,
+}: {
+  milestoneId: string
+  swellId: string
+  kind: 'recurring' | 'one_shot'
+}) {
+  const [, startFlip] = useTransition()
+  // Flipping clears the inactive kind's fields server-side (cadence + target_count
+  // when going to one_shot; completed_at when going to recurring). bonus_points
+  // and motion_id survive.
+  const nextKind = kind === 'recurring' ? 'one_shot' : 'recurring'
+  function handle() {
+    startFlip(async () => {
+      await updateMilestone(milestoneId, swellId, { kind: nextKind })
+    })
+  }
+  return (
+    <button
+      type="button"
+      onClick={handle}
+      title={`Make ${nextKind === 'one_shot' ? 'one-shot' : 'recurring'}`}
+      className="shrink-0 text-[11px] text-th-faint transition-colors hover:text-th-muted active:scale-[0.97]"
+    >
+      ↔
+    </button>
   )
 }
 

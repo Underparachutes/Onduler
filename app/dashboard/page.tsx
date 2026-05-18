@@ -1,7 +1,9 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getTodayStart, getWeekStart } from '@/lib/timezone'
+import { pacificDayKey } from '@/lib/periods'
 import { bonusBySwell } from '@/lib/waypoints'
+import { currentRamp, type WelcomeBackMode } from '@/lib/welcomeback'
 import { DashboardView } from './components/DashboardView'
 
 type SupabaseClient = Awaited<ReturnType<typeof createClient>>
@@ -45,7 +47,7 @@ export default async function DashboardPage() {
 
   const { data: settings } = await supabase
     .from('user_settings')
-    .select('groups_enabled, onboarding_complete, daily_goal, daily_goal_hours, tracking_mode, celebration_enabled, haptic_enabled')
+    .select('groups_enabled, onboarding_complete, daily_goal, daily_goal_hours, tracking_mode, celebration_enabled, haptic_enabled, welcome_back_mode, welcome_back_started_at')
     .eq('user_id', user.id)
     .single()
 
@@ -187,12 +189,26 @@ export default async function DashboardPage() {
     weekStart.toISOString(),
   )
 
+  // Welcome-back ramp (ADR 0004 §8): if the user picked 'Ease back in' on the
+  // welcome screen, weekly targets soften over 3 weeks (40% → 70% → 100%) so
+  // celebration is reachable while they re-acclimate. After 3 weeks, ramp
+  // returns null and full targets resume.
+  const todayKey = pacificDayKey(todayStart)
+  const welcomeBackMode = (settings?.welcome_back_mode as WelcomeBackMode | null) ?? null
+  const welcomeBackStartedKey = settings?.welcome_back_started_at
+    ? pacificDayKey(settings.welcome_back_started_at as string)
+    : null
+  const weeklyRamp = currentRamp(welcomeBackMode, welcomeBackStartedKey, todayKey)
+
   // Compute per-swell weekly progress for celebration trigger
   const swellWeeklyProgress: Record<string, number> = {}
   const swellTargets: Record<string, number> = {}
   for (const swell of swellsData ?? []) {
     const isHrs = trackingMode === 'hours'
-    const target = isHrs ? (swell.target_hours ? Number(swell.target_hours) : null) : swell.target_points
+    const rawTarget = isHrs ? (swell.target_hours ? Number(swell.target_hours) : null) : swell.target_points
+    const target = rawTarget !== null && weeklyRamp !== null && weeklyRamp < 1
+      ? rawTarget * weeklyRamp
+      : rawTarget
     if (target !== null) swellTargets[swell.id] = target
 
     const contributing = motions.filter(m => m.swellWeights[swell.id] !== undefined)

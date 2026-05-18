@@ -32,7 +32,7 @@ export function WaveGrid({ durationSeconds }: { durationSeconds: number | null }
     if (!point) return
     startTransition(async () => {
       await recordWaveCheckin(point.x, point.y, durationSeconds)
-      router.push('/dashboard')
+      router.push('/wave/return/welcome')
     })
   }
 

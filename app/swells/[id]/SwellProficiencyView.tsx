@@ -349,9 +349,12 @@ export function SwellProficiencyView({
                         x={x}
                         y={y + radius + 11}
                         textAnchor="middle"
-                        fill="var(--color-th-muted)"
+                        fill="var(--color-th-secondary)"
                         fontSize="10"
-                        opacity={op}
+                        // Floor the label opacity so quiet motions stay legible
+                        // in dark mode — activity still encodes via lighter fill,
+                        // but the name itself reads at ≥0.6 always.
+                        opacity={Math.max(0.6, op)}
                       >
                         {truncate(m.name)}
                       </text>

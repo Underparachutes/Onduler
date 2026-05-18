@@ -13,6 +13,7 @@ import {
   type DayKey,
 } from '@/lib/periods'
 import { bonusBySwell, type WaypointHitRow, type OneShotCompletionRow } from '@/lib/waypoints'
+import { currentRamp, type WelcomeBackMode } from '@/lib/welcomeback'
 import { SwellRadar, type RadarSwell } from '@/app/components/SwellRadar'
 import type { BuildKey } from '@/lib/builds'
 
@@ -50,7 +51,6 @@ export default async function LogPage({
     { data: allWaveCheckins },
     { data: swells },
     { data: settings },
-    { data: thisWeekWaveCheckins },
     { data: firstLogRow },
     { data: allWaypointHits },
     { data: allOneShotCompletions },
@@ -71,15 +71,9 @@ export default async function LogPage({
       .order('sort_order'),
     supabase
       .from('user_settings')
-      .select('tracking_mode, primary_build, secondary_build')
+      .select('tracking_mode, primary_build, secondary_build, welcome_back_mode, welcome_back_started_at')
       .eq('user_id', user.id)
       .single(),
-    supabase
-      .from('wave_checkins')
-      .select('checked_in_at')
-      .eq('user_id', user.id)
-      .gte('checked_in_at', weekStart.toISOString())
-      .limit(1),
     supabase
       .from('logs')
       .select('logged_at')
@@ -104,7 +98,11 @@ export default async function LogPage({
   const formatValue = (n: number) => (isHours ? formatHrs(ceilDisplay(n, true)) : formatPts(ceilDisplay(n)))
   const primaryBuild = (settings?.primary_build as BuildKey | null) ?? null
   const secondaryBuild = (settings?.secondary_build as BuildKey | null) ?? null
-  const isWaveWeek = (thisWeekWaveCheckins?.length ?? 0) > 0
+  const welcomeBackMode = (settings?.welcome_back_mode as WelcomeBackMode | null) ?? null
+  const welcomeBackStartedKey = settings?.welcome_back_started_at
+    ? pacificDayKey(settings.welcome_back_started_at as string)
+    : null
+  const weeklyRamp = currentRamp(welcomeBackMode, welcomeBackStartedKey, todayKey)
 
   const firstLogKey: DayKey | null = firstLogRow?.logged_at ? pacificDayKey(firstLogRow.logged_at) : null
   const weeksSince = weeksSinceFirstLog(firstLogKey, todayKey)
@@ -191,8 +189,11 @@ export default async function LogPage({
   const waveMonthStreak = consecutiveZeroDayStreak(monthLogDays, monthStart, todayKey)
   const waveMonthActive = waveMonthStreak >= 7
 
+  // Welcome-back ramp drives the soft wash on week view. Month view uses
+  // wave_month_active as its own binary gate (the calendar-month wash isn't
+  // ramp-shaped). Lifetime never washes.
   const waveRamp: number | null =
-    period === 'week' ? (isWaveWeek ? 1 : null) : period === 'month' ? (waveMonthActive ? 1 : null) : null
+    period === 'week' ? weeklyRamp : period === 'month' ? (waveMonthActive ? 1 : null) : null
 
   const radarSwells: RadarSwell[] = (swells ?? []).map(s => ({
     id: s.id,

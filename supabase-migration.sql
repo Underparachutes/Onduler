@@ -118,7 +118,10 @@ CREATE TABLE user_settings (
   celebration_enabled boolean NOT NULL DEFAULT true,
   haptic_enabled      boolean NOT NULL DEFAULT true,
   primary_build       text    NULL,
-  secondary_build     text    NULL
+  secondary_build     text    NULL,
+  welcome_back_mode       text        NULL CHECK (welcome_back_mode IS NULL OR welcome_back_mode IN ('ease', 'full')),
+  welcome_back_started_at timestamptz NULL,
+  mvs_anchors             jsonb       NULL  -- per-shape: { "<build_key>": ["motion_id", ...] }
 );
 
 
