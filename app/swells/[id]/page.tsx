@@ -8,6 +8,12 @@ type RawJunction = {
   motions: { id: string; name: string; default_points: number; default_hours: number } | null
 }
 
+function weeksSince(firstLogIso: string | null | undefined): number {
+  if (!firstLogIso) return 1
+  const elapsedMs = Date.now() - new Date(firstLogIso).getTime()
+  return Math.max(1, Math.ceil(elapsedMs / (7 * 24 * 60 * 60 * 1000)))
+}
+
 function pacificMondayKey(date: Date): string {
   const dateStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Los_Angeles' }).format(date)
   const [y, m, d] = dateStr.split('-').map(Number)
@@ -32,6 +38,7 @@ export default async function SwellDetailPage({ params }: { params: Promise<{ id
     { data: junctions },
     { data: milestonesRaw },
     { data: settings },
+    { data: firstLogRow },
     weekStart,
   ] = await Promise.all([
     supabase
@@ -56,6 +63,13 @@ export default async function SwellDetailPage({ params }: { params: Promise<{ id
       .select('tracking_mode')
       .eq('user_id', user.id)
       .single(),
+    supabase
+      .from('logs')
+      .select('logged_at')
+      .eq('user_id', user.id)
+      .order('logged_at', { ascending: true })
+      .limit(1)
+      .maybeSingle(),
     getWeekStart(),
   ])
 
@@ -140,6 +154,11 @@ export default async function SwellDetailPage({ params }: { params: Promise<{ id
 
   const trackingMode: 'points' | 'hours' = (settings?.tracking_mode as 'points' | 'hours') ?? 'points'
 
+  // Weeks-since-app-start anchors the Lifetime target (weekly target × weeks elapsed).
+  // Distinct from weeksActive on this swell — Lifetime is meant to be honest about
+  // the whole journey, including swells you haven't fed yet.
+  const weeksSinceFirstLog = weeksSince(firstLogRow?.logged_at)
+
   type RawMilestone = {
     id: string
     name: string
@@ -171,6 +190,7 @@ export default async function SwellDetailPage({ params }: { params: Promise<{ id
       lifetimePts={lifetimePts}
       lifetimeHrs={lifetimeHrs}
       weeksActive={weekKeys.size}
+      weeksSinceFirstLog={weeksSinceFirstLog}
       motions={motionList}
       milestones={milestones}
       trackingMode={trackingMode}

@@ -35,6 +35,7 @@ type Props = {
   lifetimePts: number
   lifetimeHrs: number
   weeksActive: number
+  weeksSinceFirstLog: number
   motions: MotionStat[]
   milestones: Milestone[]
   trackingMode: 'points' | 'hours'
@@ -70,6 +71,7 @@ export function SwellProficiencyView({
   lifetimePts,
   lifetimeHrs,
   weeksActive,
+  weeksSinceFirstLog,
   motions,
   milestones,
   trackingMode,
@@ -110,6 +112,19 @@ export function SwellProficiencyView({
     const b = bucketOf(m)
     return isHours ? b.hrs : b.pts
   }
+
+  // Swell-level totals for the constellation center text. Month is summed from
+  // per-motion buckets; lifetime comes pre-aggregated from the page query.
+  const monthValue = motions.reduce(
+    (sum, m) => sum + (isHours ? m.month.hrs : m.month.pts),
+    0,
+  )
+  const centerWindow: { value: number; target: number | null } =
+    timeView === 'week'
+      ? { value: weekValue, target }
+      : timeView === 'month'
+      ? { value: monthValue, target: target !== null ? target * 4 : null }
+      : { value: lifetimeValue, target: target !== null ? target * weeksSinceFirstLog : null }
 
   // Node size = points (or hours) earned in the active window, scaled against
   // the loudest motion in the constellation. Zero-value motions still get the
@@ -271,9 +286,9 @@ export function SwellProficiencyView({
                   fontSize="13"
                   fontWeight="600"
                 >
-                  {target !== null
-                    ? `${Math.round(weekValue)}/${Math.round(target)}`
-                    : `${Math.round(weekValue)}`}
+                  {centerWindow.target !== null
+                    ? `${Math.round(centerWindow.value)}/${Math.round(centerWindow.target)}`
+                    : `${Math.round(centerWindow.value)}`}
                 </text>
 
                 {/* Motion nodes */}
