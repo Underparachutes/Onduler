@@ -32,6 +32,7 @@ export default async function SwellDetailPage({ params }: { params: Promise<{ id
   const [
     { data: swell },
     { data: junctions },
+    { data: milestonesRaw },
     { data: settings },
     weekStart,
   ] = await Promise.all([
@@ -45,6 +46,13 @@ export default async function SwellDetailPage({ params }: { params: Promise<{ id
       .from('motion_swells')
       .select('contribution_weight, position_x, position_y, motions(id, name, default_points, default_hours)')
       .eq('swell_id', id),
+    supabase
+      .from('milestones')
+      .select('id, name, kind, cadence, completed_at, sort_order')
+      .eq('user_id', user.id)
+      .eq('swell_id', id)
+      .order('sort_order', { ascending: true })
+      .order('created_at', { ascending: true }),
     supabase
       .from('user_settings')
       .select('tracking_mode')
@@ -138,6 +146,23 @@ export default async function SwellDetailPage({ params }: { params: Promise<{ id
 
   const trackingMode: 'points' | 'hours' = (settings?.tracking_mode as 'points' | 'hours') ?? 'points'
 
+  type RawMilestone = {
+    id: string
+    name: string
+    kind: 'recurring' | 'one_shot'
+    cadence: string | null
+    completed_at: string | null
+    sort_order: number
+  }
+  const milestones = ((milestonesRaw ?? []) as RawMilestone[]).map(m => ({
+    id: m.id,
+    name: m.name,
+    kind: m.kind,
+    cadence: m.cadence,
+    completedAt: m.completed_at,
+    sortOrder: m.sort_order,
+  }))
+
   return (
     <SwellProficiencyView
       swell={{
@@ -153,6 +178,7 @@ export default async function SwellDetailPage({ params }: { params: Promise<{ id
       lifetimeHrs={lifetimeHrs}
       weeksActive={weekKeys.size}
       motions={motionList}
+      milestones={milestones}
       trackingMode={trackingMode}
     />
   )

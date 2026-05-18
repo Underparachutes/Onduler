@@ -4,6 +4,7 @@ import { useRef, useState, useTransition, type PointerEvent as ReactPointerEvent
 import Link from 'next/link'
 import { formatPts, formatHrs } from '@/lib/format'
 import { setMotionSwellPosition } from '@/app/actions/swells'
+import { MilestonesSection, type Milestone } from './MilestonesSection'
 
 type Swell = {
   id: string
@@ -38,6 +39,7 @@ type Props = {
   lifetimeHrs: number
   weeksActive: number
   motions: MotionStat[]
+  milestones: Milestone[]
   trackingMode: 'points' | 'hours'
 }
 
@@ -71,6 +73,7 @@ export function SwellProficiencyView({
   lifetimeHrs,
   weeksActive,
   motions,
+  milestones,
   trackingMode,
 }: Props) {
   const [timeView, setTimeView] = useState<TimeView>('week')
@@ -421,15 +424,11 @@ export function SwellProficiencyView({
           )}
         </section>
 
-        {/* Milestones placeholder — chunk 5 will land the create/edit UI here */}
-        <section className="mt-8">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-th-muted">
-            Milestones
-          </p>
-          <p className="rounded-lg border border-dashed border-th-border px-4 py-3 text-xs text-th-faint">
-            Coming soon.
-          </p>
-        </section>
+        <MilestonesSection
+          swellId={swell.id}
+          swellColor={swell.color}
+          milestones={milestones}
+        />
       </div>
     </div>
   )
