@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState, useTransition, type PointerEvent as ReactPointerEvent } from 'react'
 import Link from 'next/link'
 import { formatPts, formatHrs } from '@/lib/format'
+import { setMotionSwellPosition } from '@/app/actions/swells'
 
 type Swell = {
   id: string
@@ -19,6 +20,8 @@ type MotionStat = {
   weight: number
   default_points: number
   default_hours: number
+  position_x: number | null
+  position_y: number | null
   week: Bucket
   month: Bucket
   lifetime: Bucket
@@ -45,12 +48,19 @@ const TIME_OPTIONS: { value: TimeView; label: string }[] = [
 ]
 
 const CONSTELLATION_CAP = 8
+// Normalized coord bounds — keeps nodes inside the viewBox with a small margin.
+const POS_MIN = -1.3
+const POS_MAX = 1.3
 
 function activityOpacity(m: MotionStat): number {
   if (m.week.count > 0) return 1
   if (m.month.count > 0) return 0.55
   if (m.lifetime.count > 0) return 0.32
   return 0.22
+}
+
+function clamp(v: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, v))
 }
 
 export function SwellProficiencyView({
@@ -65,6 +75,17 @@ export function SwellProficiencyView({
 }: Props) {
   const [timeView, setTimeView] = useState<TimeView>('week')
   const [viewMode, setViewMode] = useState<ViewMode>('constellation')
+  const [positions, setPositions] = useState<Record<string, { x: number; y: number } | null>>(
+    () => Object.fromEntries(
+      motions.map(m => [
+        m.id,
+        m.position_x !== null && m.position_y !== null ? { x: m.position_x, y: m.position_y } : null,
+      ])
+    )
+  )
+  const [draggingId, setDraggingId] = useState<string | null>(null)
+  const [, startTransition] = useTransition()
+  const svgRef = useRef<SVGSVGElement>(null)
 
   const isHours = trackingMode === 'hours'
   const weekValue = isHours ? weekHrs : weekPts
@@ -103,6 +124,46 @@ export function SwellProficiencyView({
   const center = size / 2
   const orbitRadius = 100
   const centerNodeRadius = 36
+
+  function pointerToNormalized(e: ReactPointerEvent<Element>): { x: number; y: number } | null {
+    const svg = svgRef.current
+    if (!svg) return null
+    const ctm = svg.getScreenCTM()
+    if (!ctm) return null
+    const pt = svg.createSVGPoint()
+    pt.x = e.clientX
+    pt.y = e.clientY
+    const local = pt.matrixTransform(ctm.inverse())
+    return {
+      x: clamp((local.x - center) / center, POS_MIN, POS_MAX),
+      y: clamp((local.y - center) / center, POS_MIN, POS_MAX),
+    }
+  }
+
+  function handleNodePointerDown(e: ReactPointerEvent<SVGGElement>, motionId: string) {
+    e.preventDefault()
+    ;(e.target as Element).setPointerCapture(e.pointerId)
+    setDraggingId(motionId)
+  }
+
+  function handleNodePointerMove(e: ReactPointerEvent<SVGGElement>, motionId: string) {
+    if (draggingId !== motionId) return
+    const pos = pointerToNormalized(e)
+    if (!pos) return
+    setPositions(prev => ({ ...prev, [motionId]: pos }))
+  }
+
+  function handleNodePointerUp(e: ReactPointerEvent<SVGGElement>, motionId: string) {
+    if (draggingId !== motionId) return
+    ;(e.target as Element).releasePointerCapture(e.pointerId)
+    setDraggingId(null)
+    const pos = positions[motionId]
+    if (pos) {
+      startTransition(async () => {
+        await setMotionSwellPosition(motionId, swell.id, pos.x, pos.y)
+      })
+    }
+  }
 
   return (
     <div className="flex min-h-full flex-col items-center px-4 pb-12">
@@ -198,16 +259,24 @@ export function SwellProficiencyView({
           ) : viewMode === 'constellation' ? (
             <div className="flex flex-col items-center">
               <svg
+                ref={svgRef}
                 viewBox={`0 0 ${size} ${size}`}
-                className="w-full max-w-[280px]"
+                className="w-full max-w-[280px] touch-none select-none"
                 role="img"
                 aria-label={`${swell.name} constellation`}
               >
                 {/* Connector lines: drawn first so nodes sit on top */}
                 {constellationMotions.map((m, i) => {
-                  const angle = (2 * Math.PI * i) / constellationMotions.length - Math.PI / 2
-                  const x = center + orbitRadius * Math.cos(angle)
-                  const y = center + orbitRadius * Math.sin(angle)
+                  const stored = positions[m.id]
+                  let x: number, y: number
+                  if (stored) {
+                    x = center + stored.x * center
+                    y = center + stored.y * center
+                  } else {
+                    const angle = (2 * Math.PI * i) / constellationMotions.length - Math.PI / 2
+                    x = center + orbitRadius * Math.cos(angle)
+                    y = center + orbitRadius * Math.sin(angle)
+                  }
                   const op = activityOpacity(m)
                   const sw = 1 + m.weight * 2
                   return (
@@ -246,16 +315,31 @@ export function SwellProficiencyView({
                     : `${Math.round(weekValue)}`}
                 </text>
 
-                {/* Motion nodes */}
+                {/* Motion nodes — draggable */}
                 {constellationMotions.map((m, i) => {
-                  const angle = (2 * Math.PI * i) / constellationMotions.length - Math.PI / 2
-                  const x = center + orbitRadius * Math.cos(angle)
-                  const y = center + orbitRadius * Math.sin(angle)
+                  const stored = positions[m.id]
+                  let x: number, y: number
+                  if (stored) {
+                    x = center + stored.x * center
+                    y = center + stored.y * center
+                  } else {
+                    const angle = (2 * Math.PI * i) / constellationMotions.length - Math.PI / 2
+                    x = center + orbitRadius * Math.cos(angle)
+                    y = center + orbitRadius * Math.sin(angle)
+                  }
                   const radius = 14 + m.weight * 10
                   const op = activityOpacity(m)
                   const b = bucketOf(m)
+                  const isDrag = draggingId === m.id
                   return (
-                    <g key={`node-${m.id}`}>
+                    <g
+                      key={`node-${m.id}`}
+                      style={{ cursor: isDrag ? 'grabbing' : 'grab' }}
+                      onPointerDown={e => handleNodePointerDown(e, m.id)}
+                      onPointerMove={e => handleNodePointerMove(e, m.id)}
+                      onPointerUp={e => handleNodePointerUp(e, m.id)}
+                      onPointerCancel={e => handleNodePointerUp(e, m.id)}
+                    >
                       <title>{`${m.name} — ${b.count === 1 ? '1 log' : `${b.count} logs`}`}</title>
                       <circle
                         cx={x}
@@ -264,7 +348,7 @@ export function SwellProficiencyView({
                         fill="var(--color-th-bg)"
                         stroke={swell.color}
                         strokeWidth={1 + m.weight * 2}
-                        strokeOpacity={op}
+                        strokeOpacity={isDrag ? 1 : op}
                       />
                       <text
                         x={x}
@@ -274,7 +358,8 @@ export function SwellProficiencyView({
                         fill="var(--color-th-text)"
                         fontSize="11"
                         fontWeight="600"
-                        opacity={op}
+                        opacity={isDrag ? 1 : op}
+                        pointerEvents="none"
                       >
                         {b.count > 0 ? b.count : ''}
                       </text>
