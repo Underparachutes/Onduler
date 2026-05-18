@@ -38,14 +38,14 @@ export function MilestonesSection({ swellId, swellColor, milestones }: Props) {
     <section className="mt-8">
       <div className="mb-3 flex items-center justify-between gap-3">
         <p className="text-xs font-semibold uppercase tracking-widest text-th-muted">
-          Milestones
+          Waypoints
         </p>
         {!adding && (
           <button
             type="button"
             onClick={() => setAdding(true)}
             className="shrink-0 text-2xl font-light leading-none text-th-muted transition-colors hover:text-th-text"
-            aria-label="Add milestone"
+            aria-label="Add waypoint"
           >
             +
           </button>
@@ -61,7 +61,7 @@ export function MilestonesSection({ swellId, swellColor, milestones }: Props) {
 
       {milestones.length === 0 && !adding && (
         <p className="rounded-lg border border-dashed border-th-border px-4 py-3 text-xs text-th-faint">
-          No milestones yet. Add one to mark a goal or a steady rhythm.
+          No waypoints yet. Add one to mark something you&apos;re navigating toward.
         </p>
       )}
 
@@ -105,8 +105,8 @@ export function MilestonesSection({ swellId, swellColor, milestones }: Props) {
             className="text-[11px] text-th-faint transition-colors hover:text-th-muted"
           >
             {oneShotsDone.length === 1
-              ? '1 finished milestone'
-              : `${oneShotsDone.length} finished milestones`}{' '}
+              ? '1 finished waypoint'
+              : `${oneShotsDone.length} finished waypoints`}{' '}
             {showCompleted ? '↑' : '↓'}
           </button>
           {showCompleted && (

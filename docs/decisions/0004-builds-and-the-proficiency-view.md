@@ -2,6 +2,7 @@
 
 **Status:** Accepted
 **Date:** 2026-05-17
+**Amended:** 2026-05-18 — see ADR 0006. The user-facing word for "Milestone" is **Waypoint**. The schema table remains `milestones` and code identifiers stay unchanged; references to "Milestone(s)" in this ADR are still accurate as schema/internal language, but user-facing copy uses "Waypoint(s)."
 
 ## Decision
 
