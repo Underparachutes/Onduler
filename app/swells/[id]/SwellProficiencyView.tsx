@@ -50,9 +50,6 @@ const TIME_OPTIONS: { value: TimeView; label: string }[] = [
 ]
 
 const CONSTELLATION_CAP = 8
-// Normalized coord bounds — keeps nodes inside the viewBox with a small margin.
-const POS_MIN = -1.3
-const POS_MAX = 1.3
 
 function activityOpacity(m: MotionStat): number {
   if (m.week.count > 0) return 1
@@ -138,8 +135,8 @@ export function SwellProficiencyView({
     pt.y = e.clientY
     const local = pt.matrixTransform(ctm.inverse())
     return {
-      x: clamp((local.x - center) / center, POS_MIN, POS_MAX),
-      y: clamp((local.y - center) / center, POS_MIN, POS_MAX),
+      x: (local.x - center) / center,
+      y: (local.y - center) / center,
     }
   }
 
@@ -151,9 +148,16 @@ export function SwellProficiencyView({
 
   function handleNodePointerMove(e: ReactPointerEvent<SVGGElement>, motionId: string) {
     if (draggingId !== motionId) return
-    const pos = pointerToNormalized(e)
-    if (!pos) return
-    setPositions(prev => ({ ...prev, [motionId]: pos }))
+    const raw = pointerToNormalized(e)
+    if (!raw) return
+    const m = motions.find(x => x.id === motionId)
+    if (!m) return
+    // Per-node clamp so the whole node stays inside the viewBox, not just its center.
+    const radius = 14 + m.weight * 10
+    const maxAbs = 1 - radius / center
+    const x = clamp(raw.x, -maxAbs, maxAbs)
+    const y = clamp(raw.y, -maxAbs, maxAbs)
+    setPositions(prev => ({ ...prev, [motionId]: { x, y } }))
   }
 
   function handleNodePointerUp(e: ReactPointerEvent<SVGGElement>, motionId: string) {
