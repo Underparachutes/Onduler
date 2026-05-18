@@ -159,10 +159,7 @@ export default async function LogPage({
                   </p>
                 </div>
                 <div className="rounded-lg p-3 text-center">
-                  <p className="text-lg font-semibold text-th-text">
-                    {activeDays}
-                    <span className="text-th-faint"> / {parseInt(period)}</span>
-                  </p>
+                  <p className="text-lg font-semibold text-th-text">{activeDays}</p>
                   <p className="mt-0.5 text-[10px] uppercase tracking-widest text-th-muted">
                     active days
                   </p>

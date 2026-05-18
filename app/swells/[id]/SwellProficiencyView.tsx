@@ -305,10 +305,13 @@ export function SwellProficiencyView({
                   const radius = nodeRadius(m)
                   const op = activityOpacity(m)
                   const b = bucketOf(m)
+                  const value = valueOf(m)
+                  const displayValue = Math.round(value)
                   const sizeFactor = radius / NODE_MAX_RADIUS
+                  const countLabel = b.count === 1 ? '1 log' : `${b.count} logs`
                   return (
                     <g key={`node-${m.id}`}>
-                      <title>{`${m.name} — ${b.count === 1 ? '1 log' : `${b.count} logs`}`}</title>
+                      <title>{`${m.name} — ${formatValue(value)}, ${countLabel}`}</title>
                       <circle
                         cx={x}
                         cy={y}
@@ -328,7 +331,7 @@ export function SwellProficiencyView({
                         fontWeight="600"
                         opacity={op}
                       >
-                        {b.count > 0 ? b.count : ''}
+                        {displayValue > 0 ? displayValue : ''}
                       </text>
                       <text
                         x={x}
