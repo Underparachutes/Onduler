@@ -43,11 +43,40 @@ The six wedges (or N wedges) tile the target ring polygon's interior with no gap
 
 ## The actual polygon
 
-Stroke only, no fill. `stroke="var(--color-text-primary)"` or a deep surf navy (`#042C53`) — whichever reads better against the wedge palette in the user's active theme. `stroke-width="2"`, `stroke-linejoin="round"`.
+**Filled, with a stroke outline.** Each peak gets a 60° shoulder roof that matches the hexagon edge angle. Replaces the direct-line peak-to-peak polygon that shipped in v1 (which slices misleadingly through neighboring wedges when one axis is much lower than another).
 
-Vertices computed the same way as target vertices, using `actual_value_this_week` per axis. An unfed axis (actual = 0) collapses its vertex to the center. The polygon line goes from the previous vertex, through the center, to the next vertex — pinching diagonally across the unfed wedge. The wedge color stays fully visible behind the pinch; that's the gap-as-signal.
+**Geometry — the 60° shoulder rule.**
 
-If actual exceeds target on any axis, the polygon vertex sits outside that wedge. The polygon line crosses the wedge boundary visibly — celebration is built into the geometry.
+For each axis `i` with actual radius `r_i = (actual_i / chart_max_pts) × chart_radius_px`:
+
+- `Peak_i` sits on the axis at radius `r_i`.
+- Two **shoulders** sit on the adjacent wedge-boundary radials (at axis angle ± `π / N`), at radius `cos(π / N) × r_i` from center. For hexagon (N=6): `cos(30°) ≈ 0.866`. For pentagon (N=5): `cos(36°) ≈ 0.809`. For decagon (N=10): `cos(18°) ≈ 0.951`.
+
+The polygon has **3N vertices** in order around the chart:
+
+```
+Peak_0, Shoulder_CW(0), Shoulder_CCW(1), Peak_1, Shoulder_CW(1), Shoulder_CCW(2), ...
+```
+
+Adjacent shoulders sit on the same boundary radial but at different radii when the two adjacent peaks differ. The polygon traces straight along the boundary radial between them — so the "dive" between a high peak and a low peak happens **on the boundary line**, not across either wedge. That's the fix.
+
+**Why this angle.** When all actuals equal their targets and all targets are equal, the polygon becomes the regular N-gon — same shape as a fully-met target ring. When peaks differ, each wedge fills like a fuel gauge: the slice for axis `i` is the same kite shape as the target wedge, scaled by `actual_i / target_i`. Equal-everything → polygon overlaps target ring exactly. Some-empty → only the empty wedges look empty.
+
+**Filled per-swell slices.** Each axis owns a slice:
+
+```
+slice_i = polygon( center, Shoulder_CCW(i), Peak_i, Shoulder_CW(i), center )
+```
+
+Filled with the swell's color (`swells.color`) at higher opacity than the wedge fill — start at `fill-opacity: 0.65` and tune per palette (greens may need `0.75`, ambers `0.7`). The result: each wedge shows two tones of its own color. Deeper "achieved" portion = the slice. Lighter "remaining" portion = the wedge minus the slice. Both tones come from the same hex via opacity, so light and dark mode work without media queries.
+
+**Polygon stroke** is drawn over the slices: `stroke="var(--color-text-primary)" stroke-width="1.5" stroke-linejoin="round"`, no fill (slices already filled it). The stroke auto-adapts to light/dark mode.
+
+**Edge cases.**
+
+- **Actual = 0** on axis `i`: peak collapses to center, both shoulders collapse to center, slice has zero area. The polygon traces from `Shoulder_CW(i-1)` directly through center to `Shoulder_CCW(i+1)` — the dive stays on the boundary radials of axis `i`'s wedge. The wedge color shows fully behind the empty slice. Gap-as-signal preserved.
+- **Actual > target** on axis `i`: peak extends beyond the wedge's target vertex; slice extends past the wedge boundary; polygon stroke visibly crosses the target ring on that axis. Auto-rescale handles anything that would clip the chart edge.
+- **N < 3** is undefined. Render an empty state ("Add three or more swells to see your shape").
 
 ## Drag interaction
 
