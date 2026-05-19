@@ -6,7 +6,9 @@
 
   --color-th-bg: var(--th-bg);
   --color-th-surface: var(--th-surface);
+  --color-th-surface-2: var(--th-surface-2);
   --color-th-border: var(--th-border);
+  --color-th-border-soft: var(--th-border-soft);
   --color-th-text: var(--th-text);
   --color-th-secondary: var(--th-secondary);
   --color-th-muted: var(--th-muted);
@@ -15,102 +17,218 @@
   --color-th-btn-text: var(--th-btn-text);
   --color-th-btn-hover: var(--th-btn-hover);
   --color-th-focus: var(--th-focus);
+  --color-th-accent: var(--th-accent);
+  --color-th-accent-text: var(--th-accent-text);
+  --color-th-success: var(--th-success);
+  --color-th-wave-wash: var(--th-wave-wash);
+  --color-th-swell-1: var(--th-swell-1);
+  --color-th-swell-2: var(--th-swell-2);
+  --color-th-swell-3: var(--th-swell-3);
+  --color-th-swell-4: var(--th-swell-4);
+  --color-th-swell-5: var(--th-swell-5);
+  --color-th-swell-6: var(--th-swell-6);
+  --color-th-swell-7: var(--th-swell-7);
+  --color-th-swell-8: var(--th-swell-8);
+  --color-th-swell-9: var(--th-swell-9);
+  --color-th-swell-10: var(--th-swell-10);
 }
 
 html {
   font-size: 18px;
 }
 
-/* Default theme — zinc/white */
+/* Default — deep ocean */
 :root {
-  --th-bg: #ffffff;
-  --th-surface: #f4f4f5;
-  --th-border: #e4e4e7;
-  --th-text: #18181b;
-  --th-secondary: #3f3f46;
-  --th-muted: #71717a;
-  --th-faint: #a1a1aa;
-  --th-btn: #18181b;
-  --th-btn-text: #ffffff;
-  --th-btn-hover: #3f3f46;
-  --th-focus: #71717a;
+  --th-bg: #f4f7fa;
+  --th-surface: #e9eef3;
+  --th-surface-2: #dee5ec;
+  --th-text: #0e2238;
+  --th-secondary: #355068;
+  --th-muted: #6b7f93;
+  --th-faint: #a4b1bd;
+  --th-border: #d4dde5;
+  --th-border-soft: #e3eaf0;
+  --th-btn: #0e2238;
+  --th-btn-text: #f4f7fa;
+  --th-btn-hover: #355068;
+  --th-focus: #6b7f93;
+  --th-accent: #2772bd;
+  --th-accent-text: #ffffff;
+  --th-success: #2f7d6b;
+  --th-wave-wash: rgba(39, 114, 189, 0.08);
+
+  --th-swell-1:  #2A6FDB;
+  --th-swell-2:  #1FA38C;
+  --th-swell-3:  #E2785A;
+  --th-swell-4:  #D9A93E;
+  --th-swell-5:  #5B9B6D;
+  --th-swell-6:  #C45577;
+  --th-swell-7:  #6BACE0;
+  --th-swell-8:  #6FCDB7;
+  --th-swell-9:  #8E6CB7;
+  --th-swell-10: #6E879F;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --th-bg: #09090b;
-    --th-surface: #18181b;
-    --th-border: #3f3f46;
-    --th-text: #fafafa;
-    --th-secondary: #d4d4d8;
-    --th-muted: #71717a;
-    --th-faint: #52525b;
-    --th-btn: #fafafa;
-    --th-btn-text: #18181b;
-    --th-btn-hover: #e4e4e7;
-    --th-focus: #71717a;
+    --th-bg: #0b1a2c;
+    --th-surface: #14263b;
+    --th-surface-2: #1c324a;
+    --th-text: #e8eef5;
+    --th-secondary: #b8c5d3;
+    --th-muted: #7d8fa3;
+    --th-faint: #4d5e72;
+    --th-border: #213c58;
+    --th-border-soft: #182b41;
+    --th-btn: #e8eef5;
+    --th-btn-text: #0b1a2c;
+    --th-btn-hover: #b8c5d3;
+    --th-focus: #7d8fa3;
+    --th-accent: #4d97e0;
+    --th-accent-text: #0b1a2c;
+    --th-success: #4eb09a;
+    --th-wave-wash: rgba(77, 151, 224, 0.12);
+
+    --th-swell-1:  #5A95E8;
+    --th-swell-2:  #34BFA8;
+    --th-swell-3:  #ED8F73;
+    --th-swell-4:  #E3BB5C;
+    --th-swell-5:  #7BB78A;
+    --th-swell-6:  #D87693;
+    --th-swell-7:  #91C5EE;
+    --th-swell-8:  #8DDDC7;
+    --th-swell-9:  #AB8AD0;
+    --th-swell-10: #93A6BB;
   }
 }
 
-/* Bolinas — fog, driftwood, coastal sage */
+/* Bolinas — northern California fog */
 [data-theme="bolinas"] {
-  --th-bg: #f0ebe3;
-  --th-surface: #e6dfd6;
-  --th-border: #c8bfb5;
-  --th-text: #25201a;
-  --th-secondary: #5a4e42;
-  --th-muted: #786d60;
-  --th-faint: #a09384;
-  --th-btn: #3f5c39;
-  --th-btn-text: #ffffff;
-  --th-btn-hover: #2f4629;
-  --th-focus: #786d60;
+  --th-bg: #ebede7;
+  --th-surface: #dfe1da;
+  --th-surface-2: #d2d4cc;
+  --th-text: #1f2520;
+  --th-secondary: #475048;
+  --th-muted: #758078;
+  --th-faint: #a7b1aa;
+  --th-border: #cdd1ca;
+  --th-border-soft: #dde0d8;
+  --th-btn: #1f2520;
+  --th-btn-text: #ebede7;
+  --th-btn-hover: #475048;
+  --th-focus: #758078;
+  --th-accent: #5b7359;
+  --th-accent-text: #ffffff;
+  --th-success: #6d8a64;
+  --th-wave-wash: rgba(91, 115, 89, 0.08);
+
+  --th-swell-1:  #6F8A6E;
+  --th-swell-2:  #8FA8AF;
+  --th-swell-3:  #B89E7E;
+  --th-swell-4:  #9CAB8E;
+  --th-swell-5:  #B58F8A;
+  --th-swell-6:  #5C7886;
+  --th-swell-7:  #A89F95;
+  --th-swell-8:  #7C9088;
+  --th-swell-9:  #C0AE93;
+  --th-swell-10: #607566;
 }
 
 @media (prefers-color-scheme: dark) {
   [data-theme="bolinas"] {
-    --th-bg: #19150f;
-    --th-surface: #211c15;
-    --th-border: #38302a;
-    --th-text: #e5ddd1;
-    --th-secondary: #b0a090;
-    --th-muted: #9a8d7a;
-    --th-faint: #6f6254;
-    --th-btn: #567c50;
-    --th-btn-text: #ffffff;
-    --th-btn-hover: #456641;
-    --th-focus: #9a8d7a;
+    --th-bg: #161a17;
+    --th-surface: #1f2420;
+    --th-surface-2: #2a302a;
+    --th-text: #e0e3da;
+    --th-secondary: #b4bdb1;
+    --th-muted: #818c81;
+    --th-faint: #4c544e;
+    --th-border: #2c3530;
+    --th-border-soft: #222824;
+    --th-btn: #e0e3da;
+    --th-btn-text: #161a17;
+    --th-btn-hover: #b4bdb1;
+    --th-focus: #818c81;
+    --th-accent: #93b18b;
+    --th-accent-text: #161a17;
+    --th-success: #93b18b;
+    --th-wave-wash: rgba(147, 177, 139, 0.10);
+
+    --th-swell-1:  #97AC92;
+    --th-swell-2:  #A5C0C6;
+    --th-swell-3:  #C9AE92;
+    --th-swell-4:  #B5C29F;
+    --th-swell-5:  #C6A29D;
+    --th-swell-6:  #87A1AE;
+    --th-swell-7:  #B5ACA2;
+    --th-swell-8:  #94A89F;
+    --th-swell-9:  #D0BEA4;
+    --th-swell-10: #84997F;
   }
 }
 
-/* Biarritz — Atlantic surf, basque sand, burnt orange */
+/* Biarritz — Atlantic surf town */
 [data-theme="biarritz"] {
-  --th-bg: #f2ede5;
-  --th-surface: #e8e1d7;
-  --th-border: #cbbfaf;
-  --th-text: #1a2b30;
-  --th-secondary: #2a5f68;
-  --th-muted: #5a7d82;
-  --th-faint: #8aabaf;
-  --th-btn: #c9621e;
-  --th-btn-text: #ffffff;
-  --th-btn-hover: #a8511a;
-  --th-focus: #5a7d82;
+  --th-bg: #f5efe5;
+  --th-surface: #ebe3d4;
+  --th-surface-2: #dfd5c1;
+  --th-text: #112730;
+  --th-secondary: #2c5560;
+  --th-muted: #6b8088;
+  --th-faint: #a8b4b9;
+  --th-border: #d6c9b3;
+  --th-border-soft: #e4dac6;
+  --th-btn: #112730;
+  --th-btn-text: #f5efe5;
+  --th-btn-hover: #2c5560;
+  --th-focus: #6b8088;
+  --th-accent: #c9521e;
+  --th-accent-text: #ffffff;
+  --th-success: #2a6f7a;
+  --th-wave-wash: rgba(42, 111, 122, 0.08);
+
+  --th-swell-1:  #C9621E;
+  --th-swell-2:  #2A6F7A;
+  --th-swell-3:  #D6A968;
+  --th-swell-4:  #B04E3C;
+  --th-swell-5:  #6B98B5;
+  --th-swell-6:  #D89066;
+  --th-swell-7:  #8AA570;
+  --th-swell-8:  #9C5B3B;
+  --th-swell-9:  #4D8489;
+  --th-swell-10: #C28C5C;
 }
 
 @media (prefers-color-scheme: dark) {
   [data-theme="biarritz"] {
-    --th-bg: #0d1f24;
-    --th-surface: #162830;
-    --th-border: #2a4a52;
-    --th-text: #ede8df;
-    --th-secondary: #8dcbd2;
-    --th-muted: #5a8a90;
-    --th-faint: #3a6068;
-    --th-btn: #d4743a;
-    --th-btn-text: #ffffff;
-    --th-btn-hover: #b85e2a;
-    --th-focus: #5a8a90;
+    --th-bg: #0e2329;
+    --th-surface: #15303a;
+    --th-surface-2: #1e404c;
+    --th-text: #ede5d4;
+    --th-secondary: #c4b8a0;
+    --th-muted: #8a8576;
+    --th-faint: #4e5552;
+    --th-border: #244a56;
+    --th-border-soft: #1a3742;
+    --th-btn: #ede5d4;
+    --th-btn-text: #0e2329;
+    --th-btn-hover: #c4b8a0;
+    --th-focus: #8a8576;
+    --th-accent: #de7140;
+    --th-accent-text: #0e2329;
+    --th-success: #7ec5cd;
+    --th-wave-wash: rgba(222, 113, 64, 0.12);
+
+    --th-swell-1:  #DE7B47;
+    --th-swell-2:  #4FA6B3;
+    --th-swell-3:  #E2BC85;
+    --th-swell-4:  #D26C5C;
+    --th-swell-5:  #8ABACF;
+    --th-swell-6:  #E5A582;
+    --th-swell-7:  #A8BE91;
+    --th-swell-8:  #C07A5B;
+    --th-swell-9:  #72ADB3;
+    --th-swell-10: #D7A879;
   }
 }
 
