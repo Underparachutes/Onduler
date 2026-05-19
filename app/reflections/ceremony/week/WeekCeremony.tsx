@@ -88,7 +88,7 @@ export function WeekCeremony({
 
         {step === 'expectation' && (
           <div className="flex flex-col gap-6">
-            <h1 className="text-2xl font-semibold tracking-tight text-th-text">
+            <h1 className="text-2xl font-semibold text-th-text">
               What did you expect to see this week?
             </h1>
             <p className="text-sm leading-relaxed text-th-secondary">
@@ -123,7 +123,7 @@ export function WeekCeremony({
 
         {step === 'reveal' && (
           <div className="flex flex-col gap-6">
-            <h1 className="text-2xl font-semibold tracking-tight text-th-text">
+            <h1 className="text-2xl font-semibold text-th-text">
               Here&apos;s what last week looked like.
             </h1>
             <div className="flex justify-center">
@@ -146,7 +146,7 @@ export function WeekCeremony({
 
         {step === 'observation' && (
           <div className="flex flex-col gap-6">
-            <h1 className="text-2xl font-semibold tracking-tight text-th-text">
+            <h1 className="text-2xl font-semibold text-th-text">
               What did you see?
             </h1>
             <p className="text-sm leading-relaxed text-th-secondary">
@@ -181,7 +181,7 @@ export function WeekCeremony({
 
         {step === 'tune' && (
           <div className="flex flex-col gap-6">
-            <h1 className="text-2xl font-semibold tracking-tight text-th-text">
+            <h1 className="text-2xl font-semibold text-th-text">
               Want to tune something?
             </h1>
             <p className="text-sm leading-relaxed text-th-secondary">

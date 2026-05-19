@@ -209,7 +209,7 @@ export function SwellProficiencyView({
               className="inline-block h-2 w-2 shrink-0 rounded-full"
               style={{ backgroundColor: swell.color }}
             />
-            <h1 className="min-w-0 truncate text-lg font-semibold tracking-tight text-th-text">
+            <h1 className="min-w-0 truncate text-lg font-semibold text-th-text">
               {swell.name}
             </h1>
           </div>

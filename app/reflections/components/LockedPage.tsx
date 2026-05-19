@@ -48,7 +48,7 @@ export function LockedPage() {
           </div>
 
           <div className="flex flex-col items-center gap-4 text-center">
-            <h1 className="text-2xl font-semibold tracking-tight text-th-text">
+            <h1 className="text-2xl font-semibold text-th-text">
               Reflections
             </h1>
             <p className="max-w-xs text-sm leading-relaxed text-th-secondary">

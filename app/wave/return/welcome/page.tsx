@@ -71,7 +71,7 @@ export default async function WelcomeBackPage() {
   return (
     <div className="flex min-h-full flex-col items-center justify-center px-4 py-16">
       <div className="w-full max-w-[22rem]">
-        <h1 className="mb-2 text-2xl font-semibold tracking-tight text-th-text">
+        <h1 className="mb-2 text-2xl font-semibold text-th-text">
           Welcome back.
         </h1>
         <p className="mb-1 text-sm text-th-muted">

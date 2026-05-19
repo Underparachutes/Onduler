@@ -341,7 +341,7 @@ export function DailyChecklist({
 
   const dateHeader = (
     <div className="mb-2 flex items-baseline justify-between gap-3">
-      <h1 className="min-w-0 text-lg font-semibold tracking-tight text-th-text">{today}</h1>
+      <h1 className="min-w-0 text-lg font-semibold text-th-text">{today}</h1>
       <p className="shrink-0 text-lg font-semibold text-th-text">
         {isHours ? localValue.toFixed(localValue % 1 === 0 ? 0 : 2).replace(/\.?0+$/, '') : localValue}
         <span className="ml-1 text-xs font-normal uppercase tracking-widest text-th-muted">{isHours ? 'hrs' : 'pts'}</span>

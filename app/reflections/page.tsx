@@ -294,7 +294,7 @@ export default async function ReflectionsPage({
           </Link>
         </div>
 
-        <h1 className="mb-8 text-2xl font-semibold tracking-tight text-th-text">Reflections</h1>
+        <h1 className="mb-8 text-2xl font-semibold text-th-text">Reflections</h1>
 
         {ceremony.state === 'pending' && (
           <Link

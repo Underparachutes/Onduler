@@ -79,7 +79,7 @@ export function ShapePicker({ primary, secondary, existingSwellNames, anchorPool
           </Link>
         </div>
 
-        <h1 className="mb-2 text-2xl font-semibold tracking-tight text-th-text">Your shape</h1>
+        <h1 className="mb-2 text-2xl font-semibold text-th-text">Your shape</h1>
         <p className="mb-8 text-sm text-th-muted">
           The shape your week is oriented around. Both slots are optional. Swap or clear at any time — nothing gets deleted.
         </p>
@@ -369,7 +369,7 @@ function PreviewScreen({
           </button>
         </div>
 
-        <h1 className="mb-2 text-2xl font-semibold tracking-tight text-th-text">{preset.label}</h1>
+        <h1 className="mb-2 text-2xl font-semibold text-th-text">{preset.label}</h1>
         <p className="mb-8 text-sm text-th-muted">{preset.description}</p>
 
         <section className="mb-8">

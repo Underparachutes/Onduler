@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 @theme inline {
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-manrope);
+  --font-display: var(--font-courier-prime);
 
   --color-th-bg: var(--th-bg);
   --color-th-surface: var(--th-surface);
@@ -235,6 +235,40 @@ html {
 body {
   background-color: var(--th-bg);
   color: var(--th-text);
+  font-family: var(--font-sans);
+  font-feature-settings: 'ss01', 'tnum';
+}
+
+/* All <em> renders in Manrope italic — Courier Prime Italic is just
+   slanted upright and looks worse than the typewriter face it sits in. */
+em {
+  font-family: var(--font-sans);
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: -0.005em;
+}
+
+/* Display family (Courier Prime) gets generous tracking. */
+.display,
+h1,
+h2 {
+  font-family: var(--font-display);
+  letter-spacing: 0.05em;
+}
+
+/* 11px section kicker — the one place all-caps wide-tracked is allowed. */
+.kicker {
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--color-th-accent);
+}
+
+/* Tabular numerals on demand for inline stats. */
+.tnum,
+.num {
+  font-variant-numeric: tabular-nums;
 }
 
 /* Celebration animations */

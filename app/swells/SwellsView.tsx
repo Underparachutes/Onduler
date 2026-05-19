@@ -172,7 +172,7 @@ export function SwellsView(props: Props) {
 
               {/* Weekly total */}
               <div className="mb-2 flex items-baseline justify-between gap-3">
-                <h1 className="min-w-0 text-lg font-semibold tracking-tight text-th-text">This week</h1>
+                <h1 className="min-w-0 text-lg font-semibold text-th-text">This week</h1>
                 <p className="shrink-0 text-sm font-medium text-th-muted">
                   {formatValue(weeklyTotal)}
                   <span className="ml-1 text-[10px] font-normal uppercase tracking-widest text-th-faint">{isHours ? 'hrs' : 'pts'}</span>

@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Courier_Prime, Manrope } from "next/font/google";
 import { createClient } from "@/lib/supabase/server";
 import { TimezoneSync } from "./components/TimezoneSync";
 import { BottomNav } from "./components/BottomNav";
@@ -7,14 +7,18 @@ import { getWeekCeremonyState } from "./actions/reflections";
 import { pacificDayKey } from "@/lib/periods";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const manrope = Manrope({
+  variable: "--font-manrope",
   subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
+  style: ["normal", "italic"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const courierPrime = Courier_Prime({
+  variable: "--font-courier-prime",
   subsets: ["latin"],
+  weight: ["400", "700"],
+  style: ["normal", "italic"],
 });
 
 export const metadata: Metadata = {
@@ -58,7 +62,7 @@ export default async function RootLayout({
     <html
       lang="en"
       data-theme={theme}
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${manrope.variable} ${courierPrime.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-th-bg text-th-text pb-20 overflow-x-hidden">
         <TimezoneSync />

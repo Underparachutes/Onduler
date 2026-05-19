@@ -649,7 +649,7 @@ function ScreenShell({
           ) : (
             <p className="mb-2 text-xs uppercase tracking-widest text-th-muted">Onduler</p>
           )}
-          <h1 className="mb-2 text-2xl font-semibold tracking-tight text-th-text">{title}</h1>
+          <h1 className="mb-2 text-2xl font-semibold text-th-text">{title}</h1>
           <p className="text-sm text-th-muted">{description}</p>
         </div>
         <div className="flex flex-col gap-6 pb-12 pt-2">{children}</div>

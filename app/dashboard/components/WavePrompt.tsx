@@ -42,7 +42,7 @@ export function WavePrompt({ durationSeconds }: { durationSeconds: number | null
 
   return (
     <div className="mb-8 rounded-xl border border-th-border bg-th-surface p-6">
-      <h2 className="mb-1 text-lg font-semibold tracking-tight text-th-text">
+      <h2 className="mb-1 text-lg font-semibold text-th-text">
         Welcome back.
       </h2>
       <p className="mb-6 text-sm text-th-muted">
