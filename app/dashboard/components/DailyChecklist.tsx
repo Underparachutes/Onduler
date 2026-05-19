@@ -377,7 +377,7 @@ export function DailyChecklist({
             onClick={() => { setGoalInput(String(localGoal)); setEditingGoal(true) }}
             className="transition-colors hover:text-th-muted"
           >
-            {formatValue(localGoal)} goal
+            {formatValue(localGoal)} target
           </button>
         )}</span>
         <span>{ceilDisplay(progress)}%</span>

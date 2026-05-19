@@ -202,7 +202,7 @@ export function SettingsPanel({
         <div className="flex flex-col divide-y divide-th-border">
           <div className="flex items-center justify-between py-3">
             <div>
-              <p className="text-sm font-medium text-th-text">Daily goal</p>
+              <p className="text-sm font-medium text-th-text">Daily target</p>
               <p className="text-xs text-th-muted">
                 {currentMode === 'hours' ? 'Hours target per day' : 'Points target per day'}
               </p>

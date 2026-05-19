@@ -50,7 +50,7 @@ export function WavePrompt({ durationSeconds }: { durationSeconds: number | null
       </p>
 
       <div className="flex flex-col items-center gap-3">
-        <p className="text-xs text-th-muted">Closer to my goals</p>
+        <p className="text-xs text-th-muted">Closer to my swells</p>
 
         <div className="flex w-full items-center gap-3">
           <p className="w-12 shrink-0 text-right text-xs leading-tight text-th-muted">
@@ -82,7 +82,7 @@ export function WavePrompt({ durationSeconds }: { durationSeconds: number | null
           </p>
         </div>
 
-        <p className="text-xs text-th-muted">Further from my goals</p>
+        <p className="text-xs text-th-muted">Further from my swells</p>
 
         <button
           onClick={submit}
