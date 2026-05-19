@@ -2,7 +2,7 @@
 
 @theme inline {
   --font-sans: var(--font-manrope);
-  --font-display: var(--font-courier-prime);
+  --font-display: var(--font-ibm-plex-mono);
 
   --color-th-bg: var(--th-bg);
   --color-th-surface: var(--th-surface);
@@ -239,16 +239,9 @@ body {
   font-feature-settings: 'ss01', 'tnum';
 }
 
-/* All <em> renders in Manrope italic — Courier Prime Italic is just
-   slanted upright and looks worse than the typewriter face it sits in. */
-em {
-  font-family: var(--font-sans);
-  font-style: italic;
-  font-weight: 400;
-  letter-spacing: -0.005em;
-}
-
-/* Display family (Courier Prime) gets generous tracking. */
+/* Display family (IBM Plex Mono) gets generous tracking. em inherits
+   the parent's family naturally — IBM Plex Mono italic is well-drawn,
+   so no override needed. */
 .display,
 h1,
 h2 {

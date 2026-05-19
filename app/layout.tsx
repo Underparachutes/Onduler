@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Courier_Prime, Manrope } from "next/font/google";
+import { IBM_Plex_Mono, Manrope } from "next/font/google";
 import { createClient } from "@/lib/supabase/server";
 import { TimezoneSync } from "./components/TimezoneSync";
 import { BottomNav } from "./components/BottomNav";
@@ -13,10 +13,10 @@ const manrope = Manrope({
   weight: ["300", "400", "500", "600", "700"],
 });
 
-const courierPrime = Courier_Prime({
-  variable: "--font-courier-prime",
+const ibmPlexMono = IBM_Plex_Mono({
+  variable: "--font-ibm-plex-mono",
   subsets: ["latin"],
-  weight: ["400", "700"],
+  weight: ["400", "500", "600", "700"],
   style: ["normal", "italic"],
 });
 
@@ -61,7 +61,7 @@ export default async function RootLayout({
     <html
       lang="en"
       data-theme={theme}
-      className={`${manrope.variable} ${courierPrime.variable} h-full antialiased`}
+      className={`${manrope.variable} ${ibmPlexMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-th-bg text-th-text pb-20 overflow-x-hidden">
         <TimezoneSync />
