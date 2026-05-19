@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useState } from 'react'
 import { createGroup } from '@/app/actions/groups'
-import { getRandomThemeAccent } from '@/lib/theme-colors'
+import { detectMode, getRandomThemeAccent } from '@/lib/theme-colors'
 
 type Props = {
   onClose: () => void
@@ -14,7 +14,7 @@ export function AddGroupForm({ onClose }: Props) {
 
   useEffect(() => {
     const theme = document.documentElement.dataset.theme ?? 'default'
-    setColor(getRandomThemeAccent(theme))
+    setColor(getRandomThemeAccent(theme, detectMode()))
   }, [])
 
   useEffect(() => {

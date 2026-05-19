@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useState } from 'react'
 import { createSwell } from '@/app/actions/swells'
-import { getRandomThemeAccent } from '@/lib/theme-colors'
+import { detectMode, getRandomThemeAccent } from '@/lib/theme-colors'
 
 type TrackingMode = 'points' | 'hours'
 
@@ -18,7 +18,7 @@ export function AddSwellForm({ trackingMode, onClose }: Props) {
 
   useEffect(() => {
     const theme = document.documentElement.dataset.theme ?? 'default'
-    setColor(getRandomThemeAccent(theme))
+    setColor(getRandomThemeAccent(theme, detectMode()))
   }, [])
 
   useEffect(() => {

@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { BUILD_PRESETS, type BuildKey } from '@/lib/builds'
-import { getShuffledThemePalette } from '@/lib/theme-colors'
+import { getShuffledThemePalette, type ThemeMode } from '@/lib/theme-colors'
 
 type BuildSlot = 'primary' | 'secondary'
 
@@ -31,7 +31,8 @@ export async function setBuildSlot(slot: BuildSlot, key: string | null) {
 export async function adoptBuild(
   slot: BuildSlot,
   key: string,
-  swellNamesToCreate: string[]
+  swellNamesToCreate: string[],
+  mode: ThemeMode = 'light'
 ) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -68,7 +69,7 @@ export async function adoptBuild(
     const toInsertNames = allowedNames.filter(n => !existingLowered.has(n.trim().toLowerCase()))
 
     if (toInsertNames.length > 0) {
-      const palette = getShuffledThemePalette(settings?.theme ?? 'default')
+      const palette = getShuffledThemePalette(settings?.theme ?? 'default', mode)
       const isHours = (settings?.tracking_mode ?? 'points') === 'hours'
       const baseSortOrder = (lastSwell?.[0]?.sort_order ?? -1) + 1
 

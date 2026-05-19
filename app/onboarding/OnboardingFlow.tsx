@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, useTransition } from 'react'
 import { completeOnboarding } from '@/app/actions/settings'
-import { getRandomThemeAccent, getShuffledThemePalette } from '@/lib/theme-colors'
+import { detectMode, getRandomThemeAccent, getShuffledThemePalette } from '@/lib/theme-colors'
 import { BUILD_PRESETS } from '@/lib/builds'
 
 type Step = 'swells' | 'motions' | 'personalize'
@@ -76,7 +76,7 @@ export function OnboardingFlow() {
 
   useEffect(() => {
     const t = document.documentElement.dataset.theme ?? 'default'
-    const palette = getShuffledThemePalette(t)
+    const palette = getShuffledThemePalette(t, detectMode())
     setSwellEntries(
       SEEDED_SWELLS.map((s, i) => ({
         id: i,
@@ -139,6 +139,7 @@ export function OnboardingFlow() {
 
   function addCustomSwell() {
     const t = document.documentElement.dataset.theme ?? 'default'
+    const mode = detectMode()
     const newId = nextSwellId
     setNextSwellId(prev => prev + 1)
     setSwellEntries(prev => [
@@ -147,14 +148,14 @@ export function OnboardingFlow() {
         id: newId,
         name: '',
         description: '',
-        color: getRandomThemeAccent(t),
+        color: getRandomThemeAccent(t, mode),
         picked: true,
         custom: true,
       },
     ])
     setEditingSwellId(newId)
     setEditSwellName('')
-    setEditSwellColor(getRandomThemeAccent(t))
+    setEditSwellColor(getRandomThemeAccent(t, mode))
   }
 
   function startEditSwell(id: number) {

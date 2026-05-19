@@ -4,6 +4,7 @@ import { useMemo, useState, useTransition } from 'react'
 import Link from 'next/link'
 import { BUILD_PRESETS, getBuildPreset, type BuildKey } from '@/lib/builds'
 import { adoptBuild, setBuildSlot } from '@/app/actions/builds'
+import { detectMode } from '@/lib/theme-colors'
 import { setMvsAnchors } from '@/app/actions/welcomeback'
 
 type SlotKey = 'primary' | 'secondary'
@@ -56,7 +57,7 @@ export function ShapePicker({ primary, secondary, existingSwellNames, anchorPool
           if (slot === 'primary') setPrimarySlot(previewKey)
           else setSecondarySlot(previewKey)
           startTransition(async () => {
-            await adoptBuild(slot, previewKey, names)
+            await adoptBuild(slot, previewKey, names, detectMode())
           })
           setPreviewKey(null)
         }}
