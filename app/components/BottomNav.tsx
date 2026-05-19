@@ -18,9 +18,10 @@ const ITEMS = [
     href: '/swells',
     label: 'Swells',
     icon: (
-      <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" strokeWidth="1.75" strokeLinecap="round">
-        <path d="M2 12c1.5-3 3-4.5 4.5-4.5S9 9 10.5 9s3-3 4.5-3 3 1.5 4.5 1.5S22 6 22 6" stroke="currentColor" />
-        <path d="M2 18c1.5-3 3-4.5 4.5-4.5S9 15 10.5 15s3-3 4.5-3 3 1.5 4.5 1.5S22 12 22 12" stroke="currentColor" />
+      <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="9" stroke="currentColor" />
+        <path d="M12 5 L14.2 11.6 L9.8 11.6 Z" fill="currentColor" stroke="currentColor" />
+        <path d="M12 19 L14.2 12.4 L9.8 12.4 Z" fill="none" stroke="currentColor" />
       </svg>
     ),
   },
@@ -29,9 +30,12 @@ const ITEMS = [
     label: 'Reflections',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="12" r="9" stroke="currentColor" />
-        <path d="M12 3a9 9 0 0 0 0 18" stroke="currentColor" fill="currentColor" fillOpacity="0.15" />
-        <path d="M12 3v18" stroke="currentColor" />
+        <circle cx="12" cy="4.5" r="1.9" stroke="currentColor" />
+        <path d="M12 6.4 V 20" stroke="currentColor" />
+        <path d="M8.6 10.5 H 15.4" stroke="currentColor" />
+        <path d="M4.6 13.5 C 4.6 17.6, 8.2 20, 12 20 C 15.8 20, 19.4 17.6, 19.4 13.5" stroke="currentColor" />
+        <path d="M4.6 13.5 L 6.6 14.7 M 4.6 13.5 L 4.6 15.7" stroke="currentColor" />
+        <path d="M19.4 13.5 L 17.4 14.7 M 19.4 13.5 L 19.4 15.7" stroke="currentColor" />
       </svg>
     ),
   },
@@ -40,8 +44,10 @@ const ITEMS = [
     label: 'Settings',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="12" r="3" stroke="currentColor" />
-        <path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke="currentColor" />
+        <path d="M3 8h9 M17 8h4" stroke="currentColor" />
+        <circle cx="14.5" cy="8" r="2.25" fill="var(--color-th-bg)" stroke="currentColor" />
+        <path d="M3 16h4 M12 16h9" stroke="currentColor" />
+        <circle cx="9.5" cy="16" r="2.25" fill="var(--color-th-bg)" stroke="currentColor" />
       </svg>
     ),
   },
