@@ -149,3 +149,11 @@ body {
   50%  { transform: translateX(12%); }
   100% { transform: translateX(-12%); }
 }
+
+/* Bottom-nav pending-ceremony indicator: a soft pulse on the Reflections
+   tab when a closed cycle is awaiting reflection. Subtle by design — the
+   ADR calls for "drawing the eye without demanding anything." */
+@keyframes nav-tide-pulse {
+  0%, 100% { opacity: 0.7; transform: translateY(0); }
+  50%      { opacity: 1.0; transform: translateY(-1px); }
+}

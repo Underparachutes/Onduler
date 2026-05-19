@@ -16,6 +16,8 @@ import { bonusBySwell, type WaypointHitRow, type OneShotCompletionRow } from '@/
 import { currentRamp, type WelcomeBackMode } from '@/lib/welcomeback'
 import { SwellRadar, type RadarSwell } from '@/app/components/SwellRadar'
 import { LockedCadenceTile } from './components/LockedCadenceTile'
+import { getWeekCeremonyState } from '@/app/actions/reflections'
+import { formatWeekLabel } from '@/lib/cycles'
 import type { BuildKey } from '@/lib/builds'
 
 type Period = 'week' | 'month' | 'lifetime'
@@ -46,6 +48,8 @@ export default async function ReflectionsPage({
   const weekStart = await getWeekStart()
   const todayKey = pacificDayKey(todayStart)
   const monthStart = monthStartKey(todayKey)
+
+  const ceremony = await getWeekCeremonyState(supabase, user.id, todayKey)
 
   const [
     { data: allLogs },
@@ -281,6 +285,19 @@ export default async function ReflectionsPage({
         </div>
 
         <h1 className="mb-8 text-2xl font-semibold tracking-tight text-th-text">Reflections</h1>
+
+        {ceremony.state === 'pending' && (
+          <Link
+            href="/reflections/ceremony/week"
+            className="mb-8 block rounded-xl border border-th-border bg-th-surface/50 px-4 py-4 transition-colors hover:bg-th-surface active:scale-[0.99]"
+          >
+            <p className="text-[10px] uppercase tracking-widest text-th-muted">Last week</p>
+            <p className="mt-1.5 text-sm text-th-text">
+              {formatWeekLabel({ cycleStart: ceremony.cycleStart, cycleEnd: ceremony.cycleEnd })} is ready to be seen.
+            </p>
+            <p className="mt-2 text-xs text-th-faint">Tap to reflect →</p>
+          </Link>
+        )}
 
         {radarSwells.length >= 3 && (
           <SwellRadar

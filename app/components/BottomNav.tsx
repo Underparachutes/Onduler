@@ -49,7 +49,7 @@ const ITEMS = [
 
 const HIDE_ON = ['/login', '/signup', '/onboarding']
 
-export function BottomNav() {
+export function BottomNav({ pendingReflection = false }: { pendingReflection?: boolean }) {
   const pathname = usePathname()
 
   if (HIDE_ON.some(p => pathname === p || pathname.startsWith(p + '/'))) return null
@@ -60,15 +60,28 @@ export function BottomNav() {
         {ITEMS.map(({ href, label, icon }) => {
           const active = pathname === href || (href !== '/dashboard' && pathname.startsWith(href + '/'))
             || (href === '/dashboard' && (pathname === '/dashboard' || pathname.startsWith('/dashboard/')))
+          const isReflections = href === '/reflections'
+          // When a ceremony is pending and the user isn't already on the
+          // Reflections tab, dim the other tabs slightly and pulse the
+          // Reflections icon. Subtle — invitation, not demand (ADR 0007).
+          const dimForPending = pendingReflection && !isReflections && !active
           return (
             <Link
               key={href}
               href={href}
               className={`flex flex-col items-center gap-1 rounded-lg px-4 py-2 transition-colors active:scale-95 active:bg-th-surface ${
                 active ? 'text-th-text' : 'text-th-faint hover:text-th-muted'
-              }`}
+              } ${dimForPending ? 'opacity-55' : ''}`}
             >
-              {icon}
+              <span
+                className="relative"
+                style={pendingReflection && isReflections ? { animation: 'nav-tide-pulse 2.4s ease-in-out infinite' } : undefined}
+              >
+                {icon}
+                {pendingReflection && isReflections && !active && (
+                  <span className="pointer-events-none absolute -right-1 -top-1 h-1.5 w-1.5 rounded-full bg-th-text" />
+                )}
+              </span>
               <span className="text-[10px] font-medium">{label}</span>
             </Link>
           )
