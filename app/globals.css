@@ -142,3 +142,10 @@ body {
     opacity: 0;
   }
 }
+
+/* Locked-cadence tile: slow horizontal drift for the tide-line overlay. */
+@keyframes tide-drift {
+  0%   { transform: translateX(-12%); }
+  50%  { transform: translateX(12%); }
+  100% { transform: translateX(-12%); }
+}

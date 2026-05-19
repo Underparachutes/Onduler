@@ -6,11 +6,11 @@ import { usePathname } from 'next/navigation'
 const ITEMS = [
   {
     href: '/dashboard',
-    label: 'Today',
+    label: 'Motions',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z" stroke="currentColor" />
-        <path d="M9 21V12h6v9" stroke="currentColor" />
+        <rect x="3" y="3" width="18" height="18" rx="4" stroke="currentColor" />
+        <path d="M8 12.5l3 3 5-6" stroke="currentColor" />
       </svg>
     ),
   },
@@ -25,12 +25,13 @@ const ITEMS = [
     ),
   },
   {
-    href: '/log',
-    label: 'Log',
+    href: '/reflections',
+    label: 'Reflections',
     icon: (
-      <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" strokeWidth="1.75" strokeLinecap="round">
-        <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" />
-        <path d="M7 8h10M7 12h7M7 16h5" stroke="currentColor" />
+      <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="9" stroke="currentColor" />
+        <path d="M12 3a9 9 0 0 0 0 18" stroke="currentColor" fill="currentColor" fillOpacity="0.15" />
+        <path d="M12 3v18" stroke="currentColor" />
       </svg>
     ),
   },

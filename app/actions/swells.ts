@@ -87,7 +87,7 @@ export async function setSwellHidden(id: string, hidden: boolean) {
   if (error) return { error: error.message }
   revalidatePath('/swells')
   revalidatePath('/dashboard')
-  revalidatePath('/log')
+  revalidatePath('/reflections')
   revalidatePath(`/swells/${id}`)
   return { success: true }
 }
@@ -147,7 +147,7 @@ export async function updateSwellTarget(
 
   if (error) return { error: error.message }
 
-  revalidatePath('/log')
+  revalidatePath('/reflections')
   revalidatePath('/swells')
   return { success: true }
 }

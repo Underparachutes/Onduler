@@ -15,6 +15,7 @@ import {
 import { bonusBySwell, type WaypointHitRow, type OneShotCompletionRow } from '@/lib/waypoints'
 import { currentRamp, type WelcomeBackMode } from '@/lib/welcomeback'
 import { SwellRadar, type RadarSwell } from '@/app/components/SwellRadar'
+import { LockedCadenceTile } from './components/LockedCadenceTile'
 import type { BuildKey } from '@/lib/builds'
 
 type Period = 'week' | 'month' | 'lifetime'
@@ -29,7 +30,7 @@ function parsePeriod(raw: string | undefined): Period {
   return raw === 'week' || raw === 'month' || raw === 'lifetime' ? raw : 'week'
 }
 
-export default async function LogPage({
+export default async function ReflectionsPage({
   searchParams,
 }: {
   searchParams: Promise<{ period?: string }>
@@ -279,7 +280,7 @@ export default async function LogPage({
           </Link>
         </div>
 
-        <h1 className="mb-8 text-2xl font-semibold tracking-tight text-th-text">Log</h1>
+        <h1 className="mb-8 text-2xl font-semibold tracking-tight text-th-text">Reflections</h1>
 
         {radarSwells.length >= 3 && (
           <SwellRadar
@@ -299,7 +300,7 @@ export default async function LogPage({
           {PERIOD_OPTIONS.map(({ value, label }) => (
             <Link
               key={value}
-              href={`/log?period=${value}`}
+              href={`/reflections?period=${value}`}
               className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
                 period === value
                   ? 'border-th-text bg-th-text text-th-bg'
@@ -461,6 +462,17 @@ export default async function LogPage({
             )}
           </>
         )}
+
+        {/* Locked-cadence anticipation tiles (ADR 0007). Vibe-only — blurred
+           radar silhouettes + drifting tide lines, no dates, no counters.
+           Unlock logic lands in a later session; for now everything past
+           weekly stays locked. */}
+        <div className="mt-12 flex flex-col gap-3 pb-12">
+          <p className="text-[10px] uppercase tracking-widest text-th-muted">Coming together</p>
+          <LockedCadenceTile cadence="month" />
+          <LockedCadenceTile cadence="quarter" />
+          <LockedCadenceTile cadence="year" />
+        </div>
       </div>
     </div>
   )

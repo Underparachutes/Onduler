@@ -17,7 +17,7 @@ export async function setWelcomeBackMode(mode: WelcomeBackMode) {
   })
 
   revalidatePath('/dashboard')
-  revalidatePath('/log')
+  revalidatePath('/reflections')
   return { success: true }
 }
 
@@ -33,7 +33,7 @@ export async function clearWelcomeBack() {
   })
 
   revalidatePath('/dashboard')
-  revalidatePath('/log')
+  revalidatePath('/reflections')
   return { success: true }
 }
 

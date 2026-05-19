@@ -21,5 +21,5 @@ export async function recordWaveCheckin(
   })
 
   revalidatePath('/dashboard')
-  revalidatePath('/log')
+  revalidatePath('/reflections')
 }

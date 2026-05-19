@@ -40,7 +40,7 @@ export async function quickLogMotion(motionId: string) {
   await maybeRecordWaypointHits(supabase, user.id, motionId)
 
   revalidatePath('/dashboard')
-  revalidatePath('/log')
+  revalidatePath('/reflections')
   revalidatePath('/swells')
   return { success: true }
 }
@@ -133,6 +133,6 @@ export async function unlogMotion(motionId: string) {
   await supabase.from('logs').delete().eq('id', log.id)
 
   revalidatePath('/dashboard')
-  revalidatePath('/log')
+  revalidatePath('/reflections')
   return { success: true }
 }

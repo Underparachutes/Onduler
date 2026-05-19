@@ -125,6 +125,33 @@ CREATE TABLE user_settings (
   mvs_anchors             jsonb       NULL  -- per-shape: { "<build_key>": ["motion_id", ...] }
 );
 
+-- ADR 0007: Reflections surface. One active chapter per user; existing data is
+-- implicitly Chapter 1. Reflections are chapter-scoped (ceremony + free-form).
+CREATE TABLE chapters (
+  id         uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id    uuid        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  started_at timestamptz NOT NULL DEFAULT now(),
+  ended_at   timestamptz,
+  sort_order int         NOT NULL DEFAULT 0,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE reflections (
+  id               uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id          uuid        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  chapter_id       uuid        NOT NULL REFERENCES chapters(id) ON DELETE CASCADE,
+  cycle_type       text        NOT NULL CHECK (cycle_type IN ('week', 'month', 'quarter', 'year', 'free')),
+  cycle_start      date,
+  cycle_end        date,
+  expectation_text text,
+  observation_text text,
+  did_tune         boolean,
+  body_text        text,
+  prompt_text      text,
+  created_at       timestamptz NOT NULL DEFAULT now(),
+  updated_at       timestamptz NOT NULL DEFAULT now()
+);
+
 
 -- 3. ROW LEVEL SECURITY
 
@@ -137,6 +164,8 @@ ALTER TABLE milestones      ENABLE ROW LEVEL SECURITY;
 ALTER TABLE milestone_hits  ENABLE ROW LEVEL SECURITY;
 ALTER TABLE wave_checkins ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE chapters     ENABLE ROW LEVEL SECURITY;
+ALTER TABLE reflections  ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "own motions"        ON motions        FOR ALL USING (auth.uid() = user_id);
 CREATE POLICY "own swells"         ON swells         FOR ALL USING (auth.uid() = user_id);
@@ -146,6 +175,8 @@ CREATE POLICY "own milestones"     ON milestones     FOR ALL USING (auth.uid() =
 CREATE POLICY "own milestone_hits" ON milestone_hits FOR ALL USING (auth.uid() = user_id);
 CREATE POLICY "own wave_checkins"  ON wave_checkins  FOR ALL USING (auth.uid() = user_id);
 CREATE POLICY "own user_settings"  ON user_settings  FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "own chapters"       ON chapters       FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "own reflections"    ON reflections    FOR ALL USING (auth.uid() = user_id);
 
 -- motion_swells: ownership via the motion
 CREATE POLICY "own motion_swells" ON motion_swells FOR ALL USING (
@@ -173,3 +204,7 @@ CREATE INDEX milestone_hits_milestone_id_idx ON milestone_hits (milestone_id);
 CREATE INDEX milestone_hits_user_id_idx ON milestone_hits (user_id);
 CREATE INDEX milestone_hits_hit_at_idx ON milestone_hits (hit_at);
 CREATE INDEX ON wave_checkins (user_id);
+CREATE UNIQUE INDEX chapters_one_active_per_user ON chapters (user_id) WHERE ended_at IS NULL;
+CREATE INDEX chapters_user_sort ON chapters (user_id, sort_order);
+CREATE INDEX reflections_user_chapter ON reflections (user_id, chapter_id, created_at DESC);
+CREATE INDEX reflections_user_cycle ON reflections (user_id, cycle_type, cycle_start);
