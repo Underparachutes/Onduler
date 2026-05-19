@@ -54,7 +54,7 @@ export function FrozenRadar({
       {swells.map((s, i) => (
         <path
           key={`s-${s.id}`}
-          d={slicePath(i, actuals, chartMax, RADIUS, CENTER)}
+          d={slicePath(i, actuals, targets, chartMax, RADIUS, CENTER)}
           fill={s.color}
           fillOpacity={0.65}
         />

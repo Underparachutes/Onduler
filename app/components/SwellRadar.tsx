@@ -378,7 +378,7 @@ export function SwellRadar({
 
           {/* Filled slices per swell — fuel-gauge shape inside each wedge */}
           {swells.map((s, i) => {
-            const d = slicePath(i, actuals, chartMax, RADIUS, CENTER)
+            const d = slicePath(i, actuals, displayTargets, chartMax, RADIUS, CENTER)
             if (!d) return null
             return (
               <path

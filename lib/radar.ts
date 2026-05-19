@@ -119,11 +119,17 @@ export function actualPolygonPath(
   return parts.join(' ')
 }
 
-// One axis's filled slice: center → S_CCW(i) → Peak_i → S_CW(i) → center.
-// Returns empty path when actual ≤ 0 (degenerate, nothing to render).
+// One axis's filled slice: center → left chord-end → peak → right chord-end
+// → center. Chord ends clamp to the neighbor wedge boundary radii so a
+// large actual next to a small-target neighbor never bleeds past the
+// bisector into the neighbor's wedge. Peak clamps at the swell's own
+// target so the slice never overshoots its wedge — overshoot is read
+// through the shoulder-polygon perimeter, not the per-axis fill.
+// Returns empty path when there's nothing meaningful to render.
 export function slicePath(
   index: number,
   actuals: number[],
+  targets: number[],
   chartMax: number,
   radius: number,
   center: Point = { x: 0, y: 0 },
@@ -132,10 +138,31 @@ export function slicePath(
   if (n === 0 || chartMax <= 0) return ''
   const value = actuals[index]
   if (!isFinite(value) || value <= 0) return ''
-  const sCcw = shoulderVertex(index, n, value, chartMax, radius, center, -1)
-  const peak = vertexAt(index, n, value, chartMax, radius, center)
-  const sCw = shoulderVertex(index, n, value, chartMax, radius, center, 1)
-  return `M ${center.x},${center.y} L ${sCcw.x},${sCcw.y} L ${peak.x},${peak.y} L ${sCw.x},${sCw.y} Z`
+
+  const targetR = (Math.min(Math.max(0, targets[index] ?? 0), chartMax) / chartMax) * radius
+  const actualR = (Math.min(value, chartMax) / chartMax) * radius
+  const fillR = Math.min(actualR, targetR)
+  if (fillR < 4) return ''
+
+  const prevIdx = (index - 1 + n) % n
+  const leftBoundary = wedgeBoundary(prevIdx, targets, chartMax, radius, center)
+  const rightBoundary = wedgeBoundary(index, targets, chartMax, radius, center)
+  const leftBoundaryR = Math.hypot(leftBoundary.x - center.x, leftBoundary.y - center.y)
+  const rightBoundaryR = Math.hypot(rightBoundary.x - center.x, rightBoundary.y - center.y)
+
+  const half = Math.PI / n
+  const a = axisAngleRad(index, n)
+  const leftChordR = Math.min(fillR, leftBoundaryR)
+  const rightChordR = Math.min(fillR, rightBoundaryR)
+
+  const peakX = center.x + Math.cos(a) * fillR
+  const peakY = center.y + Math.sin(a) * fillR
+  const b1X = center.x + Math.cos(a - half) * leftChordR
+  const b1Y = center.y + Math.sin(a - half) * leftChordR
+  const b2X = center.x + Math.cos(a + half) * rightChordR
+  const b2Y = center.y + Math.sin(a + half) * rightChordR
+
+  return `M ${center.x},${center.y} L ${b1X},${b1Y} L ${peakX},${peakY} L ${b2X},${b2Y} Z`
 }
 
 // Per-axis max blend of primary and secondary build targets. Secondary
