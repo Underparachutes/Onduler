@@ -309,3 +309,11 @@ h2 {
   0%, 100% { opacity: 0.7; transform: translateY(0); }
   50%      { opacity: 1.0; transform: translateY(-1px); }
 }
+
+/* Locked-page silhouette: gentle breathing-room cycle.
+   Used on the irregular 7-vertex radar silhouette while the user
+   hasn't yet unlocked the weekly Reflections surface. */
+@keyframes slow-breathe {
+  0%, 100% { opacity: 0.85; }
+  50%      { opacity: 1; }
+}
