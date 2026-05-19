@@ -16,7 +16,8 @@ import { bonusBySwell, type WaypointHitRow, type OneShotCompletionRow } from '@/
 import { currentRamp, type WelcomeBackMode } from '@/lib/welcomeback'
 import { SwellRadar, type RadarSwell } from '@/app/components/SwellRadar'
 import { LockedCadenceTile } from './components/LockedCadenceTile'
-import { getWeekCeremonyState } from '@/app/actions/reflections'
+import { LockedPage } from './components/LockedPage'
+import { getWeekCeremonyState, getUnlockState } from '@/app/actions/reflections'
 import { formatWeekLabel } from '@/lib/cycles'
 import type { BuildKey } from '@/lib/builds'
 
@@ -49,7 +50,16 @@ export default async function ReflectionsPage({
   const todayKey = pacificDayKey(todayStart)
   const monthStart = monthStartKey(todayKey)
 
-  const ceremony = await getWeekCeremonyState(supabase, user.id, todayKey)
+  const [ceremony, unlocks] = await Promise.all([
+    getWeekCeremonyState(supabase, user.id, todayKey),
+    getUnlockState(supabase, user.id, todayKey),
+  ])
+
+  // Weekly is the gate. Until the user has lived through a full Mon-Sun
+  // with the engagement floor met, /reflections is vibe-only mystery.
+  if (!unlocks.week) {
+    return <LockedPage />
+  }
 
   const [
     { data: allLogs },
@@ -480,16 +490,18 @@ export default async function ReflectionsPage({
           </>
         )}
 
-        {/* Locked-cadence anticipation tiles (ADR 0007). Vibe-only — blurred
-           radar silhouettes + drifting tide lines, no dates, no counters.
-           Unlock logic lands in a later session; for now everything past
-           weekly stays locked. */}
-        <div className="mt-12 flex flex-col gap-3 pb-12">
-          <p className="text-[10px] uppercase tracking-widest text-th-muted">Coming together</p>
-          <LockedCadenceTile cadence="month" />
-          <LockedCadenceTile cadence="quarter" />
-          <LockedCadenceTile cadence="year" />
-        </div>
+        {/* Locked-cadence anticipation tiles (ADR 0007). One per not-yet-
+           unlocked cadence. The cadence-specific ceremony routes ship in
+           a later session — for now an unlocked cadence simply disappears
+           from this surface. */}
+        {(!unlocks.month || !unlocks.quarter || !unlocks.year) && (
+          <div className="mt-12 flex flex-col gap-3 pb-12">
+            <p className="text-[10px] uppercase tracking-widest text-th-muted">Coming together</p>
+            {!unlocks.month && <LockedCadenceTile cadence="month" />}
+            {!unlocks.quarter && <LockedCadenceTile cadence="quarter" />}
+            {!unlocks.year && <LockedCadenceTile cadence="year" />}
+          </div>
+        )}
       </div>
     </div>
   )
