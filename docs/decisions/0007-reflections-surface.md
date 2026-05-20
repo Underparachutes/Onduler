@@ -2,6 +2,7 @@
 
 **Status:** Accepted
 **Date:** 2026-05-18
+**Amended:** 2026-05-20 — see ADR 0008. The surface is renamed from **Reflections** to **Anchors** (surface name, entry-level word, route, file paths). The `reflections` schema table is preserved per the internal/external split. References to "Reflections" in this ADR are still accurate as the prior surface name and remain correct as schema/internal language (`reflections` table, `app/actions/reflections.ts`, etc.); user-facing copy uses "Anchors."
 
 ## Decision
 

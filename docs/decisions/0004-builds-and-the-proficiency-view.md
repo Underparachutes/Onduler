@@ -3,6 +3,7 @@
 **Status:** Accepted
 **Date:** 2026-05-17
 **Amended:** 2026-05-18 — see ADR 0006. The user-facing word for "Milestone" is **Waypoint**. The schema table remains `milestones` and code identifiers stay unchanged; references to "Milestone(s)" in this ADR are still accurate as schema/internal language, but user-facing copy uses "Waypoint(s)."
+**Amended:** 2026-05-20 — see ADR 0008. The JSON column `user_settings.mvs_anchors` referenced in §8 is renamed to `user_settings.mvs_motions` (the word "anchor" now belongs to the surface formerly called Reflections — see ADR 0008). The design concept is unchanged — "minimum viable shape motions" still describes the auto-resolved top-2 most-logged motions surfaced on welcome-back from a wave. The Settings section labeled "Anchors editor" in §8 is renamed accordingly (final wording TBD in implementation).
 
 ## Decision
 
