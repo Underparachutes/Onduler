@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getAnchorJournal, type AnchorRow } from '@/app/actions/reflections'
 import { formatWeekLabel, formatMonthLabel, formatQuarterLabel, formatYearLabel, type Cycle } from '@/lib/cycles'
 import { pacificDayKey, type DayKey } from '@/lib/periods'
-import { FrozenRadar } from '@/app/anchors/ceremony/week/FrozenRadar'
+import { FrozenRadar } from '@/app/anchors/ceremony/FrozenRadar'
 
 type SwellRow = { id: string; name: string; color: string; target_points: number | null; target_hours: number | null }
 type MotionShape = {

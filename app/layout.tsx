@@ -3,8 +3,7 @@ import { IBM_Plex_Mono, Manrope } from "next/font/google";
 import { createClient } from "@/lib/supabase/server";
 import { TimezoneSync } from "./components/TimezoneSync";
 import { BottomNav } from "./components/BottomNav";
-import { getWeekCeremonyState } from "./actions/reflections";
-import { pacificDayKey } from "@/lib/periods";
+import { fetchAnyCeremonyPending } from "./actions/reflections";
 import "./globals.css";
 
 const manrope = Manrope({
@@ -48,13 +47,12 @@ export default async function RootLayout({
   let theme = "default";
   let pendingAnchor = false;
   if (user) {
-    const todayKey = pacificDayKey(new Date());
-    const [{ data }, ceremony] = await Promise.all([
+    const [{ data }, anyPending] = await Promise.all([
       supabase.from("user_settings").select("theme").eq("user_id", user.id).single(),
-      getWeekCeremonyState(supabase, user.id, todayKey),
+      fetchAnyCeremonyPending(),
     ]);
     if (data?.theme) theme = data.theme;
-    pendingAnchor = ceremony.state === 'pending';
+    pendingAnchor = anyPending;
   }
 
   return (

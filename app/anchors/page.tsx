@@ -17,9 +17,18 @@ import { currentRamp, type WelcomeBackMode } from '@/lib/welcomeback'
 import { SwellRadar, type RadarSwell } from '@/app/components/SwellRadar'
 import { LockedCadenceTile } from './components/LockedCadenceTile'
 import { LockedPage } from './components/LockedPage'
-import { getWeekCeremonyState, getUnlockState } from '@/app/actions/reflections'
-import { formatWeekLabel } from '@/lib/cycles'
+import { getCeremonyState, getUnlockState, type CeremonyState } from '@/app/actions/reflections'
+import { formatCycleLabel, type Cadence } from '@/lib/cycles'
 import type { BuildKey } from '@/lib/builds'
+
+type CeremonyResult = { state: CeremonyState; cycleStart: string; cycleEnd: string; chapterId: string | null }
+const CADENCES: Cadence[] = ['week', 'month', 'quarter', 'year']
+const CADENCE_LABEL: Record<Cadence, string> = {
+  week: 'Last week',
+  month: 'Last month',
+  quarter: 'Last quarter',
+  year: 'Last year',
+}
 
 type Period = 'week' | 'month' | 'lifetime'
 
@@ -50,10 +59,14 @@ export default async function AnchorsPage({
   const todayKey = pacificDayKey(todayStart)
   const monthStart = monthStartKey(todayKey)
 
-  const [ceremony, unlocks] = await Promise.all([
-    getWeekCeremonyState(supabase, user.id, todayKey),
+  const [ceremonies, unlocks] = await Promise.all([
+    Promise.all(CADENCES.map(c => getCeremonyState(supabase, user.id, c, todayKey))) as Promise<CeremonyResult[]>,
     getUnlockState(supabase, user.id, todayKey),
   ])
+  const ceremonyByCadence: Record<Cadence, CeremonyResult> = {
+    week: ceremonies[0], month: ceremonies[1], quarter: ceremonies[2], year: ceremonies[3],
+  }
+  const pendingCadences: Cadence[] = CADENCES.filter(c => ceremonyByCadence[c].state === 'pending')
 
   // Weekly is the gate. Until the user has lived through a full Mon-Sun
   // with the engagement floor met, /anchors is vibe-only mystery.
@@ -314,17 +327,25 @@ export default async function AnchorsPage({
 
         <h1 className="mb-8 text-2xl font-semibold text-th-text">Anchors</h1>
 
-        {ceremony.state === 'pending' && (
-          <Link
-            href="/anchors/ceremony/week"
-            className="mb-8 block rounded-xl border border-th-border bg-th-surface/50 px-4 py-4 transition-colors hover:bg-th-surface active:scale-[0.99]"
-          >
-            <p className="text-[10px] uppercase tracking-widest text-th-muted">Last week</p>
-            <p className="mt-1.5 text-sm text-th-text">
-              {formatWeekLabel({ cycleStart: ceremony.cycleStart, cycleEnd: ceremony.cycleEnd })} is ready to be seen.
-            </p>
-            <p className="mt-2 text-xs text-th-faint">Drop this week&apos;s anchor →</p>
-          </Link>
+        {pendingCadences.length > 0 && (
+          <div className="mb-8 flex flex-col gap-3">
+            {pendingCadences.map(c => {
+              const cer = ceremonyByCadence[c]
+              return (
+                <Link
+                  key={c}
+                  href={`/anchors/ceremony/${c}`}
+                  className="block rounded-xl border border-th-border bg-th-surface/50 px-4 py-4 transition-colors hover:bg-th-surface active:scale-[0.99]"
+                >
+                  <p className="text-[10px] uppercase tracking-widest text-th-muted">{CADENCE_LABEL[c]}</p>
+                  <p className="mt-1.5 text-sm text-th-text">
+                    {formatCycleLabel({ cycleStart: cer.cycleStart, cycleEnd: cer.cycleEnd }, c)} is ready to be seen.
+                  </p>
+                  <p className="mt-2 text-xs text-th-faint">Drop your anchor →</p>
+                </Link>
+              )
+            })}
+          </div>
         )}
 
         {radarSwells.length >= 3 && (

@@ -3,12 +3,12 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { pacificDayKey, type DayKey } from '@/lib/periods'
-import { closedWeekFor, cycleContaining, type Cadence } from '@/lib/cycles'
+import { closedCycleFor, cycleContaining, type Cadence } from '@/lib/cycles'
 import { CEREMONY_FLOOR, UNLOCK_FLOOR, logDaysInCycle, unlockedForCadence } from '@/lib/unlocks'
 
 type SupabaseClient = Awaited<ReturnType<typeof createClient>>
 
-export type WeekCeremonyState = 'none' | 'pending' | 'completed'
+export type CeremonyState = 'none' | 'pending' | 'completed'
 
 export type UnlockState = Record<Cadence, boolean>
 
@@ -57,21 +57,23 @@ export async function getUnlockState(
   }
 }
 
-// Server-side: determine whether the user has a pending weekly ceremony.
+// Server-side: determine whether the user has a pending ceremony for the
+// given cadence.
 // 'none'      → wave-cycle (zero logs) or below floor for first-time unlock
 // 'pending'   → cycle meets the appropriate floor and no reflection saved
-// 'completed' → a reflection row already exists for the closed week
+// 'completed' → a reflection row already exists for the closed cycle
 //
 // Reflection rows are chapter-scoped (internal table name preserved per
 // ADR 0008's internal/external split — surface is Anchors). The applicable
-// floor depends on whether weekly is already unlocked: UNLOCK_FLOOR for
-// first-time, CEREMONY_FLOOR for subsequent cycles.
-export async function getWeekCeremonyState(
+// floor depends on whether the cadence is already unlocked: UNLOCK_FLOOR
+// for first-time, CEREMONY_FLOOR for subsequent cycles.
+export async function getCeremonyState(
   supabase: SupabaseClient,
   userId: string,
+  cadence: Cadence,
   todayKey: DayKey,
-): Promise<{ state: WeekCeremonyState; cycleStart: DayKey; cycleEnd: DayKey; chapterId: string | null }> {
-  const cycle = closedWeekFor(todayKey)
+): Promise<{ state: CeremonyState; cycleStart: DayKey; cycleEnd: DayKey; chapterId: string | null }> {
+  const cycle = closedCycleFor(todayKey, cadence)
   const { cycleStart, cycleEnd } = cycle
 
   const { chapterId, logDays } = await fetchChapterAndLogDays(supabase, userId)
@@ -82,19 +84,20 @@ export async function getWeekCeremonyState(
     .select('id')
     .eq('user_id', userId)
     .eq('chapter_id', chapterId)
-    .eq('cycle_type', 'week')
+    .eq('cycle_type', cadence)
     .eq('cycle_start', cycleStart)
     .maybeSingle()
   if (existing?.id) return { state: 'completed', cycleStart, cycleEnd, chapterId }
 
   const closedCycleDays = logDaysInCycle(logDays, cycle)
-  const weeklyUnlocked = unlockedForCadence(logDays, 'week', todayKey, cycleContaining)
-  const floor = weeklyUnlocked ? CEREMONY_FLOOR.week : UNLOCK_FLOOR.week
+  const isUnlocked = unlockedForCadence(logDays, cadence, todayKey, cycleContaining)
+  const floor = isUnlocked ? CEREMONY_FLOOR[cadence] : UNLOCK_FLOOR[cadence]
   if (closedCycleDays >= floor) return { state: 'pending', cycleStart, cycleEnd, chapterId }
   return { state: 'none', cycleStart, cycleEnd, chapterId }
 }
 
-export async function saveWeekReflection(input: {
+export async function saveReflection(input: {
+  cadence: Cadence
   cycleStart: DayKey
   cycleEnd: DayKey
   expectationText: string | null
@@ -120,7 +123,7 @@ export async function saveWeekReflection(input: {
   const { error } = await supabase.from('reflections').insert({
     user_id: user.id,
     chapter_id: chapter.id,
-    cycle_type: 'week',
+    cycle_type: input.cadence,
     cycle_start: input.cycleStart,
     cycle_end: input.cycleEnd,
     expectation_text: trimmedExpectation,
@@ -131,19 +134,44 @@ export async function saveWeekReflection(input: {
   if (error) return { error: error.message }
 
   revalidatePath('/anchors')
-  revalidatePath('/anchors/ceremony/week')
+  revalidatePath(`/anchors/ceremony/${input.cadence}`)
   return { success: true }
 }
 
-// Helper for surfaces that just need the boolean indicator. Wraps the full
-// state fetch and resolves today's day key from the server clock.
-export async function fetchWeekCeremonyPending(): Promise<boolean> {
+// Layout-level helper: true if *any* cadence has a pending ceremony. Used
+// to drive the bottom-nav tide-pulse on the Anchors tab. One round-trip:
+// chapter + log days fetched once, then reflection lookups for each cadence
+// run in parallel.
+export async function fetchAnyCeremonyPending(): Promise<boolean> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return false
+
   const todayKey = pacificDayKey(new Date())
-  const { state } = await getWeekCeremonyState(supabase, user.id, todayKey)
-  return state === 'pending'
+  const { chapterId, logDays } = await fetchChapterAndLogDays(supabase, user.id)
+  if (!chapterId) return false
+
+  const cadences: Cadence[] = ['week', 'month', 'quarter', 'year']
+  const checks = await Promise.all(
+    cadences.map(async cadence => {
+      const cycle = closedCycleFor(todayKey, cadence)
+      const closedCycleDays = logDaysInCycle(logDays, cycle)
+      const isUnlocked = unlockedForCadence(logDays, cadence, todayKey, cycleContaining)
+      const floor = isUnlocked ? CEREMONY_FLOOR[cadence] : UNLOCK_FLOOR[cadence]
+      if (closedCycleDays < floor) return false
+
+      const { data: existing } = await supabase
+        .from('reflections')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('chapter_id', chapterId)
+        .eq('cycle_type', cadence)
+        .eq('cycle_start', cycle.cycleStart)
+        .maybeSingle()
+      return !existing?.id
+    }),
+  )
+  return checks.some(Boolean)
 }
 
 // Free-form anchor (cycle_type='free'). Optional prompt header + body text.

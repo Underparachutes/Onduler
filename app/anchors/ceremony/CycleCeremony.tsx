@@ -2,29 +2,63 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { saveWeekReflection } from '@/app/actions/reflections'
+import { saveReflection } from '@/app/actions/reflections'
 import { FrozenRadar } from './FrozenRadar'
 import { ceilDisplay, type DayKey } from '@/lib/periods'
+import type { Cadence } from '@/lib/cycles'
 
 type Step = 'expectation' | 'reveal' | 'observation' | 'tune'
 
 type Swell = { id: string; name: string; color: string; target: number }
 
 type Props = {
+  cadence: Cadence
   cycleStart: DayKey
   cycleEnd: DayKey
-  weekLabel: string
+  cycleLabel: string
   swells: Swell[]
   actuals: number[]
   trackingMode: 'points' | 'hours'
 }
 
-// One shape across all four cadences (ADR 0007). Two prompts, a radar
-// reveal between them, then a tune-or-skip CTA. Every step is skippable.
-export function WeekCeremony({
+// Cadence-specific copy. One shape across all four cadences (ADR 0007) —
+// the cadence is the depth knob; the questions stay the same in structure
+// but reference the cycle the user just lived through.
+const COPY: Record<Cadence, { expectation: string; reveal: string; observation: string }> = {
+  week: {
+    expectation: 'What did you expect to see this week?',
+    reveal: "Here's what last week looked like.",
+    observation: 'What did you see?',
+  },
+  month: {
+    expectation: 'What did you expect to see this month?',
+    reveal: "Here's what last month looked like.",
+    observation: 'What did you see?',
+  },
+  quarter: {
+    expectation: 'What did you expect to see this quarter?',
+    reveal: "Here's what last quarter looked like.",
+    observation: 'What did you see?',
+  },
+  year: {
+    expectation: 'What did you expect to see this year?',
+    reveal: "Here's what last year looked like.",
+    observation: 'What did you see?',
+  },
+}
+
+const CYCLE_NOUN: Record<Cadence, string> = {
+  week: 'week',
+  month: 'month',
+  quarter: 'quarter',
+  year: 'year',
+}
+
+export function CycleCeremony({
+  cadence,
   cycleStart,
   cycleEnd,
-  weekLabel,
+  cycleLabel,
   swells,
   actuals,
   trackingMode,
@@ -37,10 +71,13 @@ export function WeekCeremony({
 
   const isHours = trackingMode === 'hours'
   const totalActual = actuals.reduce((s, v) => s + v, 0)
+  const copy = COPY[cadence]
+  const noun = CYCLE_NOUN[cadence]
 
   function persist(didTune: boolean) {
     startTransition(async () => {
-      await saveWeekReflection({
+      await saveReflection({
+        cadence,
         cycleStart,
         cycleEnd,
         expectationText: expectation || null,
@@ -54,7 +91,8 @@ export function WeekCeremony({
 
   function goToSwells() {
     startTransition(async () => {
-      await saveWeekReflection({
+      await saveReflection({
+        cadence,
         cycleStart,
         cycleEnd,
         expectationText: expectation || null,
@@ -67,7 +105,8 @@ export function WeekCeremony({
 
   function goToMotions() {
     startTransition(async () => {
-      await saveWeekReflection({
+      await saveReflection({
+        cadence,
         cycleStart,
         cycleEnd,
         expectationText: expectation || null,
@@ -83,16 +122,14 @@ export function WeekCeremony({
       <div className="w-full max-w-[22rem]">
         <div className="mb-6 flex items-center justify-between">
           <p className="text-xs uppercase tracking-widest text-th-muted">Anchor</p>
-          <p className="text-xs text-th-faint">{weekLabel}</p>
+          <p className="text-xs text-th-faint">{cycleLabel}</p>
         </div>
 
         {step === 'expectation' && (
           <div className="flex flex-col gap-6">
-            <h1 className="text-2xl font-semibold text-th-text">
-              What did you expect to see this week?
-            </h1>
+            <h1 className="text-2xl font-semibold text-th-text">{copy.expectation}</h1>
             <p className="text-sm leading-relaxed text-th-secondary">
-              Take a moment. Before you look at the data, what&apos;s your sense of how the week went?
+              Take a moment. Before you look at the data, what&apos;s your sense of how the {noun} went?
             </p>
             <textarea
               value={expectation}
@@ -115,7 +152,7 @@ export function WeekCeremony({
                 onClick={() => setStep('reveal')}
                 className="rounded-lg bg-th-btn px-4 py-2 text-xs font-medium text-th-btn-text transition-colors hover:bg-th-btn-hover active:scale-[0.97]"
               >
-                See the week
+                See the {noun}
               </button>
             </div>
           </div>
@@ -123,9 +160,7 @@ export function WeekCeremony({
 
         {step === 'reveal' && (
           <div className="flex flex-col gap-6">
-            <h1 className="text-2xl font-semibold text-th-text">
-              Here&apos;s what last week looked like.
-            </h1>
+            <h1 className="text-2xl font-semibold text-th-text">{copy.reveal}</h1>
             <div className="flex justify-center">
               <FrozenRadar swells={swells} actuals={actuals} trackingMode={trackingMode} />
             </div>
@@ -146,9 +181,7 @@ export function WeekCeremony({
 
         {step === 'observation' && (
           <div className="flex flex-col gap-6">
-            <h1 className="text-2xl font-semibold text-th-text">
-              What did you see?
-            </h1>
+            <h1 className="text-2xl font-semibold text-th-text">{copy.observation}</h1>
             <p className="text-sm leading-relaxed text-th-secondary">
               No judgment, no scorecard. Just what you noticed when you looked.
             </p>
@@ -181,11 +214,9 @@ export function WeekCeremony({
 
         {step === 'tune' && (
           <div className="flex flex-col gap-6">
-            <h1 className="text-2xl font-semibold text-th-text">
-              Want to tune something?
-            </h1>
+            <h1 className="text-2xl font-semibold text-th-text">Want to tune something?</h1>
             <p className="text-sm leading-relaxed text-th-secondary">
-              The week is closed. If something wants to shift, this is the moment.
+              The {noun} is closed. If something wants to shift, this is the moment.
             </p>
             <div className="flex flex-col gap-3">
               <button

@@ -114,6 +114,28 @@ export function formatYearLabel(cycle: Cycle): string {
 
 export type Cadence = 'week' | 'month' | 'quarter' | 'year'
 
+// Inclusive day count of a closed cycle. Used to scale weekly swell targets
+// to the cycle's window (cadence-scaled target = weekly × days_in_cycle / 7).
+export function daysInCycle(cycle: Cycle): number {
+  return Math.round((toUtcMs(cycle.cycleEnd) - toUtcMs(cycle.cycleStart)) / MS_PER_DAY) + 1
+}
+
+// Dispatcher: returns the just-closed cycle for the given cadence.
+export function closedCycleFor(today: DayKey, cadence: Cadence): Cycle {
+  if (cadence === 'week') return closedWeekFor(today)
+  if (cadence === 'month') return closedMonthFor(today)
+  if (cadence === 'quarter') return closedQuarterFor(today)
+  return closedYearFor(today)
+}
+
+// Dispatcher: returns the human-facing label for any cycle, by cadence.
+export function formatCycleLabel(cycle: Cycle, cadence: Cadence, locale: string = 'en-US'): string {
+  if (cadence === 'week') return formatWeekLabel(cycle, locale)
+  if (cadence === 'month') return formatMonthLabel(cycle, locale)
+  if (cadence === 'quarter') return formatQuarterLabel(cycle)
+  return formatYearLabel(cycle)
+}
+
 // Cycle containing `day`, for the given cadence. Useful for bucketing logs
 // into their cycle of origin.
 export function cycleContaining(day: DayKey, cadence: Cadence): Cycle {
