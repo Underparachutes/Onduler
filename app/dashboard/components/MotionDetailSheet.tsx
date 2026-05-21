@@ -21,16 +21,15 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { quickLogMotion, unlogMotion } from '@/app/actions/logs'
-import { createSubmotion, hideMotion, deleteMotion, setMotionSwells, setMotionGroup, updateSubmotionDirect, updateMotionDirect, reorderMotions } from '@/app/actions/motions'
+import { createSubmotion, hideMotion, deleteMotion, setMotionSwells, setMotionGroup, setSubmotionMode, updateSubmotionDirect, updateMotionDirect, reorderMotions } from '@/app/actions/motions'
 import { formatPts, formatHrs } from '@/lib/format'
-import { SUBMOTIONS_ENABLED } from '@/lib/features'
 import { applyWeightEdit, defaultWeightForNewSwell, totalAllocation } from '@/lib/contributions'
 import { CadenceSection } from './CadenceSection'
 
 type Swell = { id: string; name: string; color: string }
 type MotionSwell = { id: string; name: string; color: string; weight: number }
 type Group = { id: string; name: string; color: string }
-type Motion = { id: string; name: string; default_points: number; default_hours: number; swells: MotionSwell[]; groupId: string | null }
+type Motion = { id: string; name: string; default_points: number; default_hours: number; swells: MotionSwell[]; groupId: string | null; submotionMode: 'distribute' | 'rollup' | null }
 type SubSwell = { id: string; name: string; color: string; weight: number }
 type Submotion = { id: string; name: string; default_points: number; default_hours: number; swells: SubSwell[] }
 type TrackingMode = 'points' | 'hours'
@@ -246,12 +245,13 @@ type Props = {
   allSwells: Swell[]
   allGroups: Group[]
   groupsEnabled: boolean
+  submotionsEnabled: boolean
   trackingMode: TrackingMode
 }
 
 export function MotionDetailSheet({
   motion, submotions, doneMotionIds, onClose, onPointsDelta, onHide,
-  isLogged, onUnlog, allSwells, allGroups, groupsEnabled, trackingMode,
+  isLogged, onUnlog, allSwells, allGroups, groupsEnabled, submotionsEnabled, trackingMode,
 }: Props) {
   const subDelta = (s: Submotion) => trackingMode === 'hours' ? Number(s.default_hours) : s.default_points
   const router = useRouter()
@@ -343,6 +343,26 @@ export function MotionDetailSheet({
   const [addSwellWeights, setAddSwellWeights] = useState<Map<string, number>>(new Map())
   const [addSwellPctDraft, setAddSwellPctDraft] = useState<Map<string, string>>(new Map())
   const [isAdding, startAdding] = useTransition()
+
+  // Submotion mode: 'distribute' (parent's pts split across children) vs
+  // 'rollup' (each child carries the parent's full pts). Locked on first
+  // child add via createSubmotion's mode arg, switchable later via the
+  // section-header chip. Render-phase sync mirrors the SwellsList pattern.
+  const [mode, setMode] = useState<'distribute' | 'rollup'>(motion.submotionMode ?? 'distribute')
+  const prevSubmotionModeRef = useRef(motion.submotionMode ?? 'distribute')
+  if ((motion.submotionMode ?? 'distribute') !== prevSubmotionModeRef.current) {
+    prevSubmotionModeRef.current = motion.submotionMode ?? 'distribute'
+    setMode(motion.submotionMode ?? 'distribute')
+  }
+  const [, startMode] = useTransition()
+  function toggleMode() {
+    const next = mode === 'rollup' ? 'distribute' : 'rollup'
+    setMode(next)
+    startMode(async () => {
+      await setSubmotionMode(motion.id, next)
+      router.refresh()
+    })
+  }
 
   // Edit submotion inline
   const [editingSubId, setEditingSubId] = useState<string | null>(null)
@@ -487,8 +507,11 @@ export function MotionDetailSheet({
     const name = addName.trim()
     if (!name) return
     const swellsToAssign = swellEntriesToArray(addSwellWeights)
+    // Stamp mode only on the first child; subsequent adds inherit the
+    // parent's existing mode.
+    const stampMode = orderedSubs.length === 0 ? mode : undefined
     startAdding(async () => {
-      const result = await createSubmotion(motion.id, name)
+      const result = await createSubmotion(motion.id, name, stampMode)
       if (result?.id && swellsToAssign.length > 0) {
         await setMotionSwells(result.id, swellsToAssign)
       }
@@ -623,7 +646,7 @@ export function MotionDetailSheet({
         )}
 
         {/* Submotions */}
-        {SUBMOTIONS_ENABLED && <div className="mb-6">
+        {submotionsEnabled && <div className="mb-6">
           <div className="mb-3 flex items-center gap-2">
             {orderedSubs.length > 0 && (
               <button
@@ -647,9 +670,32 @@ export function MotionDetailSheet({
             {orderedSubs.length === 0 && (
               <p className="text-xs font-medium uppercase tracking-widest text-th-faint">Submotions</p>
             )}
+            {orderedSubs.length > 0 && (
+              <button
+                onClick={toggleMode}
+                className="ml-auto rounded-full border border-th-border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-th-muted transition-colors hover:text-th-text active:scale-[0.97]"
+                aria-label={`Submotion mode: ${mode === 'rollup' ? 'each counts as full' : "split parent's value"}. Tap to switch.`}
+              >
+                {mode === 'rollup' ? 'Full' : 'Split'}
+              </button>
+            )}
             <button
-              onClick={() => setAddingSubmotion(a => !a)}
-              className="ml-auto shrink-0 p-0.5 text-th-faint transition-colors hover:text-th-muted"
+              onClick={() => {
+                setAddingSubmotion(a => {
+                  const next = !a
+                  if (next) {
+                    // Seed from parent's swells so the user doesn't have to
+                    // re-pick on every submotion; still editable before adding.
+                    setAddSwellWeights(new Map(motion.swells.map(s => [s.id, s.weight])))
+                    setAddSwellPctDraft(new Map(motion.swells.map(s => [s.id, String(Math.round(s.weight * 100))])))
+                  } else {
+                    setAddSwellWeights(new Map())
+                    setAddSwellPctDraft(new Map())
+                  }
+                  return next
+                })
+              }}
+              className={`${orderedSubs.length > 0 ? '' : 'ml-auto'} shrink-0 p-0.5 text-th-faint transition-colors hover:text-th-muted`}
               aria-label="Add submotion"
             >
               <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="h-4 w-4">
@@ -661,6 +707,40 @@ export function MotionDetailSheet({
           {/* Add submotion expandable form */}
           {addingSubmotion && (
             <div className="mb-3 rounded-lg border border-th-focus bg-th-surface px-4 py-3 flex flex-col gap-2">
+              {orderedSubs.length === 0 && (
+                <div className="flex flex-col gap-1.5">
+                  <p className="text-xs text-th-faint">Counts as</p>
+                  <div className="flex gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setMode('distribute')}
+                      className={`rounded-full border px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide transition-colors ${
+                        mode === 'distribute'
+                          ? 'border-th-btn bg-th-btn text-th-btn-text'
+                          : 'border-th-border text-th-muted hover:text-th-text'
+                      }`}
+                    >
+                      Split
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setMode('rollup')}
+                      className={`rounded-full border px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide transition-colors ${
+                        mode === 'rollup'
+                          ? 'border-th-btn bg-th-btn text-th-btn-text'
+                          : 'border-th-border text-th-muted hover:text-th-text'
+                      }`}
+                    >
+                      Full
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-th-faint">
+                    {mode === 'rollup'
+                      ? `Each submotion = full ${formatPts(motion.default_points)}.`
+                      : `Parent's ${formatPts(motion.default_points)} splits across submotions.`}
+                  </p>
+                </div>
+              )}
               <input
                 autoFocus
                 type="text"
@@ -695,7 +775,9 @@ export function MotionDetailSheet({
               </div>
               {orderedSubs.length > 0 && (
                 <p className="text-xs text-th-faint">
-                  Parent&apos;s {formatPts(motion.default_points)} split across {orderedSubs.length + 1} submotion{orderedSubs.length !== 0 ? 's' : ''}
+                  {mode === 'rollup'
+                    ? `Each submotion counts as the full ${formatPts(motion.default_points)}.`
+                    : `Parent's ${formatPts(motion.default_points)} split across ${orderedSubs.length + 1} submotions`}
                 </p>
               )}
             </div>

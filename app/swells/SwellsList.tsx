@@ -35,6 +35,7 @@ type Motion = {
   default_hours: number
   swells: MotionSwell[]
   groupId: string | null
+  submotionMode: 'distribute' | 'rollup' | null
   swellIds: string[]
   swellWeights: Record<string, number>
 }
@@ -65,6 +66,7 @@ type Props = {
   doneMotionIds: string[]
   allGroups: Group[]
   groupsEnabled: boolean
+  submotionsEnabled: boolean
   trackingMode: TrackingMode
   hideDone: boolean
 }
@@ -113,6 +115,7 @@ export function SwellsList({
   doneMotionIds,
   allGroups,
   groupsEnabled,
+  submotionsEnabled,
   trackingMode,
   hideDone,
   activeGroup,
@@ -302,6 +305,7 @@ export function SwellsList({
           allSwells={swellStubs}
           allGroups={allGroups}
           groupsEnabled={groupsEnabled}
+          submotionsEnabled={submotionsEnabled}
           trackingMode={trackingMode}
         />
       )}

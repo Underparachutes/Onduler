@@ -49,6 +49,7 @@ CREATE TABLE motions (
   default_hours  numeric(5,2) NOT NULL DEFAULT 1.00,
   group_id       uuid        REFERENCES groups(id) ON DELETE SET NULL,
   parent_id      uuid        REFERENCES motions(id) ON DELETE CASCADE,
+  submotion_mode text        CHECK (submotion_mode IS NULL OR submotion_mode IN ('distribute', 'rollup')),
   hidden         boolean     NOT NULL DEFAULT false,
   sort_order     int         NOT NULL DEFAULT 0,
   created_at     timestamptz NOT NULL DEFAULT now()
@@ -131,6 +132,7 @@ CREATE TABLE user_settings (
   daily_goal_hours    numeric NOT NULL DEFAULT 4.00,
   tracking_mode       text    NOT NULL DEFAULT 'points' CHECK (tracking_mode IN ('points', 'hours')),
   groups_enabled      boolean NOT NULL DEFAULT false,
+  submotions_enabled  boolean NOT NULL DEFAULT false,
   celebration_enabled boolean NOT NULL DEFAULT true,
   haptic_enabled      boolean NOT NULL DEFAULT true,
   primary_build       text    NULL,

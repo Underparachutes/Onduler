@@ -51,13 +51,14 @@ export default async function DashboardPage() {
 
   const { data: settings } = await supabase
     .from('user_settings')
-    .select('groups_enabled, onboarding_complete, daily_goal, daily_goal_hours, tracking_mode, celebration_enabled, haptic_enabled, welcome_back_mode, welcome_back_started_at')
+    .select('groups_enabled, submotions_enabled, onboarding_complete, daily_goal, daily_goal_hours, tracking_mode, celebration_enabled, haptic_enabled, welcome_back_mode, welcome_back_started_at')
     .eq('user_id', user.id)
     .single()
 
   if (!settings?.onboarding_complete) redirect('/onboarding')
 
   const groupsEnabled = settings?.groups_enabled ?? false
+  const submotionsEnabled = settings?.submotions_enabled ?? false
   const dailyGoal = settings?.daily_goal ?? 20
   const dailyGoalHours = Number(settings?.daily_goal_hours ?? 4)
   const trackingMode: 'points' | 'hours' = (settings?.tracking_mode as 'points' | 'hours') ?? 'points'
@@ -95,7 +96,7 @@ export default async function DashboardPage() {
       .gte('logged_at', weekStart.toISOString()),
     supabase
       .from('motions')
-      .select('id, name, default_points, default_hours, group_id, motion_swells(contribution_weight, swells(id, name, color))')
+      .select('id, name, default_points, default_hours, group_id, submotion_mode, motion_swells(contribution_weight, swells(id, name, color))')
       .eq('user_id', user.id)
       .eq('chapter_id', chapterId)
       .eq('hidden', false)
@@ -181,6 +182,7 @@ export default async function DashboardPage() {
       default_points: m.default_points,
       default_hours: m.default_hours,
       groupId: m.group_id as string | null,
+      submotionMode: (m.submotion_mode as 'distribute' | 'rollup' | null) ?? null,
       swells: rawJunctions
         .filter(ms => ms.swells !== null)
         .map(ms => ({ ...ms.swells!, weight: Number(ms.contribution_weight) || 1 })),
@@ -239,6 +241,7 @@ export default async function DashboardPage() {
   return (
     <DashboardView
       groupsEnabled={groupsEnabled}
+      submotionsEnabled={submotionsEnabled}
       motions={motions}
       groups={groupsWithMotions}
       ungroupedMotions={ungroupedMotions}

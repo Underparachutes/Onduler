@@ -21,10 +21,9 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import { reorderMotions } from '@/app/actions/motions'
 import { formatPts, formatHrs } from '@/lib/format'
-import { SUBMOTIONS_ENABLED } from '@/lib/features'
 
 type MotionSwell = { id: string; name: string; color: string; weight: number }
-type Motion = { id: string; name: string; default_points: number; default_hours: number; swells: MotionSwell[]; groupId: string | null }
+type Motion = { id: string; name: string; default_points: number; default_hours: number; swells: MotionSwell[]; groupId: string | null; submotionMode: 'distribute' | 'rollup' | null }
 type Submotion = { id: string; name: string; default_points: number; default_hours: number; swells: { id: string; name: string; color: string; weight: number }[] }
 type TrackingMode = 'points' | 'hours'
 
@@ -101,6 +100,7 @@ export function SortableMotionRow({ motion, done, hasSubmotions, trackingMode, o
 type ListProps = {
   motions: Motion[]
   submotionsMap: Record<string, Submotion[]>
+  submotionsEnabled: boolean
   localDone: Set<string>
   hideDone: boolean
   localHiddenIds: Set<string>
@@ -112,6 +112,7 @@ type ListProps = {
 export function SortableMotionList({
   motions,
   submotionsMap,
+  submotionsEnabled,
   localDone,
   hideDone,
   localHiddenIds,
@@ -155,7 +156,7 @@ export function SortableMotionList({
               key={motion.id}
               motion={motion}
               done={localDone.has(motion.id)}
-              hasSubmotions={SUBMOTIONS_ENABLED && (submotionsMap[motion.id]?.length ?? 0) > 0}
+              hasSubmotions={submotionsEnabled && (submotionsMap[motion.id]?.length ?? 0) > 0}
               trackingMode={trackingMode}
               onLog={(e) => onLog(motion, e.clientX, e.clientY)}
               onOpenSheet={() => onOpenSheet(motion.id)}

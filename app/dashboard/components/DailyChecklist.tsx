@@ -26,14 +26,13 @@ import { setDailyGoal, setDailyGoalHours } from '@/app/actions/settings'
 import { reassignMotionToGroup, reorderMotions } from '@/app/actions/motions'
 import { formatPts, formatHrs } from '@/lib/format'
 import { ceilDisplay } from '@/lib/periods'
-import { SUBMOTIONS_ENABLED } from '@/lib/features'
 import { CelebrationOverlay, type CelebrationState } from './CelebrationOverlay'
 import { MotionDetailSheet } from './MotionDetailSheet'
 import { SortableMotionList, SortableMotionRow } from './SortableMotionList'
 
 type Swell = { id: string; name: string; color: string }
 type MotionSwell = { id: string; name: string; color: string; weight: number }
-type Motion = { id: string; name: string; default_points: number; default_hours: number; swells: MotionSwell[]; groupId: string | null }
+type Motion = { id: string; name: string; default_points: number; default_hours: number; swells: MotionSwell[]; groupId: string | null; submotionMode: 'distribute' | 'rollup' | null }
 type Group = { id: string; name: string; color: string; motions: Motion[] }
 type Submotion = { id: string; name: string; default_points: number; default_hours: number; swells: { id: string; name: string; color: string; weight: number }[] }
 type TrackingMode = 'points' | 'hours'
@@ -41,6 +40,7 @@ type TrackingMode = 'points' | 'hours'
 type Props = {
   topBar: React.ReactNode
   groupsEnabled: boolean
+  submotionsEnabled: boolean
   motions: Motion[]
   groups: Group[]
   ungroupedMotions: Motion[]
@@ -60,7 +60,7 @@ type Props = {
 }
 
 function DroppableGroup({
-  id, label, color, items, isDragging, localDone, localHiddenIds, hideDone, submotionsMap, trackingMode, onLog, onOpenSheet,
+  id, label, color, items, isDragging, localDone, localHiddenIds, hideDone, submotionsMap, submotionsEnabled, trackingMode, onLog, onOpenSheet,
 }: {
   id: string
   label: string
@@ -71,6 +71,7 @@ function DroppableGroup({
   localHiddenIds: Set<string>
   hideDone: boolean
   submotionsMap: Record<string, Submotion[]>
+  submotionsEnabled: boolean
   trackingMode: TrackingMode
   onLog: (motion: Motion, x: number, y: number) => void
   onOpenSheet: (id: string) => void
@@ -97,7 +98,7 @@ function DroppableGroup({
               key={motion.id}
               motion={motion}
               done={localDone.has(motion.id)}
-              hasSubmotions={SUBMOTIONS_ENABLED && (submotionsMap[motion.id]?.length ?? 0) > 0}
+              hasSubmotions={submotionsEnabled && (submotionsMap[motion.id]?.length ?? 0) > 0}
               trackingMode={trackingMode}
               onLog={(e) => onLog(motion, e.clientX, e.clientY)}
               onOpenSheet={() => onOpenSheet(motion.id)}
@@ -126,6 +127,7 @@ function SortableSwellSection({
   localHiddenIds,
   hideDone,
   submotionsMap,
+  submotionsEnabled,
   trackingMode,
   onLog,
   onOpenSheet,
@@ -136,6 +138,7 @@ function SortableSwellSection({
   localHiddenIds: Set<string>
   hideDone: boolean
   submotionsMap: Record<string, Submotion[]>
+  submotionsEnabled: boolean
   trackingMode: TrackingMode
   onLog: (motion: Motion, x: number, y: number) => void
   onOpenSheet: (id: string) => void
@@ -186,7 +189,7 @@ function SortableSwellSection({
               key={m.id}
               motion={m}
               done={localDone.has(m.id)}
-              hasSubmotions={SUBMOTIONS_ENABLED && (submotionsMap[m.id]?.length ?? 0) > 0}
+              hasSubmotions={submotionsEnabled && (submotionsMap[m.id]?.length ?? 0) > 0}
               trackingMode={trackingMode}
               onLog={(e) => onLog(m, e.clientX, e.clientY)}
               onOpenSheet={() => onOpenSheet(m.id)}
@@ -199,14 +202,15 @@ function SortableSwellSection({
 }
 
 function MotionDragOverlay({
-  motion, done, submotionsMap, trackingMode,
+  motion, done, submotionsMap, submotionsEnabled, trackingMode,
 }: {
   motion: Motion
   done: boolean
   submotionsMap: Record<string, Submotion[]>
+  submotionsEnabled: boolean
   trackingMode: TrackingMode
 }) {
-  const hasSubmotions = SUBMOTIONS_ENABLED && (submotionsMap[motion.id]?.length ?? 0) > 0
+  const hasSubmotions = submotionsEnabled && (submotionsMap[motion.id]?.length ?? 0) > 0
   return (
     <div className="flex items-center gap-1 select-none rotate-1 shadow-xl">
       <div className={`flex flex-1 items-center gap-3 rounded-lg border px-3 py-3 bg-th-bg ${done ? 'border-th-border opacity-50' : 'border-th-btn'}`}>
@@ -233,6 +237,7 @@ function MotionDragOverlay({
 export function DailyChecklist({
   topBar,
   groupsEnabled,
+  submotionsEnabled,
   motions,
   groups,
   ungroupedMotions,
@@ -497,6 +502,7 @@ export function DailyChecklist({
       allSwells={allSwells}
       allGroups={allGroups}
       groupsEnabled={groupsEnabled}
+      submotionsEnabled={submotionsEnabled}
       trackingMode={trackingMode}
     />
   )
@@ -593,6 +599,7 @@ export function DailyChecklist({
                     localHiddenIds={localHiddenIds}
                     hideDone={hideDone}
                     submotionsMap={submotionsMap}
+                    submotionsEnabled={submotionsEnabled}
                     trackingMode={trackingMode}
                     onLog={handleLog}
                     onOpenSheet={setOpenSheetId}
@@ -623,6 +630,7 @@ export function DailyChecklist({
           <SortableMotionList
             motions={motions}
             submotionsMap={submotionsMap}
+            submotionsEnabled={submotionsEnabled}
             localDone={localDone}
             hideDone={hideDone}
             localHiddenIds={localHiddenIds}
@@ -683,6 +691,7 @@ export function DailyChecklist({
                   localHiddenIds={localHiddenIds}
                   hideDone={hideDone}
                   submotionsMap={submotionsMap}
+                  submotionsEnabled={submotionsEnabled}
                   trackingMode={trackingMode}
                   onLog={handleLog}
                   onOpenSheet={setOpenSheetId}
@@ -700,6 +709,7 @@ export function DailyChecklist({
                 localHiddenIds={localHiddenIds}
                 hideDone={hideDone}
                 submotionsMap={submotionsMap}
+                submotionsEnabled={submotionsEnabled}
                 trackingMode={trackingMode}
                 onLog={handleLog}
                 onOpenSheet={setOpenSheetId}
@@ -713,6 +723,7 @@ export function DailyChecklist({
                 motion={dragActiveMotion}
                 done={localDone.has(dragActiveMotion.id)}
                 submotionsMap={submotionsMap}
+                submotionsEnabled={submotionsEnabled}
                 trackingMode={trackingMode}
               />
             )}

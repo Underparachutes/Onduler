@@ -188,7 +188,11 @@ export async function updateSubmotionDirect(id: string, name: string, points: nu
   return { success: true }
 }
 
-export async function createSubmotion(parentId: string, name: string) {
+export async function createSubmotion(
+  parentId: string,
+  name: string,
+  mode?: 'distribute' | 'rollup'
+) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
@@ -197,6 +201,23 @@ export async function createSubmotion(parentId: string, name: string) {
   if (!trimmed) return { error: 'Name is required' }
 
   const chapterId = await getActiveChapterId(supabase, user.id)
+
+  // Stamp the parent's mode on first child, if a mode was passed and not yet set.
+  if (mode) {
+    const { data: parent } = await supabase
+      .from('motions')
+      .select('submotion_mode')
+      .eq('id', parentId)
+      .eq('user_id', user.id)
+      .single()
+    if (parent && parent.submotion_mode == null) {
+      await supabase
+        .from('motions')
+        .update({ submotion_mode: mode })
+        .eq('id', parentId)
+        .eq('user_id', user.id)
+    }
+  }
 
   const { data, error } = await supabase.from('motions').insert({
     user_id: user.id,
@@ -214,6 +235,24 @@ export async function createSubmotion(parentId: string, name: string) {
   revalidatePath('/dashboard')
   revalidatePath('/swells')
   return { success: true, id: data.id }
+}
+
+export async function setSubmotionMode(parentId: string, mode: 'distribute' | 'rollup') {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  await supabase
+    .from('motions')
+    .update({ submotion_mode: mode })
+    .eq('id', parentId)
+    .eq('user_id', user.id)
+
+  await rebalanceSubmotionBudget(supabase, parentId, user.id)
+
+  revalidatePath('/dashboard')
+  revalidatePath('/swells')
+  return { success: true }
 }
 
 export async function hideMotion(id: string) {
@@ -290,7 +329,7 @@ async function rebalanceSubmotionBudget(
 ) {
   const { data: parent } = await supabase
     .from('motions')
-    .select('default_points, default_hours')
+    .select('default_points, default_hours, submotion_mode')
     .eq('id', parentId)
     .eq('user_id', userId)
     .single()
@@ -306,10 +345,15 @@ async function rebalanceSubmotionBudget(
 
   if (!subs || subs.length === 0) return
 
+  // Rollup: every child carries the parent's full pts/hrs.
+  // Distribute (or NULL = default): divide pts/hrs evenly across children.
+  const rollup = parent.submotion_mode === 'rollup'
   const count = subs.length
-  const basePts = Math.floor(parent.default_points / count)
-  const remainderPts = parent.default_points % count
-  const baseHrs = parseFloat((Number(parent.default_hours) / count).toFixed(2))
+  const basePts = rollup ? parent.default_points : Math.floor(parent.default_points / count)
+  const remainderPts = rollup ? 0 : parent.default_points % count
+  const childHrs = rollup
+    ? parseFloat(Number(parent.default_hours).toFixed(2))
+    : parseFloat((Number(parent.default_hours) / count).toFixed(2))
 
   await Promise.all(
     subs.map((sub, i) =>
@@ -317,7 +361,7 @@ async function rebalanceSubmotionBudget(
         .from('motions')
         .update({
           default_points: basePts + (i < remainderPts ? 1 : 0),
-          default_hours: baseHrs,
+          default_hours: childHrs,
         })
         .eq('id', sub.id)
     )

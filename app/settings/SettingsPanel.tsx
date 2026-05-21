@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { setTheme } from '@/app/actions/theme'
 import {
   setGroupsEnabled,
+  setSubmotionsEnabled,
   setDailyGoal,
   setDailyGoalHours,
   setCelebrationEnabled,
@@ -37,6 +38,7 @@ type TrackingMode = 'points' | 'hours'
 type Props = {
   theme: string
   groupsEnabled: boolean
+  submotionsEnabled: boolean
   dailyGoal: number
   dailyGoalHours: number
   trackingMode: TrackingMode
@@ -55,6 +57,7 @@ type Props = {
 export function SettingsPanel({
   theme,
   groupsEnabled,
+  submotionsEnabled,
   dailyGoal,
   dailyGoalHours,
   trackingMode,
@@ -72,6 +75,7 @@ export function SettingsPanel({
   const [currentTheme, setCurrentTheme] = useState(theme)
   const [currentMode, setCurrentMode] = useState<TrackingMode>(trackingMode)
   const [groupsOn, setGroupsOn] = useState(groupsEnabled)
+  const [submotionsOn, setSubmotionsOn] = useState(submotionsEnabled)
   const [goalPts, setGoalPts] = useState(dailyGoal)
   const [goalHrs, setGoalHrs] = useState(dailyGoalHours)
   const [editingGoal, setEditingGoal] = useState(false)
@@ -96,6 +100,11 @@ export function SettingsPanel({
   function handleGroups(enabled: boolean) {
     setGroupsOn(enabled)
     startTransition(async () => { await setGroupsEnabled(enabled) })
+  }
+
+  function handleSubmotions(enabled: boolean) {
+    setSubmotionsOn(enabled)
+    startTransition(async () => { await setSubmotionsEnabled(enabled) })
   }
 
   function handleCelebration(enabled: boolean) {
@@ -285,6 +294,23 @@ export function SettingsPanel({
               <span className="flex-1 text-sm text-th-text">{g.name}</span>
             </button>
           ))}
+
+          <div className="flex items-center justify-between py-3">
+            <div>
+              <p className="text-sm font-medium text-th-text">Submotions</p>
+              <p className="text-xs text-th-muted">Break a motion into smaller parts</p>
+            </div>
+            <button
+              role="switch"
+              aria-checked={submotionsOn}
+              onClick={() => handleSubmotions(!submotionsOn)}
+              className={`relative h-6 w-11 rounded-full transition-colors ${submotionsOn ? 'bg-th-btn' : 'bg-th-border'}`}
+            >
+              <span
+                className={`absolute top-1 left-1 h-4 w-4 rounded-full bg-white shadow transition-transform ${submotionsOn ? 'translate-x-5' : 'translate-x-0'}`}
+              />
+            </button>
+          </div>
         </div>
       </section>
 

@@ -9,7 +9,7 @@ import { AddGroupForm } from './AddGroupForm'
 type Swell = { id: string; name: string; color: string }
 type MotionSwell = { id: string; name: string; color: string; weight: number }
 type Group = { id: string; name: string; color: string }
-type Motion = { id: string; name: string; default_points: number; default_hours: number; swells: MotionSwell[]; groupId: string | null }
+type Motion = { id: string; name: string; default_points: number; default_hours: number; swells: MotionSwell[]; groupId: string | null; submotionMode: 'distribute' | 'rollup' | null }
 type GroupWithMotions = { id: string; name: string; color: string; motions: Motion[] }
 type Submotion = { id: string; name: string; default_points: number; default_hours: number; swells: { id: string; name: string; color: string; weight: number }[] }
 
@@ -17,6 +17,7 @@ type TrackingMode = 'points' | 'hours'
 
 type Props = {
   groupsEnabled: boolean
+  submotionsEnabled: boolean
   motions: Motion[]
   groups: GroupWithMotions[]
   ungroupedMotions: Motion[]
@@ -126,6 +127,7 @@ export function DashboardView(props: Props) {
                   </div>
                 }
                 groupsEnabled={props.groupsEnabled}
+                submotionsEnabled={props.submotionsEnabled}
                 motions={props.motions}
                 groups={props.groups}
                 ungroupedMotions={props.ungroupedMotions}

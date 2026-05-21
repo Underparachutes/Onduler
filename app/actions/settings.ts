@@ -160,3 +160,15 @@ export async function setGroupsEnabled(enabled: boolean) {
   revalidatePath('/settings')
   return { success: true }
 }
+
+export async function setSubmotionsEnabled(enabled: boolean) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  await supabase.from('user_settings').upsert({ user_id: user.id, submotions_enabled: enabled })
+
+  revalidatePath('/dashboard')
+  revalidatePath('/settings')
+  return { success: true }
+}

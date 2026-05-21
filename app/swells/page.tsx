@@ -28,7 +28,7 @@ export default async function SwellsPage() {
       .order('sort_order', { ascending: true }),
     supabase
       .from('motions')
-      .select('id, name, default_points, default_hours, group_id, motion_swells(contribution_weight, swells(id, name, color))')
+      .select('id, name, default_points, default_hours, group_id, submotion_mode, motion_swells(contribution_weight, swells(id, name, color))')
       .eq('user_id', user.id)
       .eq('chapter_id', chapterId)
       .eq('hidden', false)
@@ -43,7 +43,7 @@ export default async function SwellsPage() {
       .order('sort_order', { ascending: true, nullsFirst: false }),
     supabase
       .from('user_settings')
-      .select('groups_enabled, tracking_mode')
+      .select('groups_enabled, submotions_enabled, tracking_mode')
       .eq('user_id', user.id)
       .single(),
     supabase
@@ -186,6 +186,7 @@ export default async function SwellsPage() {
       default_points: m.default_points,
       default_hours: m.default_hours,
       groupId: m.group_id as string | null,
+      submotionMode: (m.submotion_mode as 'distribute' | 'rollup' | null) ?? null,
       swells: motionSwells,
       swellIds: motionSwells.map(s => s.id),
       swellWeights,
@@ -204,6 +205,7 @@ export default async function SwellsPage() {
   const swellStubs = visibleSwells.map(s => ({ id: s.id, name: s.name, color: s.color }))
   const hiddenSwellsList = hiddenSwells.map(s => ({ id: s.id, name: s.name, color: s.color }))
   const groupsEnabled = settings?.groups_enabled ?? false
+  const submotionsEnabled = settings?.submotions_enabled ?? false
   const trackingMode: 'points' | 'hours' = (settings?.tracking_mode as 'points' | 'hours') ?? 'points'
   const allGroups = groups ?? []
 
@@ -223,6 +225,7 @@ export default async function SwellsPage() {
       doneMotionIds={doneMotionIds}
       allGroups={allGroups}
       groupsEnabled={groupsEnabled}
+      submotionsEnabled={submotionsEnabled}
       trackingMode={trackingMode}
       hasAnyMotions={motions.length > 0}
     />
