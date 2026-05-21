@@ -62,7 +62,7 @@ export function FrozenRadar({
 
       {/* Shoulder-rule perimeter stroke. */}
       <path
-        d={actualPolygonPath(actuals, chartMax, RADIUS, CENTER)}
+        d={actualPolygonPath(actuals, targets, chartMax, RADIUS, CENTER)}
         fill="none"
         stroke="currentColor"
         strokeWidth={1.25}

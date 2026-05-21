@@ -1,8 +1,10 @@
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import { getArchivedChapterDetail } from '@/app/actions/chapters'
+import { getArchivedChapterDetail, type ArchivedChapterAnchor } from '@/app/actions/chapters'
 import { formatPts, formatHrs } from '@/lib/format'
+import { formatWeekLabel, formatMonthLabel, formatQuarterLabel, formatYearLabel, type Cycle } from '@/lib/cycles'
+import { FrozenRadar } from '@/app/anchors/ceremony/FrozenRadar'
 
 function chapterRange(startedAt: string, endedAt: string): string {
   const fmt = new Intl.DateTimeFormat('en-US', {
@@ -16,6 +18,25 @@ function chapterRange(startedAt: string, endedAt: string): string {
 function chapterDays(startedAt: string, endedAt: string): number {
   const ms = new Date(endedAt).getTime() - new Date(startedAt).getTime()
   return Math.max(1, Math.round(ms / 86_400_000))
+}
+
+function entryDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    timeZone: 'America/Los_Angeles',
+  })
+}
+
+function cycleLabelFor(a: ArchivedChapterAnchor): string | null {
+  if (!a.cycleStart || !a.cycleEnd) return null
+  const cycle: Cycle = { cycleStart: a.cycleStart, cycleEnd: a.cycleEnd }
+  if (a.cycleType === 'week') return formatWeekLabel(cycle)
+  if (a.cycleType === 'month') return formatMonthLabel(cycle)
+  if (a.cycleType === 'quarter') return formatQuarterLabel(cycle)
+  if (a.cycleType === 'year') return formatYearLabel(cycle)
+  return formatWeekLabel(cycle)
 }
 
 export default async function ChapterDetailPage({
@@ -38,8 +59,18 @@ export default async function ChapterDetailPage({
     `${chapter.logCount} ${chapter.logCount === 1 ? 'log' : 'logs'}`,
     `${chapter.motions.length} ${chapter.motions.length === 1 ? 'motion' : 'motions'}`,
     `${chapter.swells.length} ${chapter.swells.length === 1 ? 'swell' : 'swells'}`,
-    `${chapter.anchorCount} ${chapter.anchorCount === 1 ? 'anchor' : 'anchors'}`,
+    `${chapter.anchors.length} ${chapter.anchors.length === 1 ? 'anchor' : 'anchors'}`,
   ]
+
+  // FrozenRadar expects targets in the active currency. Past chapters carry
+  // their own targets; show in the user's current tracking mode (matches the
+  // journal's behavior — re-read against today's tracking choice).
+  const radarSwells = chapter.swells.map(s => ({
+    id: s.id,
+    name: s.name,
+    color: s.color,
+    target: (isHours ? Number(s.target_hours ?? 0) : (s.target_points ?? 0)),
+  }))
 
   return (
     <div className="flex min-h-full flex-col items-center px-4 py-12">
@@ -124,21 +155,82 @@ export default async function ChapterDetailPage({
             )}
           </section>
 
-          {/* Anchors link */}
-          {chapter.anchorCount > 0 && (
+          {/* Anchors — inline, matching the journal card shapes */}
+          {chapter.anchors.length > 0 && (
             <section>
-              <Link
-                href="/anchors/journal"
-                className="flex items-center justify-between gap-3 border-b border-th-border-soft py-3 transition-colors hover:bg-th-surface/50 active:scale-[0.99]"
-              >
-                <div>
-                  <p className="text-sm font-medium text-th-text">
-                    {chapter.anchorCount} {chapter.anchorCount === 1 ? 'anchor' : 'anchors'} in this chapter
-                  </p>
-                  <p className="text-xs text-th-muted">Read them in the journal</p>
-                </div>
-                <span className="shrink-0 text-sm text-th-faint">→</span>
-              </Link>
+              <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-th-muted">
+                Anchors
+              </p>
+              <div className="flex flex-col gap-3">
+                {chapter.anchors.map(a => {
+                  const cycleLabel = cycleLabelFor(a)
+                  const header = (
+                    <>
+                      <div className="flex items-baseline justify-between gap-2">
+                        <p className="text-[10px] uppercase tracking-widest text-th-muted">
+                          {a.cycleType === 'free' ? 'Anchor' : `${a.cycleType} ceremony`}
+                        </p>
+                        <p className="text-[10px] text-th-faint">{entryDate(a.createdAt)}</p>
+                      </div>
+                      {cycleLabel && (
+                        <p className="text-xs text-th-secondary">{cycleLabel}</p>
+                      )}
+                    </>
+                  )
+
+                  if (a.cycleType === 'free') {
+                    return (
+                      <Link
+                        key={a.id}
+                        href={`/anchors/${a.id}/edit`}
+                        className="flex flex-col gap-2 rounded py-2 transition-colors hover:bg-th-surface/50 active:scale-[0.985]"
+                      >
+                        {header}
+                        {a.promptText && (
+                          <p className="text-xs italic text-th-faint">{a.promptText}</p>
+                        )}
+                        {a.bodyText && (
+                          <p className="whitespace-pre-wrap text-sm text-th-text">{a.bodyText}</p>
+                        )}
+                      </Link>
+                    )
+                  }
+
+                  return (
+                    <article key={a.id} className="flex flex-col gap-3 rounded-lg border border-th-border-soft bg-th-surface/40 px-3 py-3">
+                      {header}
+                      {a.actuals ? (
+                        <div className="flex justify-center">
+                          <FrozenRadar
+                            swells={radarSwells}
+                            actuals={a.actuals}
+                            trackingMode={chapter.trackingMode}
+                          />
+                        </div>
+                      ) : (
+                        <p className="text-center text-[10px] uppercase tracking-widest text-th-faint">
+                          Radar unavailable
+                        </p>
+                      )}
+                      {a.expectationText && (
+                        <div>
+                          <p className="text-[10px] uppercase tracking-widest text-th-muted">Expected</p>
+                          <p className="whitespace-pre-wrap text-sm text-th-text">{a.expectationText}</p>
+                        </div>
+                      )}
+                      {a.observationText && (
+                        <div>
+                          <p className="text-[10px] uppercase tracking-widest text-th-muted">Observed</p>
+                          <p className="whitespace-pre-wrap text-sm text-th-text">{a.observationText}</p>
+                        </div>
+                      )}
+                      {a.didTune && (
+                        <p className="text-[10px] uppercase tracking-widest text-th-secondary">Tuned</p>
+                      )}
+                    </article>
+                  )
+                })}
+              </div>
             </section>
           )}
         </div>

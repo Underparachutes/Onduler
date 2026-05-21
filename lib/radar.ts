@@ -70,15 +70,21 @@ export function wedgePath(
 }
 
 // Shoulder vertex for an axis: sits on the boundary radial between axis
-// `index` and its neighbor at `axisAngle ± π/N`, at radius
-// `cos(π/N) × actualRadius`. `side`: +1 for CW (between i and i+1), -1
-// for CCW (between i and i-1). The cos factor lands the shoulder on the
-// boundary radial in a way that, when peaks are equal, the polygon becomes
-// the regular N-gon.
+// `index` and its neighbor at `axisAngle ± π/N`. `side`: +1 for CW (between
+// i and i+1), -1 for CCW (between i and i-1).
+//
+// Radial distance matches slicePath's chord-end rule: `min(actualR, wedgeBoundaryR)`
+// where wedgeBoundaryR is the chord-bisector intersection of the two adjacent
+// target peaks. This keeps the outline aligned with the slice fill in the
+// under-target case (where actualR < boundaryR, both land at actualR — no
+// bleed) and still lets the outline extend past the slice peak in overshoot
+// (where actualR > targetR, slice caps at target but the outline rides up to
+// the boundary along the bisector).
 export function shoulderVertex(
   index: number,
   count: number,
   actualValue: number,
+  targets: number[],
   chartMax: number,
   radius: number,
   center: Point = { x: 0, y: 0 },
@@ -87,18 +93,26 @@ export function shoulderVertex(
   if (count === 0 || chartMax <= 0) return center
   const half = Math.PI / count
   const angle = axisAngleRad(index, count) + side * half
-  const r = (Math.max(0, actualValue) / chartMax) * radius * Math.cos(half)
+  const actualR = (Math.max(0, actualValue) / chartMax) * radius
+  // Boundary radial limit: chord intersection with the adjacent wedge on
+  // the requested side. side=+1 uses boundary(i, i+1); side=-1 uses
+  // boundary(i-1, i).
+  const adjIdx = side > 0 ? index : (index - 1 + count) % count
+  const b = wedgeBoundary(adjIdx, targets, chartMax, radius, center)
+  const boundaryR = Math.hypot(b.x - center.x, b.y - center.y)
+  const r = Math.min(actualR, boundaryR)
   return { x: center.x + Math.cos(angle) * r, y: center.y + Math.sin(angle) * r }
 }
 
 // 3N-vertex actuals polygon. Sequence around the chart:
 //   Peak_0, S_CW(0), S_CCW(1), Peak_1, S_CW(1), S_CCW(2), ...
-// The "dive" between adjacent peaks happens along their shared boundary
-// radial (from S_CW(i) to S_CCW(i+1)), never across a wedge interior.
-// Unfed axes collapse peak + both shoulders to center — the dive stays on
-// the boundary radials of that axis's wedge, preserving gap-as-signal.
+// Peaks sit at the raw actual value (so the outline extends past wedges in
+// overshoot). Shoulders share slicePath's chord-clamp rule so the polygon
+// boundary lines up with the slice fill boundary on the bisector radials.
+// `targets` is required to compute the wedge boundary radii.
 export function actualPolygonPath(
   actuals: number[],
+  targets: number[],
   chartMax: number,
   radius: number,
   center: Point = { x: 0, y: 0 },
@@ -108,9 +122,9 @@ export function actualPolygonPath(
   const parts: string[] = []
   for (let i = 0; i < n; i++) {
     const peak = vertexAt(i, n, actuals[i], chartMax, radius, center)
-    const sCw = shoulderVertex(i, n, actuals[i], chartMax, radius, center, 1)
+    const sCw = shoulderVertex(i, n, actuals[i], targets, chartMax, radius, center, 1)
     const next = (i + 1) % n
-    const sCcwNext = shoulderVertex(next, n, actuals[next], chartMax, radius, center, -1)
+    const sCcwNext = shoulderVertex(next, n, actuals[next], targets, chartMax, radius, center, -1)
     parts.push(`${i === 0 ? 'M' : 'L'} ${peak.x},${peak.y}`)
     parts.push(`L ${sCw.x},${sCw.y}`)
     parts.push(`L ${sCcwNext.x},${sCcwNext.y}`)
@@ -204,11 +218,12 @@ export function scaleConfigFor(currency: Currency): ScaleConfig {
 
 // Pick a chart ceiling that contains the largest vertex with headroom.
 // Pass [...targets, ...actuals] so both kinds of vertex are considered.
+// Scales tight to the actual data so users with low weekly targets don't
+// see a pinhole polygon in the middle of an oversized chart — the floor
+// still kicks in for empty / near-empty states.
 export function chartCeiling(values: number[], config: ScaleConfig): number {
   const max = values.reduce((m, v) => (v > m ? v : m), 0)
-  if (max <= config.initialCeiling * config.overshootHeadroomPct) {
-    return Math.max(config.initialCeiling, config.floor)
-  }
+  if (max <= 0) return config.floor
   const rescaled = max / config.overshootHeadroomPct
   return Math.min(config.hardCeiling, Math.max(config.floor, rescaled))
 }

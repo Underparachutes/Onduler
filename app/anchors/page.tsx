@@ -309,27 +309,13 @@ export default async function AnchorsPage({
       <div className="w-full max-w-[22rem]">
         <div className="mb-6 flex items-center justify-between">
           <p className="text-xs uppercase tracking-widest text-th-muted">Onduler</p>
-          <div className="flex items-center gap-4">
-            <Link
-              href="/dashboard"
-              className="hidden text-xs text-th-faint transition-all hover:text-th-muted active:scale-[0.97] sm:inline"
-            >
-              ← Back
-            </Link>
-            <Link
-              href="/anchors/journal"
-              className="text-xs text-th-faint transition-all hover:text-th-muted active:scale-[0.97]"
-            >
-              Journal
-            </Link>
-            <Link
-              href="/anchors/new"
-              aria-label="Drop an anchor"
-              className="flex h-7 w-7 items-center justify-center rounded-full border border-th-border text-base leading-none text-th-muted transition-all hover:border-th-text hover:text-th-text active:scale-[0.97]"
-            >
-              +
-            </Link>
-          </div>
+          <Link
+            href="/anchors/new"
+            aria-label="Drop an anchor"
+            className="flex items-center justify-center text-3xl font-light leading-none text-th-muted transition-colors hover:text-th-text"
+          >
+            +
+          </Link>
         </div>
 
         <h1 className="mb-8 text-2xl font-semibold text-th-text">Anchors</h1>

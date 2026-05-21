@@ -24,11 +24,16 @@ import {
 import { getBuildPreset, type BuildKey } from '@/lib/builds'
 import { updateSwellTarget } from '@/app/actions/swells'
 
-const SIZE = 320
+const SIZE = 360
 const CENTER = { x: SIZE / 2, y: SIZE / 2 }
-const RADIUS = 108
-const HANDLE_R = 5
-const HANDLE_R_ACTIVE = 8
+const RADIUS = 130
+const LABEL_PAD = 22
+const HANDLE_R = 6
+const HANDLE_R_ACTIVE = 9
+// Lifetime view: handle is recognition-only (no drag). Small swell-colored
+// dot replaces the white-filled, blue-bordered marker, which was reading as
+// "this swell is highlighted" when a large actual visually swallowed it.
+const HANDLE_R_STATIC = 3
 
 // Build seeding default — keeps lib/builds.ts source-of-truth shape (just names),
 // and matches the locked weekly defaults from PROJECT.md / ADR 0004.
@@ -84,6 +89,11 @@ type DragState = {
   value: number
   // Original weekly target value, for the ghost dot + leader line.
   origin: number
+  // chartMax snapshot at drag start. Pointer-to-value math uses this fixed
+  // reference so the dragged value can't feed back into its own scale —
+  // without the snapshot, growing the value grew chartMax which grew the
+  // value next frame, causing runaway acceleration toward hardCeiling.
+  refMax: number
 }
 
 export function SwellRadar({
@@ -219,15 +229,25 @@ export function SwellRadar({
     if (dragDisabled) return
     e.preventDefault()
     ;(e.currentTarget as Element).setPointerCapture?.(e.pointerId)
-    setDrag({ index, value: targets[index], origin: targets[index] })
+    setDrag({ index, value: targets[index], origin: targets[index], refMax: chartMax })
   }
 
   function moveDrag(e: React.PointerEvent) {
     if (!drag) return
     const local = pointerToSvg(e)
     const px = projectOnAxis(local, drag.index, count, CENTER)
-    // radialToValue returns a value in the chart's display units.
-    const displayValue = radialToValue(px, chartMax, RADIUS, scale.hardCeiling)
+    // Linear pointer-to-value mapping uses the snapshot scale, not the live
+    // chartMax — see DragState comment. Headroom of hardCeiling×10 just gives
+    // the soft-cap damping math somewhere to land before the final clamp.
+    const linearValue = radialToValue(px, drag.refMax, RADIUS, scale.hardCeiling * 10)
+    // Soft cap: past 2× snapshot scale, each pixel contributes ~35% as much
+    // value. Lets users push targets above the rest of the chart without
+    // rocketing to hardCeiling on a small flick past the chart edge.
+    const softCap = drag.refMax * 2
+    const dampedValue = linearValue <= softCap
+      ? linearValue
+      : softCap + (linearValue - softCap) * 0.35
+    const displayValue = Math.min(dampedValue, scale.hardCeiling)
     const nextWeekly = displayToWeekly(displayValue)
     setDrag({ ...drag, value: nextWeekly })
     setTargets(prev => {
@@ -281,7 +301,7 @@ export function SwellRadar({
   // Axis label positioning — push out from the chart edge, anchor by quadrant.
   function labelPos(index: number) {
     const angle = axisAngleRad(index, count)
-    const r = RADIUS + 18
+    const r = RADIUS + LABEL_PAD
     const x = CENTER.x + Math.cos(angle) * r
     const y = CENTER.y + Math.sin(angle) * r
     let anchor: 'start' | 'middle' | 'end' = 'middle'
@@ -290,7 +310,7 @@ export function SwellRadar({
     return { x, y, anchor }
   }
 
-  const actualPolygon = actualPolygonPath(actuals, chartMax, RADIUS, CENTER)
+  const actualPolygon = actualPolygonPath(actuals, displayTargets, chartMax, RADIUS, CENTER)
   const draggedLabel = drag != null ? swells[drag.index].name : null
 
   // Reset preview rows — only the build-claimed axes where the seeded value
@@ -358,13 +378,13 @@ export function SwellRadar({
         <svg
           ref={svgRef}
           viewBox={`0 0 ${SIZE} ${SIZE}`}
-          className="w-full max-w-[320px]"
+          className="w-full"
           role="img"
           aria-label="Weekly shape radar"
           onPointerMove={moveDrag}
           onPointerUp={endDrag}
           onPointerCancel={endDrag}
-          style={{ touchAction: drag ? 'none' : 'auto' }}
+          style={{ touchAction: drag ? 'none' : 'auto', overflow: 'visible' }}
         >
           {/* Wedge fills (target ring tiling) */}
           {swells.map((s, i) => (
@@ -456,8 +476,10 @@ export function SwellRadar({
                 y={pos.y}
                 textAnchor={pos.anchor}
                 dominantBaseline="central"
-                fontSize="10"
-                fill="var(--color-th-muted, currentColor)"
+                fontSize="13"
+                fontWeight="500"
+                fill="var(--color-th-text, currentColor)"
+                fillOpacity="0.85"
               >
                 {s.name}
               </text>
@@ -465,8 +487,10 @@ export function SwellRadar({
           })}
 
           {/* Drag handles — static dots on lifetime (recognition surface,
-              ADR 0005 §4); draggable on week/month. */}
-          {swells.map((_, i) => {
+              ADR 0005 §4); draggable on week/month. Lifetime uses a small
+              swell-colored dot at the target peak so a white marker doesn't
+              read as "this swell is highlighted" when actuals dwarf the target. */}
+          {swells.map((s, i) => {
             const v = vertexAt(i, count, displayTargets[i], chartMax, RADIUS, CENTER)
             const active = drag?.index === i
             if (dragDisabled) {
@@ -475,10 +499,8 @@ export function SwellRadar({
                   key={`handle-${i}`}
                   cx={v.x}
                   cy={v.y}
-                  r={HANDLE_R}
-                  fill="var(--color-th-bg, white)"
-                  stroke="#185FA5"
-                  strokeWidth="1.5"
+                  r={HANDLE_R_STATIC}
+                  fill={s.color}
                   opacity="0.7"
                 />
               )

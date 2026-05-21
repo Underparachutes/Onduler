@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { pacificDayKey, type DayKey } from '@/lib/periods'
 
 // Archived-chapter list (Past chapters browse). Returns chapters whose
 // ended_at IS NOT NULL, newest-first by sort_order. log_count is included
@@ -47,9 +48,28 @@ export async function listArchivedChapters(): Promise<ArchivedChapterSummary[]> 
 }
 
 // Single archived chapter view (Past chapters detail). Read-only — returns
-// the chapter row + the swells, motions, and anchor count that lived in it.
+// the chapter row + the swells, motions, log count, and the full anchor list
+// (with per-ceremony actuals already re-aggregated from the chapter's own
+// logs + motion_swells weights, so each FrozenRadar renders against the
+// shape that lived in the chapter — not today's).
 // Returns null if the chapter doesn't exist, isn't owned by the user, or is
 // still active (active-chapter browse belongs to the live app, not this surface).
+export type ArchivedChapterAnchor = {
+  id: string
+  cycleType: 'week' | 'month' | 'quarter' | 'year' | 'free'
+  cycleStart: DayKey | null
+  cycleEnd: DayKey | null
+  expectationText: string | null
+  observationText: string | null
+  didTune: boolean | null
+  bodyText: string | null
+  promptText: string | null
+  createdAt: string
+  // Parallel to ArchivedChapterDetail.swells. Only present for ceremony
+  // anchors — null for free anchors.
+  actuals: number[] | null
+}
+
 export type ArchivedChapterDetail = {
   id: string
   startedAt: string
@@ -57,8 +77,17 @@ export type ArchivedChapterDetail = {
   swells: { id: string; name: string; color: string; target_points: number | null; target_hours: number | null }[]
   motions: { id: string; name: string; default_points: number; default_hours: number }[]
   logCount: number
-  anchorCount: number
+  anchors: ArchivedChapterAnchor[]
   trackingMode: 'points' | 'hours'
+}
+
+type LogWithSwells = {
+  points: number
+  hours: number
+  logged_at: string
+  motions: {
+    motion_swells?: { contribution_weight: number; swells: { id: string } | null }[]
+  } | { motion_swells?: { contribution_weight: number; swells: { id: string } | null }[] }[] | null
 }
 
 export async function getArchivedChapterDetail(
@@ -80,7 +109,8 @@ export async function getArchivedChapterDetail(
     { data: swells },
     { data: motions },
     { count: logCount },
-    { count: anchorCount },
+    { data: anchorRows },
+    { data: chapterLogs },
     { data: settings },
   ] = await Promise.all([
     supabase
@@ -103,7 +133,13 @@ export async function getArchivedChapterDetail(
       .eq('chapter_id', chapterId),
     supabase
       .from('reflections')
-      .select('id', { count: 'exact', head: true })
+      .select('id, cycle_type, cycle_start, cycle_end, expectation_text, observation_text, did_tune, body_text, prompt_text, created_at')
+      .eq('user_id', user.id)
+      .eq('chapter_id', chapterId)
+      .order('created_at', { ascending: false }),
+    supabase
+      .from('logs')
+      .select('points, hours, logged_at, motions(motion_swells(contribution_weight, swells(id)))')
       .eq('user_id', user.id)
       .eq('chapter_id', chapterId),
     supabase
@@ -113,15 +149,55 @@ export async function getArchivedChapterDetail(
       .single(),
   ])
 
+  const trackingMode: 'points' | 'hours' = (settings?.tracking_mode as 'points' | 'hours') ?? 'points'
+  const isHours = trackingMode === 'hours'
+  const swellsRows = swells ?? []
+  const logsForActuals = (chapterLogs ?? []) as LogWithSwells[]
+
+  function actualsForCycle(cycleStart: DayKey, cycleEnd: DayKey): number[] {
+    const acc = new Map<string, number>()
+    swellsRows.forEach(s => acc.set(s.id, 0))
+    for (const log of logsForActuals) {
+      const day = pacificDayKey(log.logged_at)
+      if (day < cycleStart || day > cycleEnd) continue
+      const motion = Array.isArray(log.motions) ? log.motions[0] : log.motions
+      motion?.motion_swells?.forEach(ms => {
+        if (!ms.swells) return
+        if (!acc.has(ms.swells.id)) return
+        const weight = Number(ms.contribution_weight) || 1
+        const inc = isHours ? Number(log.hours) * weight : Math.floor(log.points * weight)
+        acc.set(ms.swells.id, (acc.get(ms.swells.id) ?? 0) + inc)
+      })
+    }
+    return swellsRows.map(s => acc.get(s.id) ?? 0)
+  }
+
+  const anchors: ArchivedChapterAnchor[] = (anchorRows ?? []).map(a => ({
+    id: a.id,
+    cycleType: a.cycle_type,
+    cycleStart: a.cycle_start,
+    cycleEnd: a.cycle_end,
+    expectationText: a.expectation_text,
+    observationText: a.observation_text,
+    didTune: a.did_tune,
+    bodyText: a.body_text,
+    promptText: a.prompt_text,
+    createdAt: a.created_at,
+    actuals:
+      a.cycle_type !== 'free' && a.cycle_start && a.cycle_end && swellsRows.length >= 3
+        ? actualsForCycle(a.cycle_start, a.cycle_end)
+        : null,
+  }))
+
   return {
     id: chapter.id,
     startedAt: chapter.started_at,
     endedAt: chapter.ended_at as string,
-    swells: swells ?? [],
+    swells: swellsRows,
     motions: motions ?? [],
     logCount: logCount ?? 0,
-    anchorCount: anchorCount ?? 0,
-    trackingMode: (settings?.tracking_mode as 'points' | 'hours') ?? 'points',
+    anchors,
+    trackingMode,
   }
 }
 

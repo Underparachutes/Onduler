@@ -137,9 +137,6 @@ export function SwellsView(props: Props) {
               <div className="mb-2 flex items-center justify-between">
                 <p className="text-xs uppercase tracking-widest text-th-muted">Onduler</p>
                 <div className="flex items-center gap-3">
-                  <Link href="/dashboard" className="hidden text-xs text-th-faint transition-all hover:text-th-muted active:scale-[0.97] sm:inline">
-                    ← Back
-                  </Link>
                   <div ref={menuRef} className="relative">
                     <button
                       onClick={handlePlus}
