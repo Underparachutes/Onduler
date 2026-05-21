@@ -69,7 +69,7 @@ type Props = {
   hideDone: boolean
 }
 
-function SortableSwellItem({ swell, children }: { swell: SwellWithMotions; children: React.ReactNode }) {
+function SortableSwellItem({ swell, hit, children }: { swell: SwellWithMotions; hit: boolean; children: React.ReactNode }) {
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } =
     useSortable({ id: swell.id })
 
@@ -79,23 +79,20 @@ function SortableSwellItem({ swell, children }: { swell: SwellWithMotions; child
       {...attributes}
       style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 }}
     >
-      <div className="flex items-start gap-1">
-        <span
+      <div className="flex items-start gap-3">
+        <div
           ref={setActivatorNodeRef}
           {...listeners}
           style={{ touchAction: 'none' }}
-          className="mt-1 shrink-0 flex items-center px-1 py-1 text-th-faint cursor-grab active:cursor-grabbing"
           aria-label="Drag to reorder"
+          className={`mt-1.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 transition-all cursor-grab active:cursor-grabbing ${hit ? 'border-th-btn text-th-btn' : 'border-th-border'}`}
         >
-          <svg width="10" height="14" viewBox="0 0 12 16" fill="currentColor" opacity="0.4">
-            <circle cx="4" cy="3" r="1.5" />
-            <circle cx="8" cy="3" r="1.5" />
-            <circle cx="4" cy="8" r="1.5" />
-            <circle cx="8" cy="8" r="1.5" />
-            <circle cx="4" cy="13" r="1.5" />
-            <circle cx="8" cy="13" r="1.5" />
-          </svg>
-        </span>
+          {hit && (
+            <svg viewBox="0 0 12 10" fill="none" className="h-3 w-3">
+              <path d="M1 5l3.5 3.5L11 1" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          )}
+        </div>
         <div className="flex-1 min-w-0">{children}</div>
       </div>
     </div>
@@ -171,11 +168,10 @@ export function SwellsList({
       const w = m.swellWeights?.[swell.id] ?? 1
       return sum + (hrsThisWeekMap.get(m.id) ?? 0) * w
     }, 0)
-    if (hideDone) {
-      const val = isHrs ? swellHrsThisWeek : swellPtsThisWeek
-      const tgt = isHrs ? (swell.target_hours ? Number(swell.target_hours) : null) : swell.target_points
-      if (tgt && val >= tgt) return null
-    }
+    const val = isHrs ? swellHrsThisWeek : swellPtsThisWeek
+    const tgt = isHrs ? (swell.target_hours ? Number(swell.target_hours) : null) : swell.target_points
+    const hit = !!(tgt && val >= tgt)
+    if (hideDone && hit) return null
     const swellPtsLastWeek = swell.motions.reduce((sum, m) => {
       const w = m.swellWeights?.[swell.id] ?? 1
       return sum + Math.floor((ptsLastWeekMap.get(m.id) ?? 0) * w)
@@ -185,7 +181,7 @@ export function SwellsList({
       return sum + (hrsLastWeekMap.get(m.id) ?? 0) * w
     }, 0)
     return (
-      <SortableSwellItem key={swell.id} swell={swell}>
+      <SortableSwellItem key={swell.id} swell={swell} hit={hit}>
         <SwellRow
           swell={swell}
           swellPtsThisWeek={swellPtsThisWeek}
