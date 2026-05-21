@@ -1,6 +1,6 @@
-// Welcome-back ramp + minimum-viable-shape anchors (ADR 0004 §8).
-// Pure helpers — no React, no Supabase. The dashboard, settings, and the
-// /wave/return/welcome screen all consume these.
+// Welcome-back ramp + minimum-viable-shape motions (ADR 0004 §8, renamed per
+// ADR 0008). Pure helpers — no React, no Supabase. The dashboard, settings,
+// and the /wave/return/welcome screen all consume these.
 
 import { daysBetween, type DayKey } from './periods'
 
@@ -51,7 +51,7 @@ export function welcomeBackElapsed(
 // Top-2 most-logged motions among the candidate set. Caller pre-filters
 // candidates to motions feeding the shape's seeded swells. ADR 0004 §8:
 // "the smallest version of the build that still feels like the user."
-export function defaultMvsAnchors(
+export function defaultMvsMotions(
   candidates: { id: string; logCount: number }[],
   limit: number = 2,
 ): string[] {
@@ -64,9 +64,9 @@ export function defaultMvsAnchors(
     .map(m => m.id)
 }
 
-// Resolved anchors for a shape: user-set overrides win if present and
+// Resolved MVS motions for a shape: user-set overrides win if present and
 // non-empty; otherwise fall back to defaults.
-export function resolveMvsAnchors(
+export function resolveMvsMotions(
   shapeKey: string,
   override: Record<string, string[]> | null | undefined,
   defaults: string[],

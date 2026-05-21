@@ -47,7 +47,7 @@ export function WeekCeremony({
         observationText: observation || null,
         didTune,
       })
-      router.push('/reflections')
+      router.push('/anchors')
       router.refresh()
     })
   }
@@ -82,7 +82,7 @@ export function WeekCeremony({
     <div className="flex min-h-full flex-col items-center px-4 py-12">
       <div className="w-full max-w-[22rem]">
         <div className="mb-6 flex items-center justify-between">
-          <p className="text-xs uppercase tracking-widest text-th-muted">Reflection</p>
+          <p className="text-xs uppercase tracking-widest text-th-muted">Anchor</p>
           <p className="text-xs text-th-faint">{weekLabel}</p>
         </div>
 

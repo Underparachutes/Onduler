@@ -295,18 +295,20 @@ h2 {
   100% { transform: translateX(-12%); }
 }
 
-/* Bottom-nav pending-ceremony indicator: a soft pulse on the Reflections
-   tab when a closed cycle is awaiting reflection. Subtle by design — the
-   ADR calls for "drawing the eye without demanding anything." */
+/* Bottom-nav pending-ceremony indicator: a soft pulse on the Anchors tab
+   when a closed cycle is awaiting an anchor. Subtle by design — the ADR
+   calls for "drawing the eye without demanding anything." */
 @keyframes nav-tide-pulse {
   0%, 100% { opacity: 0.7; transform: translateY(0); }
   50%      { opacity: 1.0; transform: translateY(-1px); }
 }
 
-/* Locked-page silhouette: gentle breathing-room cycle.
-   Used on the irregular 7-vertex radar silhouette while the user
-   hasn't yet unlocked the weekly Reflections surface. */
+/* Locked-page silhouette: gentle breathing cycle (slower than a heartbeat).
+   Used on the irregular 7-vertex radar silhouette while the user hasn't
+   yet unlocked the weekly Anchors surface. Amplitude widened per ADR 0008
+   so the breathe is visible on iOS — small physical scale + larger opacity
+   delta. transform-origin: center is set inline on the element. */
 @keyframes slow-breathe {
-  0%, 100% { opacity: 0.85; }
-  50%      { opacity: 1; }
+  0%, 100% { opacity: 0.55; transform: scale(0.96); }
+  50%      { opacity: 1;    transform: scale(1.04); }
 }

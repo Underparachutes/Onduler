@@ -122,7 +122,7 @@ CREATE TABLE user_settings (
   secondary_build     text    NULL,
   welcome_back_mode       text        NULL CHECK (welcome_back_mode IS NULL OR welcome_back_mode IN ('ease', 'full')),
   welcome_back_started_at timestamptz NULL,
-  mvs_anchors             jsonb       NULL  -- per-shape: { "<build_key>": ["motion_id", ...] }
+  mvs_motions             jsonb       NULL  -- per-shape: { "<build_key>": ["motion_id", ...] }
 );
 
 -- ADR 0007: Reflections surface. One active chapter per user; existing data is

@@ -62,9 +62,10 @@ export async function getUnlockState(
 // 'pending'   → cycle meets the appropriate floor and no reflection saved
 // 'completed' → a reflection row already exists for the closed week
 //
-// Reflections are chapter-scoped. The applicable floor depends on whether
-// weekly is already unlocked: UNLOCK_FLOOR for first-time, CEREMONY_FLOOR
-// for subsequent cycles.
+// Reflection rows are chapter-scoped (internal table name preserved per
+// ADR 0008's internal/external split — surface is Anchors). The applicable
+// floor depends on whether weekly is already unlocked: UNLOCK_FLOOR for
+// first-time, CEREMONY_FLOOR for subsequent cycles.
 export async function getWeekCeremonyState(
   supabase: SupabaseClient,
   userId: string,
@@ -129,8 +130,8 @@ export async function saveWeekReflection(input: {
 
   if (error) return { error: error.message }
 
-  revalidatePath('/reflections')
-  revalidatePath('/reflections/ceremony/week')
+  revalidatePath('/anchors')
+  revalidatePath('/anchors/ceremony/week')
   return { success: true }
 }
 

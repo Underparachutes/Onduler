@@ -5,23 +5,23 @@ import Link from 'next/link'
 import { BUILD_PRESETS, getBuildPreset, type BuildKey } from '@/lib/builds'
 import { adoptBuild, setBuildSlot } from '@/app/actions/builds'
 import { detectMode } from '@/lib/theme-colors'
-import { setMvsAnchors } from '@/app/actions/welcomeback'
+import { setMvsMotions } from '@/app/actions/welcomeback'
 
 type SlotKey = 'primary' | 'secondary'
-type AnchorMotion = { id: string; name: string; logCount: number }
+type MvsMotion = { id: string; name: string; logCount: number }
 
 type Props = {
   primary: string | null
   secondary: string | null
   existingSwellNames: string[]
-  anchorPool: AnchorMotion[]
-  resolvedAnchorIds: string[]
+  mvsPool: MvsMotion[]
+  resolvedMvsIds: string[]
   hasOverride: boolean
 }
 
-const ANCHORS_MAX = 4
+const MVS_MAX = 4
 
-export function ShapePicker({ primary, secondary, existingSwellNames, anchorPool, resolvedAnchorIds, hasOverride }: Props) {
+export function ShapePicker({ primary, secondary, existingSwellNames, mvsPool, resolvedMvsIds, hasOverride }: Props) {
   const [primarySlot, setPrimarySlot] = useState<string | null>(primary)
   const [secondarySlot, setSecondarySlot] = useState<string | null>(secondary)
   const [previewKey, setPreviewKey] = useState<BuildKey | null>(null)
@@ -100,12 +100,12 @@ export function ShapePicker({ primary, secondary, existingSwellNames, anchorPool
           </div>
         </section>
 
-        {primarySlot && anchorPool.length > 0 && (
-          <AnchorsEditor
+        {primarySlot && mvsPool.length > 0 && (
+          <StillShowingUpEditor
             shapeKey={primarySlot as BuildKey}
             shapeName={getBuildPreset(primarySlot)?.label.replace(/^The /, '') ?? ''}
-            pool={anchorPool}
-            initialIds={resolvedAnchorIds}
+            pool={mvsPool}
+            initialIds={resolvedMvsIds}
             hasOverride={hasOverride}
           />
         )}
@@ -170,7 +170,7 @@ function SlotRow({
   )
 }
 
-function AnchorsEditor({
+function StillShowingUpEditor({
   shapeKey,
   shapeName,
   pool,
@@ -179,7 +179,7 @@ function AnchorsEditor({
 }: {
   shapeKey: BuildKey
   shapeName: string
-  pool: AnchorMotion[]
+  pool: MvsMotion[]
   initialIds: string[]
   hasOverride: boolean
 }) {
@@ -189,11 +189,11 @@ function AnchorsEditor({
 
   const byId = useMemo(() => new Map(pool.map(m => [m.id, m])), [pool])
   const available = pool.filter(m => !ids.includes(m.id))
-  const canAdd = ids.length < ANCHORS_MAX && available.length > 0
+  const canAdd = ids.length < MVS_MAX && available.length > 0
 
   function persist(next: string[]) {
     setIds(next)
-    startSave(async () => { await setMvsAnchors(shapeKey, next) })
+    startSave(async () => { await setMvsMotions(shapeKey, next) })
   }
 
   function removeAt(motionId: string) {
@@ -201,7 +201,7 @@ function AnchorsEditor({
   }
 
   function addOne(motionId: string) {
-    if (ids.length >= ANCHORS_MAX) return
+    if (ids.length >= MVS_MAX) return
     persist([...ids, motionId])
     setAdding(false)
   }
@@ -209,13 +209,13 @@ function AnchorsEditor({
   function resetToDefaults() {
     // Passing [] clears the override; the page recomputes defaults on next read.
     setIds([])
-    startSave(async () => { await setMvsAnchors(shapeKey, []) })
+    startSave(async () => { await setMvsMotions(shapeKey, []) })
   }
 
   return (
     <section className="mb-8">
       <div className="mb-2 flex items-baseline justify-between gap-2">
-        <p className="text-xs font-semibold uppercase tracking-widest text-th-muted">Anchors</p>
+        <p className="text-xs font-semibold uppercase tracking-widest text-th-muted">Still showing up</p>
         {hasOverride && (
           <button
             type="button"
@@ -227,7 +227,7 @@ function AnchorsEditor({
         )}
       </div>
       <p className="mb-3 text-xs text-th-muted">
-        The smallest version of your {shapeName.toLowerCase() || 'shape'} that&apos;s still you. Up to {ANCHORS_MAX}.
+        The smallest version of your {shapeName.toLowerCase() || 'shape'} that&apos;s still you — what we surface when you ease back from a wave. Up to {MVS_MAX}.
       </p>
       <div className="flex flex-wrap items-center gap-1.5">
         {ids.map(id => {
@@ -239,7 +239,7 @@ function AnchorsEditor({
               type="button"
               onClick={() => removeAt(id)}
               className="group flex items-center gap-1.5 rounded-full border border-th-border bg-th-surface px-2.5 py-1 text-xs text-th-text transition-all hover:bg-th-bg active:scale-[0.97]"
-              aria-label={`Remove ${m.name} from anchors`}
+              aria-label={`Remove ${m.name}`}
             >
               <span>{m.name}</span>
               <span className="text-th-faint group-hover:text-th-muted">×</span>

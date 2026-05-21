@@ -46,7 +46,7 @@ export default async function RootLayout({
   const { data: { user } } = await supabase.auth.getUser();
 
   let theme = "default";
-  let pendingReflection = false;
+  let pendingAnchor = false;
   if (user) {
     const todayKey = pacificDayKey(new Date());
     const [{ data }, ceremony] = await Promise.all([
@@ -54,7 +54,7 @@ export default async function RootLayout({
       getWeekCeremonyState(supabase, user.id, todayKey),
     ]);
     if (data?.theme) theme = data.theme;
-    pendingReflection = ceremony.state === 'pending';
+    pendingAnchor = ceremony.state === 'pending';
   }
 
   return (
@@ -66,7 +66,7 @@ export default async function RootLayout({
       <body className="min-h-full flex flex-col bg-th-bg text-th-text pb-20 overflow-x-hidden">
         <TimezoneSync />
         <div className="mx-auto flex w-full max-w-lg flex-col flex-1">{children}</div>
-        {user && <BottomNav pendingReflection={pendingReflection} />}
+        {user && <BottomNav pendingAnchor={pendingAnchor} />}
       </body>
     </html>
   );

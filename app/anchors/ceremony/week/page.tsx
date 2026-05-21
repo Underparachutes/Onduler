@@ -18,7 +18,7 @@ export default async function WeekCeremonyPage() {
   // wave-cycle weeks both route the user back to the main surface — the
   // ceremony is a one-time invitation, not a re-runnable flow.
   if (state !== 'pending') {
-    redirect('/reflections')
+    redirect('/anchors')
   }
 
   const [lastWeekStartDate, thisWeekStartDate] = await Promise.all([getLastWeekStart(), getWeekStart()])

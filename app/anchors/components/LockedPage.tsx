@@ -1,7 +1,7 @@
-// Full vibe-only locked Reflections page (ADR 0007). Shown when weekly
-// hasn't yet unlocked for the active chapter. No radar, no period filter,
-// no engagement counter — pure mystery. Marketing site explains the
-// mechanism for users who want the why.
+// Full vibe-only locked Anchors page (ADR 0007, renamed ADR 0008). Shown
+// when weekly hasn't yet unlocked for the active chapter. No radar, no
+// period filter, no engagement counter — pure mystery. Marketing site
+// explains the mechanism for users who want the why.
 
 import { WaveField, type WaveLine } from '@/app/components/WaveField'
 
@@ -59,7 +59,7 @@ export function LockedPage() {
           width="180"
           height="180"
           className="absolute inset-0"
-          style={{ animation: 'slow-breathe 4s ease-in-out infinite' }}
+          style={{ animation: 'slow-breathe 4s ease-in-out infinite', transformOrigin: 'center' }}
         >
           <polygon
             points={POLYGON_PTS}
@@ -96,6 +96,17 @@ export function LockedPage() {
         }}
       >
         weekly
+      </p>
+      <p
+        className="relative mt-6 italic"
+        style={{
+          zIndex: 1,
+          fontSize: 12,
+          letterSpacing: '0.04em',
+          color: 'var(--th-faint)',
+        }}
+      >
+        Not all those who wander are lost.
       </p>
     </div>
   )

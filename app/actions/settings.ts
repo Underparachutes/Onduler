@@ -122,7 +122,7 @@ export async function setTrackingMode(mode: 'points' | 'hours') {
 
   revalidatePath('/dashboard')
   revalidatePath('/swells')
-  revalidatePath('/reflections')
+  revalidatePath('/anchors')
   revalidatePath('/settings')
   return { success: true }
 }
@@ -151,7 +151,7 @@ export async function setGroupsEnabled(enabled: boolean) {
   await supabase.from('user_settings').upsert({ user_id: user.id, groups_enabled: enabled })
 
   revalidatePath('/dashboard')
-  revalidatePath('/reflections')
+  revalidatePath('/anchors')
   revalidatePath('/settings')
   return { success: true }
 }

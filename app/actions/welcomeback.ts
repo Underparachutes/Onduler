@@ -17,7 +17,7 @@ export async function setWelcomeBackMode(mode: WelcomeBackMode) {
   })
 
   revalidatePath('/dashboard')
-  revalidatePath('/reflections')
+  revalidatePath('/anchors')
   return { success: true }
 }
 
@@ -33,25 +33,26 @@ export async function clearWelcomeBack() {
   })
 
   revalidatePath('/dashboard')
-  revalidatePath('/reflections')
+  revalidatePath('/anchors')
   return { success: true }
 }
 
-// Persists per-shape anchor overrides. Anchors are stored as
+// Persists per-shape MVS-motion overrides — the motions that should "still
+// show up" when the user returns from a wave. Stored as
 // { "<build_key>": ["motion_id", ...] }. Passing motionIds=[] clears the
 // override for that shape (the auto-default reapplies).
-export async function setMvsAnchors(shapeKey: string, motionIds: string[]) {
+export async function setMvsMotions(shapeKey: string, motionIds: string[]) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
   const { data: settings } = await supabase
     .from('user_settings')
-    .select('mvs_anchors')
+    .select('mvs_motions')
     .eq('user_id', user.id)
     .single()
 
-  const current = (settings?.mvs_anchors as Record<string, string[]> | null) ?? {}
+  const current = (settings?.mvs_motions as Record<string, string[]> | null) ?? {}
   const next = { ...current }
   if (motionIds.length === 0) {
     delete next[shapeKey]
@@ -62,7 +63,7 @@ export async function setMvsAnchors(shapeKey: string, motionIds: string[]) {
 
   await supabase.from('user_settings').upsert({
     user_id: user.id,
-    mvs_anchors: persisted,
+    mvs_motions: persisted,
   })
 
   revalidatePath('/settings/shape')

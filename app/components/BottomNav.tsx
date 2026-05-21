@@ -26,8 +26,8 @@ const ITEMS = [
     ),
   },
   {
-    href: '/reflections',
-    label: 'Reflections',
+    href: '/anchors',
+    label: 'Anchors',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="12" cy="4.5" r="1.9" stroke="currentColor" />
@@ -55,7 +55,7 @@ const ITEMS = [
 
 const HIDE_ON = ['/login', '/signup', '/onboarding']
 
-export function BottomNav({ pendingReflection = false }: { pendingReflection?: boolean }) {
+export function BottomNav({ pendingAnchor = false }: { pendingAnchor?: boolean }) {
   const pathname = usePathname()
 
   if (HIDE_ON.some(p => pathname === p || pathname.startsWith(p + '/'))) return null
@@ -66,11 +66,11 @@ export function BottomNav({ pendingReflection = false }: { pendingReflection?: b
         {ITEMS.map(({ href, label, icon }) => {
           const active = pathname === href || (href !== '/dashboard' && pathname.startsWith(href + '/'))
             || (href === '/dashboard' && (pathname === '/dashboard' || pathname.startsWith('/dashboard/')))
-          const isReflections = href === '/reflections'
+          const isAnchors = href === '/anchors'
           // When a ceremony is pending and the user isn't already on the
-          // Reflections tab, dim the other tabs slightly and pulse the
-          // Reflections icon. Subtle — invitation, not demand (ADR 0007).
-          const dimForPending = pendingReflection && !isReflections && !active
+          // Anchors tab, dim the other tabs slightly and pulse the Anchors
+          // icon. Subtle — invitation, not demand (ADR 0007).
+          const dimForPending = pendingAnchor && !isAnchors && !active
           return (
             <Link
               key={href}
@@ -81,10 +81,10 @@ export function BottomNav({ pendingReflection = false }: { pendingReflection?: b
             >
               <span
                 className="relative"
-                style={pendingReflection && isReflections ? { animation: 'nav-tide-pulse 2.4s ease-in-out infinite' } : undefined}
+                style={pendingAnchor && isAnchors ? { animation: 'nav-tide-pulse 2.4s ease-in-out infinite' } : undefined}
               >
                 {icon}
-                {pendingReflection && isReflections && !active && (
+                {pendingAnchor && isAnchors && !active && (
                   <span className="pointer-events-none absolute -right-1 -top-1 h-1.5 w-1.5 rounded-full bg-th-text" />
                 )}
               </span>

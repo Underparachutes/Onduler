@@ -33,7 +33,7 @@ function parsePeriod(raw: string | undefined): Period {
   return raw === 'week' || raw === 'month' || raw === 'lifetime' ? raw : 'week'
 }
 
-export default async function ReflectionsPage({
+export default async function AnchorsPage({
   searchParams,
 }: {
   searchParams: Promise<{ period?: string }>
@@ -56,7 +56,7 @@ export default async function ReflectionsPage({
   ])
 
   // Weekly is the gate. Until the user has lived through a full Mon-Sun
-  // with the engagement floor met, /reflections is vibe-only mystery.
+  // with the engagement floor met, /anchors is vibe-only mystery.
   if (!unlocks.week) {
     return <LockedPage />
   }
@@ -294,18 +294,18 @@ export default async function ReflectionsPage({
           </Link>
         </div>
 
-        <h1 className="mb-8 text-2xl font-semibold text-th-text">Reflections</h1>
+        <h1 className="mb-8 text-2xl font-semibold text-th-text">Anchors</h1>
 
         {ceremony.state === 'pending' && (
           <Link
-            href="/reflections/ceremony/week"
+            href="/anchors/ceremony/week"
             className="mb-8 block rounded-xl border border-th-border bg-th-surface/50 px-4 py-4 transition-colors hover:bg-th-surface active:scale-[0.99]"
           >
             <p className="text-[10px] uppercase tracking-widest text-th-muted">Last week</p>
             <p className="mt-1.5 text-sm text-th-text">
               {formatWeekLabel({ cycleStart: ceremony.cycleStart, cycleEnd: ceremony.cycleEnd })} is ready to be seen.
             </p>
-            <p className="mt-2 text-xs text-th-faint">Tap to reflect →</p>
+            <p className="mt-2 text-xs text-th-faint">Drop this week&apos;s anchor →</p>
           </Link>
         )}
 
@@ -327,7 +327,7 @@ export default async function ReflectionsPage({
           {PERIOD_OPTIONS.map(({ value, label }) => (
             <Link
               key={value}
-              href={`/reflections?period=${value}`}
+              href={`/anchors?period=${value}`}
               className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
                 period === value
                   ? 'border-th-text bg-th-text text-th-bg'

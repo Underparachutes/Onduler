@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getBuildPreset, type BuildKey } from '@/lib/builds'
-import { defaultMvsAnchors, resolveMvsAnchors } from '@/lib/welcomeback'
+import { defaultMvsMotions, resolveMvsMotions } from '@/lib/welcomeback'
 import { WelcomeBackChoices } from './WelcomeBackChoices'
 
 export default async function WelcomeBackPage() {
@@ -12,18 +12,18 @@ export default async function WelcomeBackPage() {
 
   const { data: settings } = await supabase
     .from('user_settings')
-    .select('primary_build, mvs_anchors')
+    .select('primary_build, mvs_motions')
     .eq('user_id', user.id)
     .single()
 
   const primary = (settings?.primary_build as BuildKey | null) ?? null
   const preset = getBuildPreset(primary)
-  const anchorsOverride = (settings?.mvs_anchors as Record<string, string[]> | null) ?? null
+  const mvsOverride = (settings?.mvs_motions as Record<string, string[]> | null) ?? null
 
-  // Auto-pick MVS anchors: top-2 most-logged motions feeding the primary
+  // Auto-pick MVS motions: top-2 most-logged motions feeding the primary
   // shape's seeded swells. Falls back to top-2 overall if the user has no
   // shape set (better than empty).
-  let anchorMotions: { id: string; name: string }[] = []
+  let stillShowingUp: { id: string; name: string }[] = []
   if (preset) {
     const { data: feedingMotions } = await supabase
       .from('motions')
@@ -55,13 +55,13 @@ export default async function WelcomeBackPage() {
         logCounts[l.motion_id] = (logCounts[l.motion_id] ?? 0) + 1
       }
     }
-    const defaults = defaultMvsAnchors(
+    const defaults = defaultMvsMotions(
       feedingPrimary.map(m => ({ id: m.id, logCount: logCounts[m.id] ?? 0 })),
       2,
     )
-    const resolvedIds = resolveMvsAnchors(primary!, anchorsOverride, defaults)
+    const resolvedIds = resolveMvsMotions(primary!, mvsOverride, defaults)
     const nameById = new Map(feedingPrimary.map(m => [m.id, m.name]))
-    anchorMotions = resolvedIds
+    stillShowingUp = resolvedIds
       .map(id => nameById.get(id) ? { id, name: nameById.get(id)! } : null)
       .filter((m): m is { id: string; name: string } => m !== null)
   }
@@ -78,13 +78,13 @@ export default async function WelcomeBackPage() {
           The shore is gentle. You can ease in, or pick up where you were.
         </p>
 
-        {anchorMotions.length > 0 && (
+        {stillShowingUp.length > 0 && (
           <p className="mb-6 text-xs text-th-faint">
             Still showing up:{' '}
-            {anchorMotions.map(m => m.name).join(' · ')}
+            {stillShowingUp.map(m => m.name).join(' · ')}
           </p>
         )}
-        {anchorMotions.length === 0 && <div className="mb-6" />}
+        {stillShowingUp.length === 0 && <div className="mb-6" />}
 
         <WelcomeBackChoices shapeName={shapeName} />
 
