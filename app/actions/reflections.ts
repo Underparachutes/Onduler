@@ -145,3 +145,112 @@ export async function fetchWeekCeremonyPending(): Promise<boolean> {
   const { state } = await getWeekCeremonyState(supabase, user.id, todayKey)
   return state === 'pending'
 }
+
+// Free-form anchor (cycle_type='free'). Optional prompt header + body text.
+// useActionState-compatible signature; the cycle window comes through the
+// form as hidden inputs (defaults to the active week, set server-side).
+export async function createFreeAnchor(_prev: unknown, formData: FormData) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const { data: chapter } = await supabase
+    .from('chapters')
+    .select('id')
+    .eq('user_id', user.id)
+    .is('ended_at', null)
+    .maybeSingle()
+  if (!chapter?.id) return { error: 'No active chapter' }
+
+  const bodyText = ((formData.get('body_text') as string) ?? '').trim()
+  if (!bodyText) return { error: 'Anchor cannot be empty' }
+  const promptText = ((formData.get('prompt_text') as string) ?? '').trim() || null
+  const cycleStart = ((formData.get('cycle_start') as string) ?? '').trim() || null
+  const cycleEnd = ((formData.get('cycle_end') as string) ?? '').trim() || null
+
+  const { error } = await supabase.from('reflections').insert({
+    user_id: user.id,
+    chapter_id: chapter.id,
+    cycle_type: 'free',
+    cycle_start: cycleStart,
+    cycle_end: cycleEnd,
+    body_text: bodyText,
+    prompt_text: promptText,
+  })
+
+  if (error) return { error: error.message }
+
+  revalidatePath('/anchors')
+  revalidatePath('/anchors/journal')
+  return { success: true }
+}
+
+// Chronological library of every anchor the user has dropped, grouped by
+// chapter. Chapters are ordered newest-first (active chapter on top, then
+// archived chapters by started_at desc). Within each chapter, anchors are
+// ordered newest-first by created_at. Placeholder: ceremony entries are
+// returned with their raw fields — the journal page renders a simplified
+// card for now; the full closed-radar visual is a follow-up.
+export type AnchorRow = {
+  id: string
+  cycle_type: 'week' | 'month' | 'quarter' | 'year' | 'free'
+  cycle_start: DayKey | null
+  cycle_end: DayKey | null
+  expectation_text: string | null
+  observation_text: string | null
+  did_tune: boolean | null
+  body_text: string | null
+  prompt_text: string | null
+  created_at: string
+}
+
+export type ChapterWithAnchors = {
+  chapterId: string
+  startedAt: string
+  endedAt: string | null
+  anchors: AnchorRow[]
+}
+
+export async function getAnchorJournal(): Promise<ChapterWithAnchors[]> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+
+  const [{ data: chapters }, { data: anchors }] = await Promise.all([
+    supabase
+      .from('chapters')
+      .select('id, started_at, ended_at')
+      .eq('user_id', user.id)
+      .order('started_at', { ascending: false }),
+    supabase
+      .from('reflections')
+      .select('id, chapter_id, cycle_type, cycle_start, cycle_end, expectation_text, observation_text, did_tune, body_text, prompt_text, created_at')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false }),
+  ])
+
+  const grouped = new Map<string, AnchorRow[]>()
+  for (const a of anchors ?? []) {
+    const list = grouped.get(a.chapter_id) ?? []
+    list.push({
+      id: a.id,
+      cycle_type: a.cycle_type,
+      cycle_start: a.cycle_start,
+      cycle_end: a.cycle_end,
+      expectation_text: a.expectation_text,
+      observation_text: a.observation_text,
+      did_tune: a.did_tune,
+      body_text: a.body_text,
+      prompt_text: a.prompt_text,
+      created_at: a.created_at,
+    })
+    grouped.set(a.chapter_id, list)
+  }
+
+  return (chapters ?? []).map(c => ({
+    chapterId: c.id,
+    startedAt: c.started_at,
+    endedAt: c.ended_at,
+    anchors: grouped.get(c.id) ?? [],
+  }))
+}
