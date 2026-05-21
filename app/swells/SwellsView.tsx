@@ -76,7 +76,6 @@ export function SwellsView(props: Props) {
   const [openForm, setOpenForm] = useState<null | 'swell' | 'group'>(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const [hideDone, toggleHideDone] = usePersistedHideDone('onduler-hide-done-swells')
-  const [searchQuery, setSearchQuery] = useState('')
   const [activeGroup, setActiveGroup] = useState<string | null>(null)
   const menuRef = useRef<HTMLDivElement>(null)
 
@@ -196,17 +195,6 @@ export function SwellsView(props: Props) {
                 </div>
               )}
 
-              {/* Search bar */}
-              <div className="mb-2">
-                <input
-                  type="search"
-                  placeholder="Search swells…"
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                  className="w-full rounded-lg border border-th-border bg-th-surface px-3 py-2 text-sm text-th-text outline-none focus:border-th-focus placeholder:text-th-faint"
-                />
-              </div>
-
               {/* Group filter + hide done */}
               <div className="flex items-center gap-2">
                 {props.groupsEnabled && visibleGroups.length > 0 && (
@@ -254,7 +242,6 @@ export function SwellsView(props: Props) {
               groupsEnabled={props.groupsEnabled}
               trackingMode={props.trackingMode}
               hideDone={hideDone}
-              searchQuery={searchQuery}
               activeGroup={activeGroup}
             />
 

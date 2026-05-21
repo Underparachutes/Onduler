@@ -67,7 +67,6 @@ type Props = {
   groupsEnabled: boolean
   trackingMode: TrackingMode
   hideDone: boolean
-  searchQuery: string
 }
 
 function SortableSwellItem({ swell, children }: { swell: SwellWithMotions; children: React.ReactNode }) {
@@ -119,7 +118,6 @@ export function SwellsList({
   groupsEnabled,
   trackingMode,
   hideDone,
-  searchQuery,
   activeGroup,
 }: Props & { activeGroup: string | null }) {
   const [openSheetId, setOpenSheetId] = useState<string | null>(null)
@@ -203,7 +201,6 @@ export function SwellsList({
   }
 
   const filteredSwells = orderedSwells.filter(s => {
-    if (searchQuery && !s.name.toLowerCase().includes(searchQuery.toLowerCase())) return false
     if (activeGroup && s.groupId !== activeGroup) return false
     return true
   })

@@ -5,6 +5,7 @@ import {
   DndContext,
   DragOverlay,
   useDroppable,
+  closestCenter,
   closestCorners,
   PointerSensor,
   TouchSensor,
@@ -28,7 +29,7 @@ import { ceilDisplay } from '@/lib/periods'
 import { SUBMOTIONS_ENABLED } from '@/lib/features'
 import { CelebrationOverlay, type CelebrationState } from './CelebrationOverlay'
 import { MotionDetailSheet } from './MotionDetailSheet'
-import { SortableMotionList, SortableMotionRow, StaticMotionRow } from './SortableMotionList'
+import { SortableMotionList, SortableMotionRow } from './SortableMotionList'
 
 type Swell = { id: string; name: string; color: string }
 type MotionSwell = { id: string; name: string; color: string; weight: number }
@@ -113,30 +114,107 @@ function DroppableGroup({
   )
 }
 
+// Per-swell sortable section for the By-swell dashboard view. Each section
+// owns its own DndContext so drags don't cross swell boundaries, and the
+// reorder writes back to the global motion sort_order by filling only the
+// section's positions in the global list — motions in other sections keep
+// their slots.
+function SortableSwellSection({
+  globalMotions,
+  initialItems,
+  localDone,
+  localHiddenIds,
+  hideDone,
+  submotionsMap,
+  trackingMode,
+  onLog,
+  onOpenSheet,
+}: {
+  globalMotions: Motion[]
+  initialItems: Motion[]
+  localDone: Set<string>
+  localHiddenIds: Set<string>
+  hideDone: boolean
+  submotionsMap: Record<string, Submotion[]>
+  trackingMode: TrackingMode
+  onLog: (motion: Motion, x: number, y: number) => void
+  onOpenSheet: (id: string) => void
+}) {
+  const [items, setItems] = useState(initialItems)
+  const [, startTransition] = useTransition()
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { delay: 250, tolerance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  )
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+    const oldIdx = items.findIndex(m => m.id === active.id)
+    const newIdx = items.findIndex(m => m.id === over.id)
+    if (oldIdx === -1 || newIdx === -1) return
+    const newSection = arrayMove(items, oldIdx, newIdx)
+    setItems(newSection)
+
+    const sectionIds = new Set(items.map(m => m.id))
+    const positions: number[] = []
+    for (let i = 0; i < globalMotions.length; i++) {
+      if (sectionIds.has(globalMotions[i].id)) positions.push(i)
+    }
+    const newGlobalIds = globalMotions.map(m => m.id)
+    for (let i = 0; i < positions.length; i++) {
+      newGlobalIds[positions[i]] = newSection[i].id
+    }
+    startTransition(async () => { await reorderMotions(newGlobalIds) })
+  }
+
+  const visible = items.filter(m => {
+    if (localHiddenIds.has(m.id)) return false
+    if (hideDone && localDone.has(m.id)) return false
+    return true
+  })
+
+  if (visible.length === 0) return null
+
+  return (
+    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+      <SortableContext items={items.map(m => m.id)} strategy={verticalListSortingStrategy}>
+        <div className="flex flex-col gap-2">
+          {visible.map(m => (
+            <SortableMotionRow
+              key={m.id}
+              motion={m}
+              done={localDone.has(m.id)}
+              hasSubmotions={SUBMOTIONS_ENABLED && (submotionsMap[m.id]?.length ?? 0) > 0}
+              trackingMode={trackingMode}
+              onLog={(e) => onLog(m, e.clientX, e.clientY)}
+              onOpenSheet={() => onOpenSheet(m.id)}
+            />
+          ))}
+        </div>
+      </SortableContext>
+    </DndContext>
+  )
+}
+
 function MotionDragOverlay({
-  motion, done, submotionsMap, trackingMode,
+  motion, submotionsMap, trackingMode,
 }: {
   motion: Motion
-  done: boolean
   submotionsMap: Record<string, Submotion[]>
   trackingMode: TrackingMode
 }) {
   const hasSubmotions = SUBMOTIONS_ENABLED && (submotionsMap[motion.id]?.length ?? 0) > 0
   return (
     <div className="flex items-center gap-1 select-none rotate-1 shadow-xl">
-      <div className={`flex flex-1 items-center gap-3 rounded-lg border px-3 py-3 bg-th-bg ${done ? 'border-th-border opacity-50' : 'border-th-btn'}`}>
-        <div className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 ${done ? 'border-th-btn text-th-btn' : 'border-th-border'}`}>
-          {done && (
-            <svg viewBox="0 0 12 10" fill="none" className="h-3 w-3">
-              <path d="M1 5l3.5 3.5L11 1" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          )}
-        </div>
+      <div className="flex flex-1 items-center gap-3 rounded-lg border border-th-btn px-3 py-3 bg-th-bg">
+        <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 border-th-border" />
         <div className="min-w-0 flex-1">
-          <p className={`text-sm font-medium ${done ? 'text-th-muted line-through' : 'text-th-text'}`}>{motion.name}</p>
+          <p className="text-sm font-medium text-th-text">{motion.name}</p>
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
-          <span className={`text-sm font-semibold ${done ? 'text-th-faint' : 'text-th-secondary'}`}>{trackingMode === 'hours' ? formatHrs(motion.default_hours) : formatPts(motion.default_points)}</span>
+          <span className="text-sm font-semibold text-th-secondary">{trackingMode === 'hours' ? formatHrs(motion.default_hours) : formatPts(motion.default_points)}</span>
           {hasSubmotions && <span className="text-xs text-th-faint">›</span>}
         </div>
       </div>
@@ -463,12 +541,12 @@ export function DailyChecklist({
           </div>
           <div className="flex flex-col gap-6">
             {sections.map(({ swell, motions: secMotions }) => {
-              const visible = secMotions.filter(m => {
+              const sectionVisible = secMotions.filter(m => {
                 if (localHiddenIds.has(m.id)) return false
                 if (hideDone && localDone.has(m.id)) return false
                 return true
               })
-              if (visible.length === 0) return null
+              if (sectionVisible.length === 0) return null
               return (
                 <div key={swell?.id ?? 'unassigned'}>
                   <p
@@ -477,19 +555,17 @@ export function DailyChecklist({
                   >
                     {swell?.name ?? 'Unassigned'}
                   </p>
-                  <div className="flex flex-col gap-2">
-                    {visible.map(m => (
-                      <StaticMotionRow
-                        key={`${swell?.id ?? 'orphan'}-${m.id}`}
-                        motion={m}
-                        done={localDone.has(m.id)}
-                        hasSubmotions={SUBMOTIONS_ENABLED && (submotionsMap[m.id]?.length ?? 0) > 0}
-                        trackingMode={trackingMode}
-                        onLog={(e) => handleLog(m, e.clientX, e.clientY)}
-                        onOpenSheet={() => setOpenSheetId(m.id)}
-                      />
-                    ))}
-                  </div>
+                  <SortableSwellSection
+                    globalMotions={motions}
+                    initialItems={secMotions}
+                    localDone={localDone}
+                    localHiddenIds={localHiddenIds}
+                    hideDone={hideDone}
+                    submotionsMap={submotionsMap}
+                    trackingMode={trackingMode}
+                    onLog={handleLog}
+                    onOpenSheet={setOpenSheetId}
+                  />
                 </div>
               )
             })}
@@ -630,7 +706,6 @@ export function DailyChecklist({
             {dragActiveMotion && (
               <MotionDragOverlay
                 motion={dragActiveMotion}
-                done={localDone.has(dragActiveMotion.id)}
                 submotionsMap={submotionsMap}
                 trackingMode={trackingMode}
               />

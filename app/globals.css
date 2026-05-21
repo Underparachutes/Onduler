@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 @theme inline {
-  --font-sans: var(--font-manrope);
-  --font-display: var(--font-ibm-plex-mono);
+  --font-sans: var(--font-ibm-plex-mono);
+  --font-display: var(--font-manrope);
 
   --color-th-bg: var(--th-bg);
   --color-th-surface: var(--th-surface);
@@ -239,9 +239,7 @@ body {
   font-feature-settings: 'ss01', 'tnum';
 }
 
-/* Display family (IBM Plex Mono) gets generous tracking. em inherits
-   the parent's family naturally — IBM Plex Mono italic is well-drawn,
-   so no override needed. */
+/* Display family (Manrope) gets generous tracking. */
 .display,
 h1,
 h2 {
