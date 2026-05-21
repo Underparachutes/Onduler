@@ -49,6 +49,7 @@ type Props = {
   hiddenMotions: HiddenMotion[]
   assignableMotions: AssignableMotion[]
   assignableSwells: AssignableSwell[]
+  archivedChapterCount: number
 }
 
 export function SettingsPanel({
@@ -66,6 +67,7 @@ export function SettingsPanel({
   hiddenMotions,
   assignableMotions,
   assignableSwells,
+  archivedChapterCount,
 }: Props) {
   const [currentTheme, setCurrentTheme] = useState(theme)
   const [currentMode, setCurrentMode] = useState<TrackingMode>(trackingMode)
@@ -195,6 +197,24 @@ export function SettingsPanel({
           <span className="shrink-0 text-sm text-th-faint">→</span>
         </Link>
       </section>
+
+      {/* Past chapters */}
+      {archivedChapterCount > 0 && (
+        <section>
+          <Link
+            href="/settings/chapters"
+            className="flex items-center justify-between gap-3 py-3 transition-all active:scale-[0.99]"
+          >
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-th-text">Past chapters</p>
+              <p className="truncate text-xs text-th-muted">
+                {archivedChapterCount} closed {archivedChapterCount === 1 ? 'chapter' : 'chapters'}
+              </p>
+            </div>
+            <span className="shrink-0 text-sm text-th-faint">→</span>
+          </Link>
+        </section>
+      )}
 
       {/* Tracking */}
       <section>

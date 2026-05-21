@@ -18,6 +18,7 @@ export default async function SettingsPage() {
     { data: hiddenMotions },
     { data: assignableMotions },
     { data: assignableSwells },
+    { count: archivedChapterCount },
   ] = await Promise.all([
     supabase
       .from('user_settings')
@@ -51,6 +52,11 @@ export default async function SettingsPage() {
       .eq('user_id', user.id)
       .eq('chapter_id', chapterId)
       .order('name', { ascending: true }),
+    supabase
+      .from('chapters')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .not('ended_at', 'is', null),
   ])
 
   return (
@@ -83,6 +89,7 @@ export default async function SettingsPage() {
           hiddenMotions={hiddenMotions ?? []}
           assignableMotions={assignableMotions ?? []}
           assignableSwells={assignableSwells ?? []}
+          archivedChapterCount={archivedChapterCount ?? 0}
         />
 
         <div className="mt-8 border-t border-th-border pt-6">

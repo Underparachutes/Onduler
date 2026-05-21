@@ -3,6 +3,128 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 
+// Archived-chapter list (Past chapters browse). Returns chapters whose
+// ended_at IS NOT NULL, newest-first by sort_order. log_count is included
+// so the list row can show how lived-in the chapter was.
+export type ArchivedChapterSummary = {
+  id: string
+  startedAt: string
+  endedAt: string
+  sortOrder: number
+  logCount: number
+}
+
+export async function listArchivedChapters(): Promise<ArchivedChapterSummary[]> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+
+  const [{ data: chapters }, { data: logs }] = await Promise.all([
+    supabase
+      .from('chapters')
+      .select('id, started_at, ended_at, sort_order')
+      .eq('user_id', user.id)
+      .not('ended_at', 'is', null)
+      .order('sort_order', { ascending: false }),
+    supabase
+      .from('logs')
+      .select('chapter_id')
+      .eq('user_id', user.id),
+  ])
+
+  const counts = new Map<string, number>()
+  for (const l of logs ?? []) {
+    counts.set(l.chapter_id, (counts.get(l.chapter_id) ?? 0) + 1)
+  }
+
+  return (chapters ?? []).map(c => ({
+    id: c.id,
+    startedAt: c.started_at,
+    endedAt: c.ended_at as string,
+    sortOrder: c.sort_order ?? 0,
+    logCount: counts.get(c.id) ?? 0,
+  }))
+}
+
+// Single archived chapter view (Past chapters detail). Read-only — returns
+// the chapter row + the swells, motions, and anchor count that lived in it.
+// Returns null if the chapter doesn't exist, isn't owned by the user, or is
+// still active (active-chapter browse belongs to the live app, not this surface).
+export type ArchivedChapterDetail = {
+  id: string
+  startedAt: string
+  endedAt: string
+  swells: { id: string; name: string; color: string; target_points: number | null; target_hours: number | null }[]
+  motions: { id: string; name: string; default_points: number; default_hours: number }[]
+  logCount: number
+  anchorCount: number
+  trackingMode: 'points' | 'hours'
+}
+
+export async function getArchivedChapterDetail(
+  chapterId: string,
+): Promise<ArchivedChapterDetail | null> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return null
+
+  const { data: chapter } = await supabase
+    .from('chapters')
+    .select('id, started_at, ended_at')
+    .eq('id', chapterId)
+    .eq('user_id', user.id)
+    .maybeSingle()
+  if (!chapter?.id || !chapter.ended_at) return null
+
+  const [
+    { data: swells },
+    { data: motions },
+    { count: logCount },
+    { count: anchorCount },
+    { data: settings },
+  ] = await Promise.all([
+    supabase
+      .from('swells')
+      .select('id, name, color, target_points, target_hours')
+      .eq('user_id', user.id)
+      .eq('chapter_id', chapterId)
+      .order('sort_order', { ascending: true }),
+    supabase
+      .from('motions')
+      .select('id, name, default_points, default_hours')
+      .eq('user_id', user.id)
+      .eq('chapter_id', chapterId)
+      .is('parent_id', null)
+      .order('sort_order', { ascending: true, nullsFirst: false }),
+    supabase
+      .from('logs')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('chapter_id', chapterId),
+    supabase
+      .from('reflections')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('chapter_id', chapterId),
+    supabase
+      .from('user_settings')
+      .select('tracking_mode')
+      .eq('user_id', user.id)
+      .single(),
+  ])
+
+  return {
+    id: chapter.id,
+    startedAt: chapter.started_at,
+    endedAt: chapter.ended_at as string,
+    swells: swells ?? [],
+    motions: motions ?? [],
+    logCount: logCount ?? 0,
+    anchorCount: anchorCount ?? 0,
+    trackingMode: (settings?.tracking_mode as 'points' | 'hours') ?? 'points',
+  }
+}
+
 // Archive-and-fresh-start (ADR 0009).
 //
 // Ends the user's active chapter and starts a new one. Resets the onboarding
