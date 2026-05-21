@@ -509,7 +509,7 @@ export function DailyChecklist({
   )
 
   const headerToggles = (
-    <div className="flex justify-end gap-4">
+    <div className="flex items-center justify-between gap-4">
       <button
         onClick={toggleBySwell}
         className={`text-xs transition-colors ${bySwell ? 'text-th-text' : 'text-th-faint hover:text-th-muted'}`}
@@ -525,16 +525,39 @@ export function DailyChecklist({
     </div>
   )
 
+  const visibleGroupChips = groupsEnabled
+    ? groups.filter(g => (containers[g.id]?.length ?? 0) > 0)
+    : []
+  const groupChipsRow = visibleGroupChips.length > 0 ? (
+    <div className="mt-2 flex flex-wrap gap-2">
+      {visibleGroupChips.map(g => (
+        <button
+          key={g.id}
+          onClick={() => setActiveGroup(activeGroup === g.id ? null : g.id)}
+          className="rounded-full border px-3 py-1 text-xs font-medium transition-colors"
+          style={activeGroup === g.id ? { backgroundColor: g.color, borderColor: g.color, color: '#fff' } : {}}
+        >
+          <span className={activeGroup !== g.id ? 'text-th-muted' : ''}>
+            {g.name.toUpperCase()}
+          </span>
+        </button>
+      ))}
+    </div>
+  ) : null
+
   // By-swell mode — each motion appears under every swell it feeds, plus an
   // "Unassigned" section for motions with no swell. Tap any instance to log
   // once; credit distributes per existing contribution_weight allocations.
   if (bySwell) {
+    const groupFiltered = activeGroup
+      ? motions.filter(m => m.groupId === activeGroup)
+      : motions
     const sections: { swell: { id: string; name: string; color: string } | null; motions: Motion[] }[] = []
     for (const swell of allSwells) {
-      const ms = motions.filter(m => m.swells.some(s => s.id === swell.id))
+      const ms = groupFiltered.filter(m => m.swells.some(s => s.id === swell.id))
       if (ms.length > 0) sections.push({ swell, motions: ms })
     }
-    const orphans = motions.filter(m => m.swells.length === 0)
+    const orphans = groupFiltered.filter(m => m.swells.length === 0)
     if (orphans.length > 0) sections.push({ swell: null, motions: orphans })
 
     return (
@@ -545,6 +568,7 @@ export function DailyChecklist({
             {dateHeader}
             {progressBar}
             {headerToggles}
+            {groupChipsRow}
           </div>
           <div className="flex flex-col gap-6">
             {sections.map(({ swell, motions: secMotions }) => {
@@ -633,34 +657,8 @@ export function DailyChecklist({
           {dateHeader}
           {progressBar}
 
-          <div className="flex items-center gap-2">
-            <div className="flex flex-1 flex-wrap gap-2">
-              {groupsWithMotions.map(g => (
-                <button
-                  key={g.id}
-                  onClick={() => setActiveGroup(activeGroup === g.id ? null : g.id)}
-                  className="rounded-full border px-3 py-1 text-xs font-medium transition-colors"
-                  style={activeGroup === g.id ? { backgroundColor: g.color, borderColor: g.color, color: '#fff' } : {}}
-                >
-                  <span className={activeGroup !== g.id ? 'text-th-muted' : ''}>
-                    {g.name.toUpperCase()}
-                  </span>
-                </button>
-              ))}
-            </div>
-            <button
-              onClick={toggleBySwell}
-              className="shrink-0 text-xs text-th-faint transition-colors hover:text-th-muted"
-            >
-              By swell
-            </button>
-            <button
-              onClick={toggleHideDone}
-              className="shrink-0 text-xs text-th-faint transition-colors hover:text-th-muted"
-            >
-              {hideDone ? 'Show all' : 'Hide done'}
-            </button>
-          </div>
+          {headerToggles}
+          {groupChipsRow}
         </div>
 
         <DndContext
