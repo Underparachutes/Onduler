@@ -61,7 +61,10 @@ export function BottomNav({ pendingAnchor = false }: { pendingAnchor?: boolean }
   if (HIDE_ON.some(p => pathname === p || pathname.startsWith(p + '/'))) return null
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-th-border bg-th-bg">
+    <nav
+      className="fixed bottom-0 left-0 right-0 z-40 border-t border-th-border bg-th-bg"
+      style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 0px)' }}
+    >
       <div className="mx-auto flex h-14 max-w-sm items-center justify-around px-2">
         {ITEMS.map(({ href, label, icon }) => {
           const active = pathname === href || (href !== '/dashboard' && pathname.startsWith(href + '/'))
@@ -93,7 +96,6 @@ export function BottomNav({ pendingAnchor = false }: { pendingAnchor?: boolean }
           )
         })}
       </div>
-      <div aria-hidden style={{ height: 'env(safe-area-inset-bottom)' }} />
     </nav>
   )
 }
