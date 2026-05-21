@@ -159,8 +159,8 @@ export default async function AnchorJournalPage() {
                         })()
                       : null
 
-                    return (
-                      <article key={a.id} className="flex flex-col gap-2 py-2">
+                    const header = (
+                      <>
                         <div className="flex items-baseline justify-between gap-2">
                           <p className="text-[10px] uppercase tracking-widest text-th-muted">
                             {a.cycle_type === 'free' ? 'Anchor' : `${a.cycle_type} ceremony`}
@@ -171,24 +171,36 @@ export default async function AnchorJournalPage() {
                         {cycleLabel(a) && (
                           <p className="text-xs text-th-secondary">{cycleLabel(a)}</p>
                         )}
+                      </>
+                    )
 
-                        {a.cycle_type === 'free' ? (
-                          <>
-                            {a.prompt_text && (
-                              <p className="text-xs italic text-th-faint">{a.prompt_text}</p>
-                            )}
-                            {a.body_text && (
-                              <p className="whitespace-pre-wrap text-sm text-th-text">{a.body_text}</p>
-                            )}
-                          </>
-                        ) : (
-                          <CeremonyCard
-                            anchor={a}
-                            radarSwells={radarSwells}
-                            actuals={actualsArr}
-                            trackingMode={trackingMode}
-                          />
-                        )}
+                    if (a.cycle_type === 'free') {
+                      return (
+                        <Link
+                          key={a.id}
+                          href={`/anchors/${a.id}/edit`}
+                          className="flex flex-col gap-2 rounded py-2 transition-colors hover:bg-th-surface/50 active:scale-[0.985]"
+                        >
+                          {header}
+                          {a.prompt_text && (
+                            <p className="text-xs italic text-th-faint">{a.prompt_text}</p>
+                          )}
+                          {a.body_text && (
+                            <p className="whitespace-pre-wrap text-sm text-th-text">{a.body_text}</p>
+                          )}
+                        </Link>
+                      )
+                    }
+
+                    return (
+                      <article key={a.id} className="flex flex-col gap-2 py-2">
+                        {header}
+                        <CeremonyCard
+                          anchor={a}
+                          radarSwells={radarSwells}
+                          actuals={actualsArr}
+                          trackingMode={trackingMode}
+                        />
                       </article>
                     )
                   })

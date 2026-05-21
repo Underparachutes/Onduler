@@ -185,6 +185,77 @@ export async function createFreeAnchor(_prev: unknown, formData: FormData) {
   return { success: true }
 }
 
+// Update an existing free-form anchor. Edits to ceremony anchors are
+// rejected — those are meant to be frozen records of what the user said
+// at cycle close. useActionState-compatible.
+export async function updateFreeAnchor(id: string, _prev: unknown, formData: FormData) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const { data: row } = await supabase
+    .from('reflections')
+    .select('id, cycle_type')
+    .eq('id', id)
+    .eq('user_id', user.id)
+    .maybeSingle()
+  if (!row?.id) return { error: 'Anchor not found' }
+  if (row.cycle_type !== 'free') return { error: 'Ceremony anchors cannot be edited' }
+
+  const bodyText = ((formData.get('body_text') as string) ?? '').trim()
+  if (!bodyText) return { error: 'Anchor cannot be empty' }
+  const promptText = ((formData.get('prompt_text') as string) ?? '').trim() || null
+  const cycleStart = ((formData.get('cycle_start') as string) ?? '').trim() || null
+  const cycleEnd = ((formData.get('cycle_end') as string) ?? '').trim() || null
+
+  const { error } = await supabase
+    .from('reflections')
+    .update({
+      body_text: bodyText,
+      prompt_text: promptText,
+      cycle_start: cycleStart,
+      cycle_end: cycleEnd,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', id)
+    .eq('user_id', user.id)
+
+  if (error) return { error: error.message }
+
+  revalidatePath('/anchors')
+  revalidatePath('/anchors/journal')
+  return { success: true }
+}
+
+// Delete a free-form anchor. Ceremony anchors are protected for the same
+// reason updates are — they're frozen records of a cycle close.
+export async function deleteFreeAnchor(id: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const { data: row } = await supabase
+    .from('reflections')
+    .select('id, cycle_type')
+    .eq('id', id)
+    .eq('user_id', user.id)
+    .maybeSingle()
+  if (!row?.id) return { error: 'Anchor not found' }
+  if (row.cycle_type !== 'free') return { error: 'Ceremony anchors cannot be deleted' }
+
+  const { error } = await supabase
+    .from('reflections')
+    .delete()
+    .eq('id', id)
+    .eq('user_id', user.id)
+
+  if (error) return { error: error.message }
+
+  revalidatePath('/anchors')
+  revalidatePath('/anchors/journal')
+  return { success: true }
+}
+
 // Chronological library of every anchor the user has dropped, grouped by
 // chapter. Chapters are ordered newest-first (active chapter on top, then
 // archived chapters by started_at desc). Within each chapter, anchors are
