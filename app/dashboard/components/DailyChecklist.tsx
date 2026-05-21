@@ -199,22 +199,29 @@ function SortableSwellSection({
 }
 
 function MotionDragOverlay({
-  motion, submotionsMap, trackingMode,
+  motion, done, submotionsMap, trackingMode,
 }: {
   motion: Motion
+  done: boolean
   submotionsMap: Record<string, Submotion[]>
   trackingMode: TrackingMode
 }) {
   const hasSubmotions = SUBMOTIONS_ENABLED && (submotionsMap[motion.id]?.length ?? 0) > 0
   return (
     <div className="flex items-center gap-1 select-none rotate-1 shadow-xl">
-      <div className="flex flex-1 items-center gap-3 rounded-lg border border-th-btn px-3 py-3 bg-th-bg">
-        <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 border-th-border" />
+      <div className={`flex flex-1 items-center gap-3 rounded-lg border px-3 py-3 bg-th-bg ${done ? 'border-th-border opacity-50' : 'border-th-btn'}`}>
+        <div className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 ${done ? 'border-th-btn text-th-btn' : 'border-th-border'}`}>
+          {done && (
+            <svg viewBox="0 0 12 10" fill="none" className="h-3 w-3">
+              <path d="M1 5l3.5 3.5L11 1" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          )}
+        </div>
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium text-th-text">{motion.name}</p>
+          <p className={`text-sm font-medium ${done ? 'text-th-muted line-through' : 'text-th-text'}`}>{motion.name}</p>
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
-          <span className="text-sm font-semibold text-th-secondary">{trackingMode === 'hours' ? formatHrs(motion.default_hours) : formatPts(motion.default_points)}</span>
+          <span className={`text-sm font-semibold ${done ? 'text-th-faint' : 'text-th-secondary'}`}>{trackingMode === 'hours' ? formatHrs(motion.default_hours) : formatPts(motion.default_points)}</span>
           {hasSubmotions && <span className="text-xs text-th-faint">›</span>}
         </div>
       </div>
@@ -706,6 +713,7 @@ export function DailyChecklist({
             {dragActiveMotion && (
               <MotionDragOverlay
                 motion={dragActiveMotion}
+                done={localDone.has(dragActiveMotion.id)}
                 submotionsMap={submotionsMap}
                 trackingMode={trackingMode}
               />

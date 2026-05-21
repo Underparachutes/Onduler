@@ -37,7 +37,7 @@ type RowProps = {
   onOpenSheet: () => void
 }
 
-export function SortableMotionRow({ motion, hasSubmotions, trackingMode, onLog, onOpenSheet }: RowProps) {
+export function SortableMotionRow({ motion, done, hasSubmotions, trackingMode, onLog, onOpenSheet }: RowProps) {
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } =
     useSortable({ id: motion.id })
 
@@ -51,23 +51,31 @@ export function SortableMotionRow({ motion, hasSubmotions, trackingMode, onLog, 
     >
       {/* Card body — tap to log; checkbox doubles as drag handle (long-press) */}
       <button
-        onClick={(e) => onLog(e)}
-        className="flex flex-1 items-center gap-3 rounded-lg px-3 py-3 text-left transition-colors hover:bg-th-surface active:scale-[0.99]"
+        onClick={(e) => { if (!done) onLog(e) }}
+        className={`flex flex-1 items-center gap-3 rounded-lg px-3 py-3 text-left transition-colors ${
+          done ? 'opacity-50 cursor-default' : 'hover:bg-th-surface active:scale-[0.99]'
+        }`}
       >
         <div
           ref={setActivatorNodeRef}
           {...listeners}
           style={{ touchAction: 'none' }}
           aria-label="Drag to reorder"
-          className="flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 border-th-border transition-all cursor-grab active:cursor-grabbing"
-        />
+          className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 transition-all cursor-grab active:cursor-grabbing ${done ? 'border-th-btn text-th-btn' : 'border-th-border'}`}
+        >
+          {done && (
+            <svg viewBox="0 0 12 10" fill="none" className="h-3 w-3">
+              <path d="M1 5l3.5 3.5L11 1" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          )}
+        </div>
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium text-th-text">
+          <p className={`text-sm font-medium ${done ? 'text-th-muted line-through' : 'text-th-text'}`}>
             {motion.name}
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
-          <span className="text-sm font-semibold text-th-secondary">
+          <span className={`text-sm font-semibold ${done ? 'text-th-faint' : 'text-th-secondary'}`}>
             {trackingMode === 'hours' ? formatHrs(motion.default_hours) : formatPts(motion.default_points)}
           </span>
           {hasSubmotions && <span className="text-xs text-th-faint">›</span>}
