@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { getActiveChapterId } from '@/lib/chapters'
 import { getTodayStart, getWeekStart, getLastWeekStart } from '@/lib/timezone'
 import { bonusBySwell } from '@/lib/waypoints'
 import { SwellsView } from './SwellsView'
@@ -8,6 +9,8 @@ export default async function SwellsPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  const chapterId = await getActiveChapterId(supabase, user.id)
 
   const [
     { data: swells },
@@ -21,17 +24,20 @@ export default async function SwellsPage() {
       .from('swells')
       .select('id, name, color, target_points, target_hours, group_id, hidden, sort_order')
       .eq('user_id', user.id)
+      .eq('chapter_id', chapterId)
       .order('sort_order', { ascending: true }),
     supabase
       .from('motions')
       .select('id, name, default_points, default_hours, group_id, motion_swells(contribution_weight, swells(id, name, color))')
       .eq('user_id', user.id)
+      .eq('chapter_id', chapterId)
       .eq('hidden', false)
       .order('default_points', { ascending: false }),
     supabase
       .from('motions')
       .select('id, name, default_points, default_hours, parent_id, motion_swells(contribution_weight, swells(id, name, color))')
       .eq('user_id', user.id)
+      .eq('chapter_id', chapterId)
       .eq('hidden', false)
       .not('parent_id', 'is', null)
       .order('sort_order', { ascending: true, nullsFirst: false }),
@@ -44,6 +50,7 @@ export default async function SwellsPage() {
       .from('groups')
       .select('id, name, color')
       .eq('user_id', user.id)
+      .eq('chapter_id', chapterId)
       .order('sort_order', { ascending: true }),
     getTodayStart(),
   ])
@@ -63,16 +70,19 @@ export default async function SwellsPage() {
       .from('logs')
       .select('motion_id, points, hours')
       .eq('user_id', user.id)
+      .eq('chapter_id', chapterId)
       .gte('logged_at', todayStart.toISOString()),
     supabase
       .from('logs')
       .select('motion_id, points, hours')
       .eq('user_id', user.id)
+      .eq('chapter_id', chapterId)
       .gte('logged_at', weekStart.toISOString()),
     supabase
       .from('logs')
       .select('motion_id, points, hours')
       .eq('user_id', user.id)
+      .eq('chapter_id', chapterId)
       .gte('logged_at', lastWeekStart.toISOString())
       .lt('logged_at', weekStart.toISOString()),
     supabase

@@ -17,6 +17,7 @@ import { currentRamp, type WelcomeBackMode } from '@/lib/welcomeback'
 import { SwellRadar, type RadarSwell } from '@/app/components/SwellRadar'
 import { LockedCadenceTile } from './components/LockedCadenceTile'
 import { LockedPage } from './components/LockedPage'
+import { getActiveChapterId } from '@/lib/chapters'
 import { getCeremonyState, getUnlockState, type CeremonyState } from '@/app/actions/reflections'
 import { formatCycleLabel, type Cadence } from '@/lib/cycles'
 import type { BuildKey } from '@/lib/builds'
@@ -54,6 +55,7 @@ export default async function AnchorsPage({
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
+  const chapterId = await getActiveChapterId(supabase, user.id)
   const todayStart = await getTodayStart()
   const weekStart = await getWeekStart()
   const todayKey = pacificDayKey(todayStart)
@@ -87,15 +89,19 @@ export default async function AnchorsPage({
       .from('logs')
       .select('points, hours, logged_at, motions(name, motion_swells(contribution_weight, swells(id, name, color)))')
       .eq('user_id', user.id)
+      .eq('chapter_id', chapterId)
       .order('logged_at', { ascending: false }),
     supabase
       .from('wave_checkins')
       .select('energy, alignment, duration_seconds, checked_in_at')
+      .eq('user_id', user.id)
+      .eq('chapter_id', chapterId)
       .order('checked_in_at', { ascending: false }),
     supabase
       .from('swells')
       .select('id, name, color, target_points, target_hours')
       .eq('user_id', user.id)
+      .eq('chapter_id', chapterId)
       .eq('hidden', false)
       .order('sort_order'),
     supabase
@@ -107,6 +113,7 @@ export default async function AnchorsPage({
       .from('logs')
       .select('logged_at')
       .eq('user_id', user.id)
+      .eq('chapter_id', chapterId)
       .order('logged_at', { ascending: true })
       .limit(1)
       .maybeSingle(),

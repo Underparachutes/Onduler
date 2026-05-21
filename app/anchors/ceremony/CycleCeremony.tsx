@@ -3,11 +3,12 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { saveReflection } from '@/app/actions/reflections'
+import { archiveAndStartFreshChapter } from '@/app/actions/chapters'
 import { FrozenRadar } from './FrozenRadar'
 import { ceilDisplay, type DayKey } from '@/lib/periods'
 import type { Cadence } from '@/lib/cycles'
 
-type Step = 'expectation' | 'reveal' | 'observation' | 'tune'
+type Step = 'expectation' | 'reveal' | 'observation' | 'tune' | 'archive_confirm'
 
 type Swell = { id: string; name: string; color: string; target: number }
 
@@ -114,6 +115,26 @@ export function CycleCeremony({
         didTune: true,
       })
       router.push('/dashboard')
+    })
+  }
+
+  function confirmArchive() {
+    startTransition(async () => {
+      await saveReflection({
+        cadence,
+        cycleStart,
+        cycleEnd,
+        expectationText: expectation || null,
+        observationText: observation || null,
+        didTune: true,
+      })
+      const result = await archiveAndStartFreshChapter()
+      if (result && 'error' in result && result.error) {
+        // Surface failure but stay on the page so the user can retry.
+        console.error('Archive failed:', result.error)
+        return
+      }
+      router.push('/onboarding')
     })
   }
 
@@ -244,6 +265,47 @@ export function CycleCeremony({
                 className="mt-2 text-xs text-th-faint transition-colors hover:text-th-muted active:scale-[0.97] disabled:opacity-50"
               >
                 Skip — nothing to change this time
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setStep('archive_confirm')}
+                disabled={isPending}
+                className="mt-6 text-xs text-th-faint transition-colors hover:text-th-text active:scale-[0.97] disabled:opacity-50"
+              >
+                Start a new chapter
+              </button>
+            </div>
+          </div>
+        )}
+
+        {step === 'archive_confirm' && (
+          <div className="flex flex-col gap-6">
+            <h1 className="text-2xl font-semibold text-th-text">Close this chapter?</h1>
+            <p className="text-sm leading-relaxed text-th-secondary">
+              Your motions, swells, logs, and anchors stay safe — you can revisit them
+              from Settings → Past chapters. The active app starts fresh: a new shape,
+              new swells, new motions. Reflection unlocks reset.
+            </p>
+            <p className="text-sm leading-relaxed text-th-secondary">
+              Take it as a gift to your future self, not a goodbye.
+            </p>
+            <div className="flex flex-col gap-3">
+              <button
+                type="button"
+                onClick={confirmArchive}
+                disabled={isPending}
+                className="rounded-lg border border-th-text bg-th-text px-4 py-3 text-sm font-medium text-th-bg transition-colors hover:bg-th-text/90 active:scale-[0.99] disabled:opacity-50"
+              >
+                {isPending ? 'Closing…' : 'Yes, close this chapter'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setStep('tune')}
+                disabled={isPending}
+                className="text-xs text-th-faint transition-colors hover:text-th-muted active:scale-[0.97] disabled:opacity-50"
+              >
+                Not yet — take me back
               </button>
             </div>
           </div>

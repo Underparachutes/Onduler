@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
+import { getActiveChapterId } from '@/lib/chapters'
 import { signOut } from '@/app/actions/auth'
 import { SettingsPanel } from './SettingsPanel'
 
@@ -8,6 +9,8 @@ export default async function SettingsPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  const chapterId = await getActiveChapterId(supabase, user.id)
 
   const [
     { data: settings },
@@ -25,17 +28,20 @@ export default async function SettingsPage() {
       .from('groups')
       .select('id, name, color')
       .eq('user_id', user.id)
+      .eq('chapter_id', chapterId)
       .order('sort_order'),
     supabase
       .from('motions')
       .select('id, name')
       .eq('user_id', user.id)
+      .eq('chapter_id', chapterId)
       .eq('hidden', true)
       .order('name', { ascending: true }),
     supabase
       .from('motions')
       .select('id, name, group_id')
       .eq('user_id', user.id)
+      .eq('chapter_id', chapterId)
       .eq('hidden', false)
       .is('parent_id', null)
       .order('name', { ascending: true }),
@@ -43,6 +49,7 @@ export default async function SettingsPage() {
       .from('swells')
       .select('id, name, color, group_id')
       .eq('user_id', user.id)
+      .eq('chapter_id', chapterId)
       .order('name', { ascending: true }),
   ])
 

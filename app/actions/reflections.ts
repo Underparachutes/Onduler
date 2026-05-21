@@ -32,7 +32,7 @@ async function fetchChapterAndLogDays(
     .from('logs')
     .select('logged_at')
     .eq('user_id', userId)
-    .gte('logged_at', chapter.started_at)
+    .eq('chapter_id', chapter.id)
   const days = new Set<DayKey>()
   for (const l of logs ?? []) {
     days.add(pacificDayKey(l.logged_at))

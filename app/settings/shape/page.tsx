@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { getActiveChapterId } from '@/lib/chapters'
 import { getBuildPreset, type BuildKey } from '@/lib/builds'
 import { defaultMvsMotions, resolveMvsMotions } from '@/lib/welcomeback'
 import { ShapePicker } from './ShapePicker'
@@ -8,6 +9,8 @@ export default async function ShapePage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  const chapterId = await getActiveChapterId(supabase, user.id)
 
   const [{ data: settings }, { data: swells }, { data: motions }] = await Promise.all([
     supabase
@@ -18,11 +21,13 @@ export default async function ShapePage() {
     supabase
       .from('swells')
       .select('name')
-      .eq('user_id', user.id),
+      .eq('user_id', user.id)
+      .eq('chapter_id', chapterId),
     supabase
       .from('motions')
       .select('id, name, motion_swells(swells(name))')
       .eq('user_id', user.id)
+      .eq('chapter_id', chapterId)
       .eq('hidden', false),
   ])
 
@@ -50,6 +55,7 @@ export default async function ShapePage() {
         .from('logs')
         .select('motion_id')
         .eq('user_id', user.id)
+        .eq('chapter_id', chapterId)
         .in('motion_id', ids)
       for (const l of logs ?? []) {
         if (!l.motion_id) continue

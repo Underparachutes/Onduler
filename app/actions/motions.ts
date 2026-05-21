@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { getActiveChapterId } from '@/lib/chapters'
 import { normalizeEntries } from '@/lib/contributions'
 
 export async function createMotion(prevState: unknown, formData: FormData) {
@@ -19,9 +20,11 @@ export async function createMotion(prevState: unknown, formData: FormData) {
 
   if (!name) return { error: 'Name is required' }
 
+  const chapterId = await getActiveChapterId(supabase, user.id)
+
   const { data: inserted, error } = await supabase
     .from('motions')
-    .insert({ user_id: user.id, name, default_points: defaultPoints, default_hours: defaultHours, group_id })
+    .insert({ user_id: user.id, chapter_id: chapterId, name, default_points: defaultPoints, default_hours: defaultHours, group_id })
     .select('id')
     .single()
 
@@ -193,8 +196,11 @@ export async function createSubmotion(parentId: string, name: string) {
   const trimmed = name.trim()
   if (!trimmed) return { error: 'Name is required' }
 
+  const chapterId = await getActiveChapterId(supabase, user.id)
+
   const { data, error } = await supabase.from('motions').insert({
     user_id: user.id,
+    chapter_id: chapterId,
     name: trimmed,
     default_points: 1,
     default_hours: 1,

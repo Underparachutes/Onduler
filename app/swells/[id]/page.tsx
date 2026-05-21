@@ -1,5 +1,6 @@
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { getActiveChapterId } from '@/lib/chapters'
 import { getTodayStart, getWeekStart } from '@/lib/timezone'
 import {
   monthStartKey,
@@ -34,6 +35,8 @@ export default async function SwellDetailPage({ params }: { params: Promise<{ id
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
+  const chapterId = await getActiveChapterId(supabase, user.id)
+
   const [
     { data: swell },
     { data: junctions },
@@ -48,6 +51,7 @@ export default async function SwellDetailPage({ params }: { params: Promise<{ id
       .select('id, name, color, target_points, target_hours, hidden')
       .eq('id', id)
       .eq('user_id', user.id)
+      .eq('chapter_id', chapterId)
       .maybeSingle(),
     supabase
       .from('motion_swells')
@@ -69,6 +73,7 @@ export default async function SwellDetailPage({ params }: { params: Promise<{ id
       .from('logs')
       .select('logged_at')
       .eq('user_id', user.id)
+      .eq('chapter_id', chapterId)
       .order('logged_at', { ascending: true })
       .limit(1)
       .maybeSingle(),
@@ -115,6 +120,7 @@ export default async function SwellDetailPage({ params }: { params: Promise<{ id
           .from('logs')
           .select('motion_id, points, hours, logged_at')
           .eq('user_id', user.id)
+          .eq('chapter_id', chapterId)
           .in('motion_id', motionIds)
       : Promise.resolve({ data: [] as { motion_id: string | null; points: number; hours: number; logged_at: string }[] }),
     milestoneIds.length > 0

@@ -6,7 +6,7 @@ import { formatWeekLabel, formatMonthLabel, formatQuarterLabel, formatYearLabel,
 import { pacificDayKey, type DayKey } from '@/lib/periods'
 import { FrozenRadar } from '@/app/anchors/ceremony/FrozenRadar'
 
-type SwellRow = { id: string; name: string; color: string; target_points: number | null; target_hours: number | null }
+type SwellRow = { id: string; name: string; color: string; target_points: number | null; target_hours: number | null; chapter_id: string }
 type MotionShape = {
   motion_swells?: { contribution_weight: number; swells: { id: string } | null }[]
 } | null
@@ -14,6 +14,7 @@ type LogRow = {
   points: number
   hours: number
   logged_at: string
+  chapter_id: string
   motions: MotionShape
 }
 
@@ -77,17 +78,19 @@ export default async function AnchorJournalPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
+  // Fetch swells + logs across ALL chapters so past-chapter ceremony anchors
+  // render against their own chapter's shape (not today's). Grouped below.
   const [chapters, { data: swellRows }, { data: logRows }, { data: settings }] = await Promise.all([
     getAnchorJournal(),
     supabase
       .from('swells')
-      .select('id, name, color, target_points, target_hours')
+      .select('id, name, color, target_points, target_hours, chapter_id')
       .eq('user_id', user.id)
       .eq('hidden', false)
       .order('sort_order'),
     supabase
       .from('logs')
-      .select('points, hours, logged_at, motions(motion_swells(contribution_weight, swells(id)))')
+      .select('points, hours, logged_at, chapter_id, motions(motion_swells(contribution_weight, swells(id)))')
       .eq('user_id', user.id),
     supabase
       .from('user_settings')
@@ -98,15 +101,22 @@ export default async function AnchorJournalPage() {
 
   const trackingMode: 'points' | 'hours' = (settings?.tracking_mode as 'points' | 'hours') ?? 'points'
   const isHours = trackingMode === 'hours'
-  const swells: SwellRow[] = swellRows ?? []
-  const logs: LogRow[] = (logRows ?? []) as unknown as LogRow[]
+  const allSwells: SwellRow[] = (swellRows ?? []) as SwellRow[]
+  const allLogs: LogRow[] = (logRows ?? []) as unknown as LogRow[]
 
-  const radarSwells = swells.map(s => ({
-    id: s.id,
-    name: s.name,
-    color: s.color,
-    target: (isHours ? Number(s.target_hours ?? 0) : (s.target_points ?? 0)),
-  }))
+  // Group by chapter so each anchor's radar reflects its own chapter shape.
+  const swellsByChapter = new Map<string, SwellRow[]>()
+  for (const s of allSwells) {
+    const list = swellsByChapter.get(s.chapter_id) ?? []
+    list.push(s)
+    swellsByChapter.set(s.chapter_id, list)
+  }
+  const logsByChapter = new Map<string, LogRow[]>()
+  for (const l of allLogs) {
+    const list = logsByChapter.get(l.chapter_id) ?? []
+    list.push(l)
+    logsByChapter.set(l.chapter_id, list)
+  }
 
   const totalAnchors = chapters.reduce((sum, c) => sum + c.anchors.length, 0)
 
@@ -134,7 +144,16 @@ export default async function AnchorJournalPage() {
           </p>
         ) : (
           <div className="flex flex-col gap-10 pb-12">
-            {chapters.map(chapter => (
+            {chapters.map(chapter => {
+              const chapterSwells = swellsByChapter.get(chapter.chapterId) ?? []
+              const chapterLogs = logsByChapter.get(chapter.chapterId) ?? []
+              const chapterRadarSwells = chapterSwells.map(s => ({
+                id: s.id,
+                name: s.name,
+                color: s.color,
+                target: (isHours ? Number(s.target_hours ?? 0) : (s.target_points ?? 0)),
+              }))
+              return (
               <section key={chapter.chapterId} className="flex flex-col gap-3">
                 <div className="flex items-baseline justify-between border-b border-th-border-soft pb-2">
                   <p className="text-[10px] uppercase tracking-widest text-th-muted">
@@ -151,11 +170,11 @@ export default async function AnchorJournalPage() {
                   chapter.anchors.map(a => {
                     const isCeremony = a.cycle_type !== 'free'
                     const canRenderRadar =
-                      isCeremony && a.cycle_start && a.cycle_end && radarSwells.length >= 3
+                      isCeremony && a.cycle_start && a.cycle_end && chapterRadarSwells.length >= 3
                     const actualsArr = canRenderRadar
                       ? (() => {
-                          const map = actualsForCycle(logs, a.cycle_start!, a.cycle_end!, swells, isHours)
-                          return swells.map(s => map.get(s.id) ?? 0)
+                          const map = actualsForCycle(chapterLogs, a.cycle_start!, a.cycle_end!, chapterSwells, isHours)
+                          return chapterSwells.map(s => map.get(s.id) ?? 0)
                         })()
                       : null
 
@@ -197,7 +216,7 @@ export default async function AnchorJournalPage() {
                         {header}
                         <CeremonyCard
                           anchor={a}
-                          radarSwells={radarSwells}
+                          radarSwells={chapterRadarSwells}
                           actuals={actualsArr}
                           trackingMode={trackingMode}
                         />
@@ -206,7 +225,8 @@ export default async function AnchorJournalPage() {
                   })
                 )}
               </section>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>

@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { getActiveChapterId } from '@/lib/chapters'
 import { WaveGrid } from './WaveGrid'
 
 function formatDuration(seconds: number): string {
@@ -14,9 +15,13 @@ export default async function WaveReturnPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
+  const chapterId = await getActiveChapterId(supabase, user.id)
+
   const { data: lastLogData } = await supabase
     .from('logs')
     .select('logged_at')
+    .eq('user_id', user.id)
+    .eq('chapter_id', chapterId)
     .order('logged_at', { ascending: false })
     .limit(1)
 

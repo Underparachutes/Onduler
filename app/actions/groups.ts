@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { getActiveChapterId } from '@/lib/chapters'
 
 export async function createGroup(prevState: unknown, formData: FormData) {
   const supabase = await createClient()
@@ -13,14 +14,17 @@ export async function createGroup(prevState: unknown, formData: FormData) {
 
   if (!name) return { error: 'Name is required' }
 
+  const chapterId = await getActiveChapterId(supabase, user.id)
+
   const { count } = await supabase
     .from('groups')
     .select('*', { count: 'exact', head: true })
     .eq('user_id', user.id)
+    .eq('chapter_id', chapterId)
 
   const { error } = await supabase
     .from('groups')
-    .insert({ user_id: user.id, name, color, sort_order: count ?? 0 })
+    .insert({ user_id: user.id, chapter_id: chapterId, name, color, sort_order: count ?? 0 })
 
   if (error) return { error: error.message }
 

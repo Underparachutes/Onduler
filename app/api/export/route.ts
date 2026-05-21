@@ -1,9 +1,13 @@
 import { createClient } from '@/lib/supabase/server'
+import { getActiveChapterId } from '@/lib/chapters'
 
 // Translates schema names to user-facing vocabulary at the export boundary
 // (see ADR 0006). Top-level keys read as the words the user sees in the
 // app: waypoints (not milestones), waves (not wave_checkins). Foreign-key
 // field names (swell_id, motion_id) stay because they're the join handles.
+//
+// Scope: active chapter only (ADR 0009). Past-chapter exports are a future
+// surface; for now the user sees what they see in-app.
 
 export async function GET() {
   const supabase = await createClient()
@@ -13,23 +17,28 @@ export async function GET() {
     return new Response('Unauthorized', { status: 401 })
   }
 
+  const chapterId = await getActiveChapterId(supabase, user.id)
+
   const [swells, groups, motions, motionSwells, logs, milestones, waveCheckins] = await Promise.all([
     supabase
       .from('swells')
       .select('id, name, color, target_points, target_hours, group_id, sort_order, created_at')
       .eq('user_id', user.id)
+      .eq('chapter_id', chapterId)
       .order('sort_order'),
 
     supabase
       .from('groups')
       .select('id, name, color, sort_order, created_at')
       .eq('user_id', user.id)
+      .eq('chapter_id', chapterId)
       .order('sort_order'),
 
     supabase
       .from('motions')
       .select('id, name, default_points, default_hours, group_id, hidden, parent_id, sort_order, created_at')
       .eq('user_id', user.id)
+      .eq('chapter_id', chapterId)
       .order('created_at'),
 
     supabase
@@ -41,6 +50,7 @@ export async function GET() {
       .from('logs')
       .select('id, motion_id, points, hours, logged_at, motions(name)')
       .eq('user_id', user.id)
+      .eq('chapter_id', chapterId)
       .order('logged_at'),
 
     supabase
@@ -53,6 +63,7 @@ export async function GET() {
       .from('wave_checkins')
       .select('id, energy, alignment, duration_seconds, checked_in_at')
       .eq('user_id', user.id)
+      .eq('chapter_id', chapterId)
       .order('checked_in_at'),
   ])
 

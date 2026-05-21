@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { getActiveChapterId } from '@/lib/chapters'
 import { getTodayStart, getWeekStart } from '@/lib/timezone'
 import { pacificDayKey } from '@/lib/periods'
 import { bonusBySwell } from '@/lib/waypoints'
@@ -9,11 +10,13 @@ import { DashboardView } from './components/DashboardView'
 type SupabaseClient = Awaited<ReturnType<typeof createClient>>
 
 async function detectWave(
-  supabase: SupabaseClient
+  supabase: SupabaseClient,
+  chapterId: string,
 ): Promise<{ showWavePrompt: boolean; waveDurationSeconds: number | null }> {
   const { data: lastLogData } = await supabase
     .from('logs')
     .select('logged_at')
+    .eq('chapter_id', chapterId)
     .order('logged_at', { ascending: false })
     .limit(1)
 
@@ -27,6 +30,7 @@ async function detectWave(
   const { data: recentCheckinData } = await supabase
     .from('wave_checkins')
     .select('id')
+    .eq('chapter_id', chapterId)
     .gt('checked_in_at', lastLog.logged_at)
     .limit(1)
 
@@ -60,7 +64,11 @@ export default async function DashboardPage() {
   const celebrationEnabled = settings?.celebration_enabled ?? true
   const hapticEnabled = settings?.haptic_enabled ?? true
 
-  const [todayStart, weekStart] = await Promise.all([getTodayStart(), getWeekStart()])
+  const [todayStart, weekStart, chapterId] = await Promise.all([
+    getTodayStart(),
+    getWeekStart(),
+    getActiveChapterId(supabase, user.id),
+  ])
 
   const [
     { data: todayLogs },
@@ -77,16 +85,19 @@ export default async function DashboardPage() {
       .from('logs')
       .select('motion_id, points, hours')
       .eq('user_id', user.id)
+      .eq('chapter_id', chapterId)
       .gte('logged_at', todayStart.toISOString()),
     supabase
       .from('logs')
       .select('motion_id, points, hours')
       .eq('user_id', user.id)
+      .eq('chapter_id', chapterId)
       .gte('logged_at', weekStart.toISOString()),
     supabase
       .from('motions')
       .select('id, name, default_points, default_hours, group_id, motion_swells(contribution_weight, swells(id, name, color))')
       .eq('user_id', user.id)
+      .eq('chapter_id', chapterId)
       .eq('hidden', false)
       .is('parent_id', null)
       .order('sort_order', { ascending: true, nullsFirst: false }),
@@ -94,6 +105,7 @@ export default async function DashboardPage() {
       .from('motions')
       .select('id, name, default_points, default_hours, parent_id, motion_swells(contribution_weight, swells(id, name, color))')
       .eq('user_id', user.id)
+      .eq('chapter_id', chapterId)
       .eq('hidden', false)
       .not('parent_id', 'is', null)
       .order('sort_order', { ascending: true, nullsFirst: false }),
@@ -101,6 +113,7 @@ export default async function DashboardPage() {
       .from('swells')
       .select('id, name, color, target_points, target_hours')
       .eq('user_id', user.id)
+      .eq('chapter_id', chapterId)
       .eq('hidden', false)
       .order('sort_order', { ascending: true }),
     supabase
@@ -120,9 +133,10 @@ export default async function DashboardPage() {
           .from('groups')
           .select('id, name, color')
           .eq('user_id', user.id)
+          .eq('chapter_id', chapterId)
           .order('sort_order', { ascending: true })
       : Promise.resolve({ data: [] as { id: string; name: string; color: string }[] }),
-    detectWave(supabase),
+    detectWave(supabase, chapterId),
   ])
 
   const groupsData = groupsResult.data ?? []

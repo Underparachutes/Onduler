@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
+import { getActiveChapterId } from '@/lib/chapters'
 import { getBuildPreset, type BuildKey } from '@/lib/builds'
 import { defaultMvsMotions, resolveMvsMotions } from '@/lib/welcomeback'
 import { WelcomeBackChoices } from './WelcomeBackChoices'
@@ -9,6 +10,8 @@ export default async function WelcomeBackPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  const chapterId = await getActiveChapterId(supabase, user.id)
 
   const { data: settings } = await supabase
     .from('user_settings')
@@ -29,6 +32,7 @@ export default async function WelcomeBackPage() {
       .from('motions')
       .select('id, name, motion_swells(swells(name))')
       .eq('user_id', user.id)
+      .eq('chapter_id', chapterId)
       .eq('hidden', false)
 
     type FeedRow = {
@@ -49,6 +53,7 @@ export default async function WelcomeBackPage() {
         .from('logs')
         .select('motion_id')
         .eq('user_id', user.id)
+        .eq('chapter_id', chapterId)
         .in('motion_id', candidateIds)
       for (const l of logs ?? []) {
         if (!l.motion_id) continue

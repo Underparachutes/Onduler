@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { getActiveChapterId } from '@/lib/chapters'
 
 export async function createSwell(prevState: unknown, formData: FormData) {
   const name = (formData.get('name') as string)?.trim()
@@ -15,10 +16,13 @@ export async function createSwell(prevState: unknown, formData: FormData) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
+  const chapterId = await getActiveChapterId(supabase, user.id)
+
   const { data: existing } = await supabase
     .from('swells')
     .select('sort_order')
     .eq('user_id', user.id)
+    .eq('chapter_id', chapterId)
     .order('sort_order', { ascending: false })
     .limit(1)
 
@@ -28,7 +32,7 @@ export async function createSwell(prevState: unknown, formData: FormData) {
 
   const { error } = await supabase
     .from('swells')
-    .insert({ user_id: user.id, name, color, sort_order, target_points, target_hours })
+    .insert({ user_id: user.id, chapter_id: chapterId, name, color, sort_order, target_points, target_hours })
 
   if (error) return { error: error.message }
   revalidatePath('/swells')

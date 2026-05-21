@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { getActiveChapterId } from '@/lib/chapters'
 import { getTodayStart, getWeekStart } from '@/lib/timezone'
 import { pacificDayKey } from '@/lib/periods'
 import { cycleStartKey, type Cadence } from '@/lib/cadence'
@@ -11,11 +12,14 @@ export async function quickLogMotion(motionId: string) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
+  const chapterId = await getActiveChapterId(supabase, user.id)
+
   const { data: motion } = await supabase
     .from('motions')
     .select('default_points, default_hours')
     .eq('id', motionId)
     .eq('user_id', user.id)
+    .eq('chapter_id', chapterId)
     .single()
 
   if (!motion) return { error: 'Motion not found' }
@@ -24,6 +28,7 @@ export async function quickLogMotion(motionId: string) {
     .from('logs')
     .insert({
       user_id: user.id,
+      chapter_id: chapterId,
       motion_id: motionId,
       points: motion.default_points,
       hours: motion.default_hours,

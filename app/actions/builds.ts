@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { getActiveChapterId } from '@/lib/chapters'
 import { BUILD_PRESETS, type BuildKey } from '@/lib/builds'
 import { getShuffledThemePalette, type ThemeMode } from '@/lib/theme-colors'
 
@@ -47,6 +48,7 @@ export async function adoptBuild(
   const allowedNames = preset.seededSwells.filter(n => requestedSet.has(n))
 
   if (allowedNames.length > 0) {
+    const chapterId = await getActiveChapterId(supabase, user.id)
     const [{ data: settings }, { data: existing }, { data: lastSwell }] = await Promise.all([
       supabase
         .from('user_settings')
@@ -56,11 +58,13 @@ export async function adoptBuild(
       supabase
         .from('swells')
         .select('name')
-        .eq('user_id', user.id),
+        .eq('user_id', user.id)
+        .eq('chapter_id', chapterId),
       supabase
         .from('swells')
         .select('sort_order')
         .eq('user_id', user.id)
+        .eq('chapter_id', chapterId)
         .order('sort_order', { ascending: false })
         .limit(1),
     ])
@@ -75,6 +79,7 @@ export async function adoptBuild(
 
       const rows = toInsertNames.map((name, i) => ({
         user_id: user.id,
+        chapter_id: chapterId,
         name,
         color: palette[i % palette.length],
         sort_order: baseSortOrder + i,

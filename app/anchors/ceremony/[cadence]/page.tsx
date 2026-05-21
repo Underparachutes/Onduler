@@ -1,5 +1,6 @@
 import { redirect, notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { getActiveChapterId } from '@/lib/chapters'
 import { pacificDayKey, type DayKey } from '@/lib/periods'
 import { daysInCycle, formatCycleLabel, type Cadence } from '@/lib/cycles'
 import { getCeremonyState } from '@/app/actions/reflections'
@@ -24,6 +25,7 @@ export default async function CeremonyPage({
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
+  const chapterId = await getActiveChapterId(supabase, user.id)
   const todayKey = pacificDayKey(new Date())
   const { state, cycleStart, cycleEnd } = await getCeremonyState(supabase, user.id, cadence, todayKey)
 
@@ -49,12 +51,14 @@ export default async function CeremonyPage({
       .from('swells')
       .select('id, name, color, target_points, target_hours')
       .eq('user_id', user.id)
+      .eq('chapter_id', chapterId)
       .eq('hidden', false)
       .order('sort_order'),
     supabase
       .from('logs')
       .select('points, hours, logged_at, motions(motion_swells(contribution_weight, swells(id)))')
       .eq('user_id', user.id)
+      .eq('chapter_id', chapterId)
       .gte('logged_at', fetchLowerBound)
       .lte('logged_at', fetchUpperBound),
     supabase

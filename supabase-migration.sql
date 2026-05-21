@@ -17,11 +17,22 @@ DROP TABLE IF EXISTS user_settings CASCADE;
 
 
 -- 2. CREATE NEW TABLES
--- (groups must precede motions: motions.group_id references groups.id)
+-- chapters must precede the entity tables: motions/swells/groups/logs/
+-- wave_checkins all carry a chapter_id FK (ADR 0009).
+
+CREATE TABLE chapters (
+  id         uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id    uuid        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  started_at timestamptz NOT NULL DEFAULT now(),
+  ended_at   timestamptz,
+  sort_order int         NOT NULL DEFAULT 0,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
 
 CREATE TABLE groups (
   id              uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id         uuid        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  chapter_id      uuid        NOT NULL REFERENCES chapters(id) ON DELETE CASCADE,
   name            text        NOT NULL,
   color           text        NOT NULL DEFAULT '#6366f1',
   color_picked_in text        NOT NULL DEFAULT 'light' CHECK (color_picked_in IN ('light', 'dark')),
@@ -32,6 +43,7 @@ CREATE TABLE groups (
 CREATE TABLE motions (
   id             uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id        uuid        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  chapter_id     uuid        NOT NULL REFERENCES chapters(id) ON DELETE CASCADE,
   name           text        NOT NULL,
   default_points int         NOT NULL DEFAULT 1,
   default_hours  numeric(5,2) NOT NULL DEFAULT 1.00,
@@ -45,6 +57,7 @@ CREATE TABLE motions (
 CREATE TABLE swells (
   id              uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id         uuid        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  chapter_id      uuid        NOT NULL REFERENCES chapters(id) ON DELETE CASCADE,
   name            text        NOT NULL,
   color           text        NOT NULL DEFAULT '#6b7280',
   target_points   int,
@@ -65,17 +78,19 @@ CREATE TABLE motion_swells (
 );
 
 CREATE TABLE logs (
-  id        uuid         PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id   uuid         NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  motion_id uuid         REFERENCES motions(id) ON DELETE CASCADE,
-  points    int          NOT NULL DEFAULT 0,
-  hours     numeric(5,2) NOT NULL DEFAULT 0,
-  logged_at timestamptz  NOT NULL DEFAULT now()
+  id         uuid         PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id    uuid         NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  chapter_id uuid         NOT NULL REFERENCES chapters(id) ON DELETE CASCADE,
+  motion_id  uuid         REFERENCES motions(id) ON DELETE CASCADE,
+  points     int          NOT NULL DEFAULT 0,
+  hours      numeric(5,2) NOT NULL DEFAULT 0,
+  logged_at  timestamptz  NOT NULL DEFAULT now()
 );
 
 CREATE TABLE wave_checkins (
   id               uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id          uuid        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  chapter_id       uuid        NOT NULL REFERENCES chapters(id) ON DELETE CASCADE,
   energy           numeric     NOT NULL,
   alignment        numeric     NOT NULL,
   duration_seconds int,
@@ -125,17 +140,9 @@ CREATE TABLE user_settings (
   mvs_motions             jsonb       NULL  -- per-shape: { "<build_key>": ["motion_id", ...] }
 );
 
--- ADR 0007: Reflections surface. One active chapter per user; existing data is
--- implicitly Chapter 1. Reflections are chapter-scoped (ceremony + free-form).
-CREATE TABLE chapters (
-  id         uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id    uuid        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  started_at timestamptz NOT NULL DEFAULT now(),
-  ended_at   timestamptz,
-  sort_order int         NOT NULL DEFAULT 0,
-  created_at timestamptz NOT NULL DEFAULT now()
-);
-
+-- ADR 0007: Reflections surface (now Anchors per ADR 0008). Reflections are
+-- chapter-scoped (ceremony + free-form entries). Chapters table itself sits
+-- at the top of the schema (ADR 0009) so the entity tables can reference it.
 CREATE TABLE reflections (
   id               uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id          uuid        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -190,13 +197,17 @@ CREATE INDEX ON motions (user_id);
 CREATE INDEX ON motions (parent_id);
 CREATE INDEX ON motions (group_id);
 CREATE INDEX ON motions (user_id, group_id);
+CREATE INDEX motions_user_chapter_idx ON motions (user_id, chapter_id);
 CREATE INDEX ON swells (user_id);
 CREATE INDEX ON swells (group_id);
 CREATE INDEX swells_hidden_idx ON swells (user_id, hidden);
+CREATE INDEX swells_user_chapter_idx ON swells (user_id, chapter_id);
 CREATE INDEX ON groups (user_id);
+CREATE INDEX groups_user_chapter_idx ON groups (user_id, chapter_id);
 CREATE INDEX ON motion_swells (swell_id);
 CREATE INDEX ON logs (user_id, logged_at DESC);
 CREATE INDEX ON logs (motion_id);
+CREATE INDEX logs_user_chapter_idx ON logs (user_id, chapter_id, logged_at DESC);
 CREATE INDEX milestones_swell_id_idx ON milestones (swell_id);
 CREATE INDEX milestones_user_id_idx  ON milestones (user_id);
 CREATE INDEX milestones_motion_id_idx ON milestones (motion_id);
@@ -204,6 +215,7 @@ CREATE INDEX milestone_hits_milestone_id_idx ON milestone_hits (milestone_id);
 CREATE INDEX milestone_hits_user_id_idx ON milestone_hits (user_id);
 CREATE INDEX milestone_hits_hit_at_idx ON milestone_hits (hit_at);
 CREATE INDEX ON wave_checkins (user_id);
+CREATE INDEX wave_checkins_user_chapter_idx ON wave_checkins (user_id, chapter_id);
 CREATE UNIQUE INDEX chapters_one_active_per_user ON chapters (user_id) WHERE ended_at IS NULL;
 CREATE INDEX chapters_user_sort ON chapters (user_id, sort_order);
 CREATE INDEX reflections_user_chapter ON reflections (user_id, chapter_id, created_at DESC);

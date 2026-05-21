@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { getActiveChapterId } from '@/lib/chapters'
 
 export async function completeOnboarding(
   swells: { name: string; color: string }[],
@@ -20,9 +21,12 @@ export async function completeOnboarding(
 
   if (swells.length === 0) return { error: 'At least one swell is required' }
 
+  const chapterId = await getActiveChapterId(supabase, user.id)
+
   const isHours = prefs.tracking_mode === 'hours'
   const swellRows = swells.map((s, i) => ({
     user_id: user.id,
+    chapter_id: chapterId,
     name: s.name,
     color: s.color,
     sort_order: i,
@@ -41,6 +45,7 @@ export async function completeOnboarding(
   if (motions.length > 0) {
     const motionRows = motions.map((m, i) => ({
       user_id: user.id,
+      chapter_id: chapterId,
       name: m.name,
       default_points: 1,
       default_hours: 1.0,
