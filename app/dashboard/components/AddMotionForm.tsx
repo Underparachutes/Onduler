@@ -11,9 +11,13 @@ type Props = {
   groupsEnabled: boolean
   trackingMode: TrackingMode
   onClose: () => void
+  // When set, the new motion is auto-linked to this swell at 100% contribution
+  // weight, and the form header kicker reads the swell name for context.
+  swellId?: string
+  swellLabel?: string
 }
 
-export function AddMotionForm({ groups, groupsEnabled, trackingMode, onClose }: Props) {
+export function AddMotionForm({ groups, groupsEnabled, trackingMode, onClose, swellId, swellLabel }: Props) {
   const [state, formAction, pending] = useActionState(createMotion, null)
   const isHours = trackingMode === 'hours'
 
@@ -55,7 +59,9 @@ export function AddMotionForm({ groups, groupsEnabled, trackingMode, onClose }: 
   return (
     <>
       <div className="mb-6 flex items-center justify-between">
-        <p className="text-xs uppercase tracking-widest text-th-muted">Onduler</p>
+        <p className="text-xs uppercase tracking-widest text-th-muted">
+          {swellLabel ? `Add to ${swellLabel}` : 'Onduler'}
+        </p>
         <button
           type="button"
           onClick={onClose}
@@ -66,6 +72,7 @@ export function AddMotionForm({ groups, groupsEnabled, trackingMode, onClose }: 
       </div>
 
       <form action={formAction} className="flex flex-col gap-4">
+        {swellId && <input type="hidden" name="swell_id" value={swellId} />}
         <input
           name="name"
           type="text"

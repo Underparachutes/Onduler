@@ -63,7 +63,7 @@ export default async function RootLayout({
       data-theme={theme}
       className={`${manrope.variable} ${ibmPlexMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-th-bg text-th-text pb-20 overflow-x-hidden">
+      <body className="min-h-full flex flex-col bg-th-bg text-th-text pb-[calc(3.5rem+env(safe-area-inset-bottom))] overflow-x-hidden">
         <TimezoneSync />
         <div className="mx-auto flex w-full max-w-lg flex-col flex-1">{children}</div>
         {user && <BottomNav pendingAnchor={pendingAnchor} />}

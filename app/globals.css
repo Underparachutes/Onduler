@@ -71,7 +71,7 @@ html {
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --th-bg: #0b1a2c;
+    --th-bg: #000000;
     --th-surface: #14263b;
     --th-surface-2: #1c324a;
     --th-text: #e8eef5;
@@ -81,11 +81,11 @@ html {
     --th-border: #213c58;
     --th-border-soft: #182b41;
     --th-btn: #e8eef5;
-    --th-btn-text: #0b1a2c;
+    --th-btn-text: #000000;
     --th-btn-hover: #b8c5d3;
     --th-focus: #7d8fa3;
     --th-accent: #4d97e0;
-    --th-accent-text: #0b1a2c;
+    --th-accent-text: #000000;
     --th-success: #4eb09a;
     --th-wave-wash: rgba(77, 151, 224, 0.12);
 

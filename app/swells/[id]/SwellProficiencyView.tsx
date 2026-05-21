@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { formatPts, formatHrs } from '@/lib/format'
 import { ceilDisplay, monthlyTargetDisplay, lifetimeTargetDisplay, type DayKey } from '@/lib/periods'
 import { setSwellHidden } from '@/app/actions/swells'
+import { AddMotionForm } from '@/app/dashboard/components/AddMotionForm'
 import { MilestonesSection, type Milestone } from './MilestonesSection'
 
 type Swell = {
@@ -88,6 +89,7 @@ export function SwellProficiencyView({
 }: Props) {
   const [timeView, setTimeView] = useState<TimeView>('week')
   const [viewMode, setViewMode] = useState<ViewMode>('constellation')
+  const [addOpen, setAddOpen] = useState(false)
 
   const isHours = trackingMode === 'hours'
   const weekValue = isHours ? weekHrs : weekPts
@@ -183,6 +185,26 @@ export function SwellProficiencyView({
   const orbitRadius = 100
   const centerNodeRadius = 36
 
+  if (addOpen) {
+    return (
+      <div className="flex min-h-full flex-col items-center px-4 pb-12">
+        <div className="w-full max-w-[22rem]" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.5rem)' }}>
+          <AddMotionForm
+            groups={[]}
+            groupsEnabled={false}
+            trackingMode={trackingMode}
+            swellId={swell.id}
+            swellLabel={swell.name}
+            onClose={() => {
+              setAddOpen(false)
+              router.refresh()
+            }}
+          />
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="flex min-h-full flex-col items-center px-4 pb-12">
       <div className="w-full max-w-[22rem]">
@@ -246,16 +268,26 @@ export function SwellProficiencyView({
             <p className="text-xs font-semibold uppercase tracking-widest text-th-muted">
               Motions feeding this swell
             </p>
-            {motions.length > 0 && (
+            <div className="flex shrink-0 items-center gap-2">
+              {motions.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setViewMode(viewMode === 'constellation' ? 'list' : 'constellation')}
+                  className="rounded-md border border-th-border px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-th-muted transition-colors hover:bg-th-surface"
+                  aria-label={viewMode === 'constellation' ? 'Switch to list view' : 'Switch to constellation view'}
+                >
+                  {viewMode === 'constellation' ? 'List' : 'Stars'}
+                </button>
+              )}
               <button
                 type="button"
-                onClick={() => setViewMode(viewMode === 'constellation' ? 'list' : 'constellation')}
-                className="shrink-0 rounded-md border border-th-border px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-th-muted transition-colors hover:bg-th-surface"
-                aria-label={viewMode === 'constellation' ? 'Switch to list view' : 'Switch to constellation view'}
+                onClick={() => setAddOpen(true)}
+                aria-label={`Add motion to ${swell.name}`}
+                className="flex h-6 w-6 items-center justify-center text-xl font-light leading-none text-th-muted transition-colors hover:text-th-text active:scale-95"
               >
-                {viewMode === 'constellation' ? 'List' : 'Stars'}
+                +
               </button>
-            )}
+            </div>
           </div>
 
           {motions.length > 0 && (

@@ -14,14 +14,27 @@ export async function createMotion(prevState: unknown, formData: FormData) {
   const defaultHours = parseFloat(formData.get('default_hours') as string) || 1.0
   const groupIdRaw = (formData.get('group_id') as string) || ''
   const group_id = groupIdRaw ? groupIdRaw : null
+  const swellIdRaw = (formData.get('swell_id') as string) || ''
+  const swell_id = swellIdRaw ? swellIdRaw : null
 
   if (!name) return { error: 'Name is required' }
 
-  const { error } = await supabase
+  const { data: inserted, error } = await supabase
     .from('motions')
     .insert({ user_id: user.id, name, default_points: defaultPoints, default_hours: defaultHours, group_id })
+    .select('id')
+    .single()
 
   if (error) return { error: error.message }
+
+  if (swell_id && inserted) {
+    await supabase.from('motion_swells').insert({
+      motion_id: inserted.id,
+      swell_id,
+      contribution_weight: 1,
+    })
+    revalidatePath(`/swells/${swell_id}`)
+  }
 
   revalidatePath('/dashboard')
   revalidatePath('/swells')

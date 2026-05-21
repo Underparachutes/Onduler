@@ -28,7 +28,7 @@ import { ceilDisplay } from '@/lib/periods'
 import { SUBMOTIONS_ENABLED } from '@/lib/features'
 import { CelebrationOverlay, type CelebrationState } from './CelebrationOverlay'
 import { MotionDetailSheet } from './MotionDetailSheet'
-import { SortableMotionList, SortableMotionRow } from './SortableMotionList'
+import { SortableMotionList, SortableMotionRow, StaticMotionRow } from './SortableMotionList'
 
 type Swell = { id: string; name: string; color: string }
 type MotionSwell = { id: string; name: string; color: string; weight: number }
@@ -171,9 +171,12 @@ export function DailyChecklist({
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
   const [activeGroup, setActiveGroup] = useState<string | null>(null)
   const [hideDone, setHideDone] = useState(false)
+  const [bySwell, setBySwell] = useState(false)
   useEffect(() => {
     const stored = localStorage.getItem('onduler-hide-done-motions')
     if (stored === 'true') setHideDone(true)
+    const swellStored = localStorage.getItem('onduler-motions-by-swell')
+    if (swellStored === 'true') setBySwell(true)
   }, [])
   function toggleHideDone() {
     setHideDone(prev => {
@@ -182,12 +185,18 @@ export function DailyChecklist({
       return next
     })
   }
+  function toggleBySwell() {
+    setBySwell(prev => {
+      const next = !prev
+      localStorage.setItem('onduler-motions-by-swell', String(next))
+      return next
+    })
+  }
   const [localDone, setLocalDone] = useState(() => new Set(doneMotionIds))
   const [, startTransition] = useTransition()
   const [localValue, setLocalValue] = useState(todayValue)
   const [openSheetId, setOpenSheetId] = useState<string | null>(null)
   const [localHiddenIds, setLocalHiddenIds] = useState<Set<string>>(new Set())
-  const [searchQuery, setSearchQuery] = useState('')
   const [celebration, setCelebration] = useState<CelebrationState | null>(null)
   const swellProgressRef = useRef({ ...swellWeeklyProgress })
   const [localGoal, setLocalGoal] = useState(goalValue)
@@ -414,6 +423,85 @@ export function DailyChecklist({
     </div>
   )
 
+  const headerToggles = (
+    <div className="flex justify-end gap-4">
+      <button
+        onClick={toggleBySwell}
+        className={`text-xs transition-colors ${bySwell ? 'text-th-text' : 'text-th-faint hover:text-th-muted'}`}
+      >
+        {bySwell ? 'Default view' : 'By swell'}
+      </button>
+      <button
+        onClick={toggleHideDone}
+        className="text-xs text-th-faint transition-colors hover:text-th-muted"
+      >
+        {hideDone ? 'Show all' : 'Hide done'}
+      </button>
+    </div>
+  )
+
+  // By-swell mode — each motion appears under every swell it feeds, plus an
+  // "Unassigned" section for motions with no swell. Tap any instance to log
+  // once; credit distributes per existing contribution_weight allocations.
+  if (bySwell) {
+    const sections: { swell: { id: string; name: string; color: string } | null; motions: Motion[] }[] = []
+    for (const swell of allSwells) {
+      const ms = motions.filter(m => m.swells.some(s => s.id === swell.id))
+      if (ms.length > 0) sections.push({ swell, motions: ms })
+    }
+    const orphans = motions.filter(m => m.swells.length === 0)
+    if (orphans.length > 0) sections.push({ swell: null, motions: orphans })
+
+    return (
+      <>
+        <div>
+          <div className="sticky top-0 z-10 bg-th-bg pb-3" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.5rem)' }}>
+            {topBar}
+            {dateHeader}
+            {progressBar}
+            {headerToggles}
+          </div>
+          <div className="flex flex-col gap-6">
+            {sections.map(({ swell, motions: secMotions }) => {
+              const visible = secMotions.filter(m => {
+                if (localHiddenIds.has(m.id)) return false
+                if (hideDone && localDone.has(m.id)) return false
+                return true
+              })
+              if (visible.length === 0) return null
+              return (
+                <div key={swell?.id ?? 'unassigned'}>
+                  <p
+                    className="mb-2 text-xs font-semibold uppercase tracking-widest"
+                    style={swell ? { color: swell.color } : undefined}
+                  >
+                    {swell?.name ?? 'Unassigned'}
+                  </p>
+                  <div className="flex flex-col gap-2">
+                    {visible.map(m => (
+                      <StaticMotionRow
+                        key={`${swell?.id ?? 'orphan'}-${m.id}`}
+                        motion={m}
+                        done={localDone.has(m.id)}
+                        hasSubmotions={SUBMOTIONS_ENABLED && (submotionsMap[m.id]?.length ?? 0) > 0}
+                        trackingMode={trackingMode}
+                        onLog={(e) => handleLog(m, e.clientX, e.clientY)}
+                        onOpenSheet={() => setOpenSheetId(m.id)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+        {detailSheet}
+        {celebrationOverlay}
+        {undoToastEl}
+      </>
+    )
+  }
+
   // Flat mode
   if (!groupsEnabled) {
     return (
@@ -423,23 +511,7 @@ export function DailyChecklist({
             {topBar}
             {dateHeader}
             {progressBar}
-            <div className="mb-2">
-              <input
-                type="search"
-                placeholder="Search motions…"
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                className="w-full rounded-lg border border-th-border bg-th-surface px-3 py-2 text-sm text-th-text outline-none focus:border-th-focus placeholder:text-th-faint"
-              />
-            </div>
-            <div className="flex justify-end">
-              <button
-                onClick={toggleHideDone}
-                className="text-xs text-th-faint transition-colors hover:text-th-muted"
-              >
-                {hideDone ? 'Show all' : 'Hide done'}
-              </button>
-            </div>
+            {headerToggles}
           </div>
           <SortableMotionList
             motions={motions}
@@ -447,7 +519,6 @@ export function DailyChecklist({
             localDone={localDone}
             hideDone={hideDone}
             localHiddenIds={localHiddenIds}
-            searchQuery={searchQuery}
             trackingMode={trackingMode}
             onLog={handleLog}
             onOpenSheet={setOpenSheetId}
@@ -494,6 +565,12 @@ export function DailyChecklist({
                 </button>
               ))}
             </div>
+            <button
+              onClick={toggleBySwell}
+              className="shrink-0 text-xs text-th-faint transition-colors hover:text-th-muted"
+            >
+              By swell
+            </button>
             <button
               onClick={toggleHideDone}
               className="shrink-0 text-xs text-th-faint transition-colors hover:text-th-muted"

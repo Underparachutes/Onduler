@@ -252,7 +252,7 @@ export function SettingsPanel({
             </button>
           </div>
 
-          {groups.length > 0 && groups.map(g => (
+          {groupsOn && groups.length > 0 && groups.map(g => (
             <button
               key={g.id}
               onClick={() => setEditingGroupId(g.id)}

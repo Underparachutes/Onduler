@@ -62,7 +62,7 @@ export function BottomNav({ pendingAnchor = false }: { pendingAnchor?: boolean }
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-th-border bg-th-bg">
-      <div className="mx-auto flex max-w-sm items-center justify-around px-2" style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
+      <div className="mx-auto flex h-14 max-w-sm items-center justify-around px-2">
         {ITEMS.map(({ href, label, icon }) => {
           const active = pathname === href || (href !== '/dashboard' && pathname.startsWith(href + '/'))
             || (href === '/dashboard' && (pathname === '/dashboard' || pathname.startsWith('/dashboard/')))
@@ -75,7 +75,7 @@ export function BottomNav({ pendingAnchor = false }: { pendingAnchor?: boolean }
             <Link
               key={href}
               href={href}
-              className={`flex flex-col items-center gap-1 rounded-lg px-4 py-2 transition-colors active:scale-95 active:bg-th-surface ${
+              className={`flex h-full flex-col items-center justify-center gap-1 rounded-lg px-4 transition-colors active:scale-95 active:bg-th-surface ${
                 active ? 'text-th-text' : 'text-th-faint hover:text-th-muted'
               } ${dimForPending ? 'opacity-55' : ''}`}
             >
@@ -93,6 +93,7 @@ export function BottomNav({ pendingAnchor = false }: { pendingAnchor?: boolean }
           )
         })}
       </div>
+      <div aria-hidden style={{ height: 'env(safe-area-inset-bottom)' }} />
     </nav>
   )
 }
