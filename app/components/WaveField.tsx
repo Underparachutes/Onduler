@@ -66,8 +66,22 @@ export function WaveField({ lines }: { lines: WaveLine[] }) {
           return H * wv.yBase + Math.sin(angle) * wv.amplitude + y2
         }
 
-        // Halo mask: a wide bg stroke along the wave path clips back
-        // waves only at crossing points — not the entire area below.
+        // Fill from wave path down to canvas bottom with bg —
+        // hides any back-wave undersides below this wave.
+        ctx.beginPath()
+        for (let x = 0; x <= W; x++) {
+          const y = angle_fn(x)
+          if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y)
+        }
+        ctx.lineTo(W, H + 2)
+        ctx.lineTo(0, H + 2)
+        ctx.closePath()
+        ctx.fillStyle = bg
+        ctx.globalAlpha = 1
+        ctx.fill()
+
+        // Halo stroke along the wave path — clips back waves
+        // at crossing points above this wave.
         ctx.beginPath()
         for (let x = 0; x <= W; x++) {
           const y = angle_fn(x)
