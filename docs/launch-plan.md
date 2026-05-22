@@ -170,6 +170,7 @@ Design postcard, order 30–50 from Moo (~5 days to arrive). Pick 20 friends fro
 - **Reddit posts in r/productivity, r/getmotivated, etc.** Too saturated, too cynical, wrong voice fit.
 - **Press / Hacker News.** Premature.
 - **Caretaker starter set.** Held until naming pre-launch (see PROJECT.md).
+- **An Onduler-owned community space (Discord server, subreddit, forum, Circle, etc.).** Deliberate silence. Many great products have no community space, and the current owner is not the right person to spearhead one. This is an intentional choice, not a deferral — revisit only if there's a clear user-driven reason. Posting once in *existing* communities (the community-drops channel above) is a separate decision and remains in scope.
 
 ## Phase 2 triggers (when to escalate)
 
