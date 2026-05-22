@@ -112,17 +112,6 @@ export function LockedPage() {
       >
         Not all those who wander are lost.
       </p>
-      <p
-        className="relative mt-3.5 lowercase"
-        style={{
-          zIndex: 1,
-          fontSize: 12,
-          letterSpacing: '0.04em',
-          color: 'var(--th-faint)',
-        }}
-      >
-        weekly
-      </p>
     </div>
   )
 }
