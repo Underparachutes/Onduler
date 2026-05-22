@@ -22,7 +22,6 @@ const HERO_WAVES: WaveLine[] = [
 
 export function LandingPage({ source }: { source: string | null }) {
   const [email, setEmail] = useState('')
-  const [frustration, setFrustration] = useState('')
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
@@ -31,7 +30,7 @@ export function LandingPage({ source }: { source: string | null }) {
     e.preventDefault()
     setError(null)
     startTransition(async () => {
-      const result = await joinWaitlist(email, frustration || null, source)
+      const result = await joinWaitlist(email, null, source)
       if (result.ok) {
         setSubmitted(true)
       } else {
@@ -46,9 +45,9 @@ export function LandingPage({ source }: { source: string | null }) {
         <WaveField lines={HERO_WAVES} />
       </div>
 
-      <div className="relative z-10 flex w-full max-w-[22rem] flex-1 flex-col items-center justify-center py-16">
+      <div className="relative z-10 flex w-full max-w-[22rem] flex-1 flex-col items-center justify-start py-12">
         {/* Wake */}
-        <div className="relative mb-10 h-[200px] w-[200px]">
+        <div className="relative mb-8 h-[200px] w-[200px]">
           <svg
             viewBox="0 0 200 200"
             width={200}
@@ -84,19 +83,18 @@ export function LandingPage({ source }: { source: string | null }) {
 
         {/* Tagline */}
         <h1
-          className="mb-6 text-center font-[family-name:var(--font-manrope)] text-2xl font-semibold tracking-wide text-th-text"
+          className="mb-4 text-center font-[family-name:var(--font-manrope)] text-2xl font-semibold tracking-wide text-th-text"
         >
           Every motion leaves a wake.
         </h1>
 
         {/* Paragraph */}
-        <p className="mb-10 max-w-[20rem] text-center text-sm leading-relaxed text-th-muted">
-          Most habit apps treat rest like failure and consistency like the only
-          metric that matters. Onduler doesn&apos;t. It tracks what you actually
-          do — your motions — and shows you the shape they make over time.
-          Waves are part of the rhythm, not a broken streak. No guilt, no
-          gamification, no daily shame. Just the quiet proof that every motion
-          has an impact.
+        <p className="mb-8 w-full text-justify text-sm leading-relaxed text-th-muted">
+          Onduler tracks what you actually do through your daily motions.
+          You set up your daily motions to feed your swells. Over time, it
+          shows you the wake they create. There will be times when you need
+          to step back. That&apos;s life. Onduler will be there when
+          you&apos;re ready to get back on the board.
         </p>
 
         {/* Email capture */}
@@ -110,23 +108,16 @@ export function LandingPage({ source }: { source: string | null }) {
             <input
               type="email"
               required
-              placeholder="Request an invite"
+              placeholder="Email"
               value={email}
               onChange={e => setEmail(e.target.value)}
-              className="w-full rounded-xl border border-th-border bg-th-surface/60 px-4 py-3 text-sm text-th-text placeholder:text-th-faint outline-none transition-colors focus:border-th-muted"
-            />
-            <input
-              type="text"
-              placeholder="What habit app frustrated you most? (optional)"
-              value={frustration}
-              onChange={e => setFrustration(e.target.value)}
               className="w-full rounded-xl border border-th-border bg-th-surface/60 px-4 py-3 text-sm text-th-text placeholder:text-th-faint outline-none transition-colors focus:border-th-muted"
             />
             {error && <p className="text-xs text-red-500">{error}</p>}
             <button
               type="submit"
               disabled={isPending}
-              className="rounded-xl bg-th-text px-4 py-3 text-sm font-medium text-th-bg transition-all active:scale-[0.97] disabled:opacity-50"
+              className="rounded-xl bg-th-text px-4 py-3 font-[family-name:var(--font-manrope)] text-sm font-medium text-th-bg transition-all active:scale-[0.97] disabled:opacity-50"
             >
               {isPending ? 'Sending…' : 'Request an invite'}
             </button>
@@ -134,7 +125,7 @@ export function LandingPage({ source }: { source: string | null }) {
         )}
 
         {/* Footer */}
-        <p className="mt-auto pt-12 font-[family-name:var(--font-ibm-plex-mono)] text-xs italic text-th-faint">
+        <p className="mt-auto pt-12 font-[family-name:var(--font-ibm-plex-mono)] text-xs text-th-faint">
           Not all those who wander are lost.
         </p>
       </div>
