@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useActionState, useTransition } from 'react'
+import { useState, useEffect, useActionState, useTransition } from 'react'
 import Link from 'next/link'
 import { setTheme } from '@/app/actions/theme'
 import {
@@ -82,6 +82,8 @@ export function SettingsPanel({
   const [goalInput, setGoalInput] = useState('')
   const [celebration, setCelebration] = useState(celebrationEnabled)
   const [haptic, setHaptic] = useState(hapticEnabled)
+  const [vibrateSupported, setVibrateSupported] = useState(true)
+  useEffect(() => { setVibrateSupported('vibrate' in navigator) }, [])
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null)
   const [localHiddenIds, setLocalHiddenIds] = useState<Set<string>>(new Set())
   const [, startTransition] = useTransition()
@@ -360,6 +362,7 @@ export function SettingsPanel({
             <div>
               <p className="text-sm font-medium text-th-text">Haptic</p>
               <p className="text-xs text-th-muted">Vibration on check-off</p>
+              {!vibrateSupported && <p className="text-xs text-th-faint">Not supported on this device</p>}
             </div>
             <button
               role="switch"
@@ -392,6 +395,17 @@ export function SettingsPanel({
           </div>
         </section>
       )}
+
+      {/* Feedback */}
+      <section>
+        <a
+          href="mailto:ondulertest@gmail.com?subject=Onduler feedback"
+          className="flex items-center justify-between px-4 py-3 text-sm text-th-text transition-colors hover:bg-th-surface active:scale-[0.99]"
+        >
+          Send feedback
+          <span className="text-xs text-th-faint">ondulertest@gmail.com</span>
+        </a>
+      </section>
 
       {/* Account */}
       <section>
