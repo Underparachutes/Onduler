@@ -452,8 +452,11 @@ export function DailyChecklist({
     <div className="mb-3">
       <div className="mb-1.5 rounded-full bg-th-surface" style={{ height: '5px' }}>
         <div
-          className="h-full rounded-full bg-th-btn transition-all duration-500"
-          style={{ width: `${progress}%` }}
+          className="h-full rounded-full transition-all duration-500"
+          style={{
+            width: `${progress}%`,
+            background: 'linear-gradient(to right, color-mix(in oklch, var(--th-accent) 35%, var(--th-surface)), var(--th-accent))',
+          }}
         />
       </div>
       <div className="flex justify-between text-xs text-th-faint">
