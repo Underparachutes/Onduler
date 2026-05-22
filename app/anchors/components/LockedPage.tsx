@@ -19,16 +19,18 @@ const VERTS = Array.from({ length: N }, (_, i) => {
 const POLYGON_PTS = VERTS.map(v => `${v.x.toFixed(1)},${v.y.toFixed(1)}`).join(' ')
 
 // Back-to-front. yBase rises down the screen so the lower waves visually
-// sit "in front" of the upper, masking them at every crossing.
+// sit "in front" of the upper, masking them at every crossing. Packed
+// tight with large amplitudes so adjacent waves overlap — "all waves
+// touching, closer to the bottom = more in the forefront."
 const WAVE_LINES: WaveLine[] = [
-  { yBase: 0.18, amplitude: 6,  frequency: 0.026, speed: 0.0030, phase: 0.2, width: 0.9, opacity: 0.10 },
-  { yBase: 0.28, amplitude: 9,  frequency: 0.022, speed: 0.0040, phase: 1.6, width: 1.0, opacity: 0.13 },
-  { yBase: 0.38, amplitude: 7,  frequency: 0.028, speed: 0.0025, phase: 0.8, width: 1.1, opacity: 0.16 },
-  { yBase: 0.50, amplitude: 14, frequency: 0.018, speed: 0.0050, phase: 2.4, width: 1.4, opacity: 0.20 },
-  { yBase: 0.62, amplitude: 9,  frequency: 0.024, speed: 0.0035, phase: 1.1, width: 1.5, opacity: 0.24 },
-  { yBase: 0.74, amplitude: 16, frequency: 0.020, speed: 0.0045, phase: 3.0, width: 1.8, opacity: 0.30 },
-  { yBase: 0.86, amplitude: 12, frequency: 0.022, speed: 0.0030, phase: 0.5, width: 2.0, opacity: 0.38 },
-  { yBase: 0.98, amplitude: 20, frequency: 0.018, speed: 0.0040, phase: 2.0, width: 2.6, opacity: 0.46 },
+  { yBase: 0.28, amplitude: 14, frequency: 0.024, speed: 0.0025, phase: 0.2, width: 0.7, opacity: 0.07 },
+  { yBase: 0.36, amplitude: 16, frequency: 0.020, speed: 0.0032, phase: 1.6, width: 0.8, opacity: 0.10 },
+  { yBase: 0.44, amplitude: 18, frequency: 0.026, speed: 0.0022, phase: 0.8, width: 1.0, opacity: 0.14 },
+  { yBase: 0.52, amplitude: 20, frequency: 0.018, speed: 0.0040, phase: 2.4, width: 1.2, opacity: 0.18 },
+  { yBase: 0.60, amplitude: 22, frequency: 0.022, speed: 0.0030, phase: 1.1, width: 1.5, opacity: 0.24 },
+  { yBase: 0.69, amplitude: 24, frequency: 0.019, speed: 0.0038, phase: 3.0, width: 1.9, opacity: 0.32 },
+  { yBase: 0.79, amplitude: 26, frequency: 0.021, speed: 0.0028, phase: 0.5, width: 2.4, opacity: 0.40 },
+  { yBase: 0.91, amplitude: 30, frequency: 0.016, speed: 0.0035, phase: 2.0, width: 3.0, opacity: 0.52 },
 ]
 
 export function LockedPage() {
