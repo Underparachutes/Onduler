@@ -191,8 +191,6 @@ export function SwellsList({
           swellHrsThisWeek={swellHrsThisWeek}
           swellPtsLastWeek={swellPtsLastWeek}
           swellHrsLastWeek={swellHrsLastWeek}
-          allGroups={allGroups}
-          groupsEnabled={groupsEnabled}
           trackingMode={trackingMode}
         />
       </SortableSwellItem>

@@ -1,11 +1,11 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useRef, useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { formatPts, formatHrs } from '@/lib/format'
 import { ceilDisplay, monthlyTargetDisplay, lifetimeTargetDisplay, type DayKey } from '@/lib/periods'
-import { setSwellHidden } from '@/app/actions/swells'
+import { setSwellHidden, updateSwellDirect, setSwellGroup, deleteSwell } from '@/app/actions/swells'
 import { AddMotionForm } from '@/app/dashboard/components/AddMotionForm'
 import { MilestonesSection, type Milestone } from './MilestonesSection'
 
@@ -15,8 +15,11 @@ type Swell = {
   color: string
   target_points: number | null
   target_hours: number | null
+  groupId: string | null
   hidden: boolean
 }
+
+type Group = { id: string; name: string; color: string }
 
 type Bucket = { count: number; pts: number; hrs: number }
 type MotionStat = {
@@ -48,6 +51,8 @@ type Props = {
   milestones: Milestone[]
   trackingMode: 'points' | 'hours'
   todayKey: DayKey
+  groupsEnabled: boolean
+  allGroups: Group[]
 }
 
 const TIME_OPTIONS: { value: TimeView; label: string }[] = [
@@ -86,10 +91,98 @@ export function SwellProficiencyView({
   milestones,
   trackingMode,
   todayKey,
+  groupsEnabled,
+  allGroups,
 }: Props) {
+  const router = useRouter()
   const [timeView, setTimeView] = useState<TimeView>('week')
   const [viewMode, setViewMode] = useState<ViewMode>('constellation')
   const [addOpen, setAddOpen] = useState(false)
+
+  // Inline-edit state: header name / color / weekly target. Mirrors the
+  // MotionDetailSheet pattern — autosave on blur via updateSwellDirect.
+  const [editingName, setEditingName] = useState(false)
+  const [editingTarget, setEditingTarget] = useState(false)
+  const [draftName, setDraftName] = useState(swell.name)
+  const [draftTarget, setDraftTarget] = useState('')
+  const [, startSave] = useTransition()
+  const lastValidName = useRef(swell.name)
+
+  function persistAll(name: string, color: string, targetPts: number | null, targetHrs: number | null) {
+    startSave(async () => {
+      await updateSwellDirect(swell.id, name, color, targetPts, targetHrs)
+      router.refresh()
+    })
+  }
+
+  function commitName() {
+    const trimmed = draftName.trim()
+    if (!trimmed) {
+      setDraftName(lastValidName.current)
+      setEditingName(false)
+      return
+    }
+    if (trimmed === lastValidName.current) {
+      setEditingName(false)
+      return
+    }
+    lastValidName.current = trimmed
+    setEditingName(false)
+    persistAll(trimmed, swell.color, swell.target_points, swell.target_hours)
+  }
+
+  function commitColor(nextColor: string) {
+    if (nextColor === swell.color) return
+    persistAll(lastValidName.current, nextColor, swell.target_points, swell.target_hours)
+  }
+
+  function commitTarget() {
+    const raw = draftTarget.trim()
+    if (raw === '') {
+      // Empty clears the target.
+      setEditingTarget(false)
+      persistAll(lastValidName.current, swell.color, null, null)
+      return
+    }
+    const num = parseFloat(raw)
+    if (isNaN(num) || num <= 0) {
+      setEditingTarget(false)
+      return
+    }
+    setEditingTarget(false)
+    if (trackingMode === 'hours') {
+      const rounded = Math.round(num * 4) / 4
+      persistAll(lastValidName.current, swell.color, null, rounded)
+    } else {
+      persistAll(lastValidName.current, swell.color, Math.round(num), null)
+    }
+  }
+
+  // Group assignment — optimistic toggle, autosave.
+  const [localGroupId, setLocalGroupId] = useState<string | null>(swell.groupId)
+  const [, startGroup] = useTransition()
+  function toggleGroup(groupId: string) {
+    const next = localGroupId === groupId ? null : groupId
+    setLocalGroupId(next)
+    startGroup(async () => { await setSwellGroup(swell.id, next) })
+  }
+
+  // Delete — two-tap confirm pattern, matches MotionDetailSheet.
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
+  const [isDeleting, startDelete] = useTransition()
+  const deleteTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  function handleDelete() {
+    if (!confirmingDelete) {
+      setConfirmingDelete(true)
+      deleteTimer.current = setTimeout(() => setConfirmingDelete(false), 3000)
+      return
+    }
+    if (deleteTimer.current) clearTimeout(deleteTimer.current)
+    startDelete(async () => {
+      await deleteSwell(swell.id)
+      router.push('/swells')
+    })
+  }
 
   const isHours = trackingMode === 'hours'
   const weekValue = isHours ? weekHrs : weekPts
@@ -164,7 +257,6 @@ export function SwellProficiencyView({
 
   const motionCountLabel = motions.length === 1 ? '1 motion' : `${motions.length} motions`
 
-  const router = useRouter()
   const [, startHide] = useTransition()
   function toggleHidden() {
     const next = !swell.hidden
@@ -226,22 +318,97 @@ export function SwellProficiencyView({
           </div>
 
           <div className="mb-2 flex items-center gap-2">
-            <span
-              aria-hidden
-              className="inline-block h-2 w-2 shrink-0 rounded-full"
-              style={{ backgroundColor: swell.color }}
-            />
-            <h1 className="min-w-0 truncate text-lg font-semibold text-th-text">
-              {swell.name}
-            </h1>
+            <label className="relative inline-block h-3 w-3 shrink-0 cursor-pointer">
+              <span
+                aria-hidden
+                className="block h-full w-full rounded-full"
+                style={{ backgroundColor: swell.color }}
+              />
+              <input
+                type="color"
+                value={swell.color}
+                onChange={e => commitColor(e.target.value)}
+                aria-label="Swell color"
+                className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+              />
+            </label>
+            {editingName ? (
+              <input
+                autoFocus
+                value={draftName}
+                onChange={e => setDraftName(e.target.value)}
+                onBlur={commitName}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    e.currentTarget.blur()
+                  }
+                  if (e.key === 'Escape') {
+                    e.preventDefault()
+                    setDraftName(lastValidName.current)
+                    setEditingName(false)
+                  }
+                }}
+                className="min-w-0 flex-1 rounded border border-th-focus bg-th-bg px-2 py-1 text-lg font-semibold text-th-text outline-none"
+              />
+            ) : (
+              <button
+                type="button"
+                onClick={() => { setDraftName(swell.name); setEditingName(true) }}
+                className="min-w-0 flex-1 truncate text-left text-lg font-semibold text-th-text transition-colors hover:text-th-secondary"
+                aria-label="Edit swell name"
+              >
+                {swell.name}
+              </button>
+            )}
           </div>
 
           <div className="mb-1 flex items-baseline justify-between gap-3">
             <p className="text-xs uppercase tracking-widest text-th-muted">This week</p>
             <p className="shrink-0 text-sm font-medium text-th-text">
               {formatValue(weekValue)}
-              {target !== null && (
-                <span className="text-th-faint"> / {formatValue(target)}</span>
+              {editingTarget ? (
+                <>
+                  <span className="text-th-faint"> / </span>
+                  <input
+                    autoFocus
+                    type="number"
+                    inputMode={trackingMode === 'hours' ? 'decimal' : 'numeric'}
+                    min={trackingMode === 'hours' ? '0.25' : '1'}
+                    step={trackingMode === 'hours' ? '0.25' : '1'}
+                    value={draftTarget}
+                    onChange={e => setDraftTarget(e.target.value)}
+                    onBlur={commitTarget}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault()
+                        e.currentTarget.blur()
+                      }
+                      if (e.key === 'Escape') {
+                        e.preventDefault()
+                        setEditingTarget(false)
+                      }
+                    }}
+                    className="w-16 rounded border border-th-focus bg-th-bg px-1 py-0.5 text-right text-sm font-medium text-th-text outline-none"
+                  />
+                </>
+              ) : target !== null ? (
+                <button
+                  type="button"
+                  onClick={() => { setDraftTarget(String(target)); setEditingTarget(true) }}
+                  className="text-th-faint transition-colors hover:text-th-secondary"
+                  aria-label="Edit weekly target"
+                >
+                  {' / '}{formatValue(target)}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => { setDraftTarget(''); setEditingTarget(true) }}
+                  className="ml-2 text-xs text-th-faint transition-colors hover:text-th-secondary"
+                >
+                  + target
+                </button>
               )}
               {hitTarget && <span className="ml-1 text-th-faint">&#10003;</span>}
             </p>
@@ -260,6 +427,27 @@ export function SwellProficiencyView({
             <p className="text-xs text-th-faint">
               {formatValue(lifetimeValue)} · {weeksLabel}
             </p>
+          )}
+
+          {groupsEnabled && allGroups.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {allGroups.map(g => {
+                const active = localGroupId === g.id
+                return (
+                  <button
+                    key={g.id}
+                    type="button"
+                    onClick={() => toggleGroup(g.id)}
+                    className="rounded-full border px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide transition-colors"
+                    style={active
+                      ? { backgroundColor: g.color, borderColor: g.color, color: '#fff' }
+                      : { borderColor: 'var(--color-th-border)', color: 'var(--color-th-muted)' }}
+                  >
+                    {g.name}
+                  </button>
+                )
+              })}
+            </div>
           )}
         </div>
 
@@ -477,6 +665,23 @@ export function SwellProficiencyView({
           swellColor={swell.color}
           milestones={milestones}
         />
+
+        <div className="mt-12 flex justify-end border-t border-th-border pt-4">
+          <button
+            type="button"
+            onClick={handleDelete}
+            disabled={isDeleting}
+            className={`text-xs transition-colors disabled:opacity-50 ${
+              confirmingDelete ? 'font-medium text-orange-500' : 'text-th-faint hover:text-red-500'
+            }`}
+          >
+            {isDeleting
+              ? 'Deleting…'
+              : confirmingDelete
+              ? 'Tap again to delete swell'
+              : 'Delete swell'}
+          </button>
+        </div>
       </div>
     </div>
   )

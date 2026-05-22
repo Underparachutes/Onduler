@@ -43,12 +43,13 @@ export default async function SwellDetailPage({ params }: { params: Promise<{ id
     { data: milestonesRaw },
     { data: settings },
     { data: firstLogRow },
+    { data: groupsRaw },
     weekStart,
     todayStart,
   ] = await Promise.all([
     supabase
       .from('swells')
-      .select('id, name, color, target_points, target_hours, hidden')
+      .select('id, name, color, target_points, target_hours, group_id, hidden')
       .eq('id', id)
       .eq('user_id', user.id)
       .eq('chapter_id', chapterId)
@@ -66,7 +67,7 @@ export default async function SwellDetailPage({ params }: { params: Promise<{ id
       .order('created_at', { ascending: true }),
     supabase
       .from('user_settings')
-      .select('tracking_mode')
+      .select('tracking_mode, groups_enabled')
       .eq('user_id', user.id)
       .single(),
     supabase
@@ -77,6 +78,12 @@ export default async function SwellDetailPage({ params }: { params: Promise<{ id
       .order('logged_at', { ascending: true })
       .limit(1)
       .maybeSingle(),
+    supabase
+      .from('groups')
+      .select('id, name, color')
+      .eq('user_id', user.id)
+      .eq('chapter_id', chapterId)
+      .order('sort_order', { ascending: true }),
     getWeekStart(),
     getTodayStart(),
   ])
@@ -281,6 +288,9 @@ export default async function SwellDetailPage({ params }: { params: Promise<{ id
     }
   })
 
+  const groupsEnabled = settings?.groups_enabled ?? false
+  const allGroups = (groupsRaw ?? []).map(g => ({ id: g.id, name: g.name, color: g.color }))
+
   return (
     <SwellProficiencyView
       swell={{
@@ -289,6 +299,7 @@ export default async function SwellDetailPage({ params }: { params: Promise<{ id
         color: swell.color,
         target_points: swell.target_points,
         target_hours: swell.target_hours !== null ? Number(swell.target_hours) : null,
+        groupId: (swell as { group_id?: string | null }).group_id ?? null,
         hidden: !!(swell as { hidden?: boolean }).hidden,
       }}
       weekPts={weekPts}
@@ -302,6 +313,8 @@ export default async function SwellDetailPage({ params }: { params: Promise<{ id
       milestones={milestones}
       trackingMode={trackingMode}
       todayKey={todayKey}
+      groupsEnabled={groupsEnabled}
+      allGroups={allGroups}
     />
   )
 }
