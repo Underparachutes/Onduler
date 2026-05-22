@@ -123,6 +123,7 @@ function SortableSubmotion({
       <div
         ref={setNodeRef}
         {...attributes}
+        suppressHydrationWarning
         style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1 }}
         className="rounded-lg border border-th-focus bg-th-surface px-4 py-3 flex flex-col gap-2"
       >

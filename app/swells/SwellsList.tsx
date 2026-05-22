@@ -79,6 +79,7 @@ function SortableSwellItem({ swell, hit, children }: { swell: SwellWithMotions; 
     <div
       ref={setNodeRef}
       {...attributes}
+      suppressHydrationWarning
       style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 }}
     >
       <div className="flex items-start gap-3">
