@@ -60,12 +60,16 @@ export function WaveField({ lines }: { lines: WaveLine[] }) {
 
       for (let i = 0; i < lines.length; i++) {
         const wv = lines[i]
+        const angle_fn = (x: number) => {
+          const angle = x * wv.frequency + t * wv.speed + wv.phase
+          const y2 = Math.sin(angle * 2 + 1.3) * wv.amplitude * 0.18
+          return H * wv.yBase + Math.sin(angle) * wv.amplitude + y2
+        }
+
         // Mask layer: fill below the wave with bg so earlier waves are hidden.
         ctx.beginPath()
         for (let x = 0; x <= W; x++) {
-          const angle = x * wv.frequency + t * wv.speed + wv.phase
-          const y2 = Math.sin(angle * 2 + 1.3) * wv.amplitude * 0.18
-          const y = H * wv.yBase + Math.sin(angle) * wv.amplitude + y2
+          const y = angle_fn(x)
           if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y)
         }
         ctx.lineTo(W, H)
@@ -74,12 +78,17 @@ export function WaveField({ lines }: { lines: WaveLine[] }) {
         ctx.fillStyle = bg
         ctx.fill()
 
+        // Body tint: subtle ink fill below the wave so each layer reads
+        // as a visible surface. Front waves accumulate more tint.
+        ctx.globalAlpha = wv.opacity * 0.22
+        ctx.fillStyle = ink
+        ctx.fill()
+        ctx.globalAlpha = 1
+
         // Stroke the wave line in ink at the configured opacity / weight.
         ctx.beginPath()
         for (let x = 0; x <= W; x++) {
-          const angle = x * wv.frequency + t * wv.speed + wv.phase
-          const y2 = Math.sin(angle * 2 + 1.3) * wv.amplitude * 0.18
-          const y = H * wv.yBase + Math.sin(angle) * wv.amplitude + y2
+          const y = angle_fn(x)
           if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y)
         }
         ctx.lineCap = 'round'
