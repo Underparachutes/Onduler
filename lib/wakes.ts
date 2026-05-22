@@ -1,7 +1,9 @@
 import { axisAngleRad, type Point } from './radar'
 
-// Wake polygon — the actuals-only outline for the locked Anchors page.
-// Monochrome, no wedges, no targets. Just the shape of what the user did.
+// Wake polygon — 3N-vertex shoulder polygon. Each swell fills its own pie
+// wedge independently: CCW shoulder and CW shoulder both at that swell's
+// own radius. Adjacent swells at different heights create a radial step
+// at the boundary — the high swell doesn't drag down the low one.
 
 export function wakePolygonPath(
   actuals: number[],
@@ -13,13 +15,21 @@ export function wakePolygonPath(
   const max = actuals.reduce((m, v) => (v > m ? v : m), 0)
   if (max <= 0) return ''
 
+  const half = Math.PI / n
   const parts: string[] = []
   for (let i = 0; i < n; i++) {
     const r = (actuals[i] / max) * radius
-    const angle = axisAngleRad(i, n)
-    const x = center.x + Math.cos(angle) * r
-    const y = center.y + Math.sin(angle) * r
-    parts.push(`${i === 0 ? 'M' : 'L'} ${x.toFixed(2)},${y.toFixed(2)}`)
+    const axisAng = axisAngleRad(i, n)
+    const ccwAng = axisAng - half
+    const cwAng = axisAng + half
+
+    const ccw = { x: center.x + Math.cos(ccwAng) * r, y: center.y + Math.sin(ccwAng) * r }
+    const peak = { x: center.x + Math.cos(axisAng) * r, y: center.y + Math.sin(axisAng) * r }
+    const cw = { x: center.x + Math.cos(cwAng) * r, y: center.y + Math.sin(cwAng) * r }
+
+    parts.push(`${i === 0 ? 'M' : 'L'} ${ccw.x.toFixed(2)},${ccw.y.toFixed(2)}`)
+    parts.push(`L ${peak.x.toFixed(2)},${peak.y.toFixed(2)}`)
+    parts.push(`L ${cw.x.toFixed(2)},${cw.y.toFixed(2)}`)
   }
   parts.push('Z')
   return parts.join(' ')
@@ -41,7 +51,7 @@ export function circlePath(
 }
 
 // Interpolate between a circle and the wake polygon. t=0 is circle, t=1 is
-// full polygon. Used for the coalesce-from-circle animation as the user logs.
+// full polygon. Uses the same 3N-vertex shoulder geometry as wakePolygonPath.
 export function interpolatedWakePath(
   actuals: number[],
   radius: number,
@@ -54,15 +64,18 @@ export function interpolatedWakePath(
   if (max <= 0) return circlePath(radius, center)
 
   const clampedT = Math.max(0, Math.min(1, t))
+  const half = Math.PI / n
   const parts: string[] = []
   for (let i = 0; i < n; i++) {
     const wakeR = (actuals[i] / max) * radius
-    const circleR = radius
-    const r = circleR + (wakeR - circleR) * clampedT
-    const angle = axisAngleRad(i, n)
-    const x = center.x + Math.cos(angle) * r
-    const y = center.y + Math.sin(angle) * r
-    parts.push(`${i === 0 ? 'M' : 'L'} ${x.toFixed(2)},${y.toFixed(2)}`)
+    const r = radius + (wakeR - radius) * clampedT
+    const axisAng = axisAngleRad(i, n)
+    const ccwAng = axisAng - half
+    const cwAng = axisAng + half
+
+    parts.push(`${i === 0 ? 'M' : 'L'} ${(center.x + Math.cos(ccwAng) * r).toFixed(2)},${(center.y + Math.sin(ccwAng) * r).toFixed(2)}`)
+    parts.push(`L ${(center.x + Math.cos(axisAng) * r).toFixed(2)},${(center.y + Math.sin(axisAng) * r).toFixed(2)}`)
+    parts.push(`L ${(center.x + Math.cos(cwAng) * r).toFixed(2)},${(center.y + Math.sin(cwAng) * r).toFixed(2)}`)
   }
   parts.push('Z')
   return parts.join(' ')
@@ -87,4 +100,20 @@ export function generateRandomWake(
   const rand = seededRandom(seed)
   const actuals = Array.from({ length: n }, () => 0.3 + rand() * 0.7)
   return wakePolygonPath(actuals, radius, center)
+}
+
+export function wakeToSvg(
+  seed: number,
+  n: number,
+  size: number = 400,
+): string {
+  const r = size * 0.35
+  const c: Point = { x: size / 2, y: size / 2 }
+  const d = generateRandomWake(seed, n, r, c)
+  return [
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">`,
+    `  <rect width="${size}" height="${size}" fill="#0a0f0d"/>`,
+    `  <path d="${d}" fill="none" stroke="#e8e6e1" stroke-width="0.8" opacity="0.55"/>`,
+    `</svg>`,
+  ].join('\n')
 }
