@@ -45,7 +45,6 @@ type Props = {
   celebrationEnabled: boolean
   hapticEnabled: boolean
   primaryBuild: string | null
-  secondaryBuild: string | null
   email: string
   groups: Group[]
   hiddenMotions: HiddenMotion[]
@@ -64,7 +63,6 @@ export function SettingsPanel({
   celebrationEnabled,
   hapticEnabled,
   primaryBuild,
-  secondaryBuild,
   email,
   groups,
   hiddenMotions,
@@ -167,12 +165,9 @@ export function SettingsPanel({
   const currentModeObj = TRACKING_MODES.find(m => m.id === currentMode)
 
   const primaryPreset = getBuildPreset(primaryBuild)
-  const secondaryPreset = getBuildPreset(secondaryBuild)
   const shapeSummary = primaryPreset
-    ? secondaryPreset
-      ? `${primaryPreset.label} · ${secondaryPreset.label}`
-      : primaryPreset.label
-    : 'No shape picked'
+    ? primaryPreset.label
+    : 'None'
 
   return (
     <div className="flex flex-col gap-8 lg:grid lg:grid-cols-2 lg:gap-x-10 lg:gap-y-8 lg:items-start">
@@ -197,14 +192,14 @@ export function SettingsPanel({
         </div>
       </section>
 
-      {/* Your shape */}
+      {/* Starter sets */}
       <section>
         <Link
           href="/settings/shape"
           className="flex items-center justify-between gap-3 py-3 transition-all active:scale-[0.99]"
         >
           <div className="min-w-0">
-            <p className="text-sm font-medium text-th-text">Your shape</p>
+            <p className="text-sm font-medium text-th-text">Starter sets</p>
             <p className="truncate text-xs text-th-muted">{shapeSummary}</p>
           </div>
           <span className="shrink-0 text-sm text-th-faint">→</span>

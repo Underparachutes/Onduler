@@ -71,8 +71,6 @@ export default async function WelcomeBackPage() {
       .filter((m): m is { id: string; name: string } => m !== null)
   }
 
-  const shapeName = preset?.label.replace(/^The /, '') ?? null
-
   return (
     <div className="flex min-h-full flex-col items-center justify-center px-4 py-16">
       <div className="w-full max-w-[22rem]">
@@ -91,14 +89,14 @@ export default async function WelcomeBackPage() {
         )}
         {stillShowingUp.length === 0 && <div className="mb-6" />}
 
-        <WelcomeBackChoices shapeName={shapeName} />
+        <WelcomeBackChoices />
 
         <div className="mt-4 text-center">
           <Link
             href="/settings/shape"
             className="text-xs text-th-faint transition-colors hover:text-th-muted active:scale-[0.97]"
           >
-            Try a different shape →
+            Try a different starter set →
           </Link>
         </div>
       </div>

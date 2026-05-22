@@ -15,7 +15,7 @@ export default async function ShapePage() {
   const [{ data: settings }, { data: swells }, { data: motions }] = await Promise.all([
     supabase
       .from('user_settings')
-      .select('primary_build, secondary_build, mvs_motions')
+      .select('primary_build, mvs_motions')
       .eq('user_id', user.id)
       .single(),
     supabase
@@ -75,7 +75,6 @@ export default async function ShapePage() {
   return (
     <ShapePicker
       primary={settings?.primary_build ?? null}
-      secondary={settings?.secondary_build ?? null}
       existingSwellNames={existingSwellNames}
       mvsPool={mvsPool}
       resolvedMvsIds={resolvedMvsIds}

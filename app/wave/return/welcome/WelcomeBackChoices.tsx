@@ -4,7 +4,7 @@ import { useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { setWelcomeBackMode } from '@/app/actions/welcomeback'
 
-export function WelcomeBackChoices({ shapeName }: { shapeName: string | null }) {
+export function WelcomeBackChoices() {
   const router = useRouter()
   const [, startTransition] = useTransition()
 
@@ -39,7 +39,7 @@ export function WelcomeBackChoices({ shapeName }: { shapeName: string | null }) 
         className="flex flex-col items-start gap-1 rounded-xl border border-th-border px-4 py-4 text-left transition-all hover:bg-th-surface active:scale-[0.99]"
       >
         <p className="text-sm font-medium text-th-text">
-          {shapeName ? `Pick up your ${shapeName}` : 'Start at full strength'}
+          Pick up where you left off
         </p>
         <p className="text-xs text-th-muted">
           Full weekly targets — same as before the wave.

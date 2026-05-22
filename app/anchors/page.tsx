@@ -72,8 +72,43 @@ export default async function AnchorsPage({
 
   // Weekly is the gate. Until the user has lived through a full Mon-Sun
   // with the engagement floor met, /anchors is vibe-only mystery.
+  // Even locked, fetch this week's swell actuals so the Wake renders live data.
   if (!unlocks.week) {
-    return <LockedPage />
+    const [{ data: lockSwells }, { data: lockLogs }] = await Promise.all([
+      supabase
+        .from('swells')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('chapter_id', chapterId)
+        .eq('hidden', false)
+        .order('sort_order'),
+      supabase
+        .from('logs')
+        .select('points, hours, logged_at, motions(motion_swells(contribution_weight, swells(id)))')
+        .eq('user_id', user.id)
+        .eq('chapter_id', chapterId)
+        .gte('logged_at', weekStart.toISOString()),
+    ])
+    const { data: lockSettings } = await supabase
+      .from('user_settings')
+      .select('tracking_mode')
+      .eq('user_id', user.id)
+      .single()
+    const lockIsHours = lockSettings?.tracking_mode === 'hours'
+    const lockActuals = new Map<string, number>()
+    lockSwells?.forEach(s => lockActuals.set(s.id, 0))
+    for (const log of lockLogs ?? []) {
+      const motion = Array.isArray(log.motions) ? log.motions[0] : log.motions
+      const ms = (motion as any)?.motion_swells as { contribution_weight: number; swells: { id: string } | null }[] | undefined
+      ms?.forEach(link => {
+        if (!link.swells) return
+        const w = Number(link.contribution_weight) || 1
+        const inc = lockIsHours ? Number(log.hours) * w : Math.floor(log.points * w)
+        lockActuals.set(link.swells.id, (lockActuals.get(link.swells.id) ?? 0) + inc)
+      })
+    }
+    const wakeActuals = (lockSwells ?? []).map(s => lockActuals.get(s.id) ?? 0)
+    return <LockedPage actuals={wakeActuals} />
   }
 
   const [
@@ -530,9 +565,9 @@ export default async function AnchorsPage({
           {(!unlocks.month || !unlocks.quarter || !unlocks.year) && (
             <div className="mt-12 flex flex-col gap-3 pb-12">
               <p className="text-[10px] uppercase tracking-widest text-th-muted">Coming together</p>
-              {!unlocks.month && <LockedCadenceTile cadence="month" />}
-              {!unlocks.quarter && <LockedCadenceTile cadence="quarter" />}
-              {!unlocks.year && <LockedCadenceTile cadence="year" />}
+              {!unlocks.month && <LockedCadenceTile cadence="month" actuals={radarActuals} />}
+              {!unlocks.quarter && <LockedCadenceTile cadence="quarter" actuals={radarActuals} />}
+              {!unlocks.year && <LockedCadenceTile cadence="year" actuals={radarActuals} />}
             </div>
           )}
         </div>

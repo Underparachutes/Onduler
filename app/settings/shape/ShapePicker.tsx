@@ -12,7 +12,6 @@ type MvsMotion = { id: string; name: string; logCount: number }
 
 type Props = {
   primary: string | null
-  secondary: string | null
   existingSwellNames: string[]
   mvsPool: MvsMotion[]
   resolvedMvsIds: string[]
@@ -21,9 +20,8 @@ type Props = {
 
 const MVS_MAX = 4
 
-export function ShapePicker({ primary, secondary, existingSwellNames, mvsPool, resolvedMvsIds, hasOverride }: Props) {
+export function ShapePicker({ primary, existingSwellNames, mvsPool, resolvedMvsIds, hasOverride }: Props) {
   const [primarySlot, setPrimarySlot] = useState<string | null>(primary)
-  const [secondarySlot, setSecondarySlot] = useState<string | null>(secondary)
   const [previewKey, setPreviewKey] = useState<BuildKey | null>(null)
   const [isPending, startTransition] = useTransition()
 
@@ -41,8 +39,7 @@ export function ShapePicker({ primary, secondary, existingSwellNames, mvsPool, r
   }
 
   function clearSlot(slot: SlotKey) {
-    if (slot === 'primary') setPrimarySlot(null)
-    else setSecondarySlot(null)
+    setPrimarySlot(null)
     startTransition(async () => { await setBuildSlot(slot, null) })
   }
 
@@ -51,13 +48,11 @@ export function ShapePicker({ primary, secondary, existingSwellNames, mvsPool, r
       <PreviewScreen
         presetKey={previewKey}
         primarySlot={primarySlot}
-        secondarySlot={secondarySlot}
         existingLowered={existingLowered}
-        onConfirm={(slot, names) => {
-          if (slot === 'primary') setPrimarySlot(previewKey)
-          else setSecondarySlot(previewKey)
+        onConfirm={(names) => {
+          setPrimarySlot(previewKey)
           startTransition(async () => {
-            await adoptBuild(slot, previewKey, names, detectMode())
+            await adoptBuild('primary', previewKey, names, detectMode())
           })
           setPreviewKey(null)
         }}
@@ -79,25 +74,17 @@ export function ShapePicker({ primary, secondary, existingSwellNames, mvsPool, r
           </Link>
         </div>
 
-        <h1 className="mb-2 text-2xl font-semibold text-th-text">Your shape</h1>
+        <h1 className="mb-2 text-2xl font-semibold text-th-text">Starter sets</h1>
         <p className="mb-8 text-sm text-th-muted">
-          The shape your week is oriented around. Both slots are optional. Swap or clear at any time — nothing gets deleted.
+          A curated starting point for your week. Swap or clear at any time — nothing gets deleted.
         </p>
 
         <section className="mb-8">
           <SlotRow
-            label="Primary"
+            label="Active"
             presetKey={primarySlot}
             onClear={() => clearSlot('primary')}
           />
-          <div className="mt-3">
-            <SlotRow
-              label="Secondary"
-              presetKey={secondarySlot}
-              onClear={() => clearSlot('secondary')}
-              optional
-            />
-          </div>
         </section>
 
         {primarySlot && mvsPool.length > 0 && (
@@ -118,8 +105,7 @@ export function ShapePicker({ primary, secondary, existingSwellNames, mvsPool, r
                 key={p.key}
                 presetKey={p.key}
                 onTap={() => openPreview(p.key)}
-                isPrimary={primarySlot === p.key}
-                isSecondary={secondarySlot === p.key}
+                isActive={primarySlot === p.key}
               />
             ))}
           </div>
@@ -133,19 +119,16 @@ function SlotRow({
   label,
   presetKey,
   onClear,
-  optional,
 }: {
   label: string
   presetKey: string | null
   onClear: () => void
-  optional?: boolean
 }) {
   const preset = getBuildPreset(presetKey)
   return (
     <div>
       <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-th-muted">
         {label}
-        {optional && <span className="ml-1.5 normal-case tracking-normal text-th-faint">(optional)</span>}
       </p>
       {preset ? (
         <div className="flex items-start gap-3 rounded-xl border border-th-border bg-th-surface px-4 py-3">
@@ -156,7 +139,7 @@ function SlotRow({
           <button
             onClick={onClear}
             className="shrink-0 text-xs text-th-faint transition-colors hover:text-th-text active:scale-[0.97]"
-            aria-label={`Clear ${label.toLowerCase()} shape`}
+            aria-label={`Clear ${label.toLowerCase()} starter set`}
           >
             Clear
           </button>
@@ -227,7 +210,7 @@ function StillShowingUpEditor({
         )}
       </div>
       <p className="mb-3 text-xs text-th-muted">
-        The smallest version of your {shapeName.toLowerCase() || 'shape'} that&apos;s still you — what we surface when you ease back from a wave. Up to {MVS_MAX}.
+        The smallest version of your {shapeName.toLowerCase() || 'set'} that&apos;s still you — what we surface when you ease back from a wave. Up to {MVS_MAX}.
       </p>
       <div className="flex flex-wrap items-center gap-1.5">
         {ids.map(id => {
@@ -291,17 +274,15 @@ function StillShowingUpEditor({
 function PresetCard({
   presetKey,
   onTap,
-  isPrimary,
-  isSecondary,
+  isActive,
 }: {
   presetKey: BuildKey
   onTap: () => void
-  isPrimary: boolean
-  isSecondary: boolean
+  isActive: boolean
 }) {
   const preset = getBuildPreset(presetKey)
   if (!preset) return null
-  const tag = isPrimary ? 'Primary' : isSecondary ? 'Secondary' : null
+  const tag = isActive ? 'Active' : null
   return (
     <button
       onClick={onTap}
@@ -324,7 +305,6 @@ function PresetCard({
 function PreviewScreen({
   presetKey,
   primarySlot,
-  secondarySlot,
   existingLowered,
   onConfirm,
   onCancel,
@@ -332,9 +312,8 @@ function PreviewScreen({
 }: {
   presetKey: BuildKey
   primarySlot: string | null
-  secondarySlot: string | null
   existingLowered: Set<string>
-  onConfirm: (slot: SlotKey, names: string[]) => void
+  onConfirm: (names: string[]) => void
   onCancel: () => void
   isPending: boolean
 }) {
@@ -354,8 +333,7 @@ function PreviewScreen({
     .filter(r => !r.alreadyHave && checked[r.name])
     .map(r => r.name)
 
-  const isPrimary = primarySlot === presetKey
-  const isSecondary = secondarySlot === presetKey
+  const isActive = primarySlot === presetKey
 
   return (
     <div className="flex min-h-full flex-col items-center px-4 py-12">
@@ -365,7 +343,7 @@ function PreviewScreen({
             onClick={onCancel}
             className="text-xs text-th-faint transition-all hover:text-th-muted active:scale-[0.97]"
           >
-            ← Your shape
+            ← Starter sets
           </button>
         </div>
 
@@ -373,11 +351,11 @@ function PreviewScreen({
         <p className="mb-8 text-sm text-th-muted">{preset.description}</p>
 
         <section className="mb-8">
-          <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-th-muted">Swells in this shape</p>
+          <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-th-muted">Swells in this set</p>
           {seededRows.every(r => r.alreadyHave) ? (
             <div className="rounded-xl border border-th-border bg-th-surface px-4 py-3">
               <p className="text-sm text-th-text">
-                All {seededRows.length} already in your set — set as primary to adopt the shape.
+                All {seededRows.length} already in your set — tap below to make it active.
               </p>
             </div>
           ) : (
@@ -412,17 +390,10 @@ function PreviewScreen({
         <div className="flex flex-col gap-2">
           <button
             disabled={isPending}
-            onClick={() => onConfirm('primary', namesToAdd)}
+            onClick={() => onConfirm(namesToAdd)}
             className="rounded-xl bg-th-text px-4 py-3 text-sm font-medium text-th-bg transition-all active:scale-[0.97] disabled:opacity-50"
           >
-            {isPrimary ? 'Update primary' : 'Set as primary'}
-          </button>
-          <button
-            disabled={isPending}
-            onClick={() => onConfirm('secondary', namesToAdd)}
-            className="rounded-xl border border-th-border bg-th-surface px-4 py-3 text-sm font-medium text-th-text transition-all active:scale-[0.97] disabled:opacity-50"
-          >
-            {isSecondary ? 'Update secondary' : 'Set as secondary'}
+            {isActive ? 'Update starter set' : 'Set as active'}
           </button>
           <button
             onClick={onCancel}
