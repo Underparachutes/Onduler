@@ -65,7 +65,7 @@ export default async function RootLayout({
       <body className="min-h-[100dvh] flex flex-col bg-th-bg text-th-text pb-[calc(3.5rem+env(safe-area-inset-bottom))] overflow-x-hidden md:flex-row md:pb-0">
         <TimezoneSync />
         {user && <SideNav pendingAnchor={pendingAnchor} />}
-        <div className="mx-auto flex w-full max-w-lg flex-col flex-1 md:mx-0 md:ml-12 md:mr-auto">{children}</div>
+        <div className="mx-auto flex w-full max-w-lg flex-col flex-1 md:mx-0 md:ml-12 md:mr-auto lg:max-w-4xl">{children}</div>
         {user && <BottomNav pendingAnchor={pendingAnchor} />}
       </body>
     </html>

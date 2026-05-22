@@ -277,6 +277,179 @@ export function SwellProficiencyView({
   const orbitRadius = 100
   const centerNodeRadius = 36
 
+  const constellationView = motions.length > 0 ? (
+    <div className="flex flex-col items-center">
+      <svg
+        viewBox={`0 0 ${size} ${viewBoxHeight}`}
+        className="w-full max-w-[280px]"
+        role="img"
+        aria-label={`${swell.name} constellation`}
+      >
+        {constellationMotions.map((m, i) => {
+          const angle = (2 * Math.PI * i) / constellationMotions.length - Math.PI / 2
+          const x = center + orbitRadius * Math.cos(angle)
+          const y = center + orbitRadius * Math.sin(angle)
+          const op = activityOpacity(m)
+          const sizeFactor = nodeRadius(m) / NODE_MAX_RADIUS
+          const sw = 1 + sizeFactor * 2
+          return (
+            <line
+              key={`line-${m.id}`}
+              x1={center}
+              y1={center}
+              x2={x}
+              y2={y}
+              stroke={swell.color}
+              strokeWidth={sw}
+              strokeOpacity={op * 0.45}
+              strokeLinecap="round"
+            />
+          )
+        })}
+
+        <circle
+          cx={center}
+          cy={center}
+          r={centerNodeRadius}
+          fill={swell.color}
+        />
+        <text
+          x={center}
+          y={center}
+          textAnchor="middle"
+          dominantBaseline="central"
+          fill="#fff"
+          fontSize="13"
+          fontWeight="600"
+        >
+          {centerWindow.target !== null
+            ? `${ceilDisplay(centerWindow.value, isHours)}/${ceilDisplay(centerWindow.target, isHours)}`
+            : `${ceilDisplay(centerWindow.value, isHours)}`}
+        </text>
+
+        {constellationMotions.map((m, i) => {
+          const angle = (2 * Math.PI * i) / constellationMotions.length - Math.PI / 2
+          const x = center + orbitRadius * Math.cos(angle)
+          const y = center + orbitRadius * Math.sin(angle)
+          const radius = nodeRadius(m)
+          const op = activityOpacity(m)
+          const b = bucketOf(m)
+          const value = valueOf(m)
+          const displayValue = ceilDisplay(value, isHours)
+          const sizeFactor = radius / NODE_MAX_RADIUS
+          const countLabel = b.count === 1 ? '1 log' : `${b.count} logs`
+          return (
+            <g key={`node-${m.id}`}>
+              <title>{`${m.name} — ${formatValue(value)}, ${countLabel}`}</title>
+              <circle
+                cx={x}
+                cy={y}
+                r={radius}
+                fill="var(--color-th-bg)"
+                stroke={swell.color}
+                strokeWidth={1 + sizeFactor * 2}
+                strokeOpacity={op}
+              />
+              <text
+                x={x}
+                y={y}
+                textAnchor="middle"
+                dominantBaseline="central"
+                fill="var(--color-th-text)"
+                fontSize="11"
+                fontWeight="600"
+                opacity={op}
+              >
+                {displayValue > 0 ? displayValue : ''}
+              </text>
+              <text
+                x={x}
+                y={y + radius + 11}
+                textAnchor="middle"
+                fill="var(--color-th-secondary)"
+                fontSize="10"
+                opacity={Math.max(0.6, op)}
+              >
+                {truncate(m.name)}
+              </text>
+            </g>
+          )
+        })}
+      </svg>
+
+      {overflowCount > 0 && (
+        <button
+          type="button"
+          onClick={() => setViewMode('list')}
+          className="mt-2 text-xs text-th-muted transition-colors hover:text-th-text active:scale-[0.97] lg:hidden"
+        >
+          + {overflowCount} more
+        </button>
+      )}
+
+      <p className="mt-2 text-[10px] uppercase tracking-widest text-th-faint">
+        {motionCountLabel}
+      </p>
+    </div>
+  ) : null
+
+  const listView = (
+    <>
+      <ul className="flex flex-col">
+        {sortedByContribution.map(m => {
+          const b = bucketOf(m)
+          const value = isHours ? b.hrs : b.pts
+          const showWeight = m.weight < 1
+          const countLabel = b.count === 1 ? '1 log' : `${b.count} logs`
+          return (
+            <li
+              key={m.id}
+              className="flex items-center gap-3 px-1 py-2.5"
+            >
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium text-th-text">{m.name}</p>
+                <p className="text-[11px] text-th-faint">
+                  {countLabel}
+                  {showWeight && (
+                    <>
+                      <span className="mx-1.5 text-th-faint">·</span>
+                      <span>{Math.round(m.weight * 100)}%</span>
+                    </>
+                  )}
+                </p>
+              </div>
+              <span className="shrink-0 text-sm font-medium text-th-text tabular-nums">
+                {value > 0 ? formatValue(value) : <span className="text-th-faint">—</span>}
+              </span>
+            </li>
+          )
+        })}
+      </ul>
+      <p className="mt-2 px-1 text-[10px] uppercase tracking-widest text-th-faint">
+        {motionCountLabel} · sorted by contribution
+      </p>
+    </>
+  )
+
+  const timeToggle = motions.length > 0 ? (
+    <div className="mb-3 flex gap-1">
+      {TIME_OPTIONS.map(({ value, label }) => (
+        <button
+          key={value}
+          type="button"
+          onClick={() => setTimeView(value)}
+          className={`rounded-md border px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider transition-colors ${
+            timeView === value
+              ? 'border-th-text bg-th-text text-th-bg'
+              : 'border-th-border text-th-muted hover:bg-th-surface'
+          }`}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  ) : null
+
   if (addOpen) {
     return (
       <div className="flex min-h-full flex-col items-center px-4 pb-12">
@@ -298,389 +471,251 @@ export function SwellProficiencyView({
   }
 
   return (
-    <div className="flex min-h-full flex-col items-center px-4 pb-12">
-      <div className="w-full max-w-[22rem]">
-        <div className="sticky top-0 z-10 bg-th-bg pb-3" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.5rem)' }}>
-          <div className="mb-3 flex items-center justify-between">
-            <Link
-              href="/swells"
-              className="text-xs text-th-faint transition-all hover:text-th-muted active:scale-[0.97]"
-            >
-              ← Swells
-            </Link>
-            <button
-              type="button"
-              onClick={toggleHidden}
-              className="text-xs text-th-faint transition-colors hover:text-th-muted active:scale-[0.97]"
-            >
-              {swell.hidden ? 'Restore' : 'Hide'}
-            </button>
-          </div>
-
-          <div className="mb-2 flex items-center gap-2">
-            <label className="relative inline-block h-3 w-3 shrink-0 cursor-pointer">
-              <span
-                aria-hidden
-                className="block h-full w-full rounded-full"
-                style={{ backgroundColor: swell.color }}
-              />
-              <input
-                type="color"
-                value={swell.color}
-                onChange={e => commitColor(e.target.value)}
-                aria-label="Swell color"
-                className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-              />
-            </label>
-            {editingName ? (
-              <input
-                autoFocus
-                value={draftName}
-                onChange={e => setDraftName(e.target.value)}
-                onBlur={commitName}
-                onKeyDown={e => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault()
-                    e.currentTarget.blur()
-                  }
-                  if (e.key === 'Escape') {
-                    e.preventDefault()
-                    setDraftName(lastValidName.current)
-                    setEditingName(false)
-                  }
-                }}
-                className="min-w-0 flex-1 rounded border border-th-focus bg-th-bg px-2 py-1 text-lg font-semibold text-th-text outline-none"
-              />
-            ) : (
+    <div className="flex min-h-full flex-col items-center px-4 pb-12 lg:items-start">
+      <div className="w-full max-w-[22rem] lg:max-w-none lg:grid lg:grid-cols-[22rem_1fr] lg:gap-10">
+        {/* Left column: header + constellation */}
+        <div className="lg:sticky lg:top-0 lg:self-start">
+          <div className="sticky top-0 z-10 bg-th-bg pb-3 lg:static" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.5rem)' }}>
+            <div className="mb-3 flex items-center justify-between">
+              <Link
+                href="/swells"
+                className="text-xs text-th-faint transition-all hover:text-th-muted active:scale-[0.97]"
+              >
+                ← Swells
+              </Link>
               <button
                 type="button"
-                onClick={() => { setDraftName(swell.name); setEditingName(true) }}
-                className="min-w-0 flex-1 truncate text-left text-lg font-semibold text-th-text transition-colors hover:text-th-secondary"
-                aria-label="Edit swell name"
+                onClick={toggleHidden}
+                className="text-xs text-th-faint transition-colors hover:text-th-muted active:scale-[0.97]"
               >
-                {swell.name}
+                {swell.hidden ? 'Restore' : 'Hide'}
               </button>
-            )}
-          </div>
+            </div>
 
-          <div className="mb-1 flex items-baseline justify-between gap-3">
-            <p className="text-xs uppercase tracking-widest text-th-muted">This week</p>
-            <p className="shrink-0 text-sm font-medium text-th-text">
-              {formatValue(weekValue)}
-              {editingTarget ? (
-                <>
-                  <span className="text-th-faint"> / </span>
-                  <input
-                    autoFocus
-                    type="number"
-                    inputMode={trackingMode === 'hours' ? 'decimal' : 'numeric'}
-                    min={trackingMode === 'hours' ? '0.25' : '1'}
-                    step={trackingMode === 'hours' ? '0.25' : '1'}
-                    value={draftTarget}
-                    onChange={e => setDraftTarget(e.target.value)}
-                    onBlur={commitTarget}
-                    onKeyDown={e => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault()
-                        e.currentTarget.blur()
-                      }
-                      if (e.key === 'Escape') {
-                        e.preventDefault()
-                        setEditingTarget(false)
-                      }
-                    }}
-                    className="w-16 rounded border border-th-focus bg-th-bg px-1 py-0.5 text-right text-sm font-medium text-th-text outline-none"
-                  />
-                </>
-              ) : target !== null ? (
-                <button
-                  type="button"
-                  onClick={() => { setDraftTarget(String(target)); setEditingTarget(true) }}
-                  className="text-th-faint transition-colors hover:text-th-secondary"
-                  aria-label="Edit weekly target"
-                >
-                  {' / '}{formatValue(target)}
-                </button>
+            <div className="mb-2 flex items-center gap-2">
+              <label className="relative inline-block h-3 w-3 shrink-0 cursor-pointer">
+                <span
+                  aria-hidden
+                  className="block h-full w-full rounded-full"
+                  style={{ backgroundColor: swell.color }}
+                />
+                <input
+                  type="color"
+                  value={swell.color}
+                  onChange={e => commitColor(e.target.value)}
+                  aria-label="Swell color"
+                  className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                />
+              </label>
+              {editingName ? (
+                <input
+                  autoFocus
+                  value={draftName}
+                  onChange={e => setDraftName(e.target.value)}
+                  onBlur={commitName}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      e.currentTarget.blur()
+                    }
+                    if (e.key === 'Escape') {
+                      e.preventDefault()
+                      setDraftName(lastValidName.current)
+                      setEditingName(false)
+                    }
+                  }}
+                  className="min-w-0 flex-1 rounded border border-th-focus bg-th-bg px-2 py-1 text-lg font-semibold text-th-text outline-none"
+                />
               ) : (
                 <button
                   type="button"
-                  onClick={() => { setDraftTarget(''); setEditingTarget(true) }}
-                  className="ml-2 text-xs text-th-faint transition-colors hover:text-th-secondary"
+                  onClick={() => { setDraftName(swell.name); setEditingName(true) }}
+                  className="min-w-0 flex-1 truncate text-left text-lg font-semibold text-th-text transition-colors hover:text-th-secondary"
+                  aria-label="Edit swell name"
                 >
-                  + target
+                  {swell.name}
                 </button>
               )}
-              {hitTarget && <span className="ml-1 text-th-faint">&#10003;</span>}
-            </p>
+            </div>
+
+            <div className="mb-1 flex items-baseline justify-between gap-3">
+              <p className="text-xs uppercase tracking-widest text-th-muted">This week</p>
+              <p className="shrink-0 text-sm font-medium text-th-text">
+                {formatValue(weekValue)}
+                {editingTarget ? (
+                  <>
+                    <span className="text-th-faint"> / </span>
+                    <input
+                      autoFocus
+                      type="number"
+                      inputMode={trackingMode === 'hours' ? 'decimal' : 'numeric'}
+                      min={trackingMode === 'hours' ? '0.25' : '1'}
+                      step={trackingMode === 'hours' ? '0.25' : '1'}
+                      value={draftTarget}
+                      onChange={e => setDraftTarget(e.target.value)}
+                      onBlur={commitTarget}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault()
+                          e.currentTarget.blur()
+                        }
+                        if (e.key === 'Escape') {
+                          e.preventDefault()
+                          setEditingTarget(false)
+                        }
+                      }}
+                      className="w-16 rounded border border-th-focus bg-th-bg px-1 py-0.5 text-right text-sm font-medium text-th-text outline-none"
+                    />
+                  </>
+                ) : target !== null ? (
+                  <button
+                    type="button"
+                    onClick={() => { setDraftTarget(String(target)); setEditingTarget(true) }}
+                    className="text-th-faint transition-colors hover:text-th-secondary"
+                    aria-label="Edit weekly target"
+                  >
+                    {' / '}{formatValue(target)}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => { setDraftTarget(''); setEditingTarget(true) }}
+                    className="ml-2 text-xs text-th-faint transition-colors hover:text-th-secondary"
+                  >
+                    + target
+                  </button>
+                )}
+                {hitTarget && <span className="ml-1 text-th-faint">&#10003;</span>}
+              </p>
+            </div>
+
+            {progress !== null && target !== null && (
+              <div className="mb-2 rounded-full bg-th-surface" style={{ height: '5px' }}>
+                <div
+                  className="h-full rounded-full transition-all duration-500"
+                  style={{ width: `${progress}%`, backgroundColor: swell.color }}
+                />
+              </div>
+            )}
+
+            {lifetimeValue > 0 && (
+              <p className="text-xs text-th-faint">
+                {formatValue(lifetimeValue)} · {weeksLabel}
+              </p>
+            )}
+
+            {groupsEnabled && allGroups.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {allGroups.map(g => {
+                  const active = localGroupId === g.id
+                  return (
+                    <button
+                      key={g.id}
+                      type="button"
+                      onClick={() => toggleGroup(g.id)}
+                      className="rounded-full border px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide transition-colors"
+                      style={active
+                        ? { backgroundColor: g.color, borderColor: g.color, color: '#fff' }
+                        : { borderColor: 'var(--color-th-border)', color: 'var(--color-th-muted)' }}
+                    >
+                      {g.name}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
           </div>
 
-          {progress !== null && target !== null && (
-            <div className="mb-2 rounded-full bg-th-surface" style={{ height: '5px' }}>
-              <div
-                className="h-full rounded-full transition-all duration-500"
-                style={{ width: `${progress}%`, backgroundColor: swell.color }}
-              />
-            </div>
-          )}
-
-          {lifetimeValue > 0 && (
-            <p className="text-xs text-th-faint">
-              {formatValue(lifetimeValue)} · {weeksLabel}
-            </p>
-          )}
-
-          {groupsEnabled && allGroups.length > 0 && (
-            <div className="mt-3 flex flex-wrap gap-1.5">
-              {allGroups.map(g => {
-                const active = localGroupId === g.id
-                return (
-                  <button
-                    key={g.id}
-                    type="button"
-                    onClick={() => toggleGroup(g.id)}
-                    className="rounded-full border px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide transition-colors"
-                    style={active
-                      ? { backgroundColor: g.color, borderColor: g.color, color: '#fff' }
-                      : { borderColor: 'var(--color-th-border)', color: 'var(--color-th-muted)' }}
-                  >
-                    {g.name}
-                  </button>
-                )
-              })}
+          {/* Constellation: desktop only (mobile renders it in the section below) */}
+          {constellationView && (
+            <div className="mt-6 hidden lg:block">
+              {constellationView}
             </div>
           )}
         </div>
 
-        <section className="mt-6">
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <p className="text-xs font-semibold uppercase tracking-widest text-th-muted">
-              Motions feeding this swell
-            </p>
-            <div className="flex shrink-0 items-center gap-2">
-              {motions.length > 0 && (
+        {/* Right column: motions list + waypoints */}
+        <div>
+          {/* Mobile: section header with Stars/List toggle */}
+          <section className="mt-6 lg:mt-0">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <p className="text-xs font-semibold uppercase tracking-widest text-th-muted">
+                Motions feeding this swell
+              </p>
+              <div className="flex shrink-0 items-center gap-2">
+                {motions.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setViewMode(viewMode === 'constellation' ? 'list' : 'constellation')}
+                    className="rounded-md border border-th-border px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-th-muted transition-colors hover:bg-th-surface lg:hidden"
+                    aria-label={viewMode === 'constellation' ? 'Switch to list view' : 'Switch to constellation view'}
+                  >
+                    {viewMode === 'constellation' ? 'List' : 'Stars'}
+                  </button>
+                )}
                 <button
                   type="button"
-                  onClick={() => setViewMode(viewMode === 'constellation' ? 'list' : 'constellation')}
-                  className="rounded-md border border-th-border px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-th-muted transition-colors hover:bg-th-surface"
-                  aria-label={viewMode === 'constellation' ? 'Switch to list view' : 'Switch to constellation view'}
+                  onClick={() => setAddOpen(true)}
+                  aria-label={`Add motion to ${swell.name}`}
+                  className="flex h-6 w-6 items-center justify-center text-xl font-light leading-none text-th-muted transition-colors hover:text-th-text active:scale-95"
                 >
-                  {viewMode === 'constellation' ? 'List' : 'Stars'}
+                  +
                 </button>
-              )}
-              <button
-                type="button"
-                onClick={() => setAddOpen(true)}
-                aria-label={`Add motion to ${swell.name}`}
-                className="flex h-6 w-6 items-center justify-center text-xl font-light leading-none text-th-muted transition-colors hover:text-th-text active:scale-95"
-              >
-                +
-              </button>
+              </div>
             </div>
+
+            {/* Desktop: time toggle + list always visible in right col */}
+            <div className="hidden lg:block">
+              {timeToggle}
+              {motions.length === 0 ? (
+                <p className="rounded-lg border border-th-border px-4 py-3 text-xs text-th-faint">
+                  No motions assigned yet.
+                </p>
+              ) : listView}
+            </div>
+
+            {/* Mobile: constellation or list based on viewMode */}
+            <div className="lg:hidden">
+              {motions.length === 0 ? (
+                <p className="rounded-lg border border-th-border px-4 py-3 text-xs text-th-faint">
+                  No motions assigned yet.
+                </p>
+              ) : viewMode === 'constellation' ? (
+                <>
+                  {timeToggle}
+                  {constellationView}
+                </>
+              ) : (
+                <>
+                  {timeToggle}
+                  {listView}
+                </>
+              )}
+            </div>
+          </section>
+
+          <MilestonesSection
+            swellId={swell.id}
+            swellColor={swell.color}
+            milestones={milestones}
+          />
+
+          <div className="mt-12 flex justify-end border-t border-th-border pt-4">
+            <button
+              type="button"
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className={`text-xs transition-colors disabled:opacity-50 ${
+                confirmingDelete ? 'font-medium text-orange-500' : 'text-th-faint hover:text-red-500'
+              }`}
+            >
+              {isDeleting
+                ? 'Deleting…'
+                : confirmingDelete
+                ? 'Tap again to delete swell'
+                : 'Delete swell'}
+            </button>
           </div>
-
-          {motions.length > 0 && (
-            <div className="mb-3 flex gap-1">
-              {TIME_OPTIONS.map(({ value, label }) => (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => setTimeView(value)}
-                  className={`rounded-md border px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider transition-colors ${
-                    timeView === value
-                      ? 'border-th-text bg-th-text text-th-bg'
-                      : 'border-th-border text-th-muted hover:bg-th-surface'
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {motions.length === 0 ? (
-            <p className="rounded-lg border border-th-border px-4 py-3 text-xs text-th-faint">
-              No motions assigned yet.
-            </p>
-          ) : viewMode === 'constellation' ? (
-            <div className="flex flex-col items-center">
-              <svg
-                viewBox={`0 0 ${size} ${viewBoxHeight}`}
-                className="w-full max-w-[280px]"
-                role="img"
-                aria-label={`${swell.name} constellation`}
-              >
-                {/* Connector lines: drawn first so nodes sit on top */}
-                {constellationMotions.map((m, i) => {
-                  const angle = (2 * Math.PI * i) / constellationMotions.length - Math.PI / 2
-                  const x = center + orbitRadius * Math.cos(angle)
-                  const y = center + orbitRadius * Math.sin(angle)
-                  const op = activityOpacity(m)
-                  const sizeFactor = nodeRadius(m) / NODE_MAX_RADIUS
-                  const sw = 1 + sizeFactor * 2
-                  return (
-                    <line
-                      key={`line-${m.id}`}
-                      x1={center}
-                      y1={center}
-                      x2={x}
-                      y2={y}
-                      stroke={swell.color}
-                      strokeWidth={sw}
-                      strokeOpacity={op * 0.45}
-                      strokeLinecap="round"
-                    />
-                  )
-                })}
-
-                {/* Center node: weekly progress lives here */}
-                <circle
-                  cx={center}
-                  cy={center}
-                  r={centerNodeRadius}
-                  fill={swell.color}
-                />
-                <text
-                  x={center}
-                  y={center}
-                  textAnchor="middle"
-                  dominantBaseline="central"
-                  fill="#fff"
-                  fontSize="13"
-                  fontWeight="600"
-                >
-                  {centerWindow.target !== null
-                    ? `${ceilDisplay(centerWindow.value, isHours)}/${ceilDisplay(centerWindow.target, isHours)}`
-                    : `${ceilDisplay(centerWindow.value, isHours)}`}
-                </text>
-
-                {/* Motion nodes */}
-                {constellationMotions.map((m, i) => {
-                  const angle = (2 * Math.PI * i) / constellationMotions.length - Math.PI / 2
-                  const x = center + orbitRadius * Math.cos(angle)
-                  const y = center + orbitRadius * Math.sin(angle)
-                  const radius = nodeRadius(m)
-                  const op = activityOpacity(m)
-                  const b = bucketOf(m)
-                  const value = valueOf(m)
-                  const displayValue = ceilDisplay(value, isHours)
-                  const sizeFactor = radius / NODE_MAX_RADIUS
-                  const countLabel = b.count === 1 ? '1 log' : `${b.count} logs`
-                  return (
-                    <g key={`node-${m.id}`}>
-                      <title>{`${m.name} — ${formatValue(value)}, ${countLabel}`}</title>
-                      <circle
-                        cx={x}
-                        cy={y}
-                        r={radius}
-                        fill="var(--color-th-bg)"
-                        stroke={swell.color}
-                        strokeWidth={1 + sizeFactor * 2}
-                        strokeOpacity={op}
-                      />
-                      <text
-                        x={x}
-                        y={y}
-                        textAnchor="middle"
-                        dominantBaseline="central"
-                        fill="var(--color-th-text)"
-                        fontSize="11"
-                        fontWeight="600"
-                        opacity={op}
-                      >
-                        {displayValue > 0 ? displayValue : ''}
-                      </text>
-                      <text
-                        x={x}
-                        y={y + radius + 11}
-                        textAnchor="middle"
-                        fill="var(--color-th-secondary)"
-                        fontSize="10"
-                        // Floor the label opacity so quiet motions stay legible
-                        // in dark mode — activity still encodes via lighter fill,
-                        // but the name itself reads at ≥0.6 always.
-                        opacity={Math.max(0.6, op)}
-                      >
-                        {truncate(m.name)}
-                      </text>
-                    </g>
-                  )
-                })}
-              </svg>
-
-              {overflowCount > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setViewMode('list')}
-                  className="mt-2 text-xs text-th-muted transition-colors hover:text-th-text active:scale-[0.97]"
-                >
-                  + {overflowCount} more
-                </button>
-              )}
-
-              <p className="mt-2 text-[10px] uppercase tracking-widest text-th-faint">
-                {motionCountLabel}
-              </p>
-            </div>
-          ) : (
-            <>
-              <ul className="flex flex-col">
-                {sortedByContribution.map(m => {
-                  const b = bucketOf(m)
-                  const value = isHours ? b.hrs : b.pts
-                  const showWeight = m.weight < 1
-                  const countLabel = b.count === 1 ? '1 log' : `${b.count} logs`
-                  return (
-                    <li
-                      key={m.id}
-                      className="flex items-center gap-3 px-1 py-2.5"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium text-th-text">{m.name}</p>
-                        <p className="text-[11px] text-th-faint">
-                          {countLabel}
-                          {showWeight && (
-                            <>
-                              <span className="mx-1.5 text-th-faint">·</span>
-                              <span>{Math.round(m.weight * 100)}%</span>
-                            </>
-                          )}
-                        </p>
-                      </div>
-                      <span className="shrink-0 text-sm font-medium text-th-text tabular-nums">
-                        {value > 0 ? formatValue(value) : <span className="text-th-faint">—</span>}
-                      </span>
-                    </li>
-                  )
-                })}
-              </ul>
-              <p className="mt-2 px-1 text-[10px] uppercase tracking-widest text-th-faint">
-                {motionCountLabel} · sorted by contribution
-              </p>
-            </>
-          )}
-        </section>
-
-        <MilestonesSection
-          swellId={swell.id}
-          swellColor={swell.color}
-          milestones={milestones}
-        />
-
-        <div className="mt-12 flex justify-end border-t border-th-border pt-4">
-          <button
-            type="button"
-            onClick={handleDelete}
-            disabled={isDeleting}
-            className={`text-xs transition-colors disabled:opacity-50 ${
-              confirmingDelete ? 'font-medium text-orange-500' : 'text-th-faint hover:text-red-500'
-            }`}
-          >
-            {isDeleting
-              ? 'Deleting…'
-              : confirmingDelete
-              ? 'Tap again to delete swell'
-              : 'Delete swell'}
-          </button>
         </div>
       </div>
     </div>
