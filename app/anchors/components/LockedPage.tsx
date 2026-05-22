@@ -110,7 +110,7 @@ export function LockedPage() {
           color: 'var(--th-secondary)',
         }}
       >
-        Glimpses of where you&apos;ve been. Come back as you log.
+        Not all those who wander are lost.
       </p>
       <p
         className="relative mt-3.5 lowercase"
@@ -122,17 +122,6 @@ export function LockedPage() {
         }}
       >
         weekly
-      </p>
-      <p
-        className="relative mt-6 italic"
-        style={{
-          zIndex: 1,
-          fontSize: 12,
-          letterSpacing: '0.04em',
-          color: 'var(--th-faint)',
-        }}
-      >
-        Not all those who wander are lost.
       </p>
     </div>
   )
