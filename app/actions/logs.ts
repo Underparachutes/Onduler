@@ -24,6 +24,16 @@ export async function quickLogMotion(motionId: string) {
 
   if (!motion) return { error: 'Motion not found' }
 
+  const todayStart = await getTodayStart()
+  const { count } = await supabase
+    .from('logs')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', user.id)
+    .eq('motion_id', motionId)
+    .gte('logged_at', todayStart.toISOString())
+
+  if ((count ?? 0) > 0) return { success: true }
+
   const { error } = await supabase
     .from('logs')
     .insert({

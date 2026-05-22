@@ -22,9 +22,9 @@ import { CSS } from '@dnd-kit/utilities'
 import { reorderMotions } from '@/app/actions/motions'
 import { formatPts, formatHrs } from '@/lib/format'
 
-type MotionSwell = { id: string; name: string; color: string; weight: number }
-type Motion = { id: string; name: string; default_points: number; default_hours: number; swells: MotionSwell[]; groupId: string | null; submotionMode: 'distribute' | 'rollup' | null }
-type Submotion = { id: string; name: string; default_points: number; default_hours: number; swells: { id: string; name: string; color: string; weight: number }[] }
+type Swell = { id: string; name: string; color: string }
+type Motion = { id: string; name: string; default_points: number; default_hours: number; swells: Swell[]; groupId: string | null }
+type Submotion = { id: string; name: string; default_points: number; default_hours: number }
 type TrackingMode = 'points' | 'hours'
 
 type RowProps = {
@@ -37,31 +37,26 @@ type RowProps = {
 }
 
 export function SortableMotionRow({ motion, done, hasSubmotions, trackingMode, onLog, onOpenSheet }: RowProps) {
-  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } =
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: motion.id })
 
   return (
     <div
       ref={setNodeRef}
       {...attributes}
+      {...listeners}
       suppressHydrationWarning
-      style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1 }}
-      className="flex items-center gap-1 select-none border-b border-th-border-soft"
+      style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1, touchAction: isDragging ? 'none' : 'pan-y' }}
+      className="flex items-center gap-1 select-none"
     >
-      {/* Card body — tap to log; checkbox doubles as drag handle (long-press) */}
+      {/* Card body — tap to log, long-press initiates drag */}
       <button
         onClick={(e) => { if (!done) onLog(e) }}
         className={`flex flex-1 items-center gap-3 rounded-lg px-3 py-3 text-left transition-colors ${
           done ? 'opacity-50 cursor-default' : 'hover:bg-th-surface active:scale-[0.99]'
         }`}
       >
-        <div
-          ref={setActivatorNodeRef}
-          {...listeners}
-          style={{ touchAction: 'none' }}
-          aria-label="Drag to reorder"
-          className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 transition-all cursor-grab active:cursor-grabbing ${done ? 'border-th-btn text-th-btn' : 'border-th-border'}`}
-        >
+        <div className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 transition-all ${done ? 'border-th-btn text-th-btn' : 'border-th-border'}`}>
           {done && (
             <svg viewBox="0 0 12 10" fill="none" className="h-3 w-3">
               <path d="M1 5l3.5 3.5L11 1" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -81,17 +76,14 @@ export function SortableMotionRow({ motion, done, hasSubmotions, trackingMode, o
         </div>
       </button>
 
+      {/* Kebab — opens detail sheet, blocks drag activation */}
       <button
         onPointerDown={e => e.stopPropagation()}
         onClick={onOpenSheet}
-        className="shrink-0 p-2 text-th-faint transition-colors hover:text-th-muted"
+        className="shrink-0 px-2 py-3 text-base leading-none text-th-faint transition-colors hover:text-th-muted"
         aria-label="Open details"
       >
-        <svg viewBox="0 0 16 16" fill="currentColor" className="h-4 w-4">
-          <circle cx="8" cy="3" r="1.5" />
-          <circle cx="8" cy="8" r="1.5" />
-          <circle cx="8" cy="13" r="1.5" />
-        </svg>
+        ···
       </button>
     </div>
   )
@@ -100,10 +92,10 @@ export function SortableMotionRow({ motion, done, hasSubmotions, trackingMode, o
 type ListProps = {
   motions: Motion[]
   submotionsMap: Record<string, Submotion[]>
-  submotionsEnabled: boolean
   localDone: Set<string>
   hideDone: boolean
   localHiddenIds: Set<string>
+  searchQuery?: string
   trackingMode: TrackingMode
   onLog: (motion: Motion, x: number, y: number) => void
   onOpenSheet: (id: string) => void
@@ -112,10 +104,10 @@ type ListProps = {
 export function SortableMotionList({
   motions,
   submotionsMap,
-  submotionsEnabled,
   localDone,
   hideDone,
   localHiddenIds,
+  searchQuery = "",
   trackingMode,
   onLog,
   onOpenSheet,
@@ -141,8 +133,10 @@ export function SortableMotionList({
     startTransition(async () => { await reorderMotions(next.map(m => m.id)) })
   }
 
+  const q = searchQuery.toLowerCase().trim()
   const visible = ordered.filter(m => {
     if (localHiddenIds.has(m.id)) return false
+    if (q && !m.name.toLowerCase().includes(q)) return false
     if (hideDone && localDone.has(m.id)) return false
     return true
   })
@@ -156,12 +150,15 @@ export function SortableMotionList({
               key={motion.id}
               motion={motion}
               done={localDone.has(motion.id)}
-              hasSubmotions={submotionsEnabled && (submotionsMap[motion.id]?.length ?? 0) > 0}
+              hasSubmotions={(submotionsMap[motion.id]?.length ?? 0) > 0}
               trackingMode={trackingMode}
               onLog={(e) => onLog(motion, e.clientX, e.clientY)}
               onOpenSheet={() => onOpenSheet(motion.id)}
             />
           ))}
+          {visible.length === 0 && q && (
+            <p className="py-4 text-center text-sm text-th-faint">No motions match &ldquo;{searchQuery}&rdquo;</p>
+          )}
         </div>
       </SortableContext>
     </DndContext>
