@@ -305,235 +305,237 @@ export default async function AnchorsPage({
       })
 
   return (
-    <div className="flex min-h-full flex-col items-center px-4 py-12">
-      <div className="w-full max-w-[22rem]">
-        <div className="mb-6 flex items-center justify-between">
-          <p className="text-xs uppercase tracking-widest text-th-muted">Onduler</p>
-          <Link
-            href="/anchors/new"
-            aria-label="Drop an anchor"
-            className="flex items-center justify-center text-3xl font-light leading-none text-th-muted transition-colors hover:text-th-text"
-          >
-            +
-          </Link>
-        </div>
-
-        <h1 className="mb-8 text-2xl font-semibold text-th-text">Anchors</h1>
-
-        {pendingCadences.length > 0 && (
-          <div className="mb-8 flex flex-col gap-3">
-            {pendingCadences.map(c => {
-              const cer = ceremonyByCadence[c]
-              return (
-                <Link
-                  key={c}
-                  href={`/anchors/ceremony/${c}`}
-                  className="block rounded-xl border border-th-border bg-th-surface/50 px-4 py-4 transition-colors hover:bg-th-surface active:scale-[0.99]"
-                >
-                  <p className="text-[10px] uppercase tracking-widest text-th-muted">{CADENCE_LABEL[c]}</p>
-                  <p className="mt-1.5 text-sm text-th-text">
-                    {formatCycleLabel({ cycleStart: cer.cycleStart, cycleEnd: cer.cycleEnd }, c)} is ready to be seen.
-                  </p>
-                  <p className="mt-2 text-xs text-th-faint">Drop your anchor →</p>
-                </Link>
-              )
-            })}
-          </div>
-        )}
-
-        {radarSwells.length >= 3 && (
-          <SwellRadar
-            swells={radarSwells}
-            actuals={radarActuals}
-            period={period}
-            primaryBuild={primaryBuild}
-            secondaryBuild={secondaryBuild}
-            trackingMode={trackingMode}
-            waveRamp={waveRamp}
-            weeksSinceFirstLog={weeksSince}
-            todayKey={todayKey}
-          />
-        )}
-
-        <div className="mb-8 flex gap-2">
-          {PERIOD_OPTIONS.map(({ value, label }) => (
+    <div className="flex min-h-full flex-col items-center px-4 py-12 lg:items-start">
+      <div className="w-full max-w-[22rem] lg:max-w-none lg:grid lg:grid-cols-[22rem_1fr] lg:gap-10">
+        {/* Left column: header + radar + period filter */}
+        <div className="lg:sticky lg:top-12 lg:self-start">
+          <div className="mb-6 flex items-center justify-between">
+            <p className="text-xs uppercase tracking-widest text-th-muted">Onduler</p>
             <Link
-              key={value}
-              href={`/anchors?period=${value}`}
-              className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
-                period === value
-                  ? 'border-th-text bg-th-text text-th-bg'
-                  : 'border-th-border text-th-muted hover:bg-th-surface'
-              }`}
+              href="/anchors/new"
+              aria-label="Drop an anchor"
+              className="flex items-center justify-center text-3xl font-light leading-none text-th-muted transition-colors hover:text-th-text"
             >
-              {label}
+              +
             </Link>
-          ))}
+          </div>
+
+          <h1 className="mb-8 text-2xl font-semibold text-th-text">Anchors</h1>
+
+          {pendingCadences.length > 0 && (
+            <div className="mb-8 flex flex-col gap-3">
+              {pendingCadences.map(c => {
+                const cer = ceremonyByCadence[c]
+                return (
+                  <Link
+                    key={c}
+                    href={`/anchors/ceremony/${c}`}
+                    className="block rounded-xl border border-th-border bg-th-surface/50 px-4 py-4 transition-colors hover:bg-th-surface active:scale-[0.99]"
+                  >
+                    <p className="text-[10px] uppercase tracking-widest text-th-muted">{CADENCE_LABEL[c]}</p>
+                    <p className="mt-1.5 text-sm text-th-text">
+                      {formatCycleLabel({ cycleStart: cer.cycleStart, cycleEnd: cer.cycleEnd }, c)} is ready to be seen.
+                    </p>
+                    <p className="mt-2 text-xs text-th-faint">Drop your anchor →</p>
+                  </Link>
+                )
+              })}
+            </div>
+          )}
+
+          {radarSwells.length >= 3 && (
+            <SwellRadar
+              swells={radarSwells}
+              actuals={radarActuals}
+              period={period}
+              primaryBuild={primaryBuild}
+              secondaryBuild={secondaryBuild}
+              trackingMode={trackingMode}
+              waveRamp={waveRamp}
+              weeksSinceFirstLog={weeksSince}
+              todayKey={todayKey}
+            />
+          )}
+
+          <div className="mb-8 flex gap-2">
+            {PERIOD_OPTIONS.map(({ value, label }) => (
+              <Link
+                key={value}
+                href={`/anchors?period=${value}`}
+                className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
+                  period === value
+                    ? 'border-th-text bg-th-text text-th-bg'
+                    : 'border-th-border text-th-muted hover:bg-th-surface'
+                }`}
+              >
+                {label}
+              </Link>
+            ))}
+          </div>
         </div>
 
-        {totalValue === 0 ? (
-          <p className="text-sm text-th-muted">No motions logged for this period.</p>
-        ) : (
-          <>
-            {period !== 'lifetime' && (
-              <div className="mb-8 grid grid-cols-3 gap-3">
-                <div className="rounded-lg p-3 text-center">
-                  <p className="text-lg font-semibold text-th-text">{ceilDisplay(totalValue, isHours)}</p>
-                  <p className="mt-0.5 text-[10px] uppercase tracking-widest text-th-muted">
-                    {isHours ? 'hrs total' : 'pts total'}
-                  </p>
+        {/* Right column: stats + breakdowns + activity */}
+        <div className="lg:pt-0">
+          {totalValue === 0 ? (
+            <p className="text-sm text-th-muted">No motions logged for this period.</p>
+          ) : (
+            <>
+              {period !== 'lifetime' && (
+                <div className="mb-8 grid grid-cols-3 gap-3">
+                  <div className="rounded-lg p-3 text-center">
+                    <p className="text-lg font-semibold text-th-text">{ceilDisplay(totalValue, isHours)}</p>
+                    <p className="mt-0.5 text-[10px] uppercase tracking-widest text-th-muted">
+                      {isHours ? 'hrs total' : 'pts total'}
+                    </p>
+                  </div>
+                  <div className="rounded-lg p-3 text-center">
+                    <p className="text-lg font-semibold text-th-text">{avgValue}</p>
+                    <p className="mt-0.5 text-[10px] uppercase tracking-widest text-th-muted">
+                      {isHours ? 'hrs / active day' : 'pts / active day'}
+                    </p>
+                  </div>
+                  <div className="rounded-lg p-3 text-center">
+                    <p className="text-lg font-semibold text-th-text">{activeDays}</p>
+                    <p className="mt-0.5 text-[10px] uppercase tracking-widest text-th-muted">
+                      active days
+                    </p>
+                  </div>
                 </div>
-                <div className="rounded-lg p-3 text-center">
-                  <p className="text-lg font-semibold text-th-text">{avgValue}</p>
-                  <p className="mt-0.5 text-[10px] uppercase tracking-widest text-th-muted">
-                    {isHours ? 'hrs / active day' : 'pts / active day'}
-                  </p>
-                </div>
-                <div className="rounded-lg p-3 text-center">
-                  <p className="text-lg font-semibold text-th-text">{activeDays}</p>
-                  <p className="mt-0.5 text-[10px] uppercase tracking-widest text-th-muted">
-                    active days
-                  </p>
-                </div>
-              </div>
-            )}
+              )}
 
-            {swellBreakdown.length > 0 && (
-              <div className="mb-8">
-                <h2 className="mb-3 text-sm font-medium text-th-text">By swell</h2>
-                <div className="flex flex-col gap-3">
-                  {swellBreakdown.map(s => (
-                    <div key={s.name} className="flex items-center gap-3">
-                      <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: s.color }} />
-                      <span className="w-20 shrink-0 truncate text-xs text-th-secondary">{s.name}</span>
-                      <div className="flex-1 rounded-full bg-th-surface" style={{ height: '6px' }}>
-                        <div
-                          className="h-full rounded-full transition-all"
-                          style={{ width: `${(s.value / maxSwellValue) * 100}%`, backgroundColor: s.color }}
-                        />
-                      </div>
-                      <span className="w-16 text-right text-xs text-th-faint">{formatValue(s.value)}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {period !== 'lifetime' && days.length > 0 && (
-              <div className="mb-8">
-                <h2 className="mb-3 text-sm font-medium text-th-text">
-                  {period === 'week' ? 'This week' : 'This month'}
-                </h2>
-                <div className="flex flex-col gap-2">
-                  {days.map(([date, val]) => {
-                    const d = new Date(date + 'T00:00:00Z')
-                    const label =
-                      period === 'week'
-                        ? d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' })
-                        : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })
-                    return (
-                      <div key={date} className="flex items-center gap-3">
-                        <span className="w-20 shrink-0 text-xs text-th-muted">{label}</span>
+              {swellBreakdown.length > 0 && (
+                <div className="mb-8">
+                  <h2 className="mb-3 text-sm font-medium text-th-text">By swell</h2>
+                  <div className="flex flex-col gap-3">
+                    {swellBreakdown.map(s => (
+                      <div key={s.name} className="flex items-center gap-3">
+                        <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: s.color }} />
+                        <span className="w-20 shrink-0 truncate text-xs text-th-secondary">{s.name}</span>
                         <div className="flex-1 rounded-full bg-th-surface" style={{ height: '6px' }}>
-                          {val > 0 && (
-                            <div
-                              className="h-full rounded-full bg-th-btn"
-                              style={{ width: `${(val / maxDayValue) * 100}%` }}
-                            />
-                          )}
-                        </div>
-                        <span className="w-14 text-right text-xs text-th-faint">
-                          {val > 0 ? formatValue(val) : '—'}
-                        </span>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
-
-            <div className="mb-8">
-              <h2 className="mb-3 text-sm font-medium text-th-text">
-                {period === 'lifetime' ? 'All activity' : 'Recent'}
-              </h2>
-              <div className="flex flex-col gap-2">
-                {periodLogs.slice(0, 40).map((log, i) => {
-                  const motion = readMotion(log)
-                  const dateLabel = new Date(log.logged_at as string).toLocaleDateString('en-US', {
-                    month: 'short',
-                    day: 'numeric',
-                    timeZone: 'America/Los_Angeles',
-                  })
-                  const entryValue = isHours ? ceilDisplay(Number(log.hours), true) : log.points
-                  return (
-                    <div key={`${log.logged_at}-${i}`} className="flex items-center gap-2">
-                      <span className="h-2 w-2 shrink-0 rounded-full bg-th-border" />
-                      <span className="flex-1 truncate text-xs text-th-muted">{motion?.name ?? '—'}</span>
-                      <span className="text-xs text-th-faint">{dateLabel}</span>
-                      <span className="w-12 text-right text-xs text-th-faint">+{entryValue}</span>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-
-            {waveCheckins.length > 0 && (
-              <div>
-                <h2 className="mb-3 text-sm font-medium text-th-text">Waves</h2>
-                <div className="flex flex-col gap-3">
-                  {waveCheckins.map((checkin, i) => {
-                    const dateLabel = new Date(checkin.checked_in_at as string).toLocaleDateString(
-                      'en-US', { month: 'short', day: 'numeric', timeZone: 'America/Los_Angeles' },
-                    )
-                    const waveDays = checkin.duration_seconds
-                      ? Math.round(checkin.duration_seconds / 86400)
-                      : null
-                    return (
-                      <div key={i} className="flex items-center gap-3">
-                        <div className="relative h-8 w-8 shrink-0 rounded border border-th-border bg-th-surface">
-                          <div className="pointer-events-none absolute inset-0 flex items-center">
-                            <div className="h-px w-full bg-th-border" />
-                          </div>
-                          <div className="pointer-events-none absolute inset-0 flex justify-center">
-                            <div className="h-full w-px bg-th-border" />
-                          </div>
                           <div
-                            className="absolute h-2 w-2 -translate-x-1/2 translate-y-1/2 rounded-full bg-th-btn"
-                            style={{
-                              left: `${checkin.energy * 100}%`,
-                              bottom: `${checkin.alignment * 100}%`,
-                            }}
+                            className="h-full rounded-full transition-all"
+                            style={{ width: `${(s.value / maxSwellValue) * 100}%`, backgroundColor: s.color }}
                           />
                         </div>
-                        <div className="flex-1">
-                          <p className="text-xs text-th-muted">{dateLabel}</p>
-                          {waveDays !== null && (
-                            <p className="text-xs text-th-faint">
-                              {waveDays} day{waveDays !== 1 ? 's' : ''} away
-                            </p>
-                          )}
+                        <span className="w-16 text-right text-xs text-th-faint">{formatValue(s.value)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {period !== 'lifetime' && days.length > 0 && (
+                <div className="mb-8">
+                  <h2 className="mb-3 text-sm font-medium text-th-text">
+                    {period === 'week' ? 'This week' : 'This month'}
+                  </h2>
+                  <div className="flex flex-col gap-2">
+                    {days.map(([date, val]) => {
+                      const d = new Date(date + 'T00:00:00Z')
+                      const label =
+                        period === 'week'
+                          ? d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' })
+                          : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })
+                      return (
+                        <div key={date} className="flex items-center gap-3">
+                          <span className="w-20 shrink-0 text-xs text-th-muted">{label}</span>
+                          <div className="flex-1 rounded-full bg-th-surface" style={{ height: '6px' }}>
+                            {val > 0 && (
+                              <div
+                                className="h-full rounded-full bg-th-btn"
+                                style={{ width: `${(val / maxDayValue) * 100}%` }}
+                              />
+                            )}
+                          </div>
+                          <span className="w-14 text-right text-xs text-th-faint">
+                            {val > 0 ? formatValue(val) : '—'}
+                          </span>
                         </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
+              <div className="mb-8">
+                <h2 className="mb-3 text-sm font-medium text-th-text">
+                  {period === 'lifetime' ? 'All activity' : 'Recent'}
+                </h2>
+                <div className="flex flex-col gap-2">
+                  {periodLogs.slice(0, 40).map((log, i) => {
+                    const motion = readMotion(log)
+                    const dateLabel = new Date(log.logged_at as string).toLocaleDateString('en-US', {
+                      month: 'short',
+                      day: 'numeric',
+                      timeZone: 'America/Los_Angeles',
+                    })
+                    const entryValue = isHours ? ceilDisplay(Number(log.hours), true) : log.points
+                    return (
+                      <div key={`${log.logged_at}-${i}`} className="flex items-center gap-2">
+                        <span className="h-2 w-2 shrink-0 rounded-full bg-th-border" />
+                        <span className="flex-1 truncate text-xs text-th-muted">{motion?.name ?? '—'}</span>
+                        <span className="text-xs text-th-faint">{dateLabel}</span>
+                        <span className="w-12 text-right text-xs text-th-faint">+{entryValue}</span>
                       </div>
                     )
                   })}
                 </div>
               </div>
-            )}
-          </>
-        )}
 
-        {/* Locked-cadence anticipation tiles (ADR 0007). One per not-yet-
-           unlocked cadence. The cadence-specific ceremony routes ship in
-           a later session — for now an unlocked cadence simply disappears
-           from this surface. */}
-        {(!unlocks.month || !unlocks.quarter || !unlocks.year) && (
-          <div className="mt-12 flex flex-col gap-3 pb-12">
-            <p className="text-[10px] uppercase tracking-widest text-th-muted">Coming together</p>
-            {!unlocks.month && <LockedCadenceTile cadence="month" />}
-            {!unlocks.quarter && <LockedCadenceTile cadence="quarter" />}
-            {!unlocks.year && <LockedCadenceTile cadence="year" />}
-          </div>
-        )}
+              {waveCheckins.length > 0 && (
+                <div>
+                  <h2 className="mb-3 text-sm font-medium text-th-text">Waves</h2>
+                  <div className="flex flex-col gap-3">
+                    {waveCheckins.map((checkin, i) => {
+                      const dateLabel = new Date(checkin.checked_in_at as string).toLocaleDateString(
+                        'en-US', { month: 'short', day: 'numeric', timeZone: 'America/Los_Angeles' },
+                      )
+                      const waveDays = checkin.duration_seconds
+                        ? Math.round(checkin.duration_seconds / 86400)
+                        : null
+                      return (
+                        <div key={i} className="flex items-center gap-3">
+                          <div className="relative h-8 w-8 shrink-0 rounded border border-th-border bg-th-surface">
+                            <div className="pointer-events-none absolute inset-0 flex items-center">
+                              <div className="h-px w-full bg-th-border" />
+                            </div>
+                            <div className="pointer-events-none absolute inset-0 flex justify-center">
+                              <div className="h-full w-px bg-th-border" />
+                            </div>
+                            <div
+                              className="absolute h-2 w-2 -translate-x-1/2 translate-y-1/2 rounded-full bg-th-btn"
+                              style={{
+                                left: `${checkin.energy * 100}%`,
+                                bottom: `${checkin.alignment * 100}%`,
+                              }}
+                            />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-xs text-th-muted">{dateLabel}</p>
+                            {waveDays !== null && (
+                              <p className="text-xs text-th-faint">
+                                {waveDays} day{waveDays !== 1 ? 's' : ''} away
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+
+          {(!unlocks.month || !unlocks.quarter || !unlocks.year) && (
+            <div className="mt-12 flex flex-col gap-3 pb-12">
+              <p className="text-[10px] uppercase tracking-widest text-th-muted">Coming together</p>
+              {!unlocks.month && <LockedCadenceTile cadence="month" />}
+              {!unlocks.quarter && <LockedCadenceTile cadence="quarter" />}
+              {!unlocks.year && <LockedCadenceTile cadence="year" />}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )

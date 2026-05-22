@@ -59,13 +59,13 @@ export default async function SettingsPage() {
   ])
 
   return (
-    <div className="flex min-h-full flex-col items-center px-4 py-12">
-      <div className="w-full max-w-[22rem]">
-        <div className="mb-6 flex items-center justify-between">
+    <div className="flex min-h-full flex-col items-center px-4 py-12 lg:items-start">
+      <div className="w-full max-w-[22rem] lg:max-w-none">
+        <div className="mb-6 flex items-center justify-between lg:max-w-[22rem]">
           <p className="text-xs uppercase tracking-widest text-th-muted">Onduler</p>
         </div>
 
-        <h1 className="mb-8 text-2xl font-semibold text-th-text">Settings</h1>
+        <h1 className="mb-8 text-2xl font-semibold text-th-text lg:max-w-[22rem]">Settings</h1>
 
         <SettingsPanel
           theme={settings?.theme ?? 'default'}
@@ -86,7 +86,7 @@ export default async function SettingsPage() {
           archivedChapterCount={archivedChapterCount ?? 0}
         />
 
-        <div className="mt-8 border-t border-th-border pt-6">
+        <div className="mt-8 border-t border-th-border pt-6 lg:max-w-[22rem]">
           <form action={signOut}>
             <button
               type="submit"

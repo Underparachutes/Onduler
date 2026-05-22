@@ -173,7 +173,9 @@ export function SettingsPanel({
     : 'No shape picked'
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-8 lg:grid lg:grid-cols-2 lg:gap-x-10 lg:gap-y-8 lg:items-start">
+      {/* Left column on desktop */}
+      <div className="flex flex-col gap-8">
       {/* Appearance */}
       <section>
         <div className="flex items-center justify-between py-3">
@@ -332,7 +334,10 @@ export function SettingsPanel({
           </select>
         </div>
       </section>
+      </div>
 
+      {/* Right column on desktop */}
+      <div className="flex flex-col gap-8">
       {/* Celebration */}
       <section>
         <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-th-muted">Celebration</p>
@@ -411,6 +416,7 @@ export function SettingsPanel({
           </a>
         </div>
       </section>
+      </div>
     </div>
   )
 }
