@@ -12,10 +12,14 @@ export function SideNav({ pendingAnchor = false }: { pendingAnchor?: boolean }) 
   if (isHiddenRoute(pathname)) return null
 
   return (
-    <nav className="sticky top-0 hidden h-[100dvh] w-60 shrink-0 flex-col gap-1 border-r border-th-border bg-th-bg px-3 py-6 md:flex">
-      <p className="mb-4 px-3 text-xs font-medium uppercase tracking-widest text-th-muted">
-        Onduler
-      </p>
+    <nav
+      className="sticky top-0 hidden h-[100dvh] w-60 shrink-0 flex-col gap-1 border-r border-th-border bg-th-bg px-3 md:flex"
+      style={{
+        paddingTop: 'max(env(safe-area-inset-top), 1.5rem)',
+        paddingBottom: 'max(env(safe-area-inset-bottom), 1.5rem)',
+        paddingLeft: 'max(env(safe-area-inset-left), 0.75rem)',
+      }}
+    >
       {NAV_ITEMS.map(({ href, label, icon }) => {
         const active = isActiveRoute(href, pathname)
         const isAnchors = href === '/anchors'
