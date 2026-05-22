@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getActiveChapterId } from '@/lib/chapters'
 import { getBuildPreset, type BuildKey } from '@/lib/builds'
 import { defaultMvsMotions, resolveMvsMotions } from '@/lib/welcomeback'
+import { Wake } from '@/app/anchors/components/Wake'
 import { WelcomeBackChoices } from './WelcomeBackChoices'
 
 export default async function WelcomeBackPage() {
@@ -74,6 +75,11 @@ export default async function WelcomeBackPage() {
   return (
     <div className="flex min-h-full flex-col items-center justify-center px-4 py-16">
       <div className="w-full max-w-[22rem]">
+        <div className="mb-6 flex flex-col items-center">
+          <Wake actuals={[]} />
+          <p className="mt-2 text-xs text-th-faint">Every motion has an impact.</p>
+        </div>
+
         <h1 className="mb-2 text-2xl font-semibold text-th-text">
           Welcome back.
         </h1>

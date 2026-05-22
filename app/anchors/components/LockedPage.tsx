@@ -30,16 +30,20 @@ const WAVE_LINES: WaveLine[] = [
 
 type Props = {
   actuals?: number[]
+  inWave?: boolean
 }
 
-export function LockedPage({ actuals = [] }: Props) {
+export function LockedPage({ actuals = [], inWave = false }: Props) {
   return (
     <div className="relative flex min-h-[420px] flex-1 flex-col items-center justify-center overflow-hidden px-6 py-14 text-center">
       <WaveField lines={WAVE_LINES} />
 
-      <div className="relative mb-6">
-        <Wake actuals={actuals} />
-      </div>
+      {!inWave && (
+        <div className="relative mb-6">
+          <Wake actuals={actuals} />
+        </div>
+      )}
+      {inWave && <div className="mb-6" />}
 
       <p
         className="display relative max-w-[280px] text-pretty"

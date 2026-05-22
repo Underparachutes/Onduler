@@ -70,6 +70,27 @@ export default async function AnchorsPage({
   }
   const pendingCadences: Cadence[] = CADENCES.filter(c => ceremonyByCadence[c].state === 'pending')
 
+  // Wave detection: 72+ hours since last log with no wave_checkin after.
+  const { data: lastLogRow } = await supabase
+    .from('logs')
+    .select('logged_at')
+    .eq('chapter_id', chapterId)
+    .order('logged_at', { ascending: false })
+    .limit(1)
+  let inWave = false
+  if (lastLogRow?.[0]) {
+    const hoursSince = (Date.now() - new Date(lastLogRow[0].logged_at).getTime()) / 3_600_000
+    if (hoursSince >= 72) {
+      const { data: checkin } = await supabase
+        .from('wave_checkins')
+        .select('id')
+        .eq('chapter_id', chapterId)
+        .gt('checked_in_at', lastLogRow[0].logged_at)
+        .limit(1)
+      inWave = !checkin || checkin.length === 0
+    }
+  }
+
   // Weekly is the gate. Until the user has lived through a full Mon-Sun
   // with the engagement floor met, /anchors is vibe-only mystery.
   // Even locked, fetch this week's swell actuals so the Wake renders live data.
@@ -108,7 +129,7 @@ export default async function AnchorsPage({
       })
     }
     const wakeActuals = (lockSwells ?? []).map(s => lockActuals.get(s.id) ?? 0)
-    return <LockedPage actuals={wakeActuals} />
+    return <LockedPage actuals={wakeActuals} inWave={inWave} />
   }
 
   const [
@@ -565,9 +586,9 @@ export default async function AnchorsPage({
           {(!unlocks.month || !unlocks.quarter || !unlocks.year) && (
             <div className="mt-12 flex flex-col gap-3 pb-12">
               <p className="text-[10px] uppercase tracking-widest text-th-muted">Coming together</p>
-              {!unlocks.month && <LockedCadenceTile cadence="month" actuals={radarActuals} />}
-              {!unlocks.quarter && <LockedCadenceTile cadence="quarter" actuals={radarActuals} />}
-              {!unlocks.year && <LockedCadenceTile cadence="year" actuals={radarActuals} />}
+              {!unlocks.month && <LockedCadenceTile cadence="month" actuals={radarActuals} inWave={inWave} />}
+              {!unlocks.quarter && <LockedCadenceTile cadence="quarter" actuals={radarActuals} inWave={inWave} />}
+              {!unlocks.year && <LockedCadenceTile cadence="year" actuals={radarActuals} inWave={inWave} />}
             </div>
           )}
         </div>
