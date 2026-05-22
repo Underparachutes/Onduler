@@ -1,6 +1,6 @@
 # Onduler — State of the Project
 
-*Last updated: May 2026*
+*Last updated: 2026-05-22*
 
 ## The big picture
 
@@ -25,6 +25,7 @@ Most habit apps treat every day like it should look the same. Onduler doesn't. T
 | **Wave** | Period of focus, recovery, or disruption — app does not punish this |
 | **Waypoint** | A user-authored marker within a swell — a point the user is navigating toward inside the swell's ongoing rhythm, not an endpoint of it. Two kinds: recurring (e.g. publish weekly) and one-shot (e.g. start a band). Completing a waypoint celebrates and may add bonus points to the swell. Internal table name remains `milestones`. See ADRs 0004 and 0006. |
 | **Anchor** | Both the surface where the user notices and adjusts themselves (formerly Reflections — see ADR 0008), and an entry written there. The cycle-close ceremony writes an anchor; the `+` button drops a free-form anchor any time. The framing: swells anchor you to who you are; the surface is where you check whether your motions still align with them, and drop a marker each time you do. Internal table name remains `reflections`. |
+| **Wake** | The shoulder-polygon outline of motions actually logged across a cycle. Monochrome, breathing, no swell colors. Coalesces from a pulsing circle as the user logs; hidden during wave mode but reappears the moment they log within the wave. Lives on the locked Anchors page across all four cadences. Marketing surfaces use a seeded random version. See ADR 0010. |
 
 **Never use:** tasks, activities, goals, domains
 
@@ -122,8 +123,11 @@ Backlog of small/mid items (polish, investigations, future features) lives at `d
 
 | Session | Goal |
 |---|---|
-| **Perf + haptics — surface the iOS truth** | Add a feature-detect to Settings → Haptic ("Not supported on this device" hint when `navigator.vibrate` is missing) so the toggle stops lying on iPhone PWA. Optional follow-up: the deferred perf audit (untyped query bloat, unnecessary re-renders, SwellRadar polygon re-compute on period change) per testing-notes #20. |
-| **Three Whys swell setup** | Optional CBT/positive-psychology flow when creating a new swell — Why #1 (motion-level), Why #2 (swell-level), Why #3 (identity / anchor-level). Maps cleanly onto Onduler's existing Motion → Swell → Anchor stack. Skip-is-always-a-door applies. Available from onboarding and from Settings → Your shape. Per testing-notes #30. |
+| **Pre-tester checklist** | Ships before any tester invite goes out. Haptics honesty (Settings → Haptic gains a "Not supported on this device" hint when `navigator.vibrate` is missing — first half of testing-notes #20). In-app "Send feedback" row in Settings opening `mailto:` or a Tally form. Install instructions page at `/welcome` or `/install` with PWA-install screenshots for iOS and Android. Error monitoring via Sentry (or Vercel equivalent) — current `/admin` shows shapes and counts, not crashes. Full spec: `docs/launch-plan.md`. |
+| **Wake + Starter sets** | Implementation of ADR 0010 (Wake) and ADR 0011 (Build deflation), paired in one session because both touch the locked Anchors page and the welcome-back screen. New `lib/wakes.ts` (in-product polygon helpers + marketing-side seeded random generator), new `<Wake>` component, locked-page wiring across all four cadences, coalesce-from-circle on blank slate, wave-mode hide-and-reappear, `WaveField` extension to month/quarter/year locked tiles, fresh-circle on welcome-back with "every motion has an impact" copy. Plus deflation: rename Settings tile/route to "Starter sets," drop secondary-slot UI, reword welcome-back copy ("Pick up where you left off"), remove "Part of your maker's rhythm" build-context footer. |
+| **Marketing wake + landing page** | Session 3 of `docs/launch-plan.md`. Build the seeded random wake generator's marketing exports (standalone SVG for postcards, React component for web). Landing page at `onduler.app` (vibe-first hero, breathing wake, primary tagline "Every motion leaves a wake.", paragraph in product voice, email-capture for invite requests, Supabase waitlist table). Push existing dashboard to `/dashboard` or `/app`. |
+| **Three Whys swell setup** | Optional CBT/positive-psychology flow when creating a new swell — Why #1 (motion-level), Why #2 (swell-level), Why #3 (identity / anchor-level). Maps cleanly onto Onduler's existing Motion → Swell → Anchor stack. Skip-is-always-a-door applies. Available from onboarding and from Settings → Starter sets. Per testing-notes #30. |
+| **Perf audit** | The deferred perf audit (untyped query bloat, unnecessary re-renders, SwellRadar polygon re-compute on period change) per second half of testing-notes #20. |
 | **After** | Stripe, premium gating, additional themes |
 | **After** | LLM-assisted import — user prompts their LLM with an Onduler-provided template, uploads the markdown output, Onduler bulk-creates swells/motions/groups (full spec: `docs/specs/llm-assisted-import.md`) |
 | **After** | App integrations — meditation / cooking / exercise app completions auto-log to Onduler. Write the spec first at `docs/specs/app-integrations.md` (OAuth + webhook shape, mapping from external completions to motions, conflict handling), then schedule implementation. Per testing-notes #3 / #29. |
@@ -316,6 +320,38 @@ The bottom-nav surfaces become: **Motions / Swells / Anchors / Settings.** The a
 
 ADR: `docs/decisions/0008-reflections-renamed-to-anchors.md`.
 
+### Wake — the actuals-only visual primitive (May 2026)
+
+A new visual primitive, the **wake**, replaces the generic breathing hex on the locked Anchors page across all four cadences (week / month / quarter / year). The wake is the user's actuals shoulder polygon, drawn over a cycle window, stripped of wedge backdrop and target handles, rendered monochrome, with N vertices where N equals the user's swell count. Live data, every cadence, from day one — no random placeholder. A brand-new user with zero logs sees a pulsing circle; as they log, the wake coalesces from circle to N-gon, every motion pushing its swell axis outward.
+
+**Wave-mode behavior.** The wake hides entirely (replaced by the `WaveField` ocean canvas) but reappears the moment the user logs a motion during the wave, starting from a fresh circle. Welcome-back from a wave resets to a fresh pulsing circle paired with the "every motion has an impact" copy line. The wake answers presence, not absence.
+
+**Vocabulary expansion.** The locked surf vocabulary grows from six terms to seven with **Wake** added (Tide / Wave / Swell / Motion / Waypoint / Anchor / Wake). Sits cleanly in the water-family without surf-jargon overhead.
+
+**Marketing reuse.** A `generateRandomWake(seed, n)` helper in `lib/wakes.ts` produces seeded random wakes for postcards, landing-page hero, and Instagram posts. Same shoulder-polygon math, fed synthetic actuals. The in-product wake is always live; the marketing wake is always seeded.
+
+**Copy primitives.** Primary tagline: *Every motion leaves a wake.* (postcards, landing-page hero). Visual-paired caption: *Show me your wake.* (used only when the visual is right there to give context — Instagram, hero pair). Welcome-back line: *Every motion has an impact.* (in-product, paired with the fresh circle). Rejected: *What's in your wake?* — identical cadence to "What's in your wallet?" (Capital One), subconscious rhythm match undercuts the secret-club aesthetic.
+
+No schema change; wakes are derived from existing `logs` and `motion_swells` data.
+
+ADR: `docs/decisions/0010-wake.md`.
+
+### Build deflation — drop "shape," Settings becomes "Starter sets" (May 2026)
+
+ADR 0004's user-facing word **shape** is dropped. The Settings tile renames from "Your shape" to **Starter sets**. The four presets (Maker / Athlete / Wanderer / Scholar) survive as named starter sets — utilities, not identities. The secondary slot drops from UI for now (the `secondary_build` column stays in schema for possible re-introduction).
+
+**Why.** "Your shape" implied identity ("I am a Maker"); the mechanism is closer to "we curated some swells for you." That gap between word and mechanism made the surface feel like productivity-app rhetoric. Deflating the word collapses the gap. Onduler's celebration-over-judgment posture leans away from identity claims — habit apps that frame users as types slip easily into telling users who they are, the prescription failure mode ADR 0004 explicitly warns against.
+
+**Internal/external split preserved.** Code identifiers stay: `user_settings.primary_build`, `user_settings.secondary_build`, `lib/builds.ts`, `BUILD_PRESETS`. The internal RPG-skill-tree design heuristic stays as PROJECT.md guidance. Only the user-facing surface deflates.
+
+**Welcome-back copy** (ADR 0004 §8). "Pick up your [shape]" → "Pick up where you left off." "Try a different shape →" → "Try a different starter set →." The `welcome_back_mode` column and ramp behavior are unchanged. ADR 0010 (the wake) replaces the welcome-back card's visual with a fresh pulsing circle.
+
+**Removed.** The "Part of your maker's rhythm" build-context footer on the per-swell proficiency view — line was always quiet and now reads as overclaim.
+
+No schema change.
+
+ADR: `docs/decisions/0011-build-deflation.md`.
+
 ## Working agreements
 
 - Sessions are numbered. Session start = recap + next step. Session end = summary + queue next session.
@@ -331,6 +367,8 @@ ADR: `docs/decisions/0008-reflections-renamed-to-anchors.md`.
 - **Swells are nouns, motions are verbs.** This is the teaching pattern that snaps the whole model into place. Apply it in onboarding copy, empty states, and any UI hint that orients a new user. Swell name suggestions are noun-shaped life areas (Movement, Home, Food, Family, Creativity, Reflection, Work, Travel, etc.); motion name suggestions are verb-shaped actions (kayak, cook, decorate, journal, make a playlist). See ADR 0002.
 - **Internal design heuristic: skill-tree investment.** Onduler is internally modeled as a points-and-skill-tree system applied to real life — users invest in swells to build the kind of person they want to be. This is an internal design language, **not user-facing vocabulary**. Evaluate new features against the question: "does this make investing in your build feel rewarding without tipping into guilt or performance?" The surf-leaning voice, Tide/Wave/Swell/Motion/Waypoint words, and celebration-over-judgment posture stay locked at the user-facing surface. The RPG-style frame helps the designer reason about progression, builds, and "where am I over-investing this week" — it never appears in copy.
 - **Builds are suggestions, never prescriptions.** Any build/shape feature — preset packs, suggested motions, waypoint templates, target recommendations — curates the menu of what counts and never weights how much specific motions count. The build can propose adding self-care motions to a Caretaker shape; it cannot say "your self-care motions are worth more than someone else's." Two firewalls: (a) builds expand the menu, never modify motion math; (b) every build proposal is individually opt-out-able with full visibility before commit. The user is always the author; the build is a tray of starting points. The minute a build feature drifts toward "you should be doing X," it has slipped into the prescription failure mode and needs to be reworked. See ADR 0004.
+- **Starter sets are utilities, not identities.** The user-facing build surface is **Starter sets** (formerly "Your shape"). The four presets (Maker / Athlete / Wanderer / Scholar) are named curated swell lists — starting points, never claims about who the user is. User-facing copy never frames the user as a type ("I am a Maker"). Welcome-back card no longer references a shape — it says "Pick up where you left off." The internal `build` identifiers stay in code; the internal RPG-skill-tree design heuristic stays as a design lens. See ADR 0011.
+- **The wake responds to action, never to inaction.** The wake — the live actuals-only polygon on the locked Anchors page across all four cadences — is always present when the user is showing up and hidden when they're not. It disappears during a wave but reappears the moment any motion is logged within the wave. Brand-new users see a pulsing monochrome circle that coalesces into the polygon as they log. The visual is the literal embodiment of "every motion has an impact" — every logged motion bulges its swell axis outward in real time. Don't add scaffolding (color coding, target overlays, badges, drag handles) that would dilute the form. Monochrome on the deep-ocean ground is the rule. Marketing-side wakes are seeded random and produced by the same shoulder-polygon helper, never live. See ADR 0010.
 - **Data exports use user-facing vocabulary, not schema column names.** Exports (the current JSON download at `/api/export`, and any future format) label data with the words the user sees in the UI — Waypoint, Swell, Motion, Group, Tide, Wave — not internal table names like `milestones` or `motion_swells`. The schema and code identifiers stay where they are; the export is a translation layer. When a user opens their exported file, they should recognize the words. Same internal/external split already used for build/shape and milestone/waypoint. See ADR 0006.
 - **Bottom nav is the primary navigation on mobile; back is for sub-routes only.** Top-level pages reached via bottom nav (Motions, Swells, Anchors, Settings) hide their back button at mobile widths — users navigate via bottom nav. Sub-routes (motion detail sheet, inline edit forms, Add Motion/Swell/Group, Settings group-edit, `/anchors/journal`) keep their back/cancel because there's no bottom-nav route back to them. Desktop shows back everywhere; mobile shows back only where the bottom nav can't get you back. (Motions, Anchors are formerly Today, Log/Reflections — see ADRs 0007 and 0008.)
 - **Every tap that triggers cross-page navigation needs press feedback at 0ms.** Bottom nav items, back/cancel links, and any "go somewhere" control must respond visually the instant the user touches them (`active:scale-[0.97]`). Motion rows and other in-place tappables (log/unlog, chip toggles inside a sheet) use a subtler dip — `active:scale-[0.985]` 0ms — so the row reads as a confirming nudge rather than a button press. Otherwise the inherent server-round-trip latency reads as broken. The press feedback doesn't make navigation faster; it makes the user feel heard. **Canonical values: nav / cross-page = `0.97`, Motion-row / in-place log = `0.985`, both 0ms.** Apply via Tailwind's `active:` variant, not via a CSS transition — instant means instant.
