@@ -12,10 +12,10 @@ export type WaveLine = {
   opacity: number
 }
 
-// Canvas-rendered stacked sine waves. Each wave fills the area below
-// itself with the parent's --th-bg, so it masks the waves drawn earlier
-// at every crossing — the way layered water surfaces read. Strokes the
-// wave line in --th-text at the configured opacity.
+// Canvas-rendered stacked sine waves. Each wave is drawn back-to-front
+// with a wide bg-colored halo that clips back waves only at crossing
+// points, then a visible ink stroke on top. All waves remain visible
+// between crossings; at crossings, the closer wave prevails.
 export function WaveField({ lines }: { lines: WaveLine[] }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
 
@@ -66,26 +66,21 @@ export function WaveField({ lines }: { lines: WaveLine[] }) {
           return H * wv.yBase + Math.sin(angle) * wv.amplitude + y2
         }
 
-        // Mask layer: fill below the wave with bg so earlier waves are hidden.
+        // Halo mask: a wide bg stroke along the wave path clips back
+        // waves only at crossing points — not the entire area below.
         ctx.beginPath()
         for (let x = 0; x <= W; x++) {
           const y = angle_fn(x)
           if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y)
         }
-        ctx.lineTo(W, H)
-        ctx.lineTo(0, H)
-        ctx.closePath()
-        ctx.fillStyle = bg
-        ctx.fill()
-
-        // Body tint: subtle ink fill below the wave so each layer reads
-        // as a visible surface. Front waves accumulate more tint.
-        ctx.globalAlpha = wv.opacity * 0.22
-        ctx.fillStyle = ink
-        ctx.fill()
+        ctx.lineCap = 'round'
+        ctx.lineJoin = 'round'
+        ctx.lineWidth = wv.width + 6
+        ctx.strokeStyle = bg
         ctx.globalAlpha = 1
+        ctx.stroke()
 
-        // Stroke the wave line in ink at the configured opacity / weight.
+        // Visible stroke in ink.
         ctx.beginPath()
         for (let x = 0; x <= W; x++) {
           const y = angle_fn(x)
