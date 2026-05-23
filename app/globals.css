@@ -310,3 +310,120 @@ h2 {
   0%, 100% { opacity: 0.55; transform: scale(0.96); }
   50%      { opacity: 1;    transform: scale(1.04); }
 }
+
+/* Legal page content — shared across /privacy, /terms, /cookies, /contact */
+.legal-content {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--th-muted);
+}
+
+.legal-content h1 {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--th-text);
+  margin-bottom: 4px;
+}
+
+.legal-content h2 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--th-text);
+  margin-top: 32px;
+  margin-bottom: 12px;
+}
+
+.legal-content p {
+  margin-bottom: 12px;
+}
+
+.legal-content .legal-updated {
+  font-size: 13px;
+  color: var(--th-faint);
+  margin-bottom: 24px;
+}
+
+.legal-content ul {
+  list-style: disc;
+  padding-left: 20px;
+  margin-bottom: 12px;
+}
+
+.legal-content li {
+  margin-bottom: 8px;
+}
+
+.legal-content a {
+  color: var(--th-accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.legal-content strong {
+  font-weight: 600;
+  color: var(--th-secondary);
+}
+
+/* Termly HTML overrides — force theme colors over inline styles */
+.legal-content [data-custom-class='title'],
+.legal-content [data-custom-class='title'] * {
+  font-family: var(--font-display) !important;
+  font-size: 22px !important;
+  font-weight: 600 !important;
+  color: var(--th-text) !important;
+}
+
+.legal-content [data-custom-class='subtitle'],
+.legal-content [data-custom-class='subtitle'] * {
+  font-family: var(--font-sans) !important;
+  font-size: 13px !important;
+  color: var(--th-faint) !important;
+}
+
+.legal-content [data-custom-class='heading_1'],
+.legal-content [data-custom-class='heading_1'] * {
+  font-family: var(--font-display) !important;
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  color: var(--th-text) !important;
+}
+
+.legal-content [data-custom-class='heading_2'],
+.legal-content [data-custom-class='heading_2'] * {
+  font-family: var(--font-display) !important;
+  font-size: 15px !important;
+  font-weight: 600 !important;
+  color: var(--th-text) !important;
+}
+
+.legal-content [data-custom-class='body_text'],
+.legal-content [data-custom-class='body_text'] * {
+  font-family: var(--font-sans) !important;
+  font-size: 14px !important;
+  color: var(--th-muted) !important;
+}
+
+.legal-content [data-custom-class='link'],
+.legal-content [data-custom-class='link'] * {
+  font-family: var(--font-sans) !important;
+  font-size: 14px !important;
+  color: var(--th-accent) !important;
+}
+
+/* Termly cookie table overrides */
+.legal-content section[data-custom-class='body_text'] {
+  border-color: var(--th-border) !important;
+}
+
+.legal-content section[data-custom-class='body_text'] div {
+  border-color: var(--th-border) !important;
+}
+
+.legal-content table th {
+  color: var(--th-secondary) !important;
+}
+
+.legal-content table td span {
+  color: var(--th-muted) !important;
+}

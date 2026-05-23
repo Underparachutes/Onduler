@@ -1,0 +1,28 @@
+import { readFileSync } from 'fs'
+import { join } from 'path'
+import type { Metadata } from 'next'
+import Link from 'next/link'
+
+export const metadata: Metadata = {
+  title: 'Privacy Policy — Onduler',
+  description: 'How Onduler collects, uses, and protects your personal information.',
+}
+
+export default function PrivacyPage() {
+  const html = readFileSync(join(process.cwd(), 'app/privacy/content.html'), 'utf-8')
+
+  return (
+    <div className="px-4 py-12 pb-24">
+      <Link
+        href="/"
+        className="mb-8 inline-block text-xs text-th-muted hover:text-th-text transition-colors"
+      >
+        &larr; Back
+      </Link>
+      <div
+        className="legal-content"
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
+    </div>
+  )
+}

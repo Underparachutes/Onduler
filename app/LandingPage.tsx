@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import Link from 'next/link'
 import { generateRandomWake } from '@/lib/wakes'
 import { WaveField, type WaveLine } from '@/app/components/WaveField'
 import { joinWaitlist } from '@/app/actions/waitlist'
@@ -121,13 +122,28 @@ export function LandingPage({ source }: { source: string | null }) {
             >
               {isPending ? 'Sending…' : 'Request an invite'}
             </button>
+            <p className="mt-1 text-center text-[11px] leading-snug text-th-faint">
+              By requesting an invite, you agree to our{' '}
+              <Link href="/terms" className="underline underline-offset-2">Terms</Link>
+              {' '}and{' '}
+              <Link href="/privacy" className="underline underline-offset-2">Privacy Policy</Link>.
+            </p>
           </form>
         )}
 
         {/* Footer */}
-        <p className="mt-auto pt-12 font-[family-name:var(--font-ibm-plex-mono)] text-xs text-th-faint">
-          Not all those who wander are lost.
-        </p>
+        <footer className="mt-auto pt-12 flex flex-col items-center gap-3">
+          <div className="flex gap-3 text-[11px] text-th-faint">
+            <Link href="/privacy" className="hover:text-th-muted transition-colors">Privacy</Link>
+            <span>|</span>
+            <Link href="/terms" className="hover:text-th-muted transition-colors">Terms</Link>
+            <span>|</span>
+            <Link href="/cookies" className="hover:text-th-muted transition-colors">Cookies</Link>
+          </div>
+          <p className="font-[family-name:var(--font-ibm-plex-mono)] text-xs text-th-faint">
+            Not all those who wander are lost.
+          </p>
+        </footer>
       </div>
     </div>
   )
