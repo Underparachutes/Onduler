@@ -21,6 +21,7 @@ export default function CookiesPage() {
       </Link>
       <div
         className="legal-content"
+        suppressHydrationWarning
         dangerouslySetInnerHTML={{ __html: html }}
       />
     </div>

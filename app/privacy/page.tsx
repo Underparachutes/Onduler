@@ -21,6 +21,7 @@ export default function PrivacyPage() {
       </Link>
       <div
         className="legal-content"
+        suppressHydrationWarning
         dangerouslySetInnerHTML={{ __html: html }}
       />
     </div>
