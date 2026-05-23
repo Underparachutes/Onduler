@@ -2,6 +2,7 @@ import { readFileSync } from 'fs'
 import { join } from 'path'
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { TermlyContent } from '@/app/components/TermlyContent'
 
 export const metadata: Metadata = {
   title: 'Cookie Policy — Onduler',
@@ -19,11 +20,7 @@ export default function CookiesPage() {
       >
         &larr; Back
       </Link>
-      <div
-        className="legal-content"
-        suppressHydrationWarning
-        dangerouslySetInnerHTML={{ __html: html }}
-      />
+      <TermlyContent html={html} />
     </div>
   )
 }
