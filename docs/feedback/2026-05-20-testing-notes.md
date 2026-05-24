@@ -87,6 +87,10 @@ These are atomic UI changes that share no architectural risk. Ship them together
 
 - **#3 + #29 — App integrations.** Meditation / cooking / exercise apps push their completion → Onduler logs → swell points accrue automatically. Spec lives at `docs/specs/app-integrations.md` (to be written). Sketches the integration shape (OAuth + webhook per provider? generic ingest endpoint? Shortcuts/Watch-first?), the mapping from external completions to motions, and the conflict story (what if both the user and the integration log the same motion in the same window).
 
+### Revisit later
+
+- **Duplicate motion naming** — currently appends " (copy)" to the name automatically. May feel clunky for some users. Revisit: auto-focus the name field on the new motion's detail sheet so renaming is immediate, or prompt for a name before creating. Wait for tester signal. (2026-05-24)
+
 ### Parked / Josh-owned
 
 - **#12** — 20 colors via Adobe CC. Josh's task. Inputs the theme palettes once picked.

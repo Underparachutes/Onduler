@@ -21,9 +21,10 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { quickLogMotion, unlogMotion } from '@/app/actions/logs'
-import { createSubmotion, hideMotion, deleteMotion, setMotionSwells, setMotionGroup, setSubmotionMode, updateSubmotionDirect, updateMotionDirect, reorderMotions } from '@/app/actions/motions'
+import { createSubmotion, hideMotion, deleteMotion, duplicateMotion, setMotionSwells, setMotionGroup, setSubmotionMode, updateSubmotionDirect, updateMotionDirect, reorderMotions } from '@/app/actions/motions'
 import { formatPts, formatHrs } from '@/lib/format'
 import { applyWeightEdit, defaultWeightForNewSwell, totalAllocation } from '@/lib/contributions'
+import { useToast } from '@/app/components/Toast'
 import { CadenceSection } from './CadenceSection'
 
 type Swell = { id: string; name: string; color: string }
@@ -248,14 +249,17 @@ type Props = {
   groupsEnabled: boolean
   submotionsEnabled: boolean
   trackingMode: TrackingMode
+  onOpenDuplicate?: (id: string) => void
 }
 
 export function MotionDetailSheet({
   motion, submotions, doneMotionIds, onClose, onPointsDelta, onHide,
   isLogged, onUnlog, allSwells, allGroups, groupsEnabled, submotionsEnabled, trackingMode,
+  onOpenDuplicate,
 }: Props) {
   const subDelta = (s: Submotion) => trackingMode === 'hours' ? Number(s.default_hours) : s.default_points
   const router = useRouter()
+  const toast = useToast()
   const [localDone, setLocalDone] = useState(() => new Set(doneMotionIds))
   const [, startTransition] = useTransition()
 
@@ -549,6 +553,26 @@ export function MotionDetailSheet({
     const next = applyWeightEdit(addSwellWeights, swellId, num / 100)
     setAddSwellWeights(next)
     setAddSwellPctDraft(syncPctDraft(next))
+  }
+
+  const [duplicating, startDuplicate] = useTransition()
+
+  function handleDuplicate() {
+    startDuplicate(async () => {
+      const result = await duplicateMotion(motion.id)
+      if (result.error) return
+      const newId = result.id!
+      const newName = result.name!
+      onClose()
+      router.refresh()
+      toast.show({
+        message: `Duplicated ${motion.name}.`,
+        primary: {
+          label: 'Edit',
+          onClick: () => onOpenDuplicate?.(newId),
+        },
+      })
+    })
   }
 
   function handleDelete() {
@@ -916,20 +940,31 @@ export function MotionDetailSheet({
 
         {/* Fixed footer */}
         <div className="shrink-0 px-6 pb-10">
-          <div className="flex items-center justify-between border-t border-th-border pt-4">
-            <button
-              onClick={handleHide}
-              className="text-sm text-th-faint transition-colors hover:text-th-muted"
-            >
-              Hide from checklist
-            </button>
-            <button
-              onClick={handleDelete}
-              disabled={deleting}
-              className={`text-xs transition-colors disabled:opacity-50 ${confirming ? 'font-medium text-orange-500' : 'text-th-faint hover:text-red-500'}`}
-            >
-              {deleting ? 'Deleting…' : confirming ? 'Tap again to confirm delete' : 'Delete'}
-            </button>
+          <div className="flex flex-col gap-3 border-t border-th-border pt-4">
+            <div className="flex items-center justify-between">
+              <button
+                onClick={handleHide}
+                className="text-sm text-th-faint transition-colors hover:text-th-muted"
+              >
+                Hide from checklist
+              </button>
+              <button
+                onClick={handleDuplicate}
+                disabled={duplicating}
+                className="text-xs text-th-faint transition-colors disabled:opacity-50 hover:text-th-muted"
+              >
+                {duplicating ? 'Duplicating…' : 'Duplicate'}
+              </button>
+            </div>
+            <div className="flex justify-end">
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                className={`text-xs transition-colors disabled:opacity-50 ${confirming ? 'font-medium text-orange-500' : 'text-th-faint hover:text-red-500'}`}
+              >
+                {deleting ? 'Deleting…' : confirming ? 'Tap again to confirm delete' : 'Delete'}
+              </button>
+            </div>
           </div>
         </div>
       </div>

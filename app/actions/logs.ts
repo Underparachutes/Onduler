@@ -126,6 +126,59 @@ async function maybeRecordWaypointHits(
   }
 }
 
+export async function logMotionOnDay(motionId: string, dayKey: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const chapterId = await getActiveChapterId(supabase, user.id)
+
+  const { data: motion } = await supabase
+    .from('motions')
+    .select('default_points, default_hours')
+    .eq('id', motionId)
+    .eq('user_id', user.id)
+    .eq('chapter_id', chapterId)
+    .single()
+
+  if (!motion) return { error: 'Motion not found' }
+
+  const [y, m, d] = dayKey.split('-').map(Number)
+  const utcNow = new Date()
+  const pacificMs = new Date(utcNow.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' })).getTime()
+  const offsetMs = utcNow.getTime() - pacificMs
+  const loggedAt = new Date(Date.UTC(y, m - 1, d, 12) + offsetMs)
+
+  const { error } = await supabase.from('logs').insert({
+    user_id: user.id,
+    chapter_id: chapterId,
+    motion_id: motionId,
+    points: motion.default_points,
+    hours: motion.default_hours,
+    logged_at: loggedAt.toISOString(),
+  })
+
+  if (error) return { error: error.message }
+
+  revalidatePath('/dashboard')
+  revalidatePath('/anchors')
+  revalidatePath('/swells')
+  return { success: true }
+}
+
+export async function removeLogById(logId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  await supabase.from('logs').delete().eq('id', logId).eq('user_id', user.id)
+
+  revalidatePath('/dashboard')
+  revalidatePath('/anchors')
+  revalidatePath('/swells')
+  return { success: true }
+}
+
 export async function unlogMotion(motionId: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()

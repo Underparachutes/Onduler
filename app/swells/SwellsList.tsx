@@ -306,6 +306,7 @@ export function SwellsList({
           groupsEnabled={groupsEnabled}
           submotionsEnabled={submotionsEnabled}
           trackingMode={trackingMode}
+          onOpenDuplicate={(id) => setOpenSheetId(id)}
         />
       )}
     </>

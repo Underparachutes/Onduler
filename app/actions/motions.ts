@@ -368,6 +368,54 @@ async function rebalanceSubmotionBudget(
   )
 }
 
+export async function duplicateMotion(
+  motionId: string,
+  opts?: { swellId?: string; weight?: number }
+) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const { data: source } = await supabase
+    .from('motions')
+    .select('name, default_points, default_hours, group_id, submotion_mode, sort_order')
+    .eq('id', motionId)
+    .eq('user_id', user.id)
+    .single()
+
+  if (!source) return { error: 'Motion not found' }
+
+  const chapterId = await getActiveChapterId(supabase, user.id)
+
+  const { data: inserted, error } = await supabase
+    .from('motions')
+    .insert({
+      user_id: user.id,
+      chapter_id: chapterId,
+      name: `${source.name} (copy)`,
+      default_points: source.default_points,
+      default_hours: source.default_hours,
+      group_id: source.group_id,
+      sort_order: (source.sort_order ?? 0) + 1,
+    })
+    .select('id, name')
+    .single()
+
+  if (error) return { error: error.message }
+
+  if (opts?.swellId && inserted) {
+    await supabase.from('motion_swells').insert({
+      motion_id: inserted.id,
+      swell_id: opts.swellId,
+      contribution_weight: opts.weight ?? 1,
+    })
+  }
+
+  revalidatePath('/dashboard')
+  revalidatePath('/swells')
+  return { success: true, id: inserted!.id, name: inserted!.name }
+}
+
 export async function setMotionGroup(motionId: string, groupId: string | null) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()

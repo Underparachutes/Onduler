@@ -36,6 +36,7 @@ type Props = {
   waveDurationSeconds: number | null
   swellWeeklyProgress: Record<string, number>
   swellTargets: Record<string, number>
+  weeklyLogMap: Record<string, Record<string, string[]>>
 }
 
 export function DashboardView(props: Props) {
@@ -144,6 +145,7 @@ export function DashboardView(props: Props) {
                 allGroups={props.allGroups}
                 swellWeeklyProgress={props.swellWeeklyProgress}
                 swellTargets={props.swellTargets}
+                weeklyLogMap={props.weeklyLogMap}
               />
             ) : (
               <>

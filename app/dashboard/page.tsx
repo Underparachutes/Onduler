@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getActiveChapterId } from '@/lib/chapters'
-import { getTodayStart, getWeekStart } from '@/lib/timezone'
+import { getTodayStart, getWeekStart, getLastWeekStart } from '@/lib/timezone'
 import { pacificDayKey } from '@/lib/periods'
 import { bonusBySwell } from '@/lib/waypoints'
 import { currentRamp, type WelcomeBackMode } from '@/lib/welcomeback'
@@ -65,15 +65,17 @@ export default async function DashboardPage() {
   const celebrationEnabled = settings?.celebration_enabled ?? true
   const hapticEnabled = settings?.haptic_enabled ?? true
 
-  const [todayStart, weekStart, chapterId] = await Promise.all([
+  const [todayStart, weekStart, lastWeekStart, chapterId] = await Promise.all([
     getTodayStart(),
     getWeekStart(),
+    getLastWeekStart(),
     getActiveChapterId(supabase, user.id),
   ])
 
   const [
     { data: todayLogs },
     { data: weekLogs },
+    { data: twoWeekLogs },
     { data: motionsRaw },
     { data: submotionsRaw },
     { data: swellsData },
@@ -94,6 +96,13 @@ export default async function DashboardPage() {
       .eq('user_id', user.id)
       .eq('chapter_id', chapterId)
       .gte('logged_at', weekStart.toISOString()),
+    supabase
+      .from('logs')
+      .select('id, motion_id, logged_at')
+      .eq('user_id', user.id)
+      .eq('chapter_id', chapterId)
+      .gte('logged_at', lastWeekStart.toISOString())
+      .order('logged_at', { ascending: false }),
     supabase
       .from('motions')
       .select('id, name, default_points, default_hours, group_id, submotion_mode, motion_swells(contribution_weight, swells(id, name, color))')
@@ -154,6 +163,17 @@ export default async function DashboardPage() {
       ptsThisWeek[log.motion_id] = (ptsThisWeek[log.motion_id] ?? 0) + log.points
       hrsThisWeek[log.motion_id] = (hrsThisWeek[log.motion_id] ?? 0) + Number(log.hours)
     }
+  }
+
+  // Per-motion per-day log data for the Views (week-edit) mode — covers
+  // this week and last week (2-week window).
+  const weeklyLogMap: Record<string, Record<string, string[]>> = {}
+  for (const log of twoWeekLogs ?? []) {
+    if (!log.motion_id) continue
+    const dayKey = pacificDayKey(log.logged_at)
+    if (!weeklyLogMap[log.motion_id]) weeklyLogMap[log.motion_id] = {}
+    if (!weeklyLogMap[log.motion_id][dayKey]) weeklyLogMap[log.motion_id][dayKey] = []
+    weeklyLogMap[log.motion_id][dayKey].push(log.id)
   }
 
   const submotionsMap: Record<string, { id: string; name: string; default_points: number; default_hours: number; swells: { id: string; name: string; color: string; weight: number }[] }[]> = {}
@@ -260,6 +280,7 @@ export default async function DashboardPage() {
       waveDurationSeconds={waveDurationSeconds}
       swellWeeklyProgress={swellWeeklyProgress}
       swellTargets={swellTargets}
+      weeklyLogMap={weeklyLogMap}
     />
   )
 }

@@ -21,14 +21,17 @@ import {
   arrayMove,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
-import { quickLogMotion, unlogMotion } from '@/app/actions/logs'
+import { useRouter } from 'next/navigation'
+import { quickLogMotion, unlogMotion, logMotionOnDay, removeLogById } from '@/app/actions/logs'
 import { setDailyGoal, setDailyGoalHours } from '@/app/actions/settings'
-import { reassignMotionToGroup, reorderMotions } from '@/app/actions/motions'
+import { reassignMotionToGroup, reorderMotions, setMotionSwells, duplicateMotion } from '@/app/actions/motions'
 import { formatPts, formatHrs } from '@/lib/format'
 import { ceilDisplay } from '@/lib/periods'
+import { useToast } from '@/app/components/Toast'
 import { CelebrationOverlay, type CelebrationState } from './CelebrationOverlay'
 import { MotionDetailSheet } from './MotionDetailSheet'
 import { SortableMotionList, SortableMotionRow } from './SortableMotionList'
+import { WeekEditView, getWeekDayKeys } from './WeekEditView'
 
 type Swell = { id: string; name: string; color: string }
 type MotionSwell = { id: string; name: string; color: string; weight: number }
@@ -57,6 +60,7 @@ type Props = {
   allGroups: { id: string; name: string; color: string }[]
   swellWeeklyProgress: Record<string, number>
   swellTargets: Record<string, number>
+  weeklyLogMap: Record<string, Record<string, string[]>>
 }
 
 function DroppableGroup({
@@ -117,26 +121,15 @@ function DroppableGroup({
   )
 }
 
-// Per-swell sortable section for the By-swell dashboard view. Each section
-// owns its own DndContext so drags don't cross swell boundaries, and the
-// reorder writes back to the global motion sort_order by filling only the
-// section's positions in the global list — motions in other sections keep
-// their slots.
-function SortableSwellSection({
-  globalMotions,
-  initialItems,
-  localDone,
-  localHiddenIds,
-  hideDone,
-  submotionsMap,
-  submotionsEnabled,
-  trackingMode,
-  hidePtsHrs,
-  onLog,
-  onOpenSheet,
+
+function DroppableSwellSection({
+  id, label, color, items, isDragging, localDone, localHiddenIds, hideDone, submotionsMap, submotionsEnabled, trackingMode, hidePtsHrs, onLog, onOpenSheet,
 }: {
-  globalMotions: Motion[]
-  initialItems: Motion[]
+  id: string
+  label: string
+  color?: string
+  items: Motion[]
+  isDragging: boolean
   localDone: Set<string>
   localHiddenIds: Set<string>
   hideDone: boolean
@@ -147,62 +140,47 @@ function SortableSwellSection({
   onLog: (motion: Motion, x: number, y: number) => void
   onOpenSheet: (id: string) => void
 }) {
-  const [items, setItems] = useState(initialItems)
-  const [, startTransition] = useTransition()
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { delay: 250, tolerance: 8 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 8 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
-  )
-
-  function handleDragEnd(event: DragEndEvent) {
-    const { active, over } = event
-    if (!over || active.id === over.id) return
-    const oldIdx = items.findIndex(m => m.id === active.id)
-    const newIdx = items.findIndex(m => m.id === over.id)
-    if (oldIdx === -1 || newIdx === -1) return
-    const newSection = arrayMove(items, oldIdx, newIdx)
-    setItems(newSection)
-
-    const sectionIds = new Set(items.map(m => m.id))
-    const positions: number[] = []
-    for (let i = 0; i < globalMotions.length; i++) {
-      if (sectionIds.has(globalMotions[i].id)) positions.push(i)
-    }
-    const newGlobalIds = globalMotions.map(m => m.id)
-    for (let i = 0; i < positions.length; i++) {
-      newGlobalIds[positions[i]] = newSection[i].id
-    }
-    startTransition(async () => { await reorderMotions(newGlobalIds) })
-  }
-
+  const { setNodeRef, isOver } = useDroppable({ id })
   const visible = items.filter(m => {
     if (localHiddenIds.has(m.id)) return false
     if (hideDone && localDone.has(m.id)) return false
     return true
   })
 
-  if (visible.length === 0) return null
-
   return (
-    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-      <SortableContext items={items.map(m => m.id)} strategy={verticalListSortingStrategy}>
-        <div className="flex flex-col gap-2">
-          {visible.map(m => (
+    <div>
+      <p
+        className="mb-2 text-xs font-semibold uppercase tracking-widest"
+        style={color ? { color } : undefined}
+      >
+        {label}
+      </p>
+      <SortableContext items={items.map(m => `${id}:${m.id}`)} strategy={verticalListSortingStrategy}>
+        <div
+          ref={setNodeRef}
+          className={`flex flex-col gap-2 min-h-[2rem] rounded-lg transition-colors ${isOver ? 'ring-1 ring-th-border' : ''}`}
+        >
+          {visible.map(motion => (
             <SortableMotionRow
-              key={m.id}
-              motion={m}
-              done={localDone.has(m.id)}
-              hasSubmotions={submotionsEnabled && (submotionsMap[m.id]?.length ?? 0) > 0}
+              key={`${id}-${motion.id}`}
+              sortableId={`${id}:${motion.id}`}
+              motion={motion}
+              done={localDone.has(motion.id)}
+              hasSubmotions={submotionsEnabled && (submotionsMap[motion.id]?.length ?? 0) > 0}
               trackingMode={trackingMode}
               hidePtsHrs={hidePtsHrs}
-              onLog={(e) => onLog(m, e.clientX, e.clientY)}
-              onOpenSheet={() => onOpenSheet(m.id)}
+              onLog={(e) => onLog(motion, e.clientX, e.clientY)}
+              onOpenSheet={() => onOpenSheet(motion.id)}
             />
           ))}
+          {visible.length === 0 && isDragging && (
+            <div className="rounded-lg border border-dashed border-th-border py-3 text-center text-xs text-th-faint">
+              Drop here
+            </div>
+          )}
         </div>
       </SortableContext>
-    </DndContext>
+    </div>
   )
 }
 
@@ -259,6 +237,7 @@ export function DailyChecklist({
   allGroups,
   swellWeeklyProgress,
   swellTargets,
+  weeklyLogMap,
 }: Props) {
   const isHours = trackingMode === 'hours'
   const todayValue = isHours ? todayHours : todayPoints
@@ -292,6 +271,9 @@ export function DailyChecklist({
       setShowPtsHrs(prev => { const next = !prev; localStorage.setItem('onduler-filter-show-pts', String(next)); return next })
     }
   }
+  const [viewsMode, setViewsMode] = useState(false)
+  const [weekOffset, setWeekOffset] = useState(0)
+  const [viewsDelta, setViewsDelta] = useState(0)
   const hideDone = !showCompleted
   const bySwell = showSwells
   const hidePtsHrs = !showPtsHrs
@@ -316,13 +298,192 @@ export function DailyChecklist({
   })
   const [dragActiveId, setDragActiveId] = useState<string | null>(null)
 
+  const router = useRouter()
+  const toast = useToast()
+
+  // By-swell DnD state — container map keyed by swell ID (or 'unassigned')
+  const [swellContainers, setSwellContainers] = useState<Record<string, Motion[]>>(() => ({}))
+  const [swellDragActiveId, setSwellDragActiveId] = useState<string | null>(null)
+
+  function buildSwellContainers(sourceMotions: Motion[], groupFilter: string | null) {
+    const filtered = groupFilter ? sourceMotions.filter(m => m.groupId === groupFilter) : sourceMotions
+    const containers: Record<string, Motion[]> = {}
+    for (const swell of allSwells) {
+      const ms = filtered.filter(m => m.swells.some(s => s.id === swell.id))
+      if (ms.length > 0) containers[swell.id] = ms
+    }
+    const orphans = filtered.filter(m => m.swells.length === 0)
+    if (orphans.length > 0) containers['unassigned'] = orphans
+    return containers
+  }
+
+  useEffect(() => {
+    if (bySwell) setSwellContainers(buildSwellContainers(motions, activeGroup))
+  }, [bySwell, motions, activeGroup, allSwells])
+
+  function parseCompositeId(compositeId: string): { containerId: string; motionId: string } | null {
+    const idx = compositeId.indexOf(':')
+    if (idx === -1) return null
+    return { containerId: compositeId.slice(0, idx), motionId: compositeId.slice(idx + 1) }
+  }
+
+  function handleSwellDragStart({ active }: DragStartEvent) {
+    const parsed = parseCompositeId(active.id as string)
+    setSwellDragActiveId(parsed?.motionId ?? null)
+  }
+
+  function handleSwellDragEnd({ active, over }: DragEndEvent) {
+    setSwellDragActiveId(null)
+    if (!over) return
+
+    const activeParsed = parseCompositeId(active.id as string)
+    const overParsed = parseCompositeId(over.id as string)
+
+    if (!activeParsed) return
+
+    const activeMotionId = activeParsed.motionId
+    const sourceContainerId = activeParsed.containerId
+    const targetContainerId = overParsed?.containerId ?? (over.id as string in swellContainers ? over.id as string : undefined)
+
+    if (!targetContainerId) return
+
+    if (sourceContainerId === targetContainerId) {
+      if (!overParsed) return
+      const items = swellContainers[sourceContainerId]
+      const oldIdx = items.findIndex(m => m.id === activeMotionId)
+      const newIdx = items.findIndex(m => m.id === overParsed.motionId)
+      if (oldIdx === -1 || newIdx === -1 || oldIdx === newIdx) return
+      const reordered = arrayMove(items, oldIdx, newIdx)
+      setSwellContainers(prev => ({ ...prev, [sourceContainerId]: reordered }))
+      startTransition(async () => { await reorderMotions(reordered.map(m => m.id)) })
+      return
+    }
+
+    const movedMotion = swellContainers[sourceContainerId]?.find(m => m.id === activeMotionId)
+    if (!movedMotion) return
+
+    const prevSwells = movedMotion.swells.map(s => ({ swellId: s.id, weight: s.weight }))
+    const sourceSwell = allSwells.find(s => s.id === sourceContainerId)
+    const targetSwell = allSwells.find(s => s.id === targetContainerId)
+
+    if (targetContainerId === 'unassigned') {
+      // Drag to Unassigned — strip all swells
+      const newSrc = swellContainers[sourceContainerId].filter(m => m.id !== activeMotionId)
+      const orphanMotion = { ...movedMotion, swells: [] }
+      const newUnassigned = [...(swellContainers['unassigned'] ?? []), orphanMotion]
+      setSwellContainers(prev => {
+        const next = { ...prev, [sourceContainerId]: newSrc, 'unassigned': newUnassigned }
+        if (newSrc.length === 0) delete next[sourceContainerId]
+        return next
+      })
+      startTransition(async () => { await setMotionSwells(activeMotionId, []) })
+      toast.show({
+        message: `${movedMotion.name} now feeds no swells.`,
+        primary: {
+          label: 'Undo',
+          onClick: () => {
+            setSwellContainers(buildSwellContainers(motions, activeGroup))
+            startTransition(async () => {
+              await setMotionSwells(activeMotionId, prevSwells)
+              router.refresh()
+            })
+          },
+        },
+      })
+      return
+    }
+
+    // Cross-swell drag — move membership from source to target
+    const sourceWeight = prevSwells.find(s => s.swellId === sourceContainerId)?.weight ?? 1
+    const newEntries = prevSwells
+      .filter(s => s.swellId !== sourceContainerId)
+      .concat({ swellId: targetContainerId, weight: sourceWeight })
+
+    const updatedMotion = {
+      ...movedMotion,
+      swells: newEntries.map(e => {
+        const sw = allSwells.find(s => s.id === e.swellId)
+        return { id: e.swellId, name: sw?.name ?? '', color: sw?.color ?? '', weight: e.weight }
+      }),
+    }
+
+    setSwellContainers(prev => {
+      const newSrc = (prev[sourceContainerId] ?? []).filter(m => m.id !== activeMotionId)
+      const overMotionId = overParsed?.motionId
+      const targetItems = prev[targetContainerId] ?? []
+      const overIdx = overMotionId ? targetItems.findIndex(m => m.id === overMotionId) : -1
+      const newDst = overIdx === -1
+        ? [...targetItems, updatedMotion]
+        : [...targetItems.slice(0, overIdx), updatedMotion, ...targetItems.slice(overIdx)]
+      const next = { ...prev, [sourceContainerId]: newSrc, [targetContainerId]: newDst }
+      if (newSrc.length === 0) delete next[sourceContainerId]
+      return next
+    })
+
+    startTransition(async () => { await setMotionSwells(activeMotionId, newEntries) })
+
+    const sourceLabel = sourceSwell?.name ?? 'Unassigned'
+    const targetLabel = targetSwell?.name ?? 'Unassigned'
+
+    toast.show({
+      message: `Moved ${movedMotion.name} from ${sourceLabel} to ${targetLabel}.`,
+      primary: {
+        label: 'Undo',
+        onClick: () => {
+          setSwellContainers(buildSwellContainers(motions, activeGroup))
+          startTransition(async () => {
+            await setMotionSwells(activeMotionId, prevSwells)
+            router.refresh()
+          })
+        },
+      },
+      secondary: {
+        label: 'Keep both',
+        onClick: () => {
+          startTransition(async () => {
+            await setMotionSwells(activeMotionId, prevSwells)
+            await duplicateMotion(activeMotionId, { swellId: targetContainerId, weight: sourceWeight })
+            router.refresh()
+          })
+        },
+      },
+    })
+  }
+
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { delay: 250, tolerance: 8 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   )
 
-  const progress = Math.min((localValue / localGoal) * 100, 100)
+  // Weekly total for Views mode — computed from weeklyLogMap + motion defaults
+  const viewsDayKeys = getWeekDayKeys(weekOffset)
+  const viewsDayKeySet = new Set(viewsDayKeys)
+  const viewsWeekBase = (() => {
+    const allM = [...motions, ...Object.values(submotionsMap).flat()]
+    const defaults = new Map(allM.map(m => [m.id, isHours ? Number(m.default_hours) : m.default_points]))
+    let total = 0
+    for (const [mid, dayMap] of Object.entries(weeklyLogMap)) {
+      const perLog = defaults.get(mid) ?? 0
+      for (const [dk, ids] of Object.entries(dayMap)) {
+        if (viewsDayKeySet.has(dk)) total += ids.length * perLog
+      }
+    }
+    return total
+  })()
+  const viewsWeekValue = viewsWeekBase + viewsDelta
+  const viewsWeekGoal = localGoal * 7
+  const viewsDateLabel = (() => {
+    const [vy, vm, vd] = viewsDayKeys[0].split('-').map(Number)
+    const d = new Date(vy, vm - 1, vd)
+    return `Week of ${d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}`
+  })()
+
+  useEffect(() => { setViewsDelta(0) }, [weeklyLogMap, weekOffset])
+
+  const displayValue = viewsMode ? viewsWeekValue : localValue
+  const displayGoal = viewsMode ? viewsWeekGoal : localGoal
+  const progress = Math.min((displayValue / displayGoal) * 100, 100)
   const formatValue = (n: number) => isHours ? formatHrs(ceilDisplay(n, true)) : formatPts(ceilDisplay(n))
   const motionDelta = (motion: Motion) => isHours ? Number(motion.default_hours) : motion.default_points
 
@@ -453,50 +614,41 @@ export function DailyChecklist({
 
   const dateHeader = (
     <div className="mb-2 flex items-baseline justify-between gap-3">
-      <h1 className="min-w-0 text-lg font-semibold text-th-text">{today}</h1>
+      <h1 className="min-w-0 text-lg font-semibold text-th-text">{viewsMode ? viewsDateLabel : today}</h1>
       <p className="shrink-0 text-lg font-semibold text-th-text">
-        {isHours ? localValue.toFixed(localValue % 1 === 0 ? 0 : 2).replace(/\.?0+$/, '') : localValue}
+        {isHours ? displayValue.toFixed(displayValue % 1 === 0 ? 0 : 2).replace(/\.?0+$/, '') : displayValue}
         <span className="ml-1 text-xs font-normal uppercase tracking-widest text-th-muted">{isHours ? 'hrs' : 'pts'}</span>
       </p>
     </div>
   )
 
-  const progressBar = (
-    <div className="mb-3">
-      <div className="mb-1.5 rounded-full bg-th-surface" style={{ height: '5px' }}>
-        <div
-          className="h-full rounded-full transition-all duration-500"
-          style={{
-            width: `${progress}%`,
-            background: 'linear-gradient(to right, color-mix(in oklch, var(--th-accent) 35%, var(--th-surface)), var(--th-accent))',
-          }}
-        />
-      </div>
-      <div className="flex justify-between text-xs text-th-faint">
-        <span>{formatValue(localValue)} / {editingGoal ? (
-          <span className="inline-flex items-center gap-1">
-            <input
-              autoFocus
-              type="number"
-              min={isHours ? '0.25' : '1'}
-              step={isHours ? '0.25' : '1'}
-              value={goalInput}
-              onChange={e => setGoalInput(e.target.value)}
-              onBlur={commitGoal}
-              onKeyDown={e => { if (e.key === 'Enter') commitGoal(); if (e.key === 'Escape') { setGoalInput(String(localGoal)); setEditingGoal(false) } }}
-              className="w-12 rounded border border-th-border bg-th-surface px-1 py-0 text-xs text-th-text outline-none focus:border-th-focus"
-            />
-          </span>
-        ) : (
-          <button
-            onClick={() => { setGoalInput(String(localGoal)); setEditingGoal(true) }}
-            className="transition-colors hover:text-th-muted"
-          >
-            {formatValue(localGoal)} target
-          </button>
-        )}</span>
-        <span>{ceilDisplay(progress)}%</span>
-      </div>
+  const progressStats = (
+    <div className="mb-3 flex justify-between text-xs text-th-faint">
+      <span>{formatValue(displayValue)} / {viewsMode ? (
+        <span>{formatValue(displayGoal)} target</span>
+      ) : editingGoal ? (
+        <span className="inline-flex items-center gap-1">
+          <input
+            autoFocus
+            type="number"
+            min={isHours ? '0.25' : '1'}
+            step={isHours ? '0.25' : '1'}
+            value={goalInput}
+            onChange={e => setGoalInput(e.target.value)}
+            onBlur={commitGoal}
+            onKeyDown={e => { if (e.key === 'Enter') commitGoal(); if (e.key === 'Escape') { setGoalInput(String(localGoal)); setEditingGoal(false) } }}
+            className="w-12 rounded border border-th-border bg-th-surface px-1 py-0 text-xs text-th-text outline-none focus:border-th-focus"
+          />
+        </span>
+      ) : (
+        <button
+          onClick={() => { setGoalInput(String(localGoal)); setEditingGoal(true) }}
+          className="transition-colors hover:text-th-muted"
+        >
+          {formatValue(localGoal)} target
+        </button>
+      )}</span>
+      <span>{ceilDisplay(progress)}%</span>
     </div>
   )
 
@@ -520,6 +672,7 @@ export function DailyChecklist({
       groupsEnabled={groupsEnabled}
       submotionsEnabled={submotionsEnabled}
       trackingMode={trackingMode}
+      onOpenDuplicate={(id) => setOpenSheetId(id)}
     />
   )
 
@@ -533,8 +686,26 @@ export function DailyChecklist({
   const hasNonDefaultFilter = showCompleted || showSwells || showPtsHrs
 
   const headerToolbar = (
-    <div className="flex items-center justify-end">
-      <div className="relative" ref={filterRef}>
+    <div className="flex items-center gap-2">
+      <button
+        onClick={() => setViewsMode(prev => !prev)}
+        className={`shrink-0 p-1.5 transition-colors active:scale-[0.97] ${viewsMode ? 'rounded bg-th-text text-th-bg' : 'text-th-faint hover:text-th-muted'}`}
+        aria-label="Views"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4.5 w-4.5">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+          <line x1="16" y1="2" x2="16" y2="6" />
+          <line x1="8" y1="2" x2="8" y2="6" />
+          <line x1="3" y1="10" x2="21" y2="10" />
+        </svg>
+      </button>
+      <div className="flex-1 h-[5px] overflow-hidden rounded-full bg-th-surface">
+        <div
+          className="h-full rounded-full transition-all"
+          style={{ width: `${progress}%`, background: 'linear-gradient(to right, var(--th-accent), var(--th-btn))' }}
+        />
+      </div>
+      <div className="relative shrink-0" ref={filterRef}>
         <button
           onClick={() => setFilterOpen(prev => !prev)}
           className="relative p-1.5 text-th-faint transition-colors hover:text-th-muted active:scale-[0.97]"
@@ -588,20 +759,44 @@ export function DailyChecklist({
     </div>
   ) : null
 
-  // By-swell mode — each motion appears under every swell it feeds, plus an
-  // "Unassigned" section for motions with no swell. Tap any instance to log
-  // once; credit distributes per existing contribution_weight allocations.
+  if (viewsMode) {
+    return (
+      <>
+        <div>
+          <div className="sticky top-0 z-10 bg-th-bg pb-3" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.5rem)' }}>
+            {topBar}
+            {dateHeader}
+            {headerToolbar}
+            {progressStats}
+            {groupChipsRow}
+          </div>
+          <WeekEditView
+            motions={activeGroup ? motions.filter(m => m.groupId === activeGroup) : motions}
+            submotionsMap={submotionsMap}
+            submotionsEnabled={submotionsEnabled}
+            trackingMode={trackingMode}
+            weeklyLogMap={weeklyLogMap}
+            hidePtsHrs={hidePtsHrs}
+            weekOffset={weekOffset}
+            onWeekOffsetChange={setWeekOffset}
+            onLogDelta={(d) => setViewsDelta(prev => prev + d)}
+            bySwell={bySwell}
+            allSwells={allSwells}
+            hideDone={hideDone}
+          />
+        </div>
+        {detailSheet}
+        {celebrationOverlay}
+        {undoToastEl}
+      </>
+    )
+  }
+
   if (bySwell) {
-    const groupFiltered = activeGroup
-      ? motions.filter(m => m.groupId === activeGroup)
-      : motions
-    const sections: { swell: { id: string; name: string; color: string } | null; motions: Motion[] }[] = []
-    for (const swell of allSwells) {
-      const ms = groupFiltered.filter(m => m.swells.some(s => s.id === swell.id))
-      if (ms.length > 0) sections.push({ swell, motions: ms })
-    }
-    const orphans = groupFiltered.filter(m => m.swells.length === 0)
-    if (orphans.length > 0) sections.push({ swell: null, motions: orphans })
+    const sectionIds = Object.keys(swellContainers)
+    const swellDragMotion = swellDragActiveId
+      ? Object.values(swellContainers).flat().find(m => m.id === swellDragActiveId) ?? null
+      : null
 
     return (
       <>
@@ -609,29 +804,28 @@ export function DailyChecklist({
           <div className="sticky top-0 z-10 bg-th-bg pb-3" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.5rem)' }}>
             {topBar}
             {dateHeader}
-            {progressBar}
             {headerToolbar}
+            {progressStats}
             {groupChipsRow}
           </div>
-          <div className="flex flex-col gap-6">
-            {sections.map(({ swell, motions: secMotions }) => {
-              const sectionVisible = secMotions.filter(m => {
-                if (localHiddenIds.has(m.id)) return false
-                if (hideDone && localDone.has(m.id)) return false
-                return true
-              })
-              if (sectionVisible.length === 0) return null
-              return (
-                <div key={swell?.id ?? 'unassigned'}>
-                  <p
-                    className="mb-2 text-xs font-semibold uppercase tracking-widest"
-                    style={swell ? { color: swell.color } : undefined}
-                  >
-                    {swell?.name ?? 'Unassigned'}
-                  </p>
-                  <SortableSwellSection
-                    globalMotions={motions}
-                    initialItems={secMotions}
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCorners}
+            onDragStart={handleSwellDragStart}
+            onDragEnd={handleSwellDragEnd}
+          >
+            <div className="flex flex-col gap-6">
+              {sectionIds.map(cid => {
+                const swell = allSwells.find(s => s.id === cid)
+                const items = swellContainers[cid] ?? []
+                return (
+                  <DroppableSwellSection
+                    key={cid}
+                    id={cid}
+                    label={swell?.name ?? 'Unassigned'}
+                    color={swell?.color}
+                    items={items}
+                    isDragging={!!swellDragActiveId}
                     localDone={localDone}
                     localHiddenIds={localHiddenIds}
                     hideDone={hideDone}
@@ -642,10 +836,21 @@ export function DailyChecklist({
                     onLog={handleLog}
                     onOpenSheet={setOpenSheetId}
                   />
-                </div>
-              )
-            })}
-          </div>
+                )
+              })}
+            </div>
+            <DragOverlay>
+              {swellDragMotion && (
+                <MotionDragOverlay
+                  motion={swellDragMotion}
+                  done={localDone.has(swellDragMotion.id)}
+                  submotionsMap={submotionsMap}
+                  submotionsEnabled={submotionsEnabled}
+                  trackingMode={trackingMode}
+                />
+              )}
+            </DragOverlay>
+          </DndContext>
         </div>
         {detailSheet}
         {celebrationOverlay}
@@ -662,8 +867,8 @@ export function DailyChecklist({
           <div className="sticky top-0 z-10 bg-th-bg pb-3" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.5rem)' }}>
             {topBar}
             {dateHeader}
-            {progressBar}
             {headerToolbar}
+            {progressStats}
           </div>
           <SortableMotionList
             motions={motions}
@@ -702,7 +907,7 @@ export function DailyChecklist({
         <div className="sticky top-0 z-10 bg-th-bg pb-3" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.5rem)' }}>
           {topBar}
           {dateHeader}
-          {progressBar}
+          {progressStats}
 
           {headerToolbar}
           {groupChipsRow}

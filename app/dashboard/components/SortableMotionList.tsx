@@ -33,13 +33,14 @@ type RowProps = {
   hasSubmotions: boolean
   trackingMode: TrackingMode
   hidePtsHrs?: boolean
+  sortableId?: string
   onLog: (e: React.MouseEvent) => void
   onOpenSheet: () => void
 }
 
-export function SortableMotionRow({ motion, done, hasSubmotions, trackingMode, hidePtsHrs, onLog, onOpenSheet }: RowProps) {
+export function SortableMotionRow({ motion, done, hasSubmotions, trackingMode, hidePtsHrs, sortableId, onLog, onOpenSheet }: RowProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
-    useSortable({ id: motion.id })
+    useSortable({ id: sortableId ?? motion.id })
 
   return (
     <div
