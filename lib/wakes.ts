@@ -106,14 +106,19 @@ export function wakeToSvg(
   seed: number,
   n: number,
   size: number = 400,
+  bg: string = '#000000',
+  stroke: string = '#e8e6e1',
 ): string {
   const r = size * 0.35
   const c: Point = { x: size / 2, y: size / 2 }
   const d = generateRandomWake(seed, n, r, c)
+  const blurD = generateRandomWake(seed, n, r * 0.98, c)
   return [
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">`,
-    `  <rect width="${size}" height="${size}" fill="#0a0f0d"/>`,
-    `  <path d="${d}" fill="none" stroke="#e8e6e1" stroke-width="0.8" opacity="0.55"/>`,
+    `  <rect width="${size}" height="${size}" fill="${bg}"/>`,
+    `  <defs><filter id="glow"><feGaussianBlur stdDeviation="${size * 0.02}" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>`,
+    `  <path d="${blurD}" fill="${stroke}" fill-opacity="0.06" stroke="none" filter="url(#glow)"/>`,
+    `  <path d="${d}" fill="none" stroke="${stroke}" stroke-width="0.8" opacity="0.55"/>`,
     `</svg>`,
   ].join('\n')
 }

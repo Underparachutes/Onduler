@@ -223,3 +223,27 @@ CREATE UNIQUE INDEX chapters_one_active_per_user ON chapters (user_id) WHERE end
 CREATE INDEX chapters_user_sort ON chapters (user_id, sort_order);
 CREATE INDEX reflections_user_chapter ON reflections (user_id, chapter_id, created_at DESC);
 CREATE INDEX reflections_user_cycle ON reflections (user_id, cycle_type, cycle_start);
+
+-- Waitlist (public, anon-insert)
+CREATE TABLE waitlist (
+  id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  email      text NOT NULL,
+  frustration text,
+  source     text,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+ALTER TABLE waitlist ENABLE ROW LEVEL SECURITY;
+CREATE UNIQUE INDEX waitlist_email_key ON waitlist (email);
+CREATE POLICY "anon insert" ON waitlist FOR INSERT TO anon WITH CHECK (true);
+
+-- Contact form submissions (public, anon-insert)
+CREATE TABLE contact_submissions (
+  id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name       text NOT NULL,
+  email      text NOT NULL,
+  subject    text NOT NULL,
+  message    text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+ALTER TABLE contact_submissions ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "anon insert" ON contact_submissions FOR INSERT TO anon WITH CHECK (true);
