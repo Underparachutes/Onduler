@@ -16,7 +16,7 @@ export default async function SettingsPage() {
     getActiveChapterId(supabase, user.id),
     supabase
       .from('user_settings')
-      .select('theme, groups_enabled, submotions_enabled, daily_goal, daily_goal_hours, tracking_mode, celebration_enabled, haptic_enabled, primary_build')
+      .select('theme, groups_enabled, submotions_enabled, daily_goal, daily_goal_hours, tracking_mode, celebration_enabled, haptic_enabled, primary_build, is_admin, subscription_status')
       .eq('user_id', user.id)
       .single(),
   ])
@@ -87,6 +87,8 @@ export default async function SettingsPage() {
           assignableMotions={assignableMotions ?? []}
           assignableSwells={assignableSwells ?? []}
           archivedChapterCount={archivedChapterCount ?? 0}
+          isAdmin={settings?.is_admin ?? false}
+          subscriptionStatus={settings?.subscription_status ?? 'none'}
         />
 
         <div className="mt-8 border-t border-th-border pt-6 lg:max-w-[22rem]">

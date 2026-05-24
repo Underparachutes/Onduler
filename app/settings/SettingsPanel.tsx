@@ -51,6 +51,8 @@ type Props = {
   assignableMotions: AssignableMotion[]
   assignableSwells: AssignableSwell[]
   archivedChapterCount: number
+  isAdmin: boolean
+  subscriptionStatus: string
 }
 
 export function SettingsPanel({
@@ -69,6 +71,8 @@ export function SettingsPanel({
   assignableMotions,
   assignableSwells,
   archivedChapterCount,
+  isAdmin,
+  subscriptionStatus,
 }: Props) {
   const [currentTheme, setCurrentTheme] = useState(theme)
   const [currentMode, setCurrentMode] = useState<TrackingMode>(trackingMode)
@@ -205,6 +209,28 @@ export function SettingsPanel({
           <span className="shrink-0 text-sm text-th-faint">→</span>
         </Link>
       </section>
+
+      {/* Crew (admin-only during testing) */}
+      {isAdmin && (
+        <section>
+          <Link
+            href="/settings/billing"
+            className="flex items-center justify-between gap-3 py-3 transition-all active:scale-[0.99]"
+          >
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-th-text">Crew</p>
+              <p className="truncate text-xs text-th-muted">
+                {subscriptionStatus === 'active' || subscriptionStatus === 'trialing'
+                  ? 'Active member'
+                  : subscriptionStatus === 'lifetime'
+                    ? 'Lifetime member'
+                    : 'Support Onduler'}
+              </p>
+            </div>
+            <span className="shrink-0 text-sm text-th-faint">→</span>
+          </Link>
+        </section>
+      )}
 
       {/* Past chapters */}
       {archivedChapterCount > 0 && (
