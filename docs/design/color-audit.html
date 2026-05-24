@@ -1,0 +1,724 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Onduler — Color Audit (2026-05-24)</title>
+<style>
+  :root {
+    --bg: #0e1418;
+    --panel: #161d22;
+    --panel-2: #1d262c;
+    --border: #2a353d;
+    --text: #e8eef5;
+    --muted: #8aa0b0;
+    --faint: #5d7280;
+    --accent: #4d97e0;
+
+    /* Tier colors — used for borders and badge tints */
+    --tier-field:       #6b8aa8;
+    --tier-edge:        #6a7480;
+    --tier-voice:       #c4a878;
+    --tier-interaction: #4d97e0;
+    --tier-signal:      #e07a4d;
+    --tier-identity:    #b083d0;
+
+    font-family: ui-monospace, "IBM Plex Mono", SFMono-Regular, Menlo, monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    padding: 32px 24px 64px;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1 {
+    font-family: ui-sans-serif, "Manrope", system-ui;
+    font-weight: 600;
+    font-size: 28px;
+    letter-spacing: 0.05em;
+    margin: 0 0 6px;
+  }
+  .sub {
+    color: var(--muted);
+    font-size: 13px;
+    margin-bottom: 24px;
+  }
+  .filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 24px;
+    position: sticky;
+    top: 0;
+    background: var(--bg);
+    padding: 8px 0 16px;
+    z-index: 10;
+    border-bottom: 1px solid var(--border);
+  }
+  .chip {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 6px 12px;
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    cursor: pointer;
+    border-radius: 999px;
+    font-family: inherit;
+  }
+  .chip.active {
+    background: var(--text);
+    color: var(--bg);
+    border-color: var(--text);
+  }
+  .group { margin-bottom: 36px; }
+  .group-title {
+    font-family: ui-sans-serif, "Manrope", system-ui;
+    font-weight: 600;
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 12px;
+  }
+  .theme-block {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 18px 20px;
+    margin-bottom: 18px;
+  }
+  .theme-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .theme-name {
+    font-family: ui-sans-serif, "Manrope", system-ui;
+    font-weight: 600;
+    font-size: 18px;
+    letter-spacing: 0.05em;
+  }
+  .theme-meta { color: var(--muted); font-size: 12px; }
+
+  /* Tier section inside a theme block */
+  .tier {
+    margin-top: 18px;
+    padding-left: 14px;
+    border-left: 2px solid var(--tier);
+  }
+  .tier-head {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 6px;
+  }
+  .tier-name {
+    font-family: ui-sans-serif, "Manrope", system-ui;
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    font-weight: 600;
+    color: var(--tier);
+  }
+  .tier-desc { color: var(--faint); font-size: 11.5px; }
+  .tier-share {
+    margin-left: auto;
+    color: var(--faint);
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 12.5px;
+    margin-top: 6px;
+  }
+  th {
+    text-align: left;
+    color: var(--faint);
+    font-weight: 500;
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--border);
+    font-size: 10.5px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  td {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--panel-2);
+    vertical-align: middle;
+  }
+  tr:last-child td { border-bottom: none; }
+  .swatch {
+    display: inline-block;
+    width: 22px;
+    height: 22px;
+    border-radius: 5px;
+    border: 1px solid rgba(255,255,255,0.08);
+    vertical-align: middle;
+    margin-right: 8px;
+  }
+  .pair {
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+  }
+  .hex {
+    color: var(--text);
+    font-size: 11.5px;
+    letter-spacing: 0.04em;
+    font-variant-numeric: tabular-nums;
+  }
+  .token { color: var(--accent); font-size: 12px; }
+  .usage { color: var(--muted); font-size: 12px; line-height: 1.5; }
+
+  /* Reference-count bar */
+  .count-cell {
+    width: 130px;
+    white-space: nowrap;
+  }
+  .count-bar-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .count-bar {
+    flex: 1;
+    height: 4px;
+    background: var(--panel-2);
+    border-radius: 2px;
+    overflow: hidden;
+    min-width: 50px;
+  }
+  .count-bar > i {
+    display: block;
+    height: 100%;
+    background: var(--tier, var(--muted));
+    border-radius: 2px;
+  }
+  .count-num {
+    color: var(--text);
+    font-size: 11.5px;
+    font-variant-numeric: tabular-nums;
+    min-width: 38px;
+    text-align: right;
+  }
+  .count-note { color: var(--faint); font-size: 10.5px; margin-left: 2px; }
+
+  .footnote {
+    color: var(--faint);
+    font-size: 11.5px;
+    line-height: 1.6;
+    margin-top: 12px;
+  }
+  .insights {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 18px 20px;
+    margin-bottom: 24px;
+  }
+  .insights h2 {
+    font-family: ui-sans-serif, "Manrope", system-ui;
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    font-weight: 600;
+    color: var(--accent);
+    margin: 0 0 12px;
+  }
+  .insights p {
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.65;
+    margin: 0 0 10px;
+  }
+  .insights strong { color: var(--text); font-weight: 600; }
+  .insights .num {
+    color: var(--text);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .legend-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 10px;
+    margin-top: 14px;
+  }
+  .legend-tier {
+    border-left: 3px solid var(--tier);
+    padding: 6px 12px;
+    background: var(--panel-2);
+    border-radius: 4px;
+  }
+  .legend-tier .name {
+    font-family: ui-sans-serif, "Manrope", system-ui;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--tier);
+    font-weight: 600;
+  }
+  .legend-tier .desc {
+    color: var(--muted);
+    font-size: 11.5px;
+    margin-top: 2px;
+    line-height: 1.4;
+  }
+
+  .swell-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 10px;
+    margin-top: 8px;
+  }
+  .swell-cell {
+    background: var(--panel-2);
+    border-radius: 6px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .swell-cell .swatch { width: 100%; height: 36px; margin: 0; }
+  .swell-cell .hex { font-size: 11.5px; }
+  .swell-cell .lbl { color: var(--faint); font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; }
+  .swell-cell .mode-tag { color: var(--faint); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 4px; }
+  .hide { display: none; }
+  .mode-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 8px;
+  }
+  .mode-col h4 {
+    font-size: 10.5px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--faint);
+    margin: 0 0 8px;
+    font-weight: 500;
+  }
+</style>
+</head>
+<body>
+  <h1>Onduler · color audit</h1>
+  <div class="sub">Generated 2026-05-24 — every defined color, grouped by role tier, weighted by codebase reference count.</div>
+
+  <div class="filters" id="filters">
+    <button class="chip active" data-filter="all">All themes</button>
+    <button class="chip" data-filter="default">Default — deep ocean</button>
+    <button class="chip" data-filter="bolinas">Bolinas — norcal fog</button>
+    <button class="chip" data-filter="biarritz">Biarritz — atlantic surf</button>
+    <button class="chip" data-filter="hardcoded">Hardcoded</button>
+  </div>
+
+  <!-- =========================== INSIGHTS =========================== -->
+  <div class="insights">
+    <h2>What the numbers say</h2>
+    <p>By <strong>reference count</strong> in the codebase, Onduler is a <strong>text-hierarchy app</strong>. The four Voice tokens (<code>text</code>, <code>secondary</code>, <code>muted</code>, <code>faint</code>) get <span class="num">713</span> total references — more than every surface, border, and button token combined. <code>--th-muted</code> alone clocks <span class="num">262×</span>, the single most-used token.</p>
+    <p>The <strong>accent</strong> token shows up only <span class="num">16</span> times. That's the philosophy: accent is loud <em>because</em> it's rare — kickers, links, the daily progress fill, nothing more. Same story for <code>success</code>, <code>wave-wash</code>, <code>accent-text</code>, and <code>surface-2</code> — all sit at the floor (<span class="num">7×</span>, which is just the theme definitions themselves). Worth asking whether some of those are dead weight.</p>
+    <p>The <strong>swell tokens</strong> (<code>--th-swell-1..10</code>) are defined but <em>never consumed by name</em> in component code. Swell colors come from the <code>swells.color</code> database column. The palette is a <em>source</em> for onboarding and the swell-create form to pick from — not a tokenized system the UI references. They live in a different layer than every other color in the app.</p>
+    <p class="footnote">Reference count = occurrences of <code>th-{token}</code> in <code>app/**</code> and <code>lib/**</code> (.tsx, .ts, .css). Includes both CSS variable definitions and Tailwind utility uses (<code>text-th-muted</code>, <code>bg-th-bg</code>, etc.). Bar lengths are scaled to <code>--th-muted</code> = 100%.</p>
+
+    <div class="legend-grid">
+      <div class="legend-tier" style="--tier: var(--tier-field)"><div class="name">Field</div><div class="desc">The canvas. Bg + surfaces.</div></div>
+      <div class="legend-tier" style="--tier: var(--tier-edge)"><div class="name">Edge</div><div class="desc">Separation only, no information.</div></div>
+      <div class="legend-tier" style="--tier: var(--tier-voice)"><div class="name">Voice</div><div class="desc">Text hierarchy. Where reading happens.</div></div>
+      <div class="legend-tier" style="--tier: var(--tier-interaction)"><div class="name">Interaction</div><div class="desc">Buttons + focus. Touchable.</div></div>
+      <div class="legend-tier" style="--tier: var(--tier-signal)"><div class="name">Signal</div><div class="desc">Emphasis, success, wave-mode.</div></div>
+      <div class="legend-tier" style="--tier: var(--tier-identity)"><div class="name">Identity</div><div class="desc">User-personalized palette source.</div></div>
+    </div>
+  </div>
+
+  <!-- ============================ DEFAULT ============================ -->
+  <div class="group" data-theme="default">
+    <div class="group-title">Default — deep ocean</div>
+
+    <div class="theme-block">
+      <div class="theme-head">
+        <div class="theme-name">Base UI tokens, by role</div>
+        <div class="theme-meta">app/globals.css → :root + dark-mode media query</div>
+      </div>
+
+      <div class="tier" style="--tier: var(--tier-field)">
+        <div class="tier-head"><div class="tier-name">Field</div><div class="tier-desc">the canvas you're standing on</div><div class="tier-share">3 tokens · 188 refs</div></div>
+        <table>
+          <thead><tr><th>Token</th><th>Light</th><th>Dark</th><th class="count-cell">Used</th><th>Where</th></tr></thead>
+          <tbody>
+            <tr><td class="token">--th-bg</td><td><span class="pair"><span class="swatch" style="background:#f4f7fa"></span><span class="hex">#f4f7fa</span></span></td><td><span class="pair"><span class="swatch" style="background:#000000"></span><span class="hex">#000000</span></span></td><td><div class="count-bar-wrap"><div class="count-bar"><i style="width:21.8%"></i></div><span class="count-num">57×</span></div></td><td class="usage">App background — every page body</td></tr>
+            <tr><td class="token">--th-surface</td><td><span class="pair"><span class="swatch" style="background:#e9eef3"></span><span class="hex">#e9eef3</span></span></td><td><span class="pair"><span class="swatch" style="background:#14263b"></span><span class="hex">#14263b</span></span></td><td><div class="count-bar-wrap"><div class="count-bar"><i style="width:47.3%"></i></div><span class="count-num">124×</span></div></td><td class="usage">Cards, sheets, motion rows, swell rows</td></tr>
+            <tr><td class="token">--th-surface-2</td><td><span class="pair"><span class="swatch" style="background:#dee5ec"></span><span class="hex">#dee5ec</span></span></td><td><span class="pair"><span class="swatch" style="background:#1c324a"></span><span class="hex">#1c324a</span></span></td><td><div class="count-bar-wrap"><div class="count-bar"><i style="width:2.7%"></i></div><span class="count-num">7×</span><span class="count-note">floor</span></div></td><td class="usage">Elevated / nested surfaces — barely used; mostly just defined</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="tier" style="--tier: var(--tier-edge)">
+        <div class="tier-head"><div class="tier-name">Edge</div><div class="tier-desc">separation, no information</div><div class="tier-share">2 tokens · 177 refs</div></div>
+        <table>
+          <thead><tr><th>Token</th><th>Light</th><th>Dark</th><th class="count-cell">Used</th><th>Where</th></tr></thead>
+          <tbody>
+            <tr><td class="token">--th-border</td><td><span class="pair"><span class="swatch" style="background:#d4dde5"></span><span class="hex">#d4dde5</span></span></td><td><span class="pair"><span class="swatch" style="background:#213c58"></span><span class="hex">#213c58</span></span></td><td><div class="count-bar-wrap"><div class="count-bar"><i style="width:60.7%"></i></div><span class="count-num">159×</span></div></td><td class="usage">Standard borders — cards, dividers, input outlines</td></tr>
+            <tr><td class="token">--th-border-soft</td><td><span class="pair"><span class="swatch" style="background:#e3eaf0"></span><span class="hex">#e3eaf0</span></span></td><td><span class="pair"><span class="swatch" style="background:#182b41"></span><span class="hex">#182b41</span></span></td><td><div class="count-bar-wrap"><div class="count-bar"><i style="width:6.9%"></i></div><span class="count-num">18×</span></div></td><td class="usage">Subtle dividers between motion rows (paper-list aesthetic)</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="tier" style="--tier: var(--tier-voice)">
+        <div class="tier-head"><div class="tier-name">Voice</div><div class="tier-desc">text hierarchy · the app's load-bearing tier</div><div class="tier-share">4 tokens · 713 refs</div></div>
+        <table>
+          <thead><tr><th>Token</th><th>Light</th><th>Dark</th><th class="count-cell">Used</th><th>Where</th></tr></thead>
+          <tbody>
+            <tr><td class="token">--th-text</td><td><span class="pair"><span class="swatch" style="background:#0e2238"></span><span class="hex">#0e2238</span></span></td><td><span class="pair"><span class="swatch" style="background:#e8eef5"></span><span class="hex">#e8eef5</span></span></td><td><div class="count-bar-wrap"><div class="count-bar"><i style="width:83.6%"></i></div><span class="count-num">219×</span></div></td><td class="usage">Primary text — headings, motion names, swell names</td></tr>
+            <tr><td class="token">--th-secondary</td><td><span class="pair"><span class="swatch" style="background:#355068"></span><span class="hex">#355068</span></span></td><td><span class="pair"><span class="swatch" style="background:#b8c5d3"></span><span class="hex">#b8c5d3</span></span></td><td><div class="count-bar-wrap"><div class="count-bar"><i style="width:18.7%"></i></div><span class="count-num">49×</span></div></td><td class="usage">Secondary text — labels, sub-rows, constellation node names</td></tr>
+            <tr><td class="token">--th-muted</td><td><span class="pair"><span class="swatch" style="background:#6b7f93"></span><span class="hex">#6b7f93</span></span></td><td><span class="pair"><span class="swatch" style="background:#7d8fa3"></span><span class="hex">#7d8fa3</span></span></td><td><div class="count-bar-wrap"><div class="count-bar"><i style="width:100%"></i></div><span class="count-num">262×</span><span class="count-note">peak</span></div></td><td class="usage">Body copy — descriptions, hint text, "in [group]" — the most-used token in the app</td></tr>
+            <tr><td class="token">--th-faint</td><td><span class="pair"><span class="swatch" style="background:#a4b1bd"></span><span class="hex">#a4b1bd</span></span></td><td><span class="pair"><span class="swatch" style="background:#4d5e72"></span><span class="hex">#4d5e72</span></span></td><td><div class="count-bar-wrap"><div class="count-bar"><i style="width:69.8%"></i></div><span class="count-num">183×</span></div></td><td class="usage">Faintest text — empty states, denominators, kicker meta</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="tier" style="--tier: var(--tier-interaction)">
+        <div class="tier-head"><div class="tier-name">Interaction</div><div class="tier-desc">touchable affordances</div><div class="tier-share">4 tokens · 176 refs</div></div>
+        <table>
+          <thead><tr><th>Token</th><th>Light</th><th>Dark</th><th class="count-cell">Used</th><th>Where</th></tr></thead>
+          <tbody>
+            <tr><td class="token">--th-btn</td><td><span class="pair"><span class="swatch" style="background:#0e2238"></span><span class="hex">#0e2238</span></span></td><td><span class="pair"><span class="swatch" style="background:#e8eef5"></span><span class="hex">#e8eef5</span></span></td><td><div class="count-bar-wrap"><div class="count-bar"><i style="width:22.9%"></i></div><span class="count-num">60×</span></div></td><td class="usage">Primary button fill</td></tr>
+            <tr><td class="token">--th-btn-text</td><td><span class="pair"><span class="swatch" style="background:#f4f7fa"></span><span class="hex">#f4f7fa</span></span></td><td><span class="pair"><span class="swatch" style="background:#000000"></span><span class="hex">#000000</span></span></td><td><div class="count-bar-wrap"><div class="count-bar"><i style="width:13.4%"></i></div><span class="count-num">35×</span></div></td><td class="usage">Primary button text</td></tr>
+            <tr><td class="token">--th-btn-hover</td><td><span class="pair"><span class="swatch" style="background:#355068"></span><span class="hex">#355068</span></span></td><td><span class="pair"><span class="swatch" style="background:#b8c5d3"></span><span class="hex">#b8c5d3</span></span></td><td><div class="count-bar-wrap"><div class="count-bar"><i style="width:10.7%"></i></div><span class="count-num">28×</span></div></td><td class="usage">Button hover state</td></tr>
+            <tr><td class="token">--th-focus</td><td><span class="pair"><span class="swatch" style="background:#6b7f93"></span><span class="hex">#6b7f93</span></span></td><td><span class="pair"><span class="swatch" style="background:#7d8fa3"></span><span class="hex">#7d8fa3</span></span></td><td><div class="count-bar-wrap"><div class="count-bar"><i style="width:20.2%"></i></div><span class="count-num">53×</span></div></td><td class="usage">Focus ring on inputs</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="tier" style="--tier: var(--tier-signal)">
+        <div class="tier-head"><div class="tier-name">Signal</div><div class="tier-desc">emphasis, success, wave-mode — loud because rare</div><div class="tier-share">4 tokens · 37 refs</div></div>
+        <table>
+          <thead><tr><th>Token</th><th>Light</th><th>Dark</th><th class="count-cell">Used</th><th>Where</th></tr></thead>
+          <tbody>
+            <tr><td class="token">--th-accent</td><td><span class="pair"><span class="swatch" style="background:#2772bd"></span><span class="hex">#2772bd</span></span></td><td><span class="pair"><span class="swatch" style="background:#4d97e0"></span><span class="hex">#4d97e0</span></span></td><td><div class="count-bar-wrap"><div class="count-bar"><i style="width:6.1%"></i></div><span class="count-num">16×</span></div></td><td class="usage">.kicker label, legal-content links, ombré daily-progress fill</td></tr>
+            <tr><td class="token">--th-accent-text</td><td><span class="pair"><span class="swatch" style="background:#ffffff"></span><span class="hex">#ffffff</span></span></td><td><span class="pair"><span class="swatch" style="background:#000000"></span><span class="hex">#000000</span></span></td><td><div class="count-bar-wrap"><div class="count-bar"><i style="width:2.7%"></i></div><span class="count-num">7×</span><span class="count-note">floor</span></div></td><td class="usage">Text on accent-filled chips/buttons — barely used; possible dead weight</td></tr>
+            <tr><td class="token">--th-success</td><td><span class="pair"><span class="swatch" style="background:#2f7d6b"></span><span class="hex">#2f7d6b</span></span></td><td><span class="pair"><span class="swatch" style="background:#4eb09a"></span><span class="hex">#4eb09a</span></span></td><td><div class="count-bar-wrap"><div class="count-bar"><i style="width:2.7%"></i></div><span class="count-num">7×</span><span class="count-note">floor</span></div></td><td class="usage">Target-hit checkmark, success states — defined but barely consumed</td></tr>
+            <tr><td class="token">--th-wave-wash</td><td><span class="pair"><span class="swatch" style="background:rgba(39,114,189,0.08)"></span><span class="hex">rgba(39,114,189,.08)</span></span></td><td><span class="pair"><span class="swatch" style="background:rgba(77,151,224,0.12)"></span><span class="hex">rgba(77,151,224,.12)</span></span></td><td><div class="count-bar-wrap"><div class="count-bar"><i style="width:2.7%"></i></div><span class="count-num">7×</span><span class="count-note">floor</span></div></td><td class="usage">Wave-mode wash on the Logs radar + locked tiles</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="theme-block">
+      <div class="theme-head">
+        <div class="theme-name" style="color: var(--tier-identity)">Identity · swell palette (10)</div>
+        <div class="theme-meta">lib/theme-colors.ts → THEME_PALETTES.default</div>
+      </div>
+      <div class="usage" style="margin-bottom: 8px">
+        Onboarding shuffles this palette to seed the 10 default swells; the swell-create form picks from it. Tokens <code>--th-swell-1..10</code> are also defined in <code>globals.css</code> but <em>never named by component code</em> — they're a palette source, not a consumed token system. Reference count for each is 7 (just the theme definitions themselves).
+      </div>
+      <div class="mode-row">
+        <div class="mode-col">
+          <h4>Light mode</h4>
+          <div class="swell-grid">
+            <div class="swell-cell"><div class="swatch" style="background:#2A6FDB"></div><div class="hex">#2A6FDB</div><div class="lbl">swell-1</div></div>
+            <div class="swell-cell"><div class="swatch" style="background:#1FA38C"></div><div class="hex">#1FA38C</div><div class="lbl">swell-2</div></div>
+            <div class="swell-cell"><div class="swatch" style="background:#E2785A"></div><div class="hex">#E2785A</div><div class="lbl">swell-3</div></div>
+            <div class="swell-cell"><div class="swatch" style="background:#D9A93E"></div><div class="hex">#D9A93E</div><div class="lbl">swell-4</div></div>
+            <div class="swell-cell"><div class="swatch" style="background:#5B9B6D"></div><div class="hex">#5B9B6D</div><div class="lbl">swell-5</div></div>
+            <div class="swell-cell"><div class="swatch" style="background:#C45577"></div><div class="hex">#C45577</div><div class="lbl">swell-6</div></div>
+            <div class="swell-cell"><div class="swatch" style="background:#6BACE0"></div><div class="hex">#6BACE0</div><div class="lbl">swell-7</div></div>
+            <div class="swell-cell"><div class="swatch" style="background:#6FCDB7"></div><div class="hex">#6FCDB7</div><div class="lbl">swell-8</div></div>
+            <div class="swell-cell"><div class="swatch" style="background:#8E6CB7"></div><div class="hex">#8E6CB7</div><div class="lbl">swell-9</div></div>
+            <div class="swell-cell"><div class="swatch" style="background:#6E879F"></div><div class="hex">#6E879F</div><div class="lbl">swell-10</div></div>
+          </div>
+        </div>
+        <div class="mode-col">
+          <h4>Dark mode</h4>
+          <div class="swell-grid">
+            <div class="swell-cell"><div class="swatch" style="background:#5A95E8"></div><div class="hex">#5A95E8</div><div class="lbl">swell-1</div></div>
+            <div class="swell-cell"><div class="swatch" style="background:#34BFA8"></div><div class="hex">#34BFA8</div><div class="lbl">swell-2</div></div>
+            <div class="swell-cell"><div class="swatch" style="background:#ED8F73"></div><div class="hex">#ED8F73</div><div class="lbl">swell-3</div></div>
+            <div class="swell-cell"><div class="swatch" style="background:#E3BB5C"></div><div class="hex">#E3BB5C</div><div class="lbl">swell-4</div></div>
+            <div class="swell-cell"><div class="swatch" style="background:#7BB78A"></div><div class="hex">#7BB78A</div><div class="lbl">swell-5</div></div>
+            <div class="swell-cell"><div class="swatch" style="background:#D87693"></div><div class="hex">#D87693</div><div class="lbl">swell-6</div></div>
+            <div class="swell-cell"><div class="swatch" style="background:#91C5EE"></div><div class="hex">#91C5EE</div><div class="lbl">swell-7</div></div>
+            <div class="swell-cell"><div class="swatch" style="background:#8DDDC7"></div><div class="hex">#8DDDC7</div><div class="lbl">swell-8</div></div>
+            <div class="swell-cell"><div class="swatch" style="background:#AB8AD0"></div><div class="hex">#AB8AD0</div><div class="lbl">swell-9</div></div>
+            <div class="swell-cell"><div class="swatch" style="background:#93A6BB"></div><div class="hex">#93A6BB</div><div class="lbl">swell-10</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================ BOLINAS ============================ -->
+  <div class="group" data-theme="bolinas">
+    <div class="group-title">Bolinas — northern California fog</div>
+
+    <div class="theme-block">
+      <div class="theme-head">
+        <div class="theme-name">Base UI tokens, by role</div>
+        <div class="theme-meta">app/globals.css → [data-theme="bolinas"] + dark-mode media query</div>
+      </div>
+
+      <div class="tier" style="--tier: var(--tier-field)">
+        <div class="tier-head"><div class="tier-name">Field</div><div class="tier-desc">the canvas you're standing on</div><div class="tier-share">3 tokens · 188 refs</div></div>
+        <table>
+          <thead><tr><th>Token</th><th>Light</th><th>Dark</th><th class="count-cell">Used</th><th>Where</th></tr></thead>
+          <tbody>
+            <tr><td class="token">--th-bg</td><td><span class="pair"><span class="swatch" style="background:#ebede7"></span><span class="hex">#ebede7</span></span></td><td><span class="pair"><span class="swatch" style="background:#161a17"></span><span class="hex">#161a17</span></span></td><td><div class="count-bar-wrap"><div class="count-bar"><i style="width:21.8%"></i></div><span class="count-num">57×</span></div></td><td class="usage">App background</td></tr>
+            <tr><td class="token">--th-surface</td><td><span class="pair"><span class="swatch" style="background:#dfe1da"></span><span class="hex">#dfe1da</span></span></td><td><span class="pair"><span class="swatch" style="background:#1f2420"></span><span class="hex">#1f2420</span></span></td><td><div class="count-bar-wrap"><div class="count-bar"><i style="width:47.3%"></i></div><span class="count-num">124×</span></div></td><td class="usage">Card surfaces</td></tr>
+            <tr><td class="token">--th-surface-2</td><td><span class="pair"><span class="swatch" style="background:#d2d4cc"></span><span class="hex">#d2d4cc</span></span></td><td><span class="pair"><span class="swatch" style="background:#2a302a"></span><span class="hex">#2a302a</span></span></td><td><div class="count-bar-wrap"><div class="count-bar"><i style="width:2.7%"></i></div><span class="count-num">7×</span><span class="count-note">floor</span></div></td><td class="usage">Elevated / nested surfaces</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="tier" style="--tier: var(--tier-edge)">
+        <div class="tier-head"><div class="tier-name">Edge</div><div class="tier-desc">separation, no information</div><div class="tier-share">2 tokens · 177 refs</div></div>
+        <table>
+          <thead><tr><th>Token</th><th>Light</th><th>Dark</th><th class="count-cell">Used</th><th>Where</th></tr></thead>
+          <tbody>
+            <tr><td class="token">--th-border</td><td><span class="pair"><span class="swatch" style="background:#cdd1ca"></span><span class="hex">#cdd1ca</span></span></td><td><span class="pair"><span class="swatch" style="background:#2c3530"></span><span class="hex">#2c3530</span></span></td><td><div class="count-bar-wrap"><div class="count-bar"><i style="width:60.7%"></i></div><span class="count-num">159×</span></div></td><td class="usage">Standard borders</td></tr>
+            <tr><td class="token">--th-border-soft</td><td><span class="pair"><span class="swatch" style="background:#dde0d8"></span><span class="hex">#dde0d8</span></span></td><td><span class="pair"><span class="swatch" style="background:#222824"></span><span class="hex">#222824</span></span></td><td><div class="count-bar-wrap"><div class="count-bar"><i style="width:6.9%"></i></div><span class="count-num">18×</span></div></td><td class="usage">Subtle row dividers</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="tier" style="--tier: var(--tier-voice)">
+        <div class="tier-head"><div class="tier-name">Voice</div><div class="tier-desc">text hierarchy · the app's load-bearing tier</div><div class="tier-share">4 tokens · 713 refs</div></div>
+        <table>
+          <thead><tr><th>Token</th><th>Light</th><th>Dark</th><th class="count-cell">Used</th><th>Where</th></tr></thead>
+          <tbody>
+            <tr><td class="token">--th-text</td><td><span class="pair"><span class="swatch" style="background:#1f2520"></span><span class="hex">#1f2520</span></span></td><td><span class="pair"><span class="swatch" style="background:#e0e3da"></span><span class="hex">#e0e3da</span></span></td><td><div class="count-bar-wrap"><div class="count-bar"><i style="width:83.6%"></i></div><span class="count-num">219×</span></div></td><td class="usage">Primary text</td></tr>
+            <tr><td class="token">--th-secondary</td><td><span class="pair"><span class="swatch" style="background:#475048"></span><span class="hex">#475048</span></span></td><td><span class="pair"><span class="swatch" style="background:#b4bdb1"></span><span class="hex">#b4bdb1</span></span></td><td><div class="count-bar-wrap"><div class="count-bar"><i style="width:18.7%"></i></div><span class="count-num">49×</span></div></td><td class="usage">Secondary text</td></tr>
+            <tr><td class="token">--th-muted</td><td><span class="pair"><span class="swatch" style="background:#758078"></span><span class="hex">#758078</span></span></td><td><span class="pair"><span class="swatch" style="background:#818c81"></span><span class="hex">#818c81</span></span></td><td><div class="count-bar-wrap"><div class="count-bar"><i style="width:100%"></i></div><span class="count-num">262×</span><span class="count-note">peak</span></div></td><td class="usage">Body copy — most-used token</td></tr>
+            <tr><td class="token">--th-faint</td><td><span class="pair"><span class="swatch" style="background:#a7b1aa"></span><span class="hex">#a7b1aa</span></span></td><td><span class="pair"><span class="swatch" style="background:#4c544e"></span><span class="hex">#4c544e</span></span></td><td><div class="count-bar-wrap"><div class="count-bar"><i style="width:69.8%"></i></div><span class="count-num">183×</span></div></td><td class="usage">Faintest text</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="tier" style="--tier: var(--tier-interaction)">
+        <div class="tier-head"><div class="tier-name">Interaction</div><div class="tier-desc">touchable affordances</div><div class="tier-share">4 tokens · 176 refs</div></div>
+        <table>
+          <thead><tr><th>Token</th><th>Light</th><th>Dark</th><th class="count-cell">Used</th><th>Where</th></tr></thead>
+          <tbody>
+            <tr><td class="token">--th-btn</td><td><span class="pair"><span class="swatch" style="background:#1f2520"></span><span class="hex">#1f2520</span></span></td><td><span class="pair"><span class="swatch" style="background:#e0e3da"></span><span class="hex">#e0e3da</span></span></td><td><div class="count-bar-wrap"><div class="count-bar"><i style="width:22.9%"></i></div><span class="count-num">60×</span></div></td><td class="usage">Button fill</td></tr>
+            <tr><td class="token">--th-btn-text</td><td><span class="pair"><span class="swatch" style="background:#ebede7"></span><span class="hex">#ebede7</span></span></td><td><span class="pair"><span class="swatch" style="background:#161a17"></span><span class="hex">#161a17</span></span></td><td><div class="count-bar-wrap"><div class="count-bar"><i style="width:13.4%"></i></div><span class="count-num">35×</span></div></td><td class="usage">Button text</td></tr>
+            <tr><td class="token">--th-btn-hover</td><td><span class="pair"><span class="swatch" style="background:#475048"></span><span class="hex">#475048</span></span></td><td><span class="pair"><span class="swatch" style="background:#b4bdb1"></span><span class="hex">#b4bdb1</span></span></td><td><div class="count-bar-wrap"><div class="count-bar"><i style="width:10.7%"></i></div><span class="count-num">28×</span></div></td><td class="usage">Button hover</td></tr>
+            <tr><td class="token">--th-focus</td><td><span class="pair"><span class="swatch" style="background:#758078"></span><span class="hex">#758078</span></span></td><td><span class="pair"><span class="swatch" style="background:#818c81"></span><span class="hex">#818c81</span></span></td><td><div class="count-bar-wrap"><div class="count-bar"><i style="width:20.2%"></i></div><span class="count-num">53×</span></div></td><td class="usage">Focus ring</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="tier" style="--tier: var(--tier-signal)">
+        <div class="tier-head"><div class="tier-name">Signal</div><div class="tier-desc">emphasis, success, wave-mode — loud because rare</div><div class="tier-share">4 tokens · 37 refs</div></div>
+        <table>
+          <thead><tr><th>Token</th><th>Light</th><th>Dark</th><th class="count-cell">Used</th><th>Where</th></tr></thead>
+          <tbody>
+            <tr><td class="token">--th-accent</td><td><span class="pair"><span class="swatch" style="background:#5b7359"></span><span class="hex">#5b7359</span></span></td><td><span class="pair"><span class="swatch" style="background:#93b18b"></span><span class="hex">#93b18b</span></span></td><td><div class="count-bar-wrap"><div class="count-bar"><i style="width:6.1%"></i></div><span class="count-num">16×</span></div></td><td class="usage">Kicker, links, daily-progress fill</td></tr>
+            <tr><td class="token">--th-accent-text</td><td><span class="pair"><span class="swatch" style="background:#ffffff"></span><span class="hex">#ffffff</span></span></td><td><span class="pair"><span class="swatch" style="background:#161a17"></span><span class="hex">#161a17</span></span></td><td><div class="count-bar-wrap"><div class="count-bar"><i style="width:2.7%"></i></div><span class="count-num">7×</span><span class="count-note">floor</span></div></td><td class="usage">Text on accent-filled chips</td></tr>
+            <tr><td class="token">--th-success</td><td><span class="pair"><span class="swatch" style="background:#6d8a64"></span><span class="hex">#6d8a64</span></span></td><td><span class="pair"><span class="swatch" style="background:#93b18b"></span><span class="hex">#93b18b</span></span></td><td><div class="count-bar-wrap"><div class="count-bar"><i style="width:2.7%"></i></div><span class="count-num">7×</span><span class="count-note">floor</span></div></td><td class="usage">Success states</td></tr>
+            <tr><td class="token">--th-wave-wash</td><td><span class="pair"><span class="swatch" style="background:rgba(91,115,89,0.08)"></span><span class="hex">rgba(91,115,89,.08)</span></span></td><td><span class="pair"><span class="swatch" style="background:rgba(147,177,139,0.10)"></span><span class="hex">rgba(147,177,139,.10)</span></span></td><td><div class="count-bar-wrap"><div class="count-bar"><i style="width:2.7%"></i></div><span class="count-num">7×</span><span class="count-note">floor</span></div></td><td class="usage">Wave wash</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="theme-block">
+      <div class="theme-head">
+        <div class="theme-name" style="color: var(--tier-identity)">Identity · swell palette (10)</div>
+        <div class="theme-meta">lib/theme-colors.ts → THEME_PALETTES.bolinas</div>
+      </div>
+      <div class="mode-row">
+        <div class="mode-col">
+          <h4>Light mode</h4>
+          <div class="swell-grid">
+            <div class="swell-cell"><div class="swatch" style="background:#6F8A6E"></div><div class="hex">#6F8A6E</div><div class="lbl">swell-1</div></div>
+            <div class="swell-cell"><div class="swatch" style="background:#8FA8AF"></div><div class="hex">#8FA8AF</div><div class="lbl">swell-2</div></div>
+            <div class="swell-cell"><div class="swatch" style="background:#B89E7E"></div><div class="hex">#B89E7E</div><div class="lbl">swell-3</div></div>
+            <div class="swell-cell"><div class="swatch" style="background:#9CAB8E"></div><div class="hex">#9CAB8E</div><div class="lbl">swell-4</div></div>
+            <div class="swell-cell"><div class="swatch" style="background:#B58F8A"></div><div class="hex">#B58F8A</div><div class="lbl">swell-5</div></div>
+            <div class="swell-cell"><div class="swatch" style="background:#5C7886"></div><div class="hex">#5C7886</div><div class="lbl">swell-6</div></div>
+            <div class="swell-cell"><div class="swatch" style="background:#A89F95"></div><div class="hex">#A89F95</div><div class="lbl">swell-7</div></div>
+            <div class="swell-cell"><div class="swatch" style="background:#7C9088"></div><div class="hex">#7C9088</div><div class="lbl">swell-8</div></div>
+            <div class="swell-cell"><div class="swatch" style="background:#C0AE93"></div><div class="hex">#C0AE93</div><div class="lbl">swell-9</div></div>
+            <div class="swell-cell"><div class="swatch" style="background:#607566"></div><div class="hex">#607566</div><div class="lbl">swell-10</div></div>
+          </div>
+        </div>
+        <div class="mode-col">
+          <h4>Dark mode</h4>
+          <div class="swell-grid">
+            <div class="swell-cell"><div class="swatch" style="background:#97AC92"></div><div class="hex">#97AC92</div><div class="lbl">swell-1</div></div>
+            <div class="swell-cell"><div class="swatch" style="background:#A5C0C6"></div><div class="hex">#A5C0C6</div><div class="lbl">swell-2</div></div>
+            <div class="swell-cell"><div class="swatch" style="background:#C9AE92"></div><div class="hex">#C9AE92</div><div class="lbl">swell-3</div></div>
+            <div class="swell-cell"><div class="swatch" style="background:#B5C29F"></div><div class="hex">#B5C29F</div><div class="lbl">swell-4</div></div>
+            <div class="swell-cell"><div class="swatch" style="background:#C6A29D"></div><div class="hex">#C6A29D</div><div class="lbl">swell-5</div></div>
+            <div class="swell-cell"><div class="swatch" style="background:#87A1AE"></div><div class="hex">#87A1AE</div><div class="lbl">swell-6</div></div>
+            <div class="swell-cell"><div class="swatch" style="background:#B5ACA2"></div><div class="hex">#B5ACA2</div><div class="lbl">swell-7</div></div>
+            <div class="swell-cell"><div class="swatch" style="background:#94A89F"></div><div class="hex">#94A89F</div><div class="lbl">swell-8</div></div>
+            <div class="swell-cell"><div class="swatch" style="background:#D0BEA4"></div><div class="hex">#D0BEA4</div><div class="lbl">swell-9</div></div>
+            <div class="swell-cell"><div class="swatch" style="background:#84997F"></div><div class="hex">#84997F</div><div class="lbl">swell-10</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================ BIARRITZ ============================ -->
+  <div class="group" data-theme="biarritz">
+    <div class="group-title">Biarritz — atlantic surf town</div>
+
+    <div class="theme-block">
+      <div class="theme-head">
+        <div class="theme-name">Base UI tokens, by role</div>
+        <div class="theme-meta">app/globals.css → [data-theme="biarritz"] + dark-mode media query</div>
+      </div>
+
+      <div class="tier" style="--tier: var(--tier-field)">
+        <div class="tier-head"><div class="tier-name">Field</div><div class="tier-desc">the canvas you're standing on</div><div class="tier-share">3 tokens · 188 refs</div></div>
+        <table>
+          <thead><tr><th>Token</th><th>Light</th><th>Dark</th><th class="count-cell">Used</th><th>Where</th></tr></thead>
+          <tbody>
+            <tr><td class="token">--th-bg</td><td><span class="pair"><span class="swatch" style="background:#f5efe5"></span><span class="hex">#f5efe5</span></span></td><td><span class="pair"><span class="swatch" style="background:#0e2329"></span><span class="hex">#0e2329</span></span></td><td><div class="count-bar-wrap"><div class="count-bar"><i style="width:21.8%"></i></div><span class="count-num">57×</span></div></td><td class="usage">App background</td></tr>
+            <tr><td class="token">--th-surface</td><td><span class="pair"><span class="swatch" style="background:#ebe3d4"></span><span class="hex">#ebe3d4</span></span></td><td><span class="pair"><span class="swatch" style="background:#15303a"></span><span class="hex">#15303a</span></span></td><td><div class="count-bar-wrap"><div class="count-bar"><i style="width:47.3%"></i></div><span class="count-num">124×</span></div></td><td class="usage">Card surfaces</td></tr>
+            <tr><td class="token">--th-surface-2</td><td><span class="pair"><span class="swatch" style="background:#dfd5c1"></span><span class="hex">#dfd5c1</span></span></td><td><span class="pair"><span class="swatch" style="background:#1e404c"></span><span class="hex">#1e404c</span></span></td><td><div class="count-bar-wrap"><div class="count-bar"><i style="width:2.7%"></i></div><span class="count-num">7×</span><span class="count-note">floor</span></div></td><td class="usage">Elevated / nested surfaces</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="tier" style="--tier: var(--tier-edge)">
+        <div class="tier-head"><div class="tier-name">Edge</div><div class="tier-desc">separation, no information</div><div class="tier-share">2 tokens · 177 refs</div></div>
+        <table>
+          <thead><tr><th>Token</th><th>Light</th><th>Dark</th><th class="count-cell">Used</th><th>Where</th></tr></thead>
+          <tbody>
+            <tr><td class="token">--th-border</td><td><span class="pair"><span class="swatch" style="background:#d6c9b3"></span><span class="hex">#d6c9b3</span></span></td><td><span class="pair"><span class="swatch" style="background:#244a56"></span><span class="hex">#244a56</span></span></td><td><div class="count-bar-wrap"><div class="count-bar"><i style="width:60.7%"></i></div><span class="count-num">159×</span></div></td><td class="usage">Standard borders</td></tr>
+            <tr><td class="token">--th-border-soft</td><td><span class="pair"><span class="swatch" style="background:#e4dac6"></span><span class="hex">#e4dac6</span></span></td><td><span class="pair"><span class="swatch" style="background:#1a3742"></span><span class="hex">#1a3742</span></span></td><td><div class="count-bar-wrap"><div class="count-bar"><i style="width:6.9%"></i></div><span class="count-num">18×</span></div></td><td class="usage">Subtle row dividers</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="tier" style="--tier: var(--tier-voice)">
+        <div class="tier-head"><div class="tier-name">Voice</div><div class="tier-desc">text hierarchy · the app's load-bearing tier</div><div class="tier-share">4 tokens · 713 refs</div></div>
+        <table>
+          <thead><tr><th>Token</th><th>Light</th><th>Dark</th><th class="count-cell">Used</th><th>Where</th></tr></thead>
+          <tbody>
+            <tr><td class="token">--th-text</td><td><span class="pair"><span class="swatch" style="background:#112730"></span><span class="hex">#112730</span></span></td><td><span class="pair"><span class="swatch" style="background:#ede5d4"></span><span class="hex">#ede5d4</span></span></td><td><div class="count-bar-wrap"><div class="count-bar"><i style="width:83.6%"></i></div><span class="count-num">219×</span></div></td><td class="usage">Primary text</td></tr>
+            <tr><td class="token">--th-secondary</td><td><span class="pair"><span class="swatch" style="background:#2c5560"></span><span class="hex">#2c5560</span></span></td><td><span class="pair"><span class="swatch" style="background:#c4b8a0"></span><span class="hex">#c4b8a0</span></span></td><td><div class="count-bar-wrap"><div class="count-bar"><i style="width:18.7%"></i></div><span class="count-num">49×</span></div></td><td class="usage">Secondary text</td></tr>
+            <tr><td class="token">--th-muted</td><td><span class="pair"><span class="swatch" style="background:#6b8088"></span><span class="hex">#6b8088</span></span></td><td><span class="pair"><span class="swatch" style="background:#8a8576"></span><span class="hex">#8a8576</span></span></td><td><div class="count-bar-wrap"><div class="count-bar"><i style="width:100%"></i></div><span class="count-num">262×</span><span class="count-note">peak</span></div></td><td class="usage">Body copy — most-used token</td></tr>
+            <tr><td class="token">--th-faint</td><td><span class="pair"><span class="swatch" style="background:#a8b4b9"></span><span class="hex">#a8b4b9</span></span></td><td><span class="pair"><span class="swatch" style="background:#4e5552"></span><span class="hex">#4e5552</span></span></td><td><div class="count-bar-wrap"><div class="count-bar"><i style="width:69.8%"></i></div><span class="count-num">183×</span></div></td><td class="usage">Faintest text</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="tier" style="--tier: var(--tier-interaction)">
+        <div class="tier-head"><div class="tier-name">Interaction</div><div class="tier-desc">touchable affordances</div><div class="tier-share">4 tokens · 176 refs</div></div>
+        <table>
+          <thead><tr><th>Token</th><th>Light</th><th>Dark</th><th class="count-cell">Used</th><th>Where</th></tr></thead>
+          <tbody>
+            <tr><td class="token">--th-btn</td><td><span class="pair"><span class="swatch" style="background:#112730"></span><span class="hex">#112730</span></span></td><td><span class="pair"><span class="swatch" style="background:#ede5d4"></span><span class="hex">#ede5d4</span></span></td><td><div class="count-bar-wrap"><div class="count-bar"><i style="width:22.9%"></i></div><span class="count-num">60×</span></div></td><td class="usage">Button fill</td></tr>
+            <tr><td class="token">--th-btn-text</td><td><span class="pair"><span class="swatch" style="background:#f5efe5"></span><span class="hex">#f5efe5</span></span></td><td><span class="pair"><span class="swatch" style="background:#0e2329"></span><span class="hex">#0e2329</span></span></td><td><div class="count-bar-wrap"><div class="count-bar"><i style="width:13.4%"></i></div><span class="count-num">35×</span></div></td><td class="usage">Button text</td></tr>
+            <tr><td class="token">--th-btn-hover</td><td><span class="pair"><span class="swatch" style="background:#2c5560"></span><span class="hex">#2c5560</span></span></td><td><span class="pair"><span class="swatch" style="background:#c4b8a0"></span><span class="hex">#c4b8a0</span></span></td><td><div class="count-bar-wrap"><div class="count-bar"><i style="width:10.7%"></i></div><span class="count-num">28×</span></div></td><td class="usage">Button hover</td></tr>
+            <tr><td class="token">--th-focus</td><td><span class="pair"><span class="swatch" style="background:#6b8088"></span><span class="hex">#6b8088</span></span></td><td><span class="pair"><span class="swatch" style="background:#8a8576"></span><span class="hex">#8a8576</span></span></td><td><div class="count-bar-wrap"><div class="count-bar"><i style="width:20.2%"></i></div><span class="count-num">53×</span></div></td><td class="usage">Focus ring</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="tier" style="--tier: var(--tier-signal)">
+        <div class="tier-head"><div class="tier-name">Signal</div><div class="tier-desc">emphasis, success, wave-mode — loud because rare</div><div class="tier-share">4 tokens · 37 refs</div></div>
+        <table>
+          <thead><tr><th>Token</th><th>Light</th><th>Dark</th><th class="count-cell">Used</th><th>Where</th></tr></thead>
+          <tbody>
+            <tr><td class="token">--th-accent</td><td><span class="pair"><span class="swatch" style="background:#c9521e"></span><span class="hex">#c9521e</span></span></td><td><span class="pair"><span class="swatch" style="background:#de7140"></span><span class="hex">#de7140</span></span></td><td><div class="count-bar-wrap"><div class="count-bar"><i style="width:6.1%"></i></div><span class="count-num">16×</span></div></td><td class="usage">Kicker, links, daily-progress fill</td></tr>
+            <tr><td class="token">--th-accent-text</td><td><span class="pair"><span class="swatch" style="background:#ffffff"></span><span class="hex">#ffffff</span></span></td><td><span class="pair"><span class="swatch" style="background:#0e2329"></span><span class="hex">#0e2329</span></span></td><td><div class="count-bar-wrap"><div class="count-bar"><i style="width:2.7%"></i></div><span class="count-num">7×</span><span class="count-note">floor</span></div></td><td class="usage">Text on accent-filled chips</td></tr>
+            <tr><td class="token">--th-success</td><td><span class="pair"><span class="swatch" style="background:#2a6f7a"></span><span class="hex">#2a6f7a</span></span></td><td><span class="pair"><span class="swatch" style="background:#7ec5cd"></span><span class="hex">#7ec5cd</span></span></td><td><div class="count-bar-wrap"><div class="count-bar"><i style="width:2.7%"></i></div><span class="count-num">7×</span><span class="count-note">floor</span></div></td><td class="usage">Success states</td></tr>
+            <tr><td class="token">--th-wave-wash</td><td><span class="pair"><span class="swatch" style="background:rgba(42,111,122,0.08)"></span><span class="hex">rgba(42,111,122,.08)</span></span></td><td><span class="pair"><span class="swatch" style="background:rgba(222,113,64,0.12)"></span><span class="hex">rgba(222,113,64,.12)</span></span></td><td><div class="count-bar-wrap"><div class="count-bar"><i style="width:2.7%"></i></div><span class="count-num">7×</span><span class="count-note">floor</span></div></td><td class="usage">Wave wash</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="theme-block">
+      <div class="theme-head">
+        <div class="theme-name" style="color: var(--tier-identity)">Identity · swell palette (10)</div>
+        <div class="theme-meta">lib/theme-colors.ts → THEME_PALETTES.biarritz</div>
+      </div>
+      <div class="mode-row">
+        <div class="mode-col">
+          <h4>Light mode</h4>
+          <div class="swell-grid">
+            <div class="swell-cell"><div class="swatch" style="background:#C9621E"></div><div class="hex">#C9621E</div><div class="lbl">swell-1</div></div>
+            <div class="swell-cell"><div class="swatch" style="background:#2A6F7A"></div><div class="hex">#2A6F7A</div><div class="lbl">swell-2</div></div>
+            <div class="swell-cell"><div class="swatch" style="background:#D6A968"></div><div class="hex">#D6A968</div><div class="lbl">swell-3</div></div>
+            <div class="swell-cell"><div class="swatch" style="background:#B04E3C"></div><div class="hex">#B04E3C</div><div class="lbl">swell-4</div></div>
+            <div class="swell-cell"><div class="swatch" style="background:#6B98B5"></div><div class="hex">#6B98B5</div><div class="lbl">swell-5</div></div>
+            <div class="swell-cell"><div class="swatch" style="background:#D89066"></div><div class="hex">#D89066</div><div class="lbl">swell-6</div></div>
+            <div class="swell-cell"><div class="swatch" style="background:#8AA570"></div><div class="hex">#8AA570</div><div class="lbl">swell-7</div></div>
+            <div class="swell-cell"><div class="swatch" style="background:#9C5B3B"></div><div class="hex">#9C5B3B</div><div class="lbl">swell-8</div></div>
+            <div class="swell-cell"><div class="swatch" style="background:#4D8489"></div><div class="hex">#4D8489</div><div class="lbl">swell-9</div></div>
+            <div class="swell-cell"><div class="swatch" style="background:#C28C5C"></div><div class="hex">#C28C5C</div><div class="lbl">swell-10</div></div>
+          </div>
+        </div>
+        <div class="mode-col">
+          <h4>Dark mode</h4>
+          <div class="swell-grid">
+            <div class="swell-cell"><div class="swatch" style="background:#DE7B47"></div><div class="hex">#DE7B47</div><div class="lbl">swell-1</div></div>
+            <div class="swell-cell"><div class="swatch" style="background:#4FA6B3"></div><div class="hex">#4FA6B3</div><div class="lbl">swell-2</div></div>
+            <div class="swell-cell"><div class="swatch" style="background:#E2BC85"></div><div class="hex">#E2BC85</div><div class="lbl">swell-3</div></div>
+            <div class="swell-cell"><div class="swatch" style="background:#D26C5C"></div><div class="hex">#D26C5C</div><div class="lbl">swell-4</div></div>
+            <div class="swell-cell"><div class="swatch" style="background:#8ABACF"></div><div class="hex">#8ABACF</div><div class="lbl">swell-5</div></div>
+            <div class="swell-cell"><div class="swatch" style="background:#E5A582"></div><div class="hex">#E5A582</div><div class="lbl">swell-6</div></div>
+            <div class="swell-cell"><div class="swatch" style="background:#A8BE91"></div><div class="hex">#A8BE91</div><div class="lbl">swell-7</div></div>
+            <div class="swell-cell"><div class="swatch" style="background:#C07A5B"></div><div class="hex">#C07A5B</div><div class="lbl">swell-8</div></div>
+            <div class="swell-cell"><div class="swatch" style="background:#72ADB3"></div><div class="hex">#72ADB3</div><div class="lbl">swell-9</div></div>
+            <div class="swell-cell"><div class="swatch" style="background:#D7A879"></div><div class="hex">#D7A879</div><div class="lbl">swell-10</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================== HARDCODED =========================== -->
+  <div class="group" data-theme="hardcoded">
+    <div class="group-title">Hardcoded — theme-independent</div>
+    <div class="theme-block">
+      <div class="theme-head">
+        <div class="theme-name">Bypassing the theme system</div>
+        <div class="theme-meta">found by hex-scan across app/**</div>
+      </div>
+      <table>
+        <thead><tr><th style="width:50px">Color</th><th style="width:110px">Hex</th><th style="width:200px">Where</th><th>What it does</th></tr></thead>
+        <tbody>
+          <tr><td><span class="swatch" style="background:#5a6f55"></span></td><td class="hex">#5a6f55</td><td class="token">app/layout.tsx<br/>app/manifest.ts</td><td class="usage">PWA <code>themeColor</code> + manifest <code>theme_color</code> — sets the browser chrome tint when the PWA is installed. A muted Bolinas-leaning green; constant across all three themes.</td></tr>
+          <tr><td><span class="swatch" style="background:#1a1d1a"></span></td><td class="hex">#1a1d1a</td><td class="token">app/manifest.ts</td><td class="usage">PWA splash <code>background_color</code> — the color you see for the half-second before the app boots.</td></tr>
+          <tr><td><span class="swatch" style="background:#000000"></span></td><td class="hex">#000000</td><td class="token">app/api/wake-svg/route.ts</td><td class="usage">Default <code>bg</code> param for marketing wake-SVG export endpoint. Overridable per request.</td></tr>
+          <tr><td><span class="swatch" style="background:#e8e6e1"></span></td><td class="hex">#e8e6e1</td><td class="token">app/api/wake-svg/route.ts</td><td class="usage">Default <code>stroke</code> param for marketing wake-SVG export. The cream wake-line color on the printed postcards.</td></tr>
+          <tr><td><span class="swatch" style="background:#378ADD"></span></td><td class="hex">#378ADD</td><td class="token">app/components/SwellRadar.tsx</td><td class="usage">Logs radar wave-week wash + ramp pill stroke. Cool blue, not theme-mapped (the wave UI uses a single neutral blue intentionally).</td></tr>
+          <tr><td><span class="swatch" style="background:#185FA5"></span></td><td class="hex">#185FA5</td><td class="token">app/components/SwellRadar.tsx</td><td class="usage">Logs radar active-drag handle fill + ramp pill text. Deeper companion to #378ADD.</td></tr>
+        </tbody>
+      </table>
+      <div class="footnote">These six values are the only hex colors in user-facing app code that don't route through CSS variables. Worth flagging if you ever do a full theme refactor — the radar wave-blues in particular feel deliberate but could conflict with Biarritz's warm accent.</div>
+    </div>
+  </div>
+
+<script>
+  const filters = document.getElementById('filters');
+  const groups = document.querySelectorAll('.group');
+  filters.addEventListener('click', (e) => {
+    const btn = e.target.closest('.chip');
+    if (!btn) return;
+    [...filters.querySelectorAll('.chip')].forEach(c => c.classList.remove('active'));
+    btn.classList.add('active');
+    const f = btn.dataset.filter;
+    groups.forEach(g => {
+      if (f === 'all' || g.dataset.theme === f) g.classList.remove('hide');
+      else g.classList.add('hide');
+    });
+  });
+</script>
+</body>
+</html>
