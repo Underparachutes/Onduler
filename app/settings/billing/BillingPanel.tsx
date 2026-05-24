@@ -7,7 +7,7 @@ const PLANS = [
   { id: 'monthly' as const, label: '$5 / month', desc: 'Cancel anytime' },
   { id: 'annual' as const, label: '$36 / year', desc: 'Save 40%' },
   { id: 'lifetime' as const, label: '$99 once', desc: 'Lifetime access' },
-  { id: 'custom' as const, label: 'Donate', desc: 'Pay what you want ($100+)' },
+  { id: 'custom' as const, label: 'Donate', desc: 'Support the cause ($100+)' },
 ]
 
 type Props = {
