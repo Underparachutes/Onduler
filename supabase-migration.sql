@@ -140,8 +140,16 @@ CREATE TABLE user_settings (
   secondary_build     text    NULL,
   welcome_back_mode       text        NULL CHECK (welcome_back_mode IS NULL OR welcome_back_mode IN ('ease', 'full')),
   welcome_back_started_at timestamptz NULL,
-  mvs_motions             jsonb       NULL  -- per-shape: { "<build_key>": ["motion_id", ...] }
+  mvs_motions             jsonb       NULL, -- per-shape: { "<build_key>": ["motion_id", ...] }
+  stripe_customer_id      text        UNIQUE,
+  subscription_status     text        DEFAULT 'none'
+    CHECK (subscription_status IN ('active', 'past_due', 'canceled', 'incomplete', 'trialing', 'lifetime', 'none')),
+  subscription_id         text        UNIQUE,
+  current_period_end      timestamptz
 );
+
+CREATE INDEX IF NOT EXISTS user_settings_stripe_customer_idx
+  ON user_settings (stripe_customer_id) WHERE stripe_customer_id IS NOT NULL;
 
 -- ADR 0007: Reflections surface (now Anchors per ADR 0008). Reflections are
 -- chapter-scoped (ceremony + free-form entries). Chapters table itself sits
