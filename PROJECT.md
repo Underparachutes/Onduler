@@ -62,13 +62,13 @@ Most habit apps treat every day like it should look the same. Onduler doesn't. T
 
 - Auth (login / signup / sign out) — verified working on mobile (iOS)
 - Onboarding flow (noun-shaped swell menu → per-swell motions → personalize) — verified working on web. 10 seeded swells (Movement, Mind, Food, Home, Family, Friends, Work, Money, Creativity, Adventure) with descriptions; pick-then-add menu; per-swell motion sections with verb hints; theme + tracking mode + haptics + celebrations on the personalize screen with skip-to-defaults
-- Dashboard: daily checklist with flat mode and groups mode, hide-done toggle, daily progress bar, wave detection
+- Dashboard: daily checklist with flat mode and groups mode, filter toolbar (eye icon + popover: show completed / show swells / show pts), daily progress bar, wave detection
 - Motions: create, edit (name/pts/hrs), delete, log, unlog, drag-to-reorder, hide/unhide
-- Dashboard interaction model: tap card to log, long-press to drag-reorder, kebab opens detail sheet
+- Dashboard interaction model: tap row body to log, long-press checkbox to drag-reorder, kebab opens detail sheet (checkbox is drag-only — ADR 0013 §5)
 - Motion detail sheet: edit name/pts/hrs, two-tap delete, swells chip assignment with contribution weights, groups chip assignment, submotions, unlog, hide toggle
 - Submotions: create (via detail sheet), log/unlog independently; shown only in detail sheet (not checklist); budget auto-divides parent's pts/hrs equally across submotions on add/remove/parent edit *(decision May 2026: feature will be hidden behind a `SUBMOTIONS_ENABLED` constant — schema and code stay intact, UI surfaces gated; turn back on later if needed without rework)*
 - Search: filter motions by name in flat mode checklist
-- Groups: create, edit, delete, reorder (drag), enable/disable via settings toggle
+- Buckets (formerly Groups): create, edit, delete, reorder (drag), enable/disable via settings toggle — user-facing vocabulary is "buckets" per ADR 0012; schema table names stay `groups`/`motion_groups`
 - Swells: create, edit (name/color/weekly target), delete, assign motions via toggle chips with per-swell contribution weight (1–100%), weekly progress bars with weighted aggregation, "last week" reference stat, checkmark on target hit, hide-done uses weekly completion
 - Celebration trigger: wave/bloom animation fires the moment a motion log crosses a swell's weekly target
 - Many-to-many: motions ↔ swells (with contribution_weight), motions ↔ groups
@@ -77,7 +77,7 @@ Most habit apps treat every day like it should look the same. Onduler doesn't. T
 - Wave mode: 72hr auto-detection, manual wave return with WaveGrid check-in
 - Data export: JSON download of all user data
 - PWA: manifest, icons
-- Themes: Default, Bolinas, Biarritz
+- Themes: Biarritz (default), Tjørnuvík, Bolinas
 - Bottom nav: Motions / Swells / Reflections / Settings, persistent across app pages
 - Parallelized SSR data fetching: dashboard, log, and settings pages collapsed from 6–9 sequential DB round trips to 2–4 via `Promise.all`. Wave detection extracted into a helper so its two-query subchain runs in parallel with the rest of the dashboard load
 - "Motions not feeding any swell" diagnostic surface on the swells page: quiet section labeled "Not feeding any swell" with subhead "Adopt them into one, or let them go." Each row offers inline Add to a swell (opens detail sheet) and Hide (optimistic). Section hides entirely when there are no orphan motions
@@ -148,6 +148,7 @@ Backlog of small/mid items (polish, investigations, future features) lives at `d
 | ~~**Three Whys swell setup**~~ | **Shipped 2026-05-23.** Resolved as guiding copy on creation forms instead of a multi-step flow — the three whys are already structurally embedded (motions = what you do, swells = what you feed, anchors = who you want to be). Motion creation: "Motions are verbs. Add actions that are important to you." Swell creation: "Swells are nouns. Your motions feed your swells. Add what you want to see in your life." Anchors ceremonies already cover the identity layer. Per testing-notes #30. |
 | ~~**Perf audit**~~ | **Shipped 2026-05-23.** `getActiveChapterId` parallelized on all 4 pages that were calling it sequentially (swells, anchors, settings, proficiency view). Swells page collapsed from 3 sequential `Promise.all` batches to 2 (chapter + settings + timezone in first batch, all 11 data queries in second). Anchors page: chapter + timezone parallelized. Settings: chapter + settings parallelized, duplicate settings query removed. Proficiency view: chapter + non-chapter queries parallelized. Client-side audited: SwellRadar polygon math already memoized via `useMemo`, DailyChecklist uses `useTransition` for non-blocking mutations — no re-render issues found. N+1 query patterns: none detected. Per testing-notes #20. |
 | ~~**Stripe plumbing**~~ | **Shipped 2026-05-23.** Crew product, 4 prices, webhook endpoint, checkout/portal actions, billing UI at `/settings/billing` (admin-gated). Full details in "Current state of the build" above. |
+| **Motions restructure (ADR 0013)** | §1-2 (filter toolbar + popover) and §5 (checkbox drag-only) shipped 2026-05-24. Remaining: toast infrastructure, §6 (duplicate motion), §4 (drag-between-swells with toast undo), §3 (views / week-edit mode — large, likely its own session). |
 | **After** | Premium feature gating + remove admin gate on Crew |
 | **After** | LLM-assisted import — user prompts their LLM with an Onduler-provided template, uploads the markdown output, Onduler bulk-creates swells/motions/groups (full spec: `docs/specs/llm-assisted-import.md`) |
 | **After** | App integrations — meditation / cooking / exercise app completions auto-log to Onduler. Write the spec first at `docs/specs/app-integrations.md` (OAuth + webhook shape, mapping from external completions to motions, conflict handling), then schedule implementation. Per testing-notes #3 / #29. |
