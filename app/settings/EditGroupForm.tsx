@@ -151,7 +151,7 @@ export function EditGroupForm({ group, allGroups, motions, swells, onClose }: Pr
           disabled={deleting}
           className={`text-xs transition-colors disabled:opacity-50 ${confirming ? 'font-medium text-orange-500' : 'text-th-faint hover:text-red-500'}`}
         >
-          {deleting ? 'Deleting…' : confirming ? 'Tap again to confirm delete' : 'Delete group'}
+          {deleting ? 'Deleting…' : confirming ? 'Tap again to confirm delete' : 'Delete bucket'}
         </button>
       </div>
     </div>

@@ -45,9 +45,9 @@ const ARCHETYPE_PACKS = BUILD_PRESETS.map(p => ({
 }))
 
 const THEMES = [
-  { id: 'default', label: 'Default', desc: 'Clean and minimal' },
-  { id: 'bolinas', label: 'Bolinas', desc: 'Fog, driftwood, coastal sage' },
   { id: 'biarritz', label: 'Biarritz', desc: 'Atlantic surf, basque sand' },
+  { id: 'tjornuvik', label: 'Tjørnuvík', desc: 'Deep ocean, nordic blue' },
+  { id: 'bolinas', label: 'Bolinas', desc: 'Fog, driftwood, coastal sage' },
 ]
 
 export function OnboardingFlow() {
@@ -66,7 +66,7 @@ export function OnboardingFlow() {
   const [editingMotionId, setEditingMotionId] = useState<number | null>(null)
   const [editMotionName, setEditMotionName] = useState('')
 
-  const [theme, setTheme] = useState('default')
+  const [theme, setTheme] = useState('biarritz')
   const [trackingMode, setTrackingMode] = useState<TrackingMode>('points')
   const [hapticEnabled, setHapticEnabled] = useState(true)
   const [celebrationEnabled, setCelebrationEnabled] = useState(true)
@@ -75,7 +75,7 @@ export function OnboardingFlow() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    const t = document.documentElement.dataset.theme ?? 'default'
+    const t = document.documentElement.dataset.theme ?? 'biarritz'
     const palette = getShuffledThemePalette(t, detectMode())
     setSwellEntries(
       SEEDED_SWELLS.map((s, i) => ({
@@ -138,7 +138,7 @@ export function OnboardingFlow() {
   }
 
   function addCustomSwell() {
-    const t = document.documentElement.dataset.theme ?? 'default'
+    const t = document.documentElement.dataset.theme ?? 'biarritz'
     const mode = detectMode()
     const newId = nextSwellId
     setNextSwellId(prev => prev + 1)
@@ -230,7 +230,7 @@ export function OnboardingFlow() {
     setError(null)
     const prefs = useDefaults
       ? {
-          theme: 'default',
+          theme: 'biarritz',
           tracking_mode: 'points' as const,
           haptic_enabled: true,
           celebration_enabled: true,

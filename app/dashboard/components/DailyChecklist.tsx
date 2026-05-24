@@ -60,7 +60,7 @@ type Props = {
 }
 
 function DroppableGroup({
-  id, label, color, items, isDragging, localDone, localHiddenIds, hideDone, submotionsMap, submotionsEnabled, trackingMode, onLog, onOpenSheet,
+  id, label, color, items, isDragging, localDone, localHiddenIds, hideDone, submotionsMap, submotionsEnabled, trackingMode, hidePtsHrs, onLog, onOpenSheet,
 }: {
   id: string
   label: string
@@ -73,6 +73,7 @@ function DroppableGroup({
   submotionsMap: Record<string, Submotion[]>
   submotionsEnabled: boolean
   trackingMode: TrackingMode
+  hidePtsHrs?: boolean
   onLog: (motion: Motion, x: number, y: number) => void
   onOpenSheet: (id: string) => void
 }) {
@@ -100,13 +101,14 @@ function DroppableGroup({
               done={localDone.has(motion.id)}
               hasSubmotions={submotionsEnabled && (submotionsMap[motion.id]?.length ?? 0) > 0}
               trackingMode={trackingMode}
+              hidePtsHrs={hidePtsHrs}
               onLog={(e) => onLog(motion, e.clientX, e.clientY)}
               onOpenSheet={() => onOpenSheet(motion.id)}
             />
           ))}
           {visible.length === 0 && isDragging && (
             <div className="rounded-lg border border-dashed border-th-border py-3 text-center text-xs text-th-faint">
-              {id === 'ungrouped' ? 'Drop to remove group' : 'Drop here'}
+              {id === 'ungrouped' ? 'Drop to remove bucket' : 'Drop here'}
             </div>
           )}
         </div>
@@ -129,6 +131,7 @@ function SortableSwellSection({
   submotionsMap,
   submotionsEnabled,
   trackingMode,
+  hidePtsHrs,
   onLog,
   onOpenSheet,
 }: {
@@ -140,6 +143,7 @@ function SortableSwellSection({
   submotionsMap: Record<string, Submotion[]>
   submotionsEnabled: boolean
   trackingMode: TrackingMode
+  hidePtsHrs?: boolean
   onLog: (motion: Motion, x: number, y: number) => void
   onOpenSheet: (id: string) => void
 }) {
@@ -191,6 +195,7 @@ function SortableSwellSection({
               done={localDone.has(m.id)}
               hasSubmotions={submotionsEnabled && (submotionsMap[m.id]?.length ?? 0) > 0}
               trackingMode={trackingMode}
+              hidePtsHrs={hidePtsHrs}
               onLog={(e) => onLog(m, e.clientX, e.clientY)}
               onOpenSheet={() => onOpenSheet(m.id)}
             />
@@ -260,28 +265,36 @@ export function DailyChecklist({
   const goalValue = isHours ? dailyGoalHours : dailyGoal
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
   const [activeGroup, setActiveGroup] = useState<string | null>(null)
-  const [hideDone, setHideDone] = useState(false)
-  const [bySwell, setBySwell] = useState(false)
+  const [showCompleted, setShowCompleted] = useState(false)
+  const [showSwells, setShowSwells] = useState(false)
+  const [showPtsHrs, setShowPtsHrs] = useState(false)
+  const [filterOpen, setFilterOpen] = useState(false)
+  const filterRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
-    const stored = localStorage.getItem('onduler-hide-done-motions')
-    if (stored === 'true') setHideDone(true)
-    const swellStored = localStorage.getItem('onduler-motions-by-swell')
-    if (swellStored === 'true') setBySwell(true)
+    if (localStorage.getItem('onduler-filter-show-completed') === 'true') setShowCompleted(true)
+    if (localStorage.getItem('onduler-motions-by-swell') === 'true') setShowSwells(true)
+    if (localStorage.getItem('onduler-filter-show-pts') === 'true') setShowPtsHrs(true)
   }, [])
-  function toggleHideDone() {
-    setHideDone(prev => {
-      const next = !prev
-      localStorage.setItem('onduler-hide-done-motions', String(next))
-      return next
-    })
+  useEffect(() => {
+    if (!filterOpen) return
+    function handleOutside(e: MouseEvent) {
+      if (filterRef.current && !filterRef.current.contains(e.target as Node)) setFilterOpen(false)
+    }
+    document.addEventListener('mousedown', handleOutside)
+    return () => document.removeEventListener('mousedown', handleOutside)
+  }, [filterOpen])
+  function toggleFilter(key: 'showCompleted' | 'showSwells' | 'showPtsHrs') {
+    if (key === 'showCompleted') {
+      setShowCompleted(prev => { const next = !prev; localStorage.setItem('onduler-filter-show-completed', String(next)); return next })
+    } else if (key === 'showSwells') {
+      setShowSwells(prev => { const next = !prev; localStorage.setItem('onduler-motions-by-swell', String(next)); return next })
+    } else {
+      setShowPtsHrs(prev => { const next = !prev; localStorage.setItem('onduler-filter-show-pts', String(next)); return next })
+    }
   }
-  function toggleBySwell() {
-    setBySwell(prev => {
-      const next = !prev
-      localStorage.setItem('onduler-motions-by-swell', String(next))
-      return next
-    })
-  }
+  const hideDone = !showCompleted
+  const bySwell = showSwells
+  const hidePtsHrs = !showPtsHrs
   const [localDone, setLocalDone] = useState(() => new Set(doneMotionIds))
   const [, startTransition] = useTransition()
   const [localValue, setLocalValue] = useState(todayValue)
@@ -314,7 +327,7 @@ export function DailyChecklist({
   const motionDelta = (motion: Motion) => isHours ? Number(motion.default_hours) : motion.default_points
 
   function getAnimType(): CelebrationState['type'] {
-    const theme = document.documentElement.dataset.theme ?? 'default'
+    const theme = document.documentElement.dataset.theme ?? 'biarritz'
     if (theme === 'biarritz') return 'wave'
     if (theme === 'bolinas') return 'bloom'
     return 'glow'
@@ -517,20 +530,41 @@ export function DailyChecklist({
     </div>
   )
 
-  const headerToggles = (
-    <div className="flex items-center justify-between gap-4">
-      <button
-        onClick={toggleBySwell}
-        className={`text-xs transition-colors ${bySwell ? 'text-th-text' : 'text-th-faint hover:text-th-muted'}`}
-      >
-        {bySwell ? 'Default view' : 'By swell'}
-      </button>
-      <button
-        onClick={toggleHideDone}
-        className="text-xs text-th-faint transition-colors hover:text-th-muted"
-      >
-        {hideDone ? 'Show all' : 'Hide done'}
-      </button>
+  const hasNonDefaultFilter = showCompleted || showSwells || showPtsHrs
+
+  const headerToolbar = (
+    <div className="flex items-center justify-end">
+      <div className="relative" ref={filterRef}>
+        <button
+          onClick={() => setFilterOpen(prev => !prev)}
+          className="relative p-1.5 text-th-faint transition-colors hover:text-th-muted active:scale-[0.97]"
+          aria-label="Filter"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4.5 w-4.5">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+            <circle cx="12" cy="12" r="3" />
+          </svg>
+          {hasNonDefaultFilter && (
+            <span className="absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full bg-th-accent" />
+          )}
+        </button>
+        {filterOpen && (
+          <div className="absolute right-0 top-full z-20 mt-1 w-44 rounded-lg border border-th-border bg-th-bg p-2 shadow-lg">
+            <label className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-xs text-th-text transition-colors hover:bg-th-surface">
+              <input type="checkbox" checked={showCompleted} onChange={() => toggleFilter('showCompleted')} className="accent-th-btn" />
+              Show completed
+            </label>
+            <label className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-xs text-th-text transition-colors hover:bg-th-surface">
+              <input type="checkbox" checked={showSwells} onChange={() => toggleFilter('showSwells')} className="accent-th-btn" />
+              Show swells
+            </label>
+            <label className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-xs text-th-text transition-colors hover:bg-th-surface">
+              <input type="checkbox" checked={showPtsHrs} onChange={() => toggleFilter('showPtsHrs')} className="accent-th-btn" />
+              Show pts/hrs
+            </label>
+          </div>
+        )}
+      </div>
     </div>
   )
 
@@ -576,7 +610,7 @@ export function DailyChecklist({
             {topBar}
             {dateHeader}
             {progressBar}
-            {headerToggles}
+            {headerToolbar}
             {groupChipsRow}
           </div>
           <div className="flex flex-col gap-6">
@@ -604,6 +638,7 @@ export function DailyChecklist({
                     submotionsMap={submotionsMap}
                     submotionsEnabled={submotionsEnabled}
                     trackingMode={trackingMode}
+                    hidePtsHrs={hidePtsHrs}
                     onLog={handleLog}
                     onOpenSheet={setOpenSheetId}
                   />
@@ -628,7 +663,7 @@ export function DailyChecklist({
             {topBar}
             {dateHeader}
             {progressBar}
-            {headerToggles}
+            {headerToolbar}
           </div>
           <SortableMotionList
             motions={motions}
@@ -638,6 +673,7 @@ export function DailyChecklist({
             hideDone={hideDone}
             localHiddenIds={localHiddenIds}
             trackingMode={trackingMode}
+            hidePtsHrs={hidePtsHrs}
             onLog={handleLog}
             onOpenSheet={setOpenSheetId}
           />
@@ -668,7 +704,7 @@ export function DailyChecklist({
           {dateHeader}
           {progressBar}
 
-          {headerToggles}
+          {headerToolbar}
           {groupChipsRow}
         </div>
 
@@ -696,6 +732,7 @@ export function DailyChecklist({
                   submotionsMap={submotionsMap}
                   submotionsEnabled={submotionsEnabled}
                   trackingMode={trackingMode}
+                  hidePtsHrs={hidePtsHrs}
                   onLog={handleLog}
                   onOpenSheet={setOpenSheetId}
                 />
@@ -714,6 +751,7 @@ export function DailyChecklist({
                 submotionsMap={submotionsMap}
                 submotionsEnabled={submotionsEnabled}
                 trackingMode={trackingMode}
+                hidePtsHrs={hidePtsHrs}
                 onLog={handleLog}
                 onOpenSheet={setOpenSheetId}
               />

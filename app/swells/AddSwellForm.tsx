@@ -17,7 +17,7 @@ export function AddSwellForm({ trackingMode, onClose }: Props) {
   const isHours = trackingMode === 'hours'
 
   useEffect(() => {
-    const theme = document.documentElement.dataset.theme ?? 'default'
+    const theme = document.documentElement.dataset.theme ?? 'biarritz'
     setColor(getRandomThemeAccent(theme, detectMode()))
   }, [])
 

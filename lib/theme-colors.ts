@@ -1,8 +1,8 @@
-export type ThemeName = 'default' | 'bolinas' | 'biarritz'
+export type ThemeName = 'tjornuvik' | 'bolinas' | 'biarritz'
 export type ThemeMode = 'light' | 'dark'
 
 export const THEME_PALETTES: Record<ThemeName, { light: string[]; dark: string[] }> = {
-  default: {
+  tjornuvik: {
     light: ['#2A6FDB', '#1FA38C', '#E2785A', '#D9A93E', '#5B9B6D', '#C45577', '#6BACE0', '#6FCDB7', '#8E6CB7', '#6E879F'],
     dark:  ['#5A95E8', '#34BFA8', '#ED8F73', '#E3BB5C', '#7BB78A', '#D87693', '#91C5EE', '#8DDDC7', '#AB8AD0', '#93A6BB'],
   },
@@ -22,7 +22,7 @@ export function detectMode(): ThemeMode {
 }
 
 function paletteFor(theme: string, mode: ThemeMode): string[] {
-  const key = (theme as ThemeName) in THEME_PALETTES ? (theme as ThemeName) : 'default'
+  const key = (theme as ThemeName) in THEME_PALETTES ? (theme as ThemeName) : 'biarritz'
   return THEME_PALETTES[key][mode]
 }
 

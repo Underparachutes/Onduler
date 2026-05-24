@@ -45,7 +45,7 @@ export default async function RootLayout({
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  let theme = "default";
+  let theme = "biarritz";
   let pendingAnchor = false;
   if (user) {
     const [{ data }, anyPending] = await Promise.all([

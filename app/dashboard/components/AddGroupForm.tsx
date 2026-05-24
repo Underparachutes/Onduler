@@ -13,7 +13,7 @@ export function AddGroupForm({ onClose }: Props) {
   const [color, setColor] = useState('#6366f1')
 
   useEffect(() => {
-    const theme = document.documentElement.dataset.theme ?? 'default'
+    const theme = document.documentElement.dataset.theme ?? 'biarritz'
     setColor(getRandomThemeAccent(theme, detectMode()))
   }, [])
 
@@ -38,7 +38,7 @@ export function AddGroupForm({ onClose }: Props) {
         <input
           name="name"
           type="text"
-          placeholder="Group name"
+          placeholder="Bucket name"
           required
           autoFocus
           className="rounded-lg border border-th-border bg-th-surface px-3 py-2.5 text-base text-th-text outline-none focus:border-th-focus"

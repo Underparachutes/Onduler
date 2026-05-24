@@ -3,17 +3,17 @@
 import { useState, useEffect, useTransition } from 'react'
 import { setTheme } from '@/app/actions/theme'
 
-const THEMES = ['default', 'bolinas', 'biarritz'] as const
+const THEMES = ['biarritz', 'tjornuvik', 'bolinas'] as const
 type Theme = typeof THEMES[number]
 
 const LABELS: Record<Theme, string> = {
-  default: 'Default',
-  bolinas: 'Bolinas',
   biarritz: 'Biarritz',
+  tjornuvik: 'Tjørnuvík',
+  bolinas: 'Bolinas',
 }
 
 export function ThemeSwitcher() {
-  const [current, setCurrent] = useState<Theme>('default')
+  const [current, setCurrent] = useState<Theme>('biarritz')
   const [isPending, startTransition] = useTransition()
 
   useEffect(() => {

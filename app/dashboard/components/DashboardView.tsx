@@ -119,7 +119,7 @@ export function DashboardView(props: Props) {
                             onClick={() => { setMenuOpen(false); setOpenForm('group') }}
                             className="block w-full px-4 py-3 text-left text-sm text-th-text transition-colors hover:bg-th-surface"
                           >
-                            Add a group
+                            Add a bucket
                           </button>
                         </div>
                       )}

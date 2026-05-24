@@ -824,7 +824,7 @@ export function MotionDetailSheet({
         {/* Groups assignment */}
         {groupsEnabled && allGroups.length > 0 && (
           <div className="mb-6">
-            <p className="mb-3 text-xs font-medium uppercase tracking-widest text-th-faint">Groups</p>
+            <p className="mb-3 text-xs font-medium uppercase tracking-widest text-th-faint">Buckets</p>
             <div className="flex flex-wrap gap-2">
               {allGroups.map(g => {
                 const active = localGroupId === g.id

@@ -32,11 +32,12 @@ type RowProps = {
   done: boolean
   hasSubmotions: boolean
   trackingMode: TrackingMode
+  hidePtsHrs?: boolean
   onLog: (e: React.MouseEvent) => void
   onOpenSheet: () => void
 }
 
-export function SortableMotionRow({ motion, done, hasSubmotions, trackingMode, onLog, onOpenSheet }: RowProps) {
+export function SortableMotionRow({ motion, done, hasSubmotions, trackingMode, hidePtsHrs, onLog, onOpenSheet }: RowProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: motion.id })
 
@@ -44,47 +45,63 @@ export function SortableMotionRow({ motion, done, hasSubmotions, trackingMode, o
     <div
       ref={setNodeRef}
       {...attributes}
-      {...listeners}
       suppressHydrationWarning
-      style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1, touchAction: isDragging ? 'none' : 'pan-y' }}
+      style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1 }}
       className="flex items-center gap-1 select-none"
     >
-      {/* Card body — tap to log, long-press initiates drag */}
+      {/* Checkbox — drag handle only, no log */}
+      <div
+        {...listeners}
+        className={`flex h-5 w-5 shrink-0 cursor-grab items-center justify-center rounded border-2 transition-all ml-3 ${done ? 'border-th-btn text-th-btn' : 'border-th-border'}`}
+        style={{ touchAction: 'none' }}
+      >
+        {done && (
+          <svg viewBox="0 0 12 10" fill="none" className="h-3 w-3">
+            <path d="M1 5l3.5 3.5L11 1" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        )}
+      </div>
+
+      {/* Row body — tap to log */}
       <button
         onClick={(e) => { if (!done) onLog(e) }}
         className={`flex flex-1 items-center gap-3 rounded-lg px-3 py-3 text-left transition-colors ${
-          done ? 'opacity-50 cursor-default' : 'hover:bg-th-surface active:scale-[0.99]'
+          done ? 'opacity-50 cursor-default' : 'hover:bg-th-surface active:scale-[0.985]'
         }`}
       >
-        <div className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 transition-all ${done ? 'border-th-btn text-th-btn' : 'border-th-border'}`}>
-          {done && (
-            <svg viewBox="0 0 12 10" fill="none" className="h-3 w-3">
-              <path d="M1 5l3.5 3.5L11 1" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          )}
-        </div>
         <div className="min-w-0 flex-1">
           <p className={`text-sm font-medium ${done ? 'text-th-muted line-through' : 'text-th-text'}`}>
             {motion.name}
           </p>
         </div>
-        <div className="flex shrink-0 items-center gap-1.5">
-          <span className={`text-sm font-semibold ${done ? 'text-th-faint' : 'text-th-secondary'}`}>
+        {!hidePtsHrs && (
+          <span className={`shrink-0 text-sm font-semibold ${done ? 'text-th-faint' : 'text-th-secondary'}`}>
             {trackingMode === 'hours' ? formatHrs(motion.default_hours) : formatPts(motion.default_points)}
           </span>
-          {hasSubmotions && <span className="text-xs text-th-faint">›</span>}
-        </div>
+        )}
       </button>
 
-      {/* Kebab — opens detail sheet, blocks drag activation */}
-      <button
-        onPointerDown={e => e.stopPropagation()}
-        onClick={onOpenSheet}
-        className="shrink-0 px-2 py-3 text-base leading-none text-th-faint transition-colors hover:text-th-muted"
-        aria-label="Open details"
-      >
-        ···
-      </button>
+      {/* Right-side controls */}
+      <div className="flex shrink-0 items-center">
+        {hasSubmotions && (
+          <button
+            onPointerDown={e => e.stopPropagation()}
+            onClick={onOpenSheet}
+            className="px-1 py-3 text-xs text-th-faint transition-colors hover:text-th-muted"
+            aria-label="Expand submotions"
+          >
+            ›
+          </button>
+        )}
+        <button
+          onPointerDown={e => e.stopPropagation()}
+          onClick={onOpenSheet}
+          className="shrink-0 px-2 py-3 text-base leading-none text-th-faint transition-colors hover:text-th-muted"
+          aria-label="Open details"
+        >
+          ···
+        </button>
+      </div>
     </div>
   )
 }
@@ -98,6 +115,7 @@ type ListProps = {
   localHiddenIds: Set<string>
   searchQuery?: string
   trackingMode: TrackingMode
+  hidePtsHrs?: boolean
   onLog: (motion: Motion, x: number, y: number) => void
   onOpenSheet: (id: string) => void
 }
@@ -111,6 +129,7 @@ export function SortableMotionList({
   localHiddenIds,
   searchQuery = "",
   trackingMode,
+  hidePtsHrs,
   onLog,
   onOpenSheet,
 }: ListProps) {
@@ -154,6 +173,7 @@ export function SortableMotionList({
               done={localDone.has(motion.id)}
               hasSubmotions={submotionsEnabled && (submotionsMap[motion.id]?.length ?? 0) > 0}
               trackingMode={trackingMode}
+              hidePtsHrs={hidePtsHrs}
               onLog={(e) => onLog(motion, e.clientX, e.clientY)}
               onOpenSheet={() => onOpenSheet(motion.id)}
             />

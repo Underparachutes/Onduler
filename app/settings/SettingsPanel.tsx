@@ -19,9 +19,9 @@ import { getBuildPreset } from '@/lib/builds'
 import { EditGroupForm } from './EditGroupForm'
 
 const THEMES = [
-  { id: 'default', label: 'Default', desc: 'Clean and minimal' },
-  { id: 'bolinas', label: 'Bolinas', desc: 'Fog, driftwood, coastal sage' },
   { id: 'biarritz', label: 'Biarritz', desc: 'Atlantic surf, basque sand' },
+  { id: 'tjornuvik', label: 'Tjørnuvík', desc: 'Deep ocean, nordic blue' },
+  { id: 'bolinas', label: 'Bolinas', desc: 'Fog, driftwood, coastal sage' },
 ] as const
 
 const TRACKING_MODES = [
@@ -302,8 +302,8 @@ export function SettingsPanel({
 
               <div className="flex items-center justify-between py-3">
                 <div>
-                  <p className="text-sm font-medium text-th-text">Groups</p>
-                  <p className="text-xs text-th-muted">Organize motions into buckets</p>
+                  <p className="text-sm font-medium text-th-text">Buckets</p>
+                  <p className="text-xs text-th-muted">Organize motions and swells</p>
                 </div>
                 <button
                   role="switch"

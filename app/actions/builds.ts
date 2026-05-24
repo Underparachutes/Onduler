@@ -73,7 +73,7 @@ export async function adoptBuild(
     const toInsertNames = allowedNames.filter(n => !existingLowered.has(n.trim().toLowerCase()))
 
     if (toInsertNames.length > 0) {
-      const palette = getShuffledThemePalette(settings?.theme ?? 'default', mode)
+      const palette = getShuffledThemePalette(settings?.theme ?? 'biarritz', mode)
       const isHours = (settings?.tracking_mode ?? 'points') === 'hours'
       const baseSortOrder = (lastSwell?.[0]?.sort_order ?? -1) + 1
 

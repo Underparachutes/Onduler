@@ -81,7 +81,7 @@ export async function GET() {
     exported_at: new Date().toISOString(),
     user_email: user.email,
     swells: swells.data ?? [],
-    groups: groups.data ?? [],
+    buckets: groups.data ?? [],
     motions: (motions.data ?? []).map(m => ({
       ...m,
       swells: swellsByMotion.get(m.id) ?? [],

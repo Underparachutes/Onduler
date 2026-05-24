@@ -73,7 +73,7 @@ export default async function SettingsPage() {
 
       <div className="w-full max-w-[22rem] pb-12 lg:max-w-none">
         <SettingsPanel
-          theme={settings?.theme ?? 'default'}
+          theme={settings?.theme ?? 'biarritz'}
           groupsEnabled={settings?.groups_enabled ?? false}
           submotionsEnabled={settings?.submotions_enabled ?? false}
           dailyGoal={settings?.daily_goal ?? 20}
