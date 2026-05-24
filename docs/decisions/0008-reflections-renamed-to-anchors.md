@@ -14,7 +14,7 @@ The previously-collided JSON column `user_settings.mvs_anchors` (which stores pe
 
 Two small accompaniments ship with the rename:
 
-- **"Not all those who wander are lost"** is added as a quiet line on the locked Anchors page, under the breathing hex silhouette. Tertiary typography weight, same color/letterspacing as the existing cadence label.
+- **"Every motion leaves a wake."** is added as a quiet line on the locked Anchors page, under the breathing hex silhouette. Tertiary typography weight, same color/letterspacing as the existing cadence label.
 - **Hex-pulse visibility fix.** The `slow-breathe 4s ease-in-out infinite` animation in `LockedPage.tsx` (lines 57–74) is currently imperceptible on iOS. The breathe keyframe needs a contrast or amplitude bump — final values to be tuned live during the implementation session.
 
 ## Why
@@ -86,7 +86,7 @@ Every visible string referencing Reflections or "reflection" inside the surface 
 - Ceremony completion: where the user previously "wrote a reflection," they now "dropped an anchor." Subtle copy in completion confirmation.
 - `+` button affordance on `/anchors`: opens a *"drop an anchor"* free-form entry (replaces "new reflection").
 - Journal sub-surface `/anchors/journal` heading: **Your anchors** (replaces "your reflections"). Chapter separators unchanged.
-- Locked page (`LockedPage.tsx`): existing display copy *"Glimpses of where you've been. Come back as you log."* stays. New tertiary line below cadence label: *"Not all those who wander are lost."*
+- Locked page (`LockedPage.tsx`): existing display copy *"Glimpses of where you've been. Come back as you log."* stays. New tertiary line below cadence label: *"Every motion leaves a wake."*
 - Settings `welcome_back_mode` description / "Anchors editor" naming: the existing Settings → Your shape page has an "Anchors editor" section under the primary slot (ADR 0004 §8). This section's name now collides directly with the new surface name. Rename to **"Still-showing-up motions"** or **"Anchors when you return"** — final wording in implementation. The data model is `mvs_motions`; the surface name should mirror the storage shape's intent ("the motions that show up when you ease back in from a wave").
 - Banned-word audit: continue per existing working agreement (tasks / activities / goals / domains).
 
@@ -132,7 +132,7 @@ No change to the agreement itself — `active:scale-[0.97]` on bottom-nav items 
   - `revalidatePath` sweep.
   - Copy sweep per the section above.
   - Settings → Your shape: rename the section currently labeled "Anchors editor" to "Still-showing-up motions" (or "Anchors when you return" — final wording in implementation).
-  - "Not all those who wander are lost" added to `LockedPage.tsx` as a tertiary line.
+  - "Every motion leaves a wake." added to `LockedPage.tsx` as a tertiary line.
   - Hex `slow-breathe` keyframe tuning — bump amplitude / opacity-delta until the breathe is visible on iOS. Verified live on Josh's phone before merge.
 - **Marketing site**: when one exists, the explanatory page (referenced in ADR 0007 as "marketing site explains the pattern") uses Anchors as the surface name and explains "drop an anchor" naturally.
 
@@ -152,12 +152,12 @@ No change to the agreement itself — `active:scale-[0.97]` on bottom-nav items 
 
 **Wait to rename until Anchors fully unlocks for Josh.** Considered. Rejected — the rename is doc-only at the ADR stage, and the implementation session can happen any time. Decoupling the decision from the implementation timing means Claude Code can pick this up when Josh is ready without re-litigating the naming.
 
-**Re-attribute "Not all those who wander are lost" to Tolkien on the page.** Considered. Rejected as the line has drifted into the cultural commons enough that attribution would read as belaboring. The locked page is vibe-only — adding "— J.R.R. Tolkien" would mechanize it.
+**Previously used "Not all those who wander are lost" (Tolkien).** Replaced with "Every motion leaves a wake." — Onduler's own tagline, which ties the locked page to the product's core visual primitive instead of borrowing someone else's line.
 
 ## Origin
 
 Decision reached in a Cowork doc-mode session on 2026-05-20, three days after ADR 0007 shipped. Josh's testing notes flagged a list of small and large items, and the rename surfaced as the largest spec-level conflict: *"Reflections should be changed to anchors. Your swells anchor you to who you are as a person. If you drift away from them with your motions you become out of synch."* The framing was strong enough to override the freshly-shipped Reflections rename — caught while only one user has interacted with the surface, with negligible migration cost.
 
-The journal-entry rename (reflection → anchor) and the column rename (mvs_anchors → mvs_motions) were resolved in the same conversation via the AskUserQuestion tool. The "Not all those who wander are lost" line was Josh's own placement suggestion ("I like not all those who wander are lost on the locked anchors page"). The hex-pulse tuning task was raised by Josh in the same testing notes — *"the design spec said its supposed to be beating/pulsing slower than a heartbeat but it's not coming through as doing anything on my phone"* — and folded into the same implementation session since it touches the same file.
+The journal-entry rename (reflection → anchor) and the column rename (mvs_anchors → mvs_motions) were resolved in the same conversation via the AskUserQuestion tool. The tertiary line on the locked page was originally "Not all those who wander are lost" (Josh's placement suggestion), later replaced with "Every motion leaves a wake." to use Onduler's own tagline. The hex-pulse tuning task was raised by Josh in the same testing notes — *"the design spec said its supposed to be beating/pulsing slower than a heartbeat but it's not coming through as doing anything on my phone"* — and folded into the same implementation session since it touches the same file.
 
 Implementation queued on the roadmap as its own discrete session, gated on Josh's choice to do the work when he's ready in Claude Code.

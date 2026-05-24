@@ -55,7 +55,7 @@ export function LockedPage({ actuals = [], inWave = false }: Props) {
           color: 'var(--th-secondary)',
         }}
       >
-        Not all those who wander are lost.
+        Every motion leaves a wake.
       </p>
     </div>
   )

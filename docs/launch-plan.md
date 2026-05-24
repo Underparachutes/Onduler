@@ -47,8 +47,8 @@ Used only when the wake visual is directly present — Instagram post caption, l
 **Welcome-back line (in-app): "Every motion has an impact."**
 Used at the wave/return welcome-back screen, paired with the fresh circle that begins the new wake. Mirror of the tagline in warmer phrasing for the moment of return.
 
-**Italic closer (optional): "Not all those who wander are lost."**
-Tolkien. Already in product on the locked Anchors page. Can extend to postcard back or landing-page footer.
+**Italic closer (optional): "Every motion leaves a wake."**
+Onduler's own tagline. Already in product on the locked Anchors page and landing-page footer.
 
 **Avoided:** "What's in your wake?" — too close to the Capital One "What's in your wallet?" cadence. Identical stress pattern, identical syllable count, runs subconsciously into the ad campaign that's been live since 2000.
 
@@ -106,8 +106,8 @@ Target: 5–10 DMs over the first week of the post.
 
 - 4×6 or 5×7, heavy matte stock
 - Front: a wake (different seeded random shape per print) on a deep-ocean ground with the WaveField wash. No headline, no tagline, no logo. Just the shape.
-- Back: *"Every motion leaves a wake."* in modest Manrope type. Below: *onduler.app* + small QR code. Optional italic bottom line: *"Not all those who wander are lost."*
-- Typography matches the product (Manrope for the name/URL, IBM Plex Mono italic for the Tolkien line)
+- Back: *"Every motion leaves a wake."* in modest Manrope type. Below: *onduler.app* + small QR code
+- Typography matches the product (Manrope for the name/URL)
 - No "join the waitlist," no "the next great habit app," no marketing voice — restraint is the whole point
 
 **Drop locations (one weekend afternoon of driving):**

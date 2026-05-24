@@ -141,7 +141,7 @@ export function LandingPage({ source }: { source: string | null }) {
             <Link href="/cookies" className="hover:text-th-muted transition-colors">Cookies</Link>
           </div>
           <p className="font-[family-name:var(--font-ibm-plex-mono)] text-xs text-th-faint">
-            Not all those who wander are lost.
+            Every motion leaves a wake.
           </p>
         </footer>
       </div>
