@@ -38,6 +38,10 @@ export function AddSwellForm({ trackingMode, onClose }: Props) {
         </button>
       </div>
 
+      <p className="mb-4 text-xs leading-relaxed text-th-muted">
+        Swells are nouns. Your motions feed your swells. Add what you want to see in your life.
+      </p>
+
       <form action={action} className="flex flex-col gap-4">
         <div className="flex gap-2">
           <input

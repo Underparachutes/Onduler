@@ -71,6 +71,10 @@ export function AddMotionForm({ groups, groupsEnabled, trackingMode, onClose, sw
         </button>
       </div>
 
+      <p className="mb-4 text-xs leading-relaxed text-th-muted">
+        Motions are verbs. Add actions that are important to you.
+      </p>
+
       <form action={formAction} className="flex flex-col gap-4">
         {swellId && <input type="hidden" name="swell_id" value={swellId} />}
         <input
