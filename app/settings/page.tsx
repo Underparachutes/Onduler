@@ -9,21 +9,25 @@ export default async function SettingsPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const chapterId = await getActiveChapterId(supabase, user.id)
+  const [
+    chapterId,
+    { data: settings },
+  ] = await Promise.all([
+    getActiveChapterId(supabase, user.id),
+    supabase
+      .from('user_settings')
+      .select('theme, groups_enabled, submotions_enabled, daily_goal, daily_goal_hours, tracking_mode, celebration_enabled, haptic_enabled, primary_build')
+      .eq('user_id', user.id)
+      .single(),
+  ])
 
   const [
-    { data: settings },
     { data: groups },
     { data: hiddenMotions },
     { data: assignableMotions },
     { data: assignableSwells },
     { count: archivedChapterCount },
   ] = await Promise.all([
-    supabase
-      .from('user_settings')
-      .select('theme, groups_enabled, submotions_enabled, daily_goal, daily_goal_hours, tracking_mode, celebration_enabled, haptic_enabled, primary_build')
-      .eq('user_id', user.id)
-      .single(),
     supabase
       .from('groups')
       .select('id, name, color')

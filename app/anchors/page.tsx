@@ -55,9 +55,11 @@ export default async function AnchorsPage({
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const chapterId = await getActiveChapterId(supabase, user.id)
-  const todayStart = await getTodayStart()
-  const weekStart = await getWeekStart()
+  const [chapterId, todayStart, weekStart] = await Promise.all([
+    getActiveChapterId(supabase, user.id),
+    getTodayStart(),
+    getWeekStart(),
+  ])
   const todayKey = pacificDayKey(todayStart)
   const monthStart = monthStartKey(todayKey)
 

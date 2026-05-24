@@ -10,15 +10,36 @@ export default async function SwellsPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const chapterId = await getActiveChapterId(supabase, user.id)
+  const [
+    chapterId,
+    { data: settings },
+    todayStart,
+    weekStart,
+    lastWeekStart,
+  ] = await Promise.all([
+    getActiveChapterId(supabase, user.id),
+    supabase
+      .from('user_settings')
+      .select('groups_enabled, submotions_enabled, tracking_mode')
+      .eq('user_id', user.id)
+      .single(),
+    getTodayStart(),
+    getWeekStart(),
+    getLastWeekStart(),
+  ])
 
   const [
     { data: swells },
     { data: motionsRaw },
     { data: submotionsRaw },
-    { data: settings },
     { data: groups },
-    todayStart,
+    { data: todayLogs },
+    { data: thisWeekLogs },
+    { data: lastWeekLogs },
+    { data: thisWeekHits },
+    { data: lastWeekHits },
+    { data: thisWeekOneShots },
+    { data: lastWeekOneShots },
   ] = await Promise.all([
     supabase
       .from('swells')
@@ -42,30 +63,11 @@ export default async function SwellsPage() {
       .not('parent_id', 'is', null)
       .order('sort_order', { ascending: true, nullsFirst: false }),
     supabase
-      .from('user_settings')
-      .select('groups_enabled, submotions_enabled, tracking_mode')
-      .eq('user_id', user.id)
-      .single(),
-    supabase
       .from('groups')
       .select('id, name, color')
       .eq('user_id', user.id)
       .eq('chapter_id', chapterId)
       .order('sort_order', { ascending: true }),
-    getTodayStart(),
-  ])
-
-  const [weekStart, lastWeekStart] = await Promise.all([getWeekStart(), getLastWeekStart()])
-
-  const [
-    { data: todayLogs },
-    { data: thisWeekLogs },
-    { data: lastWeekLogs },
-    { data: thisWeekHits },
-    { data: lastWeekHits },
-    { data: thisWeekOneShots },
-    { data: lastWeekOneShots },
-  ] = await Promise.all([
     supabase
       .from('logs')
       .select('motion_id, points, hours')

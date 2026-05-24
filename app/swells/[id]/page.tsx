@@ -35,25 +35,15 @@ export default async function SwellDetailPage({ params }: { params: Promise<{ id
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const chapterId = await getActiveChapterId(supabase, user.id)
-
   const [
-    { data: swell },
+    chapterId,
     { data: junctions },
     { data: milestonesRaw },
     { data: settings },
-    { data: firstLogRow },
-    { data: groupsRaw },
     weekStart,
     todayStart,
   ] = await Promise.all([
-    supabase
-      .from('swells')
-      .select('id, name, color, target_points, target_hours, group_id, hidden')
-      .eq('id', id)
-      .eq('user_id', user.id)
-      .eq('chapter_id', chapterId)
-      .maybeSingle(),
+    getActiveChapterId(supabase, user.id),
     supabase
       .from('motion_swells')
       .select('contribution_weight, motions(id, name, default_points, default_hours)')
@@ -70,6 +60,22 @@ export default async function SwellDetailPage({ params }: { params: Promise<{ id
       .select('tracking_mode, groups_enabled')
       .eq('user_id', user.id)
       .single(),
+    getWeekStart(),
+    getTodayStart(),
+  ])
+
+  const [
+    { data: swell },
+    { data: firstLogRow },
+    { data: groupsRaw },
+  ] = await Promise.all([
+    supabase
+      .from('swells')
+      .select('id, name, color, target_points, target_hours, group_id, hidden')
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .eq('chapter_id', chapterId)
+      .maybeSingle(),
     supabase
       .from('logs')
       .select('logged_at')
@@ -84,8 +90,6 @@ export default async function SwellDetailPage({ params }: { params: Promise<{ id
       .eq('user_id', user.id)
       .eq('chapter_id', chapterId)
       .order('sort_order', { ascending: true }),
-    getWeekStart(),
-    getTodayStart(),
   ])
   const todayKey = pacificDayKey(todayStart)
   const monthStartK = monthStartKey(todayKey)
