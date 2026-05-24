@@ -18,7 +18,7 @@ export const BUILD_PRESETS: BuildPreset[] = [
     key: 'athlete',
     label: 'The Athlete',
     description: 'Body-first. Movement, fuel, and a clear head as the through-line of the week.',
-    seededSwells: ['Movement', 'Food', 'Mind'],
+    seededSwells: ['Movement', 'Nutrition', 'Mind'],
   },
   {
     key: 'wanderer',

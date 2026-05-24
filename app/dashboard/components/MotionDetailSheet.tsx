@@ -602,7 +602,7 @@ export function MotionDetailSheet({
               value={headerName}
               onChange={e => setHeaderName(e.target.value)}
               onBlur={blurName}
-              className="min-w-0 flex-1 bg-transparent text-xl font-semibold text-th-text outline-none"
+              className="min-w-0 flex-1 rounded-lg border border-th-border bg-th-surface px-3 py-2 text-xl font-semibold text-th-text outline-none focus:border-th-focus"
             />
             <button onClick={onClose} className="mt-0.5 shrink-0 text-th-faint transition-colors hover:text-th-muted">
               <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" strokeWidth="2" strokeLinecap="round">

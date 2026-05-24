@@ -39,7 +39,7 @@ export function AddSwellForm({ trackingMode, onClose }: Props) {
       </div>
 
       <p className="mb-4 text-xs leading-relaxed text-th-muted">
-        Swells are nouns. Your motions feed your swells. Add what you want to see in your life.
+        Swells are nouns. Add things that matter to you. Motions feed swells.
       </p>
 
       <form action={action} className="flex flex-col gap-4">

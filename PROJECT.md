@@ -215,7 +215,7 @@ All swells run on a single weekly cycle anchored to Sunday. The old "set a lifet
 |---|---|
 | Movement | exercise, sport, walking, being in your body |
 | Mind | meditation, journaling, reading, learning |
-| Food | cooking, eating well, nourishment |
+| Nutrition | cooking, eating well, nourishment |
 | Home | your space, comfort, domestic life |
 | Family | partner, kids, parents, siblings |
 | Friends | broader social life, community |

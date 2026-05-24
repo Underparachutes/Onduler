@@ -63,14 +63,15 @@ export default async function SettingsPage() {
   ])
 
   return (
-    <div className="flex min-h-full flex-col items-center px-4 py-12 lg:items-start">
-      <div className="w-full max-w-[22rem] lg:max-w-none">
-        <div className="mb-6 flex items-center justify-between lg:max-w-[22rem]">
+    <div className="flex min-h-full flex-col items-center px-4 lg:items-start">
+      <div className="sticky top-0 z-10 w-full max-w-[22rem] bg-th-bg pb-3 lg:max-w-none" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.5rem)' }}>
+        <div className="mb-2 flex items-center justify-between lg:max-w-[22rem]">
           <p className="text-xs uppercase tracking-widest text-th-muted">Onduler</p>
         </div>
+        <h1 className="text-2xl font-semibold text-th-text lg:max-w-[22rem]">Settings</h1>
+      </div>
 
-        <h1 className="mb-8 text-2xl font-semibold text-th-text lg:max-w-[22rem]">Settings</h1>
-
+      <div className="w-full max-w-[22rem] pb-12 lg:max-w-none">
         <SettingsPanel
           theme={settings?.theme ?? 'default'}
           groupsEnabled={settings?.groups_enabled ?? false}
@@ -90,12 +91,20 @@ export default async function SettingsPage() {
           isAdmin={settings?.is_admin ?? false}
           subscriptionStatus={settings?.subscription_status ?? 'none'}
         />
+      </div>
 
-        <div className="mt-8 border-t border-th-border pt-6 lg:max-w-[22rem]">
+      <div className="fixed bottom-[calc(3.5rem+env(safe-area-inset-bottom))] md:bottom-0 left-0 right-0 md:left-60 z-10 border-t border-th-border bg-th-bg px-4 py-3">
+        <div className="mx-auto flex max-w-[22rem] flex-col gap-2 lg:mx-0 lg:ml-12">
+          <a
+            href="mailto:ondulertest@gmail.com?subject=Onduler feedback"
+            className="text-sm text-th-faint transition-colors hover:text-th-muted active:scale-[0.97]"
+          >
+            Send feedback
+          </a>
           <form action={signOut}>
             <button
               type="submit"
-              className="text-sm text-th-faint transition-colors hover:text-red-500"
+              className="text-sm text-red-500 transition-colors hover:text-th-faint active:scale-[0.97]"
             >
               Sign out
             </button>

@@ -173,34 +173,44 @@ export function SettingsPanel({
     ? primaryPreset.label
     : 'None'
 
-  return (
-    <div className="flex flex-col gap-8 lg:grid lg:grid-cols-2 lg:gap-x-10 lg:gap-y-8 lg:items-start">
-      {/* Left column on desktop */}
-      <div className="flex flex-col gap-8">
-      {/* Appearance */}
-      <section>
-        <div className="flex items-center justify-between py-3">
-          <div>
-            <p className="text-sm font-medium text-th-text">Appearance</p>
-            <p className="text-xs text-th-muted">{currentThemeObj?.desc}</p>
-          </div>
-          <select
-            value={currentTheme}
-            onChange={e => handleTheme(e.target.value)}
-            className="rounded-lg bg-th-surface px-3 py-1.5 text-sm text-th-text outline-none"
-          >
-            {THEMES.map(t => (
-              <option key={t.id} value={t.id}>{t.label}</option>
-            ))}
-          </select>
-        </div>
-      </section>
+  const [openSection, setOpenSection] = useState<string | null>(null)
+  function toggle(section: string) { setOpenSection(prev => prev === section ? null : section) }
 
-      {/* Starter sets */}
-      <section>
+  return (
+    <div className="flex flex-col">
+      <div className="flex flex-col divide-y divide-th-border">
+        {/* Appearance */}
+        <div>
+          <button
+            onClick={() => toggle('appearance')}
+            className="flex w-full items-center justify-between py-4 text-left transition-all active:scale-[0.99]"
+          >
+            <div>
+              <p className="text-sm font-medium text-th-text">Appearance</p>
+              <p className="text-xs text-th-muted">{currentThemeObj?.label ?? 'Default'}</p>
+            </div>
+            <span className={`shrink-0 text-sm text-th-faint transition-transform ${openSection === 'appearance' ? 'rotate-90' : ''}`}>→</span>
+          </button>
+          {openSection === 'appearance' && (
+            <div className="pb-4">
+              {THEMES.map(t => (
+                <button
+                  key={t.id}
+                  onClick={() => handleTheme(t.id)}
+                  className={`flex w-full items-center justify-between py-2.5 text-left text-sm transition-colors ${currentTheme === t.id ? 'text-th-text font-medium' : 'text-th-muted'}`}
+                >
+                  <span>{t.label}</span>
+                  {currentTheme === t.id && <span className="text-xs">&#10003;</span>}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Starter sets */}
         <Link
           href="/settings/shape"
-          className="flex items-center justify-between gap-3 py-3 transition-all active:scale-[0.99]"
+          className="flex items-center justify-between gap-3 py-4 transition-all active:scale-[0.99]"
         >
           <div className="min-w-0">
             <p className="text-sm font-medium text-th-text">Starter sets</p>
@@ -208,14 +218,252 @@ export function SettingsPanel({
           </div>
           <span className="shrink-0 text-sm text-th-faint">→</span>
         </Link>
-      </section>
 
-      {/* Crew (admin-only during testing) */}
-      {isAdmin && (
-        <section>
+        {/* Past chapters */}
+        {archivedChapterCount > 0 && (
+          <Link
+            href="/settings/chapters"
+            className="flex items-center justify-between gap-3 py-4 transition-all active:scale-[0.99]"
+          >
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-th-text">Past chapters</p>
+              <p className="truncate text-xs text-th-muted">
+                {archivedChapterCount} closed {archivedChapterCount === 1 ? 'chapter' : 'chapters'}
+              </p>
+            </div>
+            <span className="shrink-0 text-sm text-th-faint">→</span>
+          </Link>
+        )}
+
+        {/* Tracking */}
+        <div>
+          <button
+            onClick={() => toggle('tracking')}
+            className="flex w-full items-center justify-between py-4 text-left transition-all active:scale-[0.99]"
+          >
+            <div>
+              <p className="text-sm font-medium text-th-text">Tracking</p>
+              <p className="text-xs text-th-muted">{currentModeObj?.label} · {goalLabel}/day</p>
+            </div>
+            <span className={`shrink-0 text-sm text-th-faint transition-transform ${openSection === 'tracking' ? 'rotate-90' : ''}`}>→</span>
+          </button>
+          {openSection === 'tracking' && (
+            <div className="flex flex-col divide-y divide-th-border pb-4">
+              <div className="flex items-center justify-between py-3">
+                <div>
+                  <p className="text-sm font-medium text-th-text">Daily target</p>
+                  <p className="text-xs text-th-muted">
+                    {currentMode === 'hours' ? 'Hours target per day' : 'Points target per day'}
+                  </p>
+                </div>
+                {editingGoal ? (
+                  <div className="flex items-center gap-2">
+                    <input
+                      autoFocus
+                      type="number"
+                      min={currentMode === 'hours' ? '0.25' : '1'}
+                      step={currentMode === 'hours' ? '0.25' : '1'}
+                      value={goalInput}
+                      onChange={e => setGoalInput(e.target.value)}
+                      onBlur={commitGoal}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') commitGoal()
+                        if (e.key === 'Escape') setEditingGoal(false)
+                      }}
+                      className="w-16 rounded-lg border border-th-border bg-th-surface px-2 py-1 text-sm text-th-text outline-none focus:border-th-focus text-right"
+                    />
+                    <span className="text-xs text-th-muted">{currentMode === 'hours' ? 'hrs' : 'pts'}</span>
+                  </div>
+                ) : (
+                  <button
+                    onClick={startEditGoal}
+                    className="text-sm font-medium text-th-secondary hover:underline"
+                  >
+                    {goalLabel}
+                  </button>
+                )}
+              </div>
+
+              <div className="flex items-center justify-between py-3">
+                <div>
+                  <p className="text-sm font-medium text-th-text">Tracking currency</p>
+                  <p className="text-xs text-th-muted">{currentModeObj?.desc}</p>
+                </div>
+                <select
+                  value={currentMode}
+                  onChange={e => handleMode(e.target.value as TrackingMode)}
+                  className="rounded-lg bg-th-surface px-3 py-1.5 text-sm text-th-text outline-none"
+                >
+                  {TRACKING_MODES.map(m => (
+                    <option key={m.id} value={m.id}>{m.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex items-center justify-between py-3">
+                <div>
+                  <p className="text-sm font-medium text-th-text">Groups</p>
+                  <p className="text-xs text-th-muted">Organize motions into buckets</p>
+                </div>
+                <button
+                  role="switch"
+                  aria-checked={groupsOn}
+                  onClick={() => handleGroups(!groupsOn)}
+                  className={`relative h-6 w-11 rounded-full transition-colors ${groupsOn ? 'bg-th-btn' : 'bg-th-border'}`}
+                >
+                  <span
+                    className={`absolute top-1 left-1 h-4 w-4 rounded-full bg-white shadow transition-transform ${groupsOn ? 'translate-x-5' : 'translate-x-0'}`}
+                  />
+                </button>
+              </div>
+
+              {groupsOn && groups.length > 0 && groups.map(g => (
+                <button
+                  key={g.id}
+                  onClick={() => setEditingGroupId(g.id)}
+                  className="flex w-full items-center gap-3 py-3 text-left transition-colors hover:bg-th-surface"
+                >
+                  <span
+                    className="h-3 w-3 shrink-0 rounded-full"
+                    style={{ backgroundColor: g.color }}
+                  />
+                  <span className="flex-1 text-sm text-th-text">{g.name}</span>
+                </button>
+              ))}
+
+              <div className="flex items-center justify-between py-3">
+                <div>
+                  <p className="text-sm font-medium text-th-text">Submotions</p>
+                  <p className="text-xs text-th-muted">Break a motion into smaller parts</p>
+                </div>
+                <button
+                  role="switch"
+                  aria-checked={submotionsOn}
+                  onClick={() => handleSubmotions(!submotionsOn)}
+                  className={`relative h-6 w-11 rounded-full transition-colors ${submotionsOn ? 'bg-th-btn' : 'bg-th-border'}`}
+                >
+                  <span
+                    className={`absolute top-1 left-1 h-4 w-4 rounded-full bg-white shadow transition-transform ${submotionsOn ? 'translate-x-5' : 'translate-x-0'}`}
+                  />
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Celebration */}
+        <div>
+          <button
+            onClick={() => toggle('celebration')}
+            className="flex w-full items-center justify-between py-4 text-left transition-all active:scale-[0.99]"
+          >
+            <div>
+              <p className="text-sm font-medium text-th-text">Celebration</p>
+              <p className="text-xs text-th-muted">
+                {celebration ? 'Visual on' : 'Visual off'}{haptic ? ' · Haptic on' : ''}
+              </p>
+            </div>
+            <span className={`shrink-0 text-sm text-th-faint transition-transform ${openSection === 'celebration' ? 'rotate-90' : ''}`}>→</span>
+          </button>
+          {openSection === 'celebration' && (
+            <div className="flex flex-col divide-y divide-th-border pb-4">
+              <div className="flex items-center justify-between py-3">
+                <div>
+                  <p className="text-sm font-medium text-th-text">Visual</p>
+                  <p className="text-xs text-th-muted">Animation on check-off</p>
+                </div>
+                <button
+                  role="switch"
+                  aria-checked={celebration}
+                  onClick={() => handleCelebration(!celebration)}
+                  className={`relative h-6 w-11 rounded-full transition-colors ${celebration ? 'bg-th-btn' : 'bg-th-border'}`}
+                >
+                  <span className={`absolute top-1 left-1 h-4 w-4 rounded-full bg-white shadow transition-transform ${celebration ? 'translate-x-5' : 'translate-x-0'}`} />
+                </button>
+              </div>
+              <div className="flex items-center justify-between py-3">
+                <div>
+                  <p className="text-sm font-medium text-th-text">Haptic</p>
+                  <p className="text-xs text-th-muted">Vibration on check-off</p>
+                  {!vibrateSupported && <p className="text-xs text-th-faint">Not supported on this device</p>}
+                </div>
+                <button
+                  role="switch"
+                  aria-checked={haptic}
+                  onClick={() => handleHaptic(!haptic)}
+                  className={`relative h-6 w-11 rounded-full transition-colors ${haptic ? 'bg-th-btn' : 'bg-th-border'}`}
+                >
+                  <span className={`absolute top-1 left-1 h-4 w-4 rounded-full bg-white shadow transition-transform ${haptic ? 'translate-x-5' : 'translate-x-0'}`} />
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Account */}
+        <div>
+          <button
+            onClick={() => toggle('account')}
+            className="flex w-full items-center justify-between py-4 text-left transition-all active:scale-[0.99]"
+          >
+            <div>
+              <p className="text-sm font-medium text-th-text">Account</p>
+              <p className="truncate text-xs text-th-muted">{email}</p>
+            </div>
+            <span className={`shrink-0 text-sm text-th-faint transition-transform ${openSection === 'account' ? 'rotate-90' : ''}`}>→</span>
+          </button>
+          {openSection === 'account' && (
+            <div className="pb-4">
+              <ChangePasswordForm />
+            </div>
+          )}
+        </div>
+
+        {/* Data */}
+        <div>
+          <button
+            onClick={() => toggle('data')}
+            className="flex w-full items-center justify-between py-4 text-left transition-all active:scale-[0.99]"
+          >
+            <p className="text-sm font-medium text-th-text">Data</p>
+            <span className={`shrink-0 text-sm text-th-faint transition-transform ${openSection === 'data' ? 'rotate-90' : ''}`}>→</span>
+          </button>
+          {openSection === 'data' && (
+            <div className="flex flex-col gap-3 pb-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-th-text">Export your data</p>
+                  <p className="text-xs text-th-muted">Download everything as JSON</p>
+                </div>
+                <a href="/api/export" className="text-sm text-th-secondary hover:underline">
+                  Download
+                </a>
+              </div>
+              {visibleHidden.length > 0 && (
+                <div className="mt-2">
+                  <p className="mb-2 text-xs text-th-faint">Hidden motions</p>
+                  {visibleHidden.map(m => (
+                    <div key={m.id} className="flex items-center gap-3 py-2">
+                      <span className="flex-1 text-sm text-th-muted">{m.name}</span>
+                      <button
+                        onClick={() => handleUnhide(m.id)}
+                        className="text-xs text-th-secondary transition-colors hover:text-th-text"
+                      >
+                        Unhide
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Crew (admin-only during testing) */}
+        {isAdmin && (
           <Link
             href="/settings/billing"
-            className="flex items-center justify-between gap-3 py-3 transition-all active:scale-[0.99]"
+            className="flex items-center justify-between gap-3 py-4 transition-all active:scale-[0.99]"
           >
             <div className="min-w-0">
               <p className="text-sm font-medium text-th-text">Crew</p>
@@ -229,229 +477,9 @@ export function SettingsPanel({
             </div>
             <span className="shrink-0 text-sm text-th-faint">→</span>
           </Link>
-        </section>
-      )}
-
-      {/* Past chapters */}
-      {archivedChapterCount > 0 && (
-        <section>
-          <Link
-            href="/settings/chapters"
-            className="flex items-center justify-between gap-3 py-3 transition-all active:scale-[0.99]"
-          >
-            <div className="min-w-0">
-              <p className="text-sm font-medium text-th-text">Past chapters</p>
-              <p className="truncate text-xs text-th-muted">
-                {archivedChapterCount} closed {archivedChapterCount === 1 ? 'chapter' : 'chapters'}
-              </p>
-            </div>
-            <span className="shrink-0 text-sm text-th-faint">→</span>
-          </Link>
-        </section>
-      )}
-
-      {/* Tracking */}
-      <section>
-        <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-th-muted">Tracking</p>
-        <div className="flex flex-col divide-y divide-th-border">
-          <div className="flex items-center justify-between py-3">
-            <div>
-              <p className="text-sm font-medium text-th-text">Daily target</p>
-              <p className="text-xs text-th-muted">
-                {currentMode === 'hours' ? 'Hours target per day' : 'Points target per day'}
-              </p>
-            </div>
-            {editingGoal ? (
-              <div className="flex items-center gap-2">
-                <input
-                  autoFocus
-                  type="number"
-                  min={currentMode === 'hours' ? '0.25' : '1'}
-                  step={currentMode === 'hours' ? '0.25' : '1'}
-                  value={goalInput}
-                  onChange={e => setGoalInput(e.target.value)}
-                  onBlur={commitGoal}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter') commitGoal()
-                    if (e.key === 'Escape') setEditingGoal(false)
-                  }}
-                  className="w-16 rounded-lg border border-th-border bg-th-surface px-2 py-1 text-sm text-th-text outline-none focus:border-th-focus text-right"
-                />
-                <span className="text-xs text-th-muted">{currentMode === 'hours' ? 'hrs' : 'pts'}</span>
-              </div>
-            ) : (
-              <button
-                onClick={startEditGoal}
-                className="text-sm font-medium text-th-secondary hover:underline"
-              >
-                {goalLabel}
-              </button>
-            )}
-          </div>
-
-          <div className="flex items-center justify-between py-3">
-            <div>
-              <p className="text-sm font-medium text-th-text">Groups</p>
-              <p className="text-xs text-th-muted">Organize motions into buckets</p>
-            </div>
-            <button
-              role="switch"
-              aria-checked={groupsOn}
-              onClick={() => handleGroups(!groupsOn)}
-              className={`relative h-6 w-11 rounded-full transition-colors ${groupsOn ? 'bg-th-btn' : 'bg-th-border'}`}
-            >
-              <span
-                className={`absolute top-1 left-1 h-4 w-4 rounded-full bg-white shadow transition-transform ${groupsOn ? 'translate-x-5' : 'translate-x-0'}`}
-              />
-            </button>
-          </div>
-
-          {groupsOn && groups.length > 0 && groups.map(g => (
-            <button
-              key={g.id}
-              onClick={() => setEditingGroupId(g.id)}
-              className="flex w-full items-center gap-3 py-3 text-left transition-colors hover:bg-th-surface"
-            >
-              <span
-                className="h-3 w-3 shrink-0 rounded-full"
-                style={{ backgroundColor: g.color }}
-              />
-              <span className="flex-1 text-sm text-th-text">{g.name}</span>
-            </button>
-          ))}
-
-          <div className="flex items-center justify-between py-3">
-            <div>
-              <p className="text-sm font-medium text-th-text">Submotions</p>
-              <p className="text-xs text-th-muted">Break a motion into smaller parts</p>
-            </div>
-            <button
-              role="switch"
-              aria-checked={submotionsOn}
-              onClick={() => handleSubmotions(!submotionsOn)}
-              className={`relative h-6 w-11 rounded-full transition-colors ${submotionsOn ? 'bg-th-btn' : 'bg-th-border'}`}
-            >
-              <span
-                className={`absolute top-1 left-1 h-4 w-4 rounded-full bg-white shadow transition-transform ${submotionsOn ? 'translate-x-5' : 'translate-x-0'}`}
-              />
-            </button>
-          </div>
-        </div>
-      </section>
-
-      {/* Tracking currency */}
-      <section>
-        <div className="flex items-center justify-between py-3">
-          <div>
-            <p className="text-sm font-medium text-th-text">Tracking currency</p>
-            <p className="text-xs text-th-muted">{currentModeObj?.desc}</p>
-          </div>
-          <select
-            value={currentMode}
-            onChange={e => handleMode(e.target.value as TrackingMode)}
-            className="rounded-lg bg-th-surface px-3 py-1.5 text-sm text-th-text outline-none"
-          >
-            {TRACKING_MODES.map(m => (
-              <option key={m.id} value={m.id}>{m.label}</option>
-            ))}
-          </select>
-        </div>
-      </section>
+        )}
       </div>
 
-      {/* Right column on desktop */}
-      <div className="flex flex-col gap-8">
-      {/* Celebration */}
-      <section>
-        <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-th-muted">Celebration</p>
-        <div className="flex flex-col divide-y divide-th-border">
-          <div className="flex items-center justify-between py-3">
-            <div>
-              <p className="text-sm font-medium text-th-text">Visual</p>
-              <p className="text-xs text-th-muted">Animation on check-off</p>
-            </div>
-            <button
-              role="switch"
-              aria-checked={celebration}
-              onClick={() => handleCelebration(!celebration)}
-              className={`relative h-6 w-11 rounded-full transition-colors ${celebration ? 'bg-th-btn' : 'bg-th-border'}`}
-            >
-              <span className={`absolute top-1 left-1 h-4 w-4 rounded-full bg-white shadow transition-transform ${celebration ? 'translate-x-5' : 'translate-x-0'}`} />
-            </button>
-          </div>
-          <div className="flex items-center justify-between py-3">
-            <div>
-              <p className="text-sm font-medium text-th-text">Haptic</p>
-              <p className="text-xs text-th-muted">Vibration on check-off</p>
-              {!vibrateSupported && <p className="text-xs text-th-faint">Not supported on this device</p>}
-            </div>
-            <button
-              role="switch"
-              aria-checked={haptic}
-              onClick={() => handleHaptic(!haptic)}
-              className={`relative h-6 w-11 rounded-full transition-colors ${haptic ? 'bg-th-btn' : 'bg-th-border'}`}
-            >
-              <span className={`absolute top-1 left-1 h-4 w-4 rounded-full bg-white shadow transition-transform ${haptic ? 'translate-x-5' : 'translate-x-0'}`} />
-            </button>
-          </div>
-        </div>
-      </section>
-
-      {/* Hidden motions */}
-      {visibleHidden.length > 0 && (
-        <section>
-          <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-th-muted">Hidden motions</p>
-          <div className="flex flex-col">
-            {visibleHidden.map(m => (
-              <div key={m.id} className="flex items-center gap-3 px-1 py-2.5">
-                <span className="flex-1 text-sm text-th-muted">{m.name}</span>
-                <button
-                  onClick={() => handleUnhide(m.id)}
-                  className="text-xs text-th-secondary transition-colors hover:text-th-text"
-                >
-                  Unhide
-                </button>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* Feedback */}
-      <section>
-        <a
-          href="mailto:ondulertest@gmail.com?subject=Onduler feedback"
-          className="flex items-center justify-between px-4 py-3 text-sm text-th-text transition-colors hover:bg-th-surface active:scale-[0.99]"
-        >
-          Send feedback
-          <span className="text-xs text-th-faint">ondulertest@gmail.com</span>
-        </a>
-      </section>
-
-      {/* Account */}
-      <section>
-        <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-th-muted">Account</p>
-        <div className="px-4 py-3">
-          <p className="text-xs text-th-muted">Signed in as</p>
-          <p className="mt-0.5 text-sm text-th-text">{email}</p>
-        </div>
-        <ChangePasswordForm />
-      </section>
-
-      {/* Data */}
-      <section>
-        <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-th-muted">Data</p>
-        <div className="px-4 py-3 flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-th-text">Export your data</p>
-            <p className="text-xs text-th-muted">Download everything as JSON</p>
-          </div>
-          <a href="/api/export" className="text-sm text-th-secondary hover:underline">
-            Download
-          </a>
-        </div>
-      </section>
-      </div>
     </div>
   )
 }

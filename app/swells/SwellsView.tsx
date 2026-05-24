@@ -171,9 +171,9 @@ export function SwellsView(props: Props) {
               {/* Weekly total */}
               <div className="mb-2 flex items-baseline justify-between gap-3">
                 <h1 className="min-w-0 text-lg font-semibold text-th-text">This week</h1>
-                <p className="shrink-0 text-sm font-medium text-th-muted">
+                <p className="shrink-0 text-lg font-semibold text-th-text">
                   {formatValue(weeklyTotal)}
-                  <span className="ml-1 text-[10px] font-normal uppercase tracking-widest text-th-faint">{isHours ? 'hrs' : 'pts'}</span>
+                  <span className="ml-1 text-xs font-normal uppercase tracking-widest text-th-muted">{isHours ? 'hrs' : 'pts'}</span>
                 </p>
               </div>
 
@@ -181,13 +181,13 @@ export function SwellsView(props: Props) {
                   right-sizing per-swell targets — but quieter than the actuals. */}
               {combinedTarget > 0 && props.swells.length > 0 && (
                 <div className="mb-3">
-                  <div className="mb-1.5 rounded-full bg-th-surface" style={{ height: '3px' }}>
+                  <div className="mb-1.5 rounded-full bg-th-surface" style={{ height: '5px' }}>
                     <div
-                      className="h-full rounded-full bg-th-border transition-all duration-500"
-                      style={{ width: `${Math.min((weeklyTotal / combinedTarget) * 100, 100)}%` }}
+                      className="h-full rounded-full transition-all duration-500"
+                      style={{ width: `${Math.min((weeklyTotal / combinedTarget) * 100, 100)}%`, background: 'linear-gradient(to right, color-mix(in oklch, var(--th-accent) 35%, var(--th-surface)), var(--th-accent))' }}
                     />
                   </div>
-                  <div className="flex justify-between text-[10px] text-th-faint">
+                  <div className="flex justify-between text-xs text-th-faint">
                     <span>{formatValue(weeklyTotal)} / {formatValue(combinedTarget)} weekly</span>
                     <span>{ceilDisplay(Math.min((weeklyTotal / combinedTarget) * 100, 100))}%</span>
                   </div>

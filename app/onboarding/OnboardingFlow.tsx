@@ -26,7 +26,7 @@ type MotionEntry = {
 const SEEDED_SWELLS: { name: string; description: string; motionHint: string }[] = [
   { name: 'Movement', description: 'exercise, sport, walking, being in your body', motionHint: 'e.g. walk, lift, swim' },
   { name: 'Mind', description: 'meditation, journaling, reading, learning', motionHint: 'e.g. meditate, journal, read' },
-  { name: 'Food', description: 'cooking, eating well, nourishment', motionHint: 'e.g. cook, eat slowly' },
+  { name: 'Nutrition', description: 'cooking, eating well, nourishment', motionHint: 'e.g. cook, eat slowly' },
   { name: 'Home', description: 'your space, comfort, domestic life', motionHint: 'e.g. tidy, repair, plant' },
   { name: 'Family', description: 'partner, kids, parents, siblings', motionHint: 'e.g. call mom, dinner together' },
   { name: 'Friends', description: 'broader social life, community', motionHint: 'e.g. text a friend, host' },
