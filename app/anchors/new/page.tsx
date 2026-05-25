@@ -9,7 +9,7 @@ export default async function NewAnchorPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  // Default-anchor the entry to the current week (Mon → Sun). Per spec, the
+  // Default-anchor the entry to the current week (Sun → Sat). Per spec, the
   // user can edit this; for the placeholder phase the form just shows the
   // cycle as a quiet pill so they know what window they're anchoring against.
   const todayKey = pacificDayKey(new Date())

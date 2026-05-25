@@ -52,6 +52,8 @@ function SwellChips({ allSwells, weights, pctDraft, onToggle, onPctChange, onPct
       <div className="flex flex-wrap gap-1.5">
         {allSwells.map(s => {
           const active = weights.has(s.id)
+          const pct = Math.round((weights.get(s.id) ?? 1) * 100)
+          const zeroWeight = active && pct === 0
           return (
             <div key={s.id} className="flex items-center gap-1">
               <button
@@ -59,7 +61,9 @@ function SwellChips({ allSwells, weights, pctDraft, onToggle, onPctChange, onPct
                 onClick={() => onToggle(s.id)}
                 className="rounded-full border px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wide transition-colors"
                 style={active
-                  ? { backgroundColor: s.color, borderColor: s.color, color: '#fff' }
+                  ? zeroWeight
+                    ? { borderColor: s.color, borderStyle: 'dashed', color: s.color, backgroundColor: 'transparent' }
+                    : { backgroundColor: s.color, borderColor: s.color, color: '#fff' }
                   : { borderColor: 'var(--color-th-border)', color: 'var(--color-th-muted)' }}
               >
                 {s.name}
@@ -889,13 +893,16 @@ export function MotionDetailSheet({
               {allSwells.map(s => {
                 const active = localSwellWeights.has(s.id)
                 const pct = Math.round((localSwellWeights.get(s.id) ?? 1) * 100)
+                const zeroWeight = active && pct === 0
                 return (
                   <div key={s.id} className="flex items-center gap-2">
                     <button
                       onClick={() => toggleSwell(s.id)}
                       className="rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wide transition-colors"
                       style={active
-                        ? { backgroundColor: s.color, borderColor: s.color, color: '#fff' }
+                        ? zeroWeight
+                          ? { borderColor: s.color, borderStyle: 'dashed', color: s.color, backgroundColor: 'transparent' }
+                          : { backgroundColor: s.color, borderColor: s.color, color: '#fff' }
                         : { borderColor: 'var(--color-th-border)', color: 'var(--color-th-muted)' }}
                     >
                       {s.name}
@@ -925,6 +932,9 @@ export function MotionDetailSheet({
                 )
               })}
             </div>
+            {Array.from(localSwellWeights.values()).some(w => Math.round(w * 100) === 0) && (
+              <p className="mt-2 text-[11px] text-th-faint">Dashed swells are at 0% — edit % to allocate</p>
+            )}
           </div>
           )
         })()}

@@ -13,7 +13,7 @@ export type WelcomeBackMode = 'ease' | 'full'
 //
 // Week indexing is calendar-day-based (Pacific), starting from the day the
 // user chose 'Ease back in' on the welcome screen. This intentionally does
-// not snap to Monday — the ramp is anchored to the user's return, not the
+// not snap to Sunday — the ramp is anchored to the user's return, not the
 // celebration week.
 export function currentRamp(
   mode: WelcomeBackMode | null | undefined,

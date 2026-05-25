@@ -99,7 +99,7 @@ export default async function AnchorsPage({
   searchParams: Promise<{ period?: string }>
 }) {
   const { period: rawPeriod } = await searchParams
-  const period = parsePeriod(rawPeriod)
+  let period = parsePeriod(rawPeriod)
 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -122,6 +122,8 @@ export default async function AnchorsPage({
   }
   const pendingCadences: Cadence[] = CADENCES.filter(c => ceremonyByCadence[c].state === 'pending')
 
+  if (!unlocks[period]) period = 'week'
+
   // Wave detection: 72+ hours since last log with no wave_checkin after.
   const { data: lastLogRow } = await supabase
     .from('logs')
@@ -143,7 +145,7 @@ export default async function AnchorsPage({
     }
   }
 
-  // Weekly is the gate. Until the user has lived through a full Mon-Sun
+  // Weekly is the gate. Until the user has lived through a full Sun-Sat
   // with the engagement floor met, /anchors is vibe-only mystery.
   // Even locked, fetch this week's swell actuals so the Wake renders live data.
   if (!unlocks.week) {
@@ -440,7 +442,7 @@ export default async function AnchorsPage({
           </div>
 
           <div className="flex gap-2">
-            {PERIOD_OPTIONS.map(({ value, label }) => (
+            {PERIOD_OPTIONS.filter(o => unlocks[o.value]).map(({ value, label }) => (
               <Link
                 key={value}
                 href={`/anchors?period=${value}`}

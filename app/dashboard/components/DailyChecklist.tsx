@@ -734,6 +734,8 @@ export function DailyChecklist({
           </svg>
         </button>
         {filterOpen && (
+          <>
+          <div className="fixed inset-0 z-10" onClick={() => setFilterOpen(false)} />
           <div className="absolute right-0 top-full z-20 mt-1 w-44 rounded-lg border border-th-border bg-th-bg p-2 shadow-lg">
             <label className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-xs text-th-text transition-colors hover:bg-th-surface">
               <input type="checkbox" checked={showCompleted} onChange={() => toggleFilter('showCompleted')} className="accent-th-btn" />
@@ -748,6 +750,7 @@ export function DailyChecklist({
               Show pts/hrs
             </label>
           </div>
+          </>
         )}
       </div>
     </div>

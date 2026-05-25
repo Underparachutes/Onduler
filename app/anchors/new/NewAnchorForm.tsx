@@ -12,6 +12,7 @@ export function NewAnchorForm({ cycleStart, cycleEnd }: { cycleStart: string; cy
   const router = useRouter()
   const [state, formAction, pending] = useActionState(createFreeAnchor, null)
   const [pickerOpen, setPickerOpen] = useState(false)
+  const [expandedTheme, setExpandedTheme] = useState<AnchorPromptTheme | null>(null)
   const [prompt, setPrompt] = useState<string>('')
 
   useEffect(() => {
@@ -75,25 +76,35 @@ export function NewAnchorForm({ cycleStart, cycleEnd }: { cycleStart: string; cy
         )}
 
         {pickerOpen && !prompt && (
-          <div className="flex flex-col gap-3 rounded-lg border border-th-border-soft bg-th-surface/40 px-3 py-3">
-            {THEMES.map(theme => {
+          <div className="flex flex-col rounded-lg border border-th-border-soft bg-th-surface/40">
+            {THEMES.map((theme, i) => {
               const items = ANCHOR_PROMPTS.filter(p => p.theme === theme)
               if (items.length === 0) return null
+              const open = expandedTheme === theme
               return (
-                <div key={theme} className="flex flex-col gap-1.5">
-                  <p className="text-[10px] uppercase tracking-widest text-th-faint">{THEME_LABELS[theme]}</p>
-                  <div className="flex flex-col gap-1">
-                    {items.map(p => (
-                      <button
-                        key={p.text}
-                        type="button"
-                        onClick={() => { setPrompt(p.text); setPickerOpen(false) }}
-                        className="text-left text-xs text-th-secondary transition-colors hover:text-th-text active:scale-[0.985]"
-                      >
-                        {p.text}
-                      </button>
-                    ))}
-                  </div>
+                <div key={theme} className={i > 0 ? 'border-t border-th-border-soft' : ''}>
+                  <button
+                    type="button"
+                    onClick={() => setExpandedTheme(open ? null : theme)}
+                    className="flex w-full items-center justify-between px-3 py-2.5 active:scale-[0.985]"
+                  >
+                    <span className="text-[10px] uppercase tracking-widest text-th-faint">{THEME_LABELS[theme]}</span>
+                    <span className="text-[10px] text-th-faint">{open ? '−' : '+'}</span>
+                  </button>
+                  {open && (
+                    <div className="flex flex-col gap-1 px-3 pb-2.5">
+                      {items.map(p => (
+                        <button
+                          key={p.text}
+                          type="button"
+                          onClick={() => { setPrompt(p.text); setPickerOpen(false); setExpandedTheme(null) }}
+                          className="text-left text-xs text-th-secondary transition-colors hover:text-th-text active:scale-[0.985]"
+                        >
+                          {p.text}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )
             })}

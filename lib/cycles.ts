@@ -1,6 +1,6 @@
 // Ceremony cycle helpers (ADR 0007). Pure date math on Pacific day keys.
-// Weekly cycle is Mon → Sun (per project memory: cycle *ends* Sunday). A
-// cycle "closes" when its Sunday end-date is in the past relative to today.
+// Weekly cycle is Sun → Sat. A cycle "closes" when its Saturday end-date
+// is in the past relative to today — ceremonies unlock Sunday morning.
 
 import { type DayKey } from './periods'
 
@@ -24,24 +24,23 @@ function fromUtcMs(ms: number): DayKey {
   return `${yy}-${mm}-${dd}`
 }
 
-// Monday on-or-before `today`, as a DayKey. `today` is a Pacific calendar
+// Sunday on-or-before `today`, as a DayKey. `today` is a Pacific calendar
 // date (the rest of the app already produces these from pacificDayKey).
-export function thisWeekMonday(today: DayKey): DayKey {
+export function thisWeekSunday(today: DayKey): DayKey {
   const ms = toUtcMs(today)
   const jsDay = new Date(ms).getUTCDay() // 0=Sun, 1=Mon, ...
-  const daysSinceMonday = jsDay === 0 ? 6 : jsDay - 1
-  return fromUtcMs(ms - daysSinceMonday * MS_PER_DAY)
+  return fromUtcMs(ms - jsDay * MS_PER_DAY)
 }
 
 export type WeekCycle = { cycleStart: DayKey; cycleEnd: DayKey }
 
-// The just-closed week: Mon and Sun of the prior Mon→Sun span. If `today`
-// is Tuesday May 19, the closed week is Mon May 11 → Sun May 17.
+// The just-closed week: Sun and Sat of the prior Sun→Sat span. If `today`
+// is Tuesday May 27, the closed week is Sun May 18 → Sat May 24.
 export function closedWeekFor(today: DayKey): WeekCycle {
-  const monThisMs = toUtcMs(thisWeekMonday(today))
+  const sunThisMs = toUtcMs(thisWeekSunday(today))
   return {
-    cycleStart: fromUtcMs(monThisMs - 7 * MS_PER_DAY),
-    cycleEnd: fromUtcMs(monThisMs - MS_PER_DAY),
+    cycleStart: fromUtcMs(sunThisMs - 7 * MS_PER_DAY),
+    cycleEnd: fromUtcMs(sunThisMs - MS_PER_DAY),
   }
 }
 
@@ -140,9 +139,9 @@ export function formatCycleLabel(cycle: Cycle, cadence: Cadence, locale: string 
 // into their cycle of origin.
 export function cycleContaining(day: DayKey, cadence: Cadence): Cycle {
   if (cadence === 'week') {
-    const monMs = toUtcMs(thisWeekMonday(day))
-    const sunMs = monMs + 6 * MS_PER_DAY
-    return { cycleStart: fromUtcMs(monMs), cycleEnd: fromUtcMs(sunMs) }
+    const sunMs = toUtcMs(thisWeekSunday(day))
+    const satMs = sunMs + 6 * MS_PER_DAY
+    return { cycleStart: fromUtcMs(sunMs), cycleEnd: fromUtcMs(satMs) }
   }
   const [y, m] = partsOf(day)
   if (cadence === 'month') {

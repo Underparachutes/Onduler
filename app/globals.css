@@ -139,21 +139,21 @@ html {
 
 @media (prefers-color-scheme: dark) {
   [data-theme="bolinas"] {
-    --th-bg: #14181d;
-    --th-surface: #1d2229;
-    --th-surface-2: #262c34;
+    --th-bg: #15120f;
+    --th-surface: #1e1a16;
+    --th-surface-2: #282420;
     --th-text: #e0e3da;
-    --th-secondary: #b4bdb1;
-    --th-muted: #818c81;
-    --th-faint: #3e4650;
-    --th-border: #303842;
-    --th-border-soft: #242a32;
+    --th-secondary: #b3ada3;
+    --th-muted: #897f74;
+    --th-faint: #504a42;
+    --th-border: #332e28;
+    --th-border-soft: #272320;
     --th-btn: #e0e3da;
-    --th-btn-text: #14181d;
-    --th-btn-hover: #b4bdb1;
-    --th-focus: #818c81;
+    --th-btn-text: #15120f;
+    --th-btn-hover: #b3ada3;
+    --th-focus: #897f74;
     --th-accent: #c4d266;
-    --th-accent-text: #14181d;
+    --th-accent-text: #15120f;
     --th-success: #a8c97d;
     --th-wave-wash: rgba(196, 210, 102, 0.10);
     --th-frost-overlay: #ffffff;
@@ -244,6 +244,10 @@ body {
   font-family: var(--font-sans);
   font-feature-settings: 'ss01', 'tnum';
 }
+
+/* Prevent Safari auto-zoom on focus — iOS zooms inputs below 16px and
+   doesn't reset on blur, breaking fixed nav and requiring manual pinch. */
+input, textarea, select { font-size: 16px; }
 
 /* Display family (Manrope) gets generous tracking. */
 .display,

@@ -1,18 +1,25 @@
 // Frozen weekly radar for the ceremony reveal. No drag, no period toggle,
-// no pill. Renders the same wedge/slice geometry as the live radar so the
-// visual is recognizable, but it's pure SSR — a contemplative snapshot.
+// no pill. Matches the live SwellRadar's visual treatment — frosted glass
+// wedges, ombré slices, separator lines, tangent-rotated labels — but it's
+// pure SSR, a contemplative snapshot.
 
 import {
+  axisAngleRad,
   wedgePath,
+  wedgeBoundary,
   slicePath,
   actualPolygonPath,
   chartCeiling,
   scaleConfigFor,
 } from '@/lib/radar'
 
-const SIZE = 280
+const SIZE = 360
 const CENTER = { x: SIZE / 2, y: SIZE / 2 }
-const RADIUS = 100
+const RADIUS = 130
+const LABEL_PAD = 22
+const VB_EXTENT = RADIUS + LABEL_PAD + 40
+const VB_ORIGIN = CENTER.x - VB_EXTENT
+const VB_SIZE = VB_EXTENT * 2
 
 type Swell = { id: string; name: string; color: string; target: number }
 
@@ -37,54 +44,124 @@ export function FrozenRadar({
   const targets = swells.map(s => s.target)
   const scale = scaleConfigFor(trackingMode)
   const chartMax = chartCeiling([...targets, ...actuals], scale)
+  const actualPolygon = actualPolygonPath(actuals, targets, chartMax, RADIUS, CENTER)
+
+  function labelPos(index: number) {
+    const angle = axisAngleRad(index, count)
+    const r = RADIUS + LABEL_PAD
+    const x = CENTER.x + Math.cos(angle) * r
+    const y = CENTER.y + Math.sin(angle) * r
+    const deg = (angle * 180) / Math.PI
+    const onBottom = Math.sin(angle) > 0.01
+    const rotation = onBottom ? deg - 90 : deg + 90
+    return { x, y, rotation }
+  }
 
   return (
-    <svg viewBox={`0 0 ${SIZE} ${SIZE}`} width={SIZE} height={SIZE} className="text-th-faint">
-      {/* Wedges — background, low opacity. */}
+    <svg
+      viewBox={`${VB_ORIGIN} ${VB_ORIGIN} ${VB_SIZE} ${VB_SIZE}`}
+      className="w-full"
+      style={{ overflow: 'visible' }}
+    >
+      <defs>
+        <filter id="fr-frost" x="-10%" y="-10%" width="120%" height="120%">
+          <feGaussianBlur stdDeviation="2" />
+        </filter>
+        <clipPath id="fr-wake-cutout">
+          <path d={`M ${VB_ORIGIN} ${VB_ORIGIN} h ${VB_SIZE} v ${VB_SIZE} h -${VB_SIZE} Z ${actualPolygon}`} clipRule="evenodd" />
+        </clipPath>
+        {swells.map((s, i) => {
+          const targetR = chartMax > 0 ? (targets[i] / chartMax) * RADIUS : 0
+          return (
+            <radialGradient
+              key={`grad-${s.id}`}
+              id={`fr-slice-grad-${s.id}`}
+              cx={CENTER.x}
+              cy={CENTER.y}
+              r={Math.max(targetR, 1)}
+              gradientUnits="userSpaceOnUse"
+            >
+              <stop offset="0%" stopColor={`color-mix(in oklch, ${s.color} 35%, var(--th-surface))`} />
+              <stop offset="100%" stopColor={s.color} />
+            </radialGradient>
+          )
+        })}
+      </defs>
+
+      {/* Wedge fills — frosted glass effect */}
       {swells.map((s, i) => (
-        <path
-          key={`w-${s.id}`}
-          d={wedgePath(i, targets, chartMax, RADIUS, CENTER)}
-          fill={s.color}
-          fillOpacity={0.34}
-        />
+        <g key={`wedge-${s.id}`}>
+          <path
+            d={wedgePath(i, targets, chartMax, RADIUS, CENTER)}
+            fill={s.color}
+            fillOpacity={0.25}
+            filter="url(#fr-frost)"
+          />
+          <path
+            d={wedgePath(i, targets, chartMax, RADIUS, CENTER)}
+            fill="var(--th-frost-overlay)"
+            fillOpacity={0.35}
+            clipPath="url(#fr-wake-cutout)"
+          />
+        </g>
       ))}
 
-      {/* Per-axis filled slices — actual values. */}
-      {swells.map((s, i) => (
-        <path
-          key={`s-${s.id}`}
-          d={slicePath(i, actuals, targets, chartMax, RADIUS, CENTER)}
-          fill={s.color}
-          fillOpacity={0.65}
-        />
-      ))}
+      {/* Filled slices — ombré from surface-blend at center to swell color at edge */}
+      {swells.map((s, i) => {
+        const d = slicePath(i, actuals, targets, chartMax, RADIUS, CENTER)
+        if (!d) return null
+        return (
+          <path
+            key={`slice-${s.id}`}
+            d={d}
+            fill={`url(#fr-slice-grad-${s.id})`}
+            fillOpacity={0.95}
+          />
+        )
+      })}
 
-      {/* Shoulder-rule perimeter stroke. */}
+      {/* Separator lines on bisector radials */}
+      {swells.map((_, i) => {
+        const b = wedgeBoundary(i, targets, chartMax, RADIUS, CENTER)
+        return (
+          <line
+            key={`sep-${i}`}
+            x1={CENTER.x}
+            y1={CENTER.y}
+            x2={b.x}
+            y2={b.y}
+            stroke="var(--color-th-text, currentColor)"
+            strokeWidth="0.5"
+            opacity="0.32"
+          />
+        )
+      })}
+
+      {/* Actuals polygon outline */}
       <path
-        d={actualPolygonPath(actuals, targets, chartMax, RADIUS, CENTER)}
+        d={actualPolygon}
         fill="none"
-        stroke="currentColor"
-        strokeWidth={1.25}
+        stroke="var(--color-th-text, currentColor)"
+        strokeWidth="1.5"
         strokeLinejoin="round"
-        opacity={0.55}
+        strokeOpacity="0.85"
       />
 
-      {/* Swell name labels around the outside, one per axis. */}
+      {/* Tangent-rotated swell labels */}
       {swells.map((s, i) => {
-        const angle = -Math.PI / 2 + (i * 2 * Math.PI) / count
-        const r = RADIUS + 14
-        const x = CENTER.x + Math.cos(angle) * r
-        const y = CENTER.y + Math.sin(angle) * r
+        const pos = labelPos(i)
         return (
           <text
             key={`l-${s.id}`}
-            x={x}
-            y={y}
+            x={pos.x}
+            y={pos.y}
             textAnchor="middle"
-            dominantBaseline="middle"
-            className="fill-th-secondary"
-            style={{ fontSize: '10px' }}
+            dominantBaseline="central"
+            fontSize="13"
+            fontWeight="500"
+            fill="var(--color-th-text, currentColor)"
+            fillOpacity="0.85"
+            transform={`rotate(${pos.rotation}, ${pos.x}, ${pos.y})`}
           >
             {s.name}
           </text>

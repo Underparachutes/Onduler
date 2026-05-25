@@ -11,7 +11,7 @@ import { monthStartKey, pacificDayKey, type DayKey } from './periods'
 export type Cadence = 'weekly' | 'monthly'
 
 // The Pacific day key at the start of the cadence's current cycle.
-//   weekly  → caller-provided weekStartKey (the project's Monday-anchored
+//   weekly  → caller-provided weekStartKey (the project's Sunday-anchored
 //             week-start; let consumers stay aligned with the existing
 //             `getWeekStart` source-of-truth without re-deriving it here)
 //   monthly → 1st-of-month for the month containing `todayKey`

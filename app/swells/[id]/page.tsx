@@ -16,13 +16,12 @@ type RawJunction = {
   motions: { id: string; name: string; default_points: number; default_hours: number } | null
 }
 
-function pacificMondayKey(date: Date): string {
+function pacificSundayKey(date: Date): string {
   const dateStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Los_Angeles' }).format(date)
   const [y, m, d] = dateStr.split('-').map(Number)
   const dt = new Date(y, m - 1, d)
   const jsDay = dt.getDay()
-  const daysSinceMonday = jsDay === 0 ? 6 : jsDay - 1
-  dt.setDate(dt.getDate() - daysSinceMonday)
+  dt.setDate(dt.getDate() - jsDay)
   const yy = dt.getFullYear()
   const mm = String(dt.getMonth() + 1).padStart(2, '0')
   const dd = String(dt.getDate()).padStart(2, '0')
@@ -169,7 +168,7 @@ export default async function SwellDetailPage({ params }: { params: Promise<{ id
     lifetimePts += wPts
     lifetimeHrs += wHrs
     const loggedAt = new Date(log.logged_at)
-    weekKeys.add(pacificMondayKey(loggedAt))
+    weekKeys.add(pacificSundayKey(loggedAt))
     if (pacificDayKey(loggedAt) >= monthStartK && stats) {
       stats.month.count += 1
       stats.month.pts += wPts

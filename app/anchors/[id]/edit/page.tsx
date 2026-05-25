@@ -25,7 +25,7 @@ export default async function EditAnchorPage({
 
   const todayKey = pacificDayKey(new Date())
   const thisWeek = cycleContaining(todayKey, 'week')
-  // "Last week" = the week before the current one (Mon→Sun).
+  // "Last week" = the week before the current one (Sun→Sat).
   const lastMonKey = (() => {
     const [y, m, d] = thisWeek.cycleStart.split('-').map(Number)
     const ms = Date.UTC(y, m - 1, d) - 7 * 86_400_000
