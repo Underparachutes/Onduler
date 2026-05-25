@@ -30,6 +30,7 @@ type TrackingMode = 'points' | 'hours'
 type RowProps = {
   motion: Motion
   done: boolean
+  diving?: boolean
   hasSubmotions: boolean
   trackingMode: TrackingMode
   hidePtsHrs?: boolean
@@ -38,7 +39,7 @@ type RowProps = {
   onOpenSheet: () => void
 }
 
-export function SortableMotionRow({ motion, done, hasSubmotions, trackingMode, hidePtsHrs, sortableId, onLog, onOpenSheet }: RowProps) {
+export function SortableMotionRow({ motion, done, diving, hasSubmotions, trackingMode, hidePtsHrs, sortableId, onLog, onOpenSheet }: RowProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: sortableId ?? motion.id })
 
@@ -47,7 +48,12 @@ export function SortableMotionRow({ motion, done, hasSubmotions, trackingMode, h
       ref={setNodeRef}
       {...attributes}
       suppressHydrationWarning
-      style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1 }}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.4 : 1,
+        animation: diving ? 'duck-dive 0.5s ease-out forwards' : undefined,
+      }}
       className="flex items-center gap-1 select-none"
     >
       {/* Checkbox — drag handle only, no log */}
@@ -103,6 +109,7 @@ export function SortableMotionRow({ motion, done, hasSubmotions, trackingMode, h
           ···
         </button>
       </div>
+
     </div>
   )
 }
@@ -117,6 +124,7 @@ type ListProps = {
   searchQuery?: string
   trackingMode: TrackingMode
   hidePtsHrs?: boolean
+  divingId?: string | null
   onLog: (motion: Motion, x: number, y: number) => void
   onOpenSheet: (id: string) => void
 }
@@ -131,6 +139,7 @@ export function SortableMotionList({
   searchQuery = "",
   trackingMode,
   hidePtsHrs,
+  divingId = null,
   onLog,
   onOpenSheet,
 }: ListProps) {
@@ -159,6 +168,7 @@ export function SortableMotionList({
   const visible = ordered.filter(m => {
     if (localHiddenIds.has(m.id)) return false
     if (q && !m.name.toLowerCase().includes(q)) return false
+    if (m.id === divingId) return true
     if (hideDone && localDone.has(m.id)) return false
     return true
   })
@@ -172,6 +182,7 @@ export function SortableMotionList({
               key={motion.id}
               motion={motion}
               done={localDone.has(motion.id)}
+              diving={motion.id === divingId}
               hasSubmotions={submotionsEnabled && (submotionsMap[motion.id]?.length ?? 0) > 0}
               trackingMode={trackingMode}
               hidePtsHrs={hidePtsHrs}

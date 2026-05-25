@@ -3,7 +3,7 @@
 export type CelebrationState = {
   x: number
   y: number
-  type: 'glow' | 'wave' | 'bloom'
+  type: 'glow' | 'bloom'
 }
 
 const BLOOM_PARTICLES = [
@@ -25,24 +25,6 @@ export function CelebrationOverlay({
   onDone: () => void
 }) {
   const { x, y, type } = celebration
-
-  if (type === 'wave') {
-    return (
-      <div className="pointer-events-none fixed inset-0 z-50 overflow-hidden">
-        <div
-          className="absolute left-0 right-0 bg-th-btn"
-          style={{
-            top: '100vh',
-            height: '100vh',
-            opacity: 0.2,
-            borderRadius: '45% 45% 0 0 / 30px 30px 0 0',
-            animation: 'celebration-wave 1.1s ease-out forwards',
-          }}
-          onAnimationEnd={onDone}
-        />
-      </div>
-    )
-  }
 
   if (type === 'bloom') {
     return (

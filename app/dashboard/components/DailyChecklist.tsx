@@ -64,7 +64,7 @@ type Props = {
 }
 
 function DroppableGroup({
-  id, label, color, items, isDragging, localDone, localHiddenIds, hideDone, submotionsMap, submotionsEnabled, trackingMode, hidePtsHrs, onLog, onOpenSheet,
+  id, label, color, items, isDragging, localDone, localHiddenIds, hideDone, submotionsMap, submotionsEnabled, trackingMode, hidePtsHrs, divingId, onLog, onOpenSheet,
 }: {
   id: string
   label: string
@@ -78,12 +78,13 @@ function DroppableGroup({
   submotionsEnabled: boolean
   trackingMode: TrackingMode
   hidePtsHrs?: boolean
+  divingId: string | null
   onLog: (motion: Motion, x: number, y: number) => void
   onOpenSheet: (id: string) => void
 }) {
   const { setNodeRef, isOver } = useDroppable({ id })
   const nonHidden = items.filter(m => !localHiddenIds.has(m.id))
-  const visible = nonHidden.filter(m => !hideDone || !localDone.has(m.id))
+  const visible = nonHidden.filter(m => m.id === divingId || !hideDone || !localDone.has(m.id))
 
   return (
     <div>
@@ -103,6 +104,7 @@ function DroppableGroup({
               key={motion.id}
               motion={motion}
               done={localDone.has(motion.id)}
+              diving={motion.id === divingId}
               hasSubmotions={submotionsEnabled && (submotionsMap[motion.id]?.length ?? 0) > 0}
               trackingMode={trackingMode}
               hidePtsHrs={hidePtsHrs}
@@ -123,7 +125,7 @@ function DroppableGroup({
 
 
 function DroppableSwellSection({
-  id, label, color, items, isDragging, localDone, localHiddenIds, hideDone, submotionsMap, submotionsEnabled, trackingMode, hidePtsHrs, onLog, onOpenSheet,
+  id, label, color, items, isDragging, localDone, localHiddenIds, hideDone, submotionsMap, submotionsEnabled, trackingMode, hidePtsHrs, divingId, onLog, onOpenSheet,
 }: {
   id: string
   label: string
@@ -137,12 +139,14 @@ function DroppableSwellSection({
   submotionsEnabled: boolean
   trackingMode: TrackingMode
   hidePtsHrs?: boolean
+  divingId: string | null
   onLog: (motion: Motion, x: number, y: number) => void
   onOpenSheet: (id: string) => void
 }) {
   const { setNodeRef, isOver } = useDroppable({ id })
   const visible = items.filter(m => {
     if (localHiddenIds.has(m.id)) return false
+    if (m.id === divingId) return true
     if (hideDone && localDone.has(m.id)) return false
     return true
   })
@@ -166,6 +170,7 @@ function DroppableSwellSection({
               sortableId={`${id}:${motion.id}`}
               motion={motion}
               done={localDone.has(motion.id)}
+              diving={motion.id === divingId}
               hasSubmotions={submotionsEnabled && (submotionsMap[motion.id]?.length ?? 0) > 0}
               trackingMode={trackingMode}
               hidePtsHrs={hidePtsHrs}
@@ -278,6 +283,7 @@ export function DailyChecklist({
   const bySwell = showSwells
   const hidePtsHrs = !showPtsHrs
   const [localDone, setLocalDone] = useState(() => new Set(doneMotionIds))
+  const [divingId, setDivingId] = useState<string | null>(null)
   const [, startTransition] = useTransition()
   const [localValue, setLocalValue] = useState(todayValue)
   const [openSheetId, setOpenSheetId] = useState<string | null>(null)
@@ -487,9 +493,9 @@ export function DailyChecklist({
   const formatValue = (n: number) => isHours ? formatHrs(ceilDisplay(n, true)) : formatPts(ceilDisplay(n))
   const motionDelta = (motion: Motion) => isHours ? Number(motion.default_hours) : motion.default_points
 
-  function getAnimType(): CelebrationState['type'] {
+  function getAnimType(): CelebrationState['type'] | null {
     const theme = document.documentElement.dataset.theme ?? 'biarritz'
-    if (theme === 'biarritz') return 'wave'
+    if (theme === 'biarritz') return null
     if (theme === 'bolinas') return 'bloom'
     return 'glow'
   }
@@ -521,10 +527,21 @@ export function DailyChecklist({
       updateSwellProgress(motion, -1)
       startTransition(async () => { await unlogMotion(motion.id) })
     } else {
-      if (hapticEnabled && 'vibrate' in navigator) navigator.vibrate(50)
+      if (hapticEnabled && 'vibrate' in navigator) navigator.vibrate([15, 30, 15, 30, 15])
       const crossesSwell = celebrationEnabled && checkSwellCrossing(motion)
-      if (celebrationEnabled) setCelebration({ x: clientX, y: clientY, type: crossesSwell ? 'wave' : getAnimType() })
-      setLocalDone(prev => new Set([...prev, motion.id]))
+      const animType = getAnimType()
+      if (celebrationEnabled && animType) {
+        setCelebration({ x: clientX, y: clientY, type: crossesSwell ? 'bloom' : animType })
+      }
+      if (celebrationEnabled) {
+        setDivingId(motion.id)
+        setTimeout(() => {
+          setDivingId(null)
+          setLocalDone(prev => new Set([...prev, motion.id]))
+        }, 550)
+      } else {
+        setLocalDone(prev => new Set([...prev, motion.id]))
+      }
       setLocalValue(prev => prev + delta)
       updateSwellProgress(motion, 1)
       startTransition(async () => { await quickLogMotion(motion.id) })
@@ -830,6 +847,7 @@ export function DailyChecklist({
                     submotionsEnabled={submotionsEnabled}
                     trackingMode={trackingMode}
                     hidePtsHrs={hidePtsHrs}
+                    divingId={divingId}
                     onLog={handleLog}
                     onOpenSheet={setOpenSheetId}
                   />
@@ -876,6 +894,7 @@ export function DailyChecklist({
             localHiddenIds={localHiddenIds}
             trackingMode={trackingMode}
             hidePtsHrs={hidePtsHrs}
+            divingId={divingId}
             onLog={handleLog}
             onOpenSheet={setOpenSheetId}
           />
@@ -935,6 +954,7 @@ export function DailyChecklist({
                   submotionsEnabled={submotionsEnabled}
                   trackingMode={trackingMode}
                   hidePtsHrs={hidePtsHrs}
+                  divingId={divingId}
                   onLog={handleLog}
                   onOpenSheet={setOpenSheetId}
                 />
@@ -954,6 +974,7 @@ export function DailyChecklist({
                 submotionsEnabled={submotionsEnabled}
                 trackingMode={trackingMode}
                 hidePtsHrs={hidePtsHrs}
+                divingId={divingId}
                 onLog={handleLog}
                 onOpenSheet={setOpenSheetId}
               />
