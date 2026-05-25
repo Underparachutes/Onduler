@@ -53,6 +53,7 @@ type Props = {
   trackingMode: TrackingMode
   hasAnyMotions: boolean
   hiddenSwells: Swell[]
+  weekLabel: string
 }
 
 function usePersistedHideDone(key: string): [boolean, () => void] {
@@ -170,7 +171,7 @@ export function SwellsView(props: Props) {
 
               {/* Weekly total */}
               <div className="mb-2 flex items-baseline justify-between gap-3">
-                <h1 className="min-w-0 text-lg font-semibold text-th-text">This week</h1>
+                <h1 className="min-w-0 text-lg font-semibold text-th-text">{props.weekLabel}</h1>
                 <p className="shrink-0 text-lg font-semibold text-th-text">
                   {formatValue(weeklyTotal)}
                   <span className="ml-1 text-xs font-normal uppercase tracking-widest text-th-muted">{isHours ? 'hrs' : 'pts'}</span>
@@ -184,10 +185,10 @@ export function SwellsView(props: Props) {
                   <div className="mb-1.5 rounded-full bg-th-surface" style={{ height: '5px' }}>
                     <div
                       className="h-full rounded-full transition-all duration-500"
-                      style={{ width: `${Math.min((weeklyTotal / combinedTarget) * 100, 100)}%`, background: 'linear-gradient(to right, color-mix(in oklch, var(--th-accent) 35%, var(--th-surface)), var(--th-accent))' }}
+                      style={{ width: `${Math.min((weeklyTotal / combinedTarget) * 100, 100)}%`, background: 'linear-gradient(to right, color-mix(in oklch, var(--th-accent) 35%, var(--th-surface)), var(--th-accent))', backgroundSize: `${10000 / Math.min((weeklyTotal / combinedTarget) * 100, 100)}% 100%` }}
                     />
                   </div>
-                  <div className="flex justify-between text-xs text-th-faint">
+                  <div className="flex justify-between text-xs text-th-secondary">
                     <span>{formatValue(weeklyTotal)} / {formatValue(combinedTarget)} weekly</span>
                     <span>{ceilDisplay(Math.min((weeklyTotal / combinedTarget) * 100, 100))}%</span>
                   </div>

@@ -623,7 +623,7 @@ export function DailyChecklist({
   )
 
   const progressStats = (
-    <div className="mb-3 flex justify-between text-xs text-th-faint">
+    <div className="mb-3 flex justify-between text-xs text-th-secondary">
       <span>{formatValue(displayValue)} / {viewsMode ? (
         <span>{formatValue(displayGoal)} target</span>
       ) : editingGoal ? (
@@ -689,7 +689,7 @@ export function DailyChecklist({
     <div className="flex items-center gap-2">
       <button
         onClick={() => setViewsMode(prev => !prev)}
-        className={`shrink-0 p-1.5 transition-colors active:scale-[0.97] ${viewsMode ? 'rounded bg-th-text text-th-bg' : 'text-th-faint hover:text-th-muted'}`}
+        className={`shrink-0 p-1.5 transition-colors active:scale-[0.97] ${viewsMode ? 'text-th-text' : 'text-th-faint hover:text-th-muted'}`}
         aria-label="Views"
       >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4.5 w-4.5">
@@ -702,22 +702,19 @@ export function DailyChecklist({
       <div className="flex-1 h-[5px] overflow-hidden rounded-full bg-th-surface">
         <div
           className="h-full rounded-full transition-all"
-          style={{ width: `${progress}%`, background: 'linear-gradient(to right, var(--th-accent), var(--th-btn))' }}
+          style={{ width: `${progress}%`, background: 'linear-gradient(to right, color-mix(in oklch, var(--th-accent) 35%, var(--th-surface)), var(--th-accent))', backgroundSize: `${100 / (progress / 100)}% 100%` }}
         />
       </div>
       <div className="relative shrink-0" ref={filterRef}>
         <button
           onClick={() => setFilterOpen(prev => !prev)}
-          className="relative p-1.5 text-th-faint transition-colors hover:text-th-muted active:scale-[0.97]"
+          className={`p-1.5 transition-colors active:scale-[0.97] ${hasNonDefaultFilter ? 'text-th-text' : 'text-th-faint hover:text-th-muted'}`}
           aria-label="Filter"
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4.5 w-4.5">
             <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
             <circle cx="12" cy="12" r="3" />
           </svg>
-          {hasNonDefaultFilter && (
-            <span className="absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full bg-th-accent" />
-          )}
         </button>
         {filterOpen && (
           <div className="absolute right-0 top-full z-20 mt-1 w-44 rounded-lg border border-th-border bg-th-bg p-2 shadow-lg">

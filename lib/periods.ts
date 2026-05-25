@@ -108,6 +108,41 @@ export function lifetimeTargetDisplay(weeklyTarget: number, weeksSince: number, 
   return ceilDisplay(weeklyTarget * weeksSince, isHours)
 }
 
+export function daysInQuarter(key: DayKey): number {
+  const [y, m] = parts(key)
+  const q = Math.floor((m - 1) / 3)
+  const startMonth = q * 3 + 1
+  const endMonth = startMonth + 3
+  return Math.round((Date.UTC(y, endMonth - 1, 1) - Date.UTC(y, startMonth - 1, 1)) / MS_PER_DAY)
+}
+
+export function daysInYear(key: DayKey): number {
+  const [y] = parts(key)
+  return Math.round((Date.UTC(y + 1, 0, 1) - Date.UTC(y, 0, 1)) / MS_PER_DAY)
+}
+
+export function quarterStartKey(key: DayKey): DayKey {
+  const [y, m] = parts(key)
+  const q = Math.floor((m - 1) / 3)
+  const startMonth = q * 3 + 1
+  return `${y}-${String(startMonth).padStart(2, '0')}-01`
+}
+
+export function yearStartKey(key: DayKey): DayKey {
+  const [y] = parts(key)
+  return `${y}-01-01`
+}
+
+export function quarterlyTargetDisplay(weeklyTarget: number, today: DayKey, isHours: boolean = false): number {
+  if (!isFinite(weeklyTarget) || weeklyTarget <= 0) return 0
+  return ceilDisplay((weeklyTarget * daysInQuarter(today)) / 7, isHours)
+}
+
+export function yearlyTargetDisplay(weeklyTarget: number, today: DayKey, isHours: boolean = false): number {
+  if (!isFinite(weeklyTarget) || weeklyTarget <= 0) return 0
+  return ceilDisplay((weeklyTarget * daysInYear(today)) / 7, isHours)
+}
+
 // Pacific calendar day key for a logged_at timestamp. Centralized so the
 // rest of the app stops re-instantiating the Intl formatter.
 const pacificDateFmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Los_Angeles' })

@@ -38,10 +38,10 @@ export function SwellRow({
         <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: swell.color }}>
           {swell.name}
         </p>
-        <span className="text-xs text-th-faint">
+        <span className="text-xs text-th-secondary">
           {formatValue(weekValue)}{target !== null && ` / ${formatValue(target)}`}
         </span>
-        {hitTarget && <span className="text-xs text-th-faint">&#10003;</span>}
+        {hitTarget && <span className="text-xs text-th-secondary">&#10003;</span>}
       </Link>
 
       {progress !== null && target !== null && (
@@ -49,14 +49,14 @@ export function SwellRow({
           <div className="rounded-full bg-th-surface" style={{ height: '4px' }}>
             <div
               className="h-full rounded-full transition-all"
-              style={{ width: `${progress}%`, background: `linear-gradient(to right, color-mix(in oklch, ${swell.color} 35%, var(--th-surface)), ${swell.color})` }}
+              style={{ width: `${progress}%`, background: `linear-gradient(to right, color-mix(in oklch, ${swell.color} 35%, var(--th-surface)), ${swell.color})`, backgroundSize: `${100 / (progress / 100)}% 100%` }}
             />
           </div>
         </div>
       )}
 
       {target !== null && (
-        <p className="mb-3 text-xs text-th-faint">
+        <p className="mb-3 text-xs text-th-secondary">
           Last week: {formatValue(lastWeekValue)}
         </p>
       )}

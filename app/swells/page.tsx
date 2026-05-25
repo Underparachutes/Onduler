@@ -211,6 +211,8 @@ export default async function SwellsPage() {
   const trackingMode: 'points' | 'hours' = (settings?.tracking_mode as 'points' | 'hours') ?? 'points'
   const allGroups = groups ?? []
 
+  const weekLabel = `Week of ${weekStart.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'America/Los_Angeles' })}`
+
   return (
     <SwellsView
       swells={swellList}
@@ -230,6 +232,7 @@ export default async function SwellsPage() {
       submotionsEnabled={submotionsEnabled}
       trackingMode={trackingMode}
       hasAnyMotions={motions.length > 0}
+      weekLabel={weekLabel}
     />
   )
 }

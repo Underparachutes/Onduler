@@ -294,6 +294,177 @@
   .swell-cell .lbl { color: var(--faint); font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; }
   .swell-cell .mode-tag { color: var(--faint); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 4px; }
   .hide { display: none; }
+
+  /* Scratchpad */
+  .scratchpad {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 18px 20px;
+    margin-bottom: 24px;
+  }
+  .scratchpad-head { margin-bottom: 14px; }
+  .scratchpad-head h2 {
+    font-family: ui-sans-serif, "Manrope", system-ui;
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 4px;
+    font-weight: 600;
+  }
+  .scratchpad-meta { color: var(--faint); font-size: 11.5px; }
+  .suggestion-form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 12px;
+  }
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 240px;
+    gap: 12px;
+  }
+  @media (max-width: 600px) { .form-row { grid-template-columns: 1fr; } }
+  .suggestion-form label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .suggestion-form label > span {
+    font-size: 10.5px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--faint);
+  }
+  .suggestion-form input[type="text"],
+  .suggestion-form textarea {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 10px;
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: 12.5px;
+  }
+  .suggestion-form input[type="text"]:focus,
+  .suggestion-form textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+  .suggestion-form textarea { resize: vertical; min-height: 40px; }
+  .hex-input {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .hex-input input[type="color"] {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    cursor: pointer;
+    background: transparent;
+  }
+  .hex-input input[type="text"] {
+    flex: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .form-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 4px;
+    flex-wrap: wrap;
+  }
+  .suggestion-form button {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 14px;
+    font-size: 12px;
+    letter-spacing: 0.05em;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .suggestion-form button:hover { border-color: var(--text); }
+  .suggestion-form button.btn-primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--bg);
+  }
+  .suggestion-form button.btn-primary:hover { opacity: 0.9; }
+  .suggestions-list {
+    margin-top: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .suggestion-card {
+    display: grid;
+    grid-template-columns: 40px 1fr auto;
+    gap: 12px;
+    align-items: start;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 12px;
+  }
+  .suggestion-card > .swatch {
+    width: 36px;
+    height: 36px;
+    border-radius: 4px;
+    margin: 0;
+  }
+  .suggestion-card .meta {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .suggestion-card .target-line {
+    font-size: 12px;
+    color: var(--text);
+  }
+  .suggestion-card .target-line .hex-tag {
+    color: var(--muted);
+    margin-left: 8px;
+    font-variant-numeric: tabular-nums;
+  }
+  .suggestion-card .note {
+    color: var(--muted);
+    font-size: 11.5px;
+    line-height: 1.5;
+    margin-top: 2px;
+    white-space: pre-wrap;
+  }
+  .suggestion-card .ts {
+    color: var(--faint);
+    font-size: 10.5px;
+    margin-top: 2px;
+  }
+  .suggestion-card .del {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--faint);
+    padding: 4px 8px;
+    font-size: 11px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .suggestion-card .del:hover { color: var(--text); border-color: var(--text); }
+  .empty-state {
+    color: var(--faint);
+    font-size: 12px;
+    margin-top: 12px;
+    text-align: center;
+    padding: 16px;
+    border: 1px dashed var(--border);
+    border-radius: 6px;
+  }
+
   .mode-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -338,6 +509,41 @@
       <div class="legend-tier" style="--tier: var(--tier-signal)"><div class="name">Signal</div><div class="desc">Emphasis, success, wave-mode.</div></div>
       <div class="legend-tier" style="--tier: var(--tier-identity)"><div class="name">Identity</div><div class="desc">User-personalized palette source.</div></div>
     </div>
+  </div>
+
+  <!-- =========================== SCRATCHPAD =========================== -->
+  <div class="scratchpad" id="scratchpad">
+    <div class="scratchpad-head">
+      <h2>Color ideas · scratchpad</h2>
+      <div class="scratchpad-meta">Drop new color suggestions here as you scroll the chart. Saved in your browser; use "Copy as markdown" to paste them back into chat when you want me to act on them.</div>
+    </div>
+    <form class="suggestion-form" id="suggestion-form" autocomplete="off">
+      <div class="form-row">
+        <label>
+          <span>Target</span>
+          <input type="text" name="target" placeholder="e.g. --th-accent (biarritz · light), or a new swell color" list="token-list" required />
+        </label>
+        <label>
+          <span>Color</span>
+          <div class="hex-input">
+            <input type="color" name="hex-picker" value="#5b7359" aria-label="Color picker" />
+            <input type="text" name="hex" placeholder="#5b7359" pattern="^#[0-9a-fA-F]{6}$" value="#5b7359" required aria-label="Hex code" />
+          </div>
+        </label>
+      </div>
+      <label>
+        <span>Note (optional)</span>
+        <textarea name="note" rows="2" placeholder="Why this change? What's it solving?"></textarea>
+      </label>
+      <div class="form-actions">
+        <button type="submit" class="btn-primary">Save idea</button>
+        <button type="button" id="export-btn">Copy as markdown</button>
+        <button type="button" id="clear-btn">Clear all</button>
+      </div>
+    </form>
+    <datalist id="token-list"></datalist>
+    <div class="suggestions-list" id="suggestions-list"></div>
+    <div class="empty-state" id="empty-state">No ideas saved yet — add one above and it'll appear here.</div>
   </div>
 
   <!-- ============================ DEFAULT ============================ -->
@@ -706,6 +912,7 @@
   </div>
 
 <script>
+  // ---- Theme filter chips ----
   const filters = document.getElementById('filters');
   const groups = document.querySelectorAll('.group');
   filters.addEventListener('click', (e) => {
@@ -719,6 +926,140 @@
       else g.classList.add('hide');
     });
   });
+
+  // ---- Scratchpad ----
+  const STORAGE_KEY = 'onduler-color-ideas-v1';
+  const TOKENS = [
+    '--th-bg', '--th-surface', '--th-surface-2',
+    '--th-border', '--th-border-soft',
+    '--th-text', '--th-secondary', '--th-muted', '--th-faint',
+    '--th-btn', '--th-btn-text', '--th-btn-hover', '--th-focus',
+    '--th-accent', '--th-accent-text', '--th-success', '--th-wave-wash',
+    '--th-swell-1', '--th-swell-2', '--th-swell-3', '--th-swell-4', '--th-swell-5',
+    '--th-swell-6', '--th-swell-7', '--th-swell-8', '--th-swell-9', '--th-swell-10',
+  ];
+  const THEMES = ['default', 'bolinas', 'biarritz'];
+  const MODES = ['light', 'dark'];
+
+  // Populate datalist with token × theme × mode permutations + a few free-form helpers
+  const datalist = document.getElementById('token-list');
+  TOKENS.forEach(t => {
+    THEMES.forEach(theme => {
+      MODES.forEach(mode => {
+        const opt = document.createElement('option');
+        opt.value = `${t} (${theme} · ${mode})`;
+        datalist.appendChild(opt);
+      });
+    });
+  });
+  ['New swell color (default)', 'New swell color (bolinas)', 'New swell color (biarritz)', 'New theme idea', 'New token'].forEach(v => {
+    const opt = document.createElement('option');
+    opt.value = v;
+    datalist.appendChild(opt);
+  });
+
+  function loadIdeas() {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }
+    catch { return []; }
+  }
+  function saveIdeas(ideas) {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(ideas)); }
+    catch (e) { alert('Could not save — browser storage is blocked. Use Copy as markdown to preserve ideas manually.'); }
+  }
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  function renderIdeas() {
+    const list = document.getElementById('suggestions-list');
+    const empty = document.getElementById('empty-state');
+    const data = loadIdeas();
+    list.innerHTML = '';
+    if (data.length === 0) {
+      empty.style.display = 'block';
+      return;
+    }
+    empty.style.display = 'none';
+    data.forEach((s, i) => {
+      const card = document.createElement('div');
+      card.className = 'suggestion-card';
+      card.innerHTML =
+        '<div class="swatch" style="background:' + escapeHtml(s.hex) + '"></div>' +
+        '<div class="meta">' +
+          '<div class="target-line">' + escapeHtml(s.target) + ' <span class="hex-tag">' + escapeHtml(s.hex) + '</span></div>' +
+          (s.note ? '<div class="note">' + escapeHtml(s.note) + '</div>' : '') +
+          '<div class="ts">' + new Date(s.ts).toLocaleString() + '</div>' +
+        '</div>' +
+        '<button class="del" data-i="' + i + '">Delete</button>';
+      list.appendChild(card);
+    });
+    list.querySelectorAll('.del').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const i = parseInt(btn.dataset.i, 10);
+        const data = loadIdeas();
+        data.splice(i, 1);
+        saveIdeas(data);
+        renderIdeas();
+      });
+    });
+  }
+
+  const form = document.getElementById('suggestion-form');
+
+  // Sync hex picker <-> text input
+  form.elements['hex-picker'].addEventListener('input', (e) => {
+    form.elements['hex'].value = e.target.value;
+  });
+  form.elements['hex'].addEventListener('input', (e) => {
+    if (/^#[0-9a-fA-F]{6}$/.test(e.target.value)) {
+      form.elements['hex-picker'].value = e.target.value;
+    }
+  });
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const fd = new FormData(form);
+    const target = String(fd.get('target') || '').trim();
+    const hex = String(fd.get('hex') || '').trim();
+    const note = String(fd.get('note') || '').trim();
+    if (!target || !/^#[0-9a-fA-F]{6}$/.test(hex)) return;
+    const data = loadIdeas();
+    data.unshift({ target, hex, note, ts: Date.now() });
+    saveIdeas(data);
+    form.reset();
+    form.elements['hex-picker'].value = '#5b7359';
+    form.elements['hex'].value = '#5b7359';
+    renderIdeas();
+  });
+
+  document.getElementById('export-btn').addEventListener('click', async () => {
+    const data = loadIdeas();
+    if (data.length === 0) { alert('No ideas to export yet.'); return; }
+    const md = '# Onduler color ideas\n\n' + data.map(s =>
+      '- **' + s.target + '** → `' + s.hex + '`' +
+      (s.note ? '\n  - ' + s.note.replace(/\n/g, '\n    ') : '') +
+      '\n  - _saved ' + new Date(s.ts).toLocaleString() + '_'
+    ).join('\n');
+    const btn = document.getElementById('export-btn');
+    const orig = btn.textContent;
+    try {
+      await navigator.clipboard.writeText(md);
+      btn.textContent = 'Copied!';
+    } catch {
+      // Clipboard blocked (often on file:// in some browsers) — fall back to a prompt window
+      window.prompt('Copy this markdown:', md);
+      btn.textContent = 'Shown above';
+    }
+    setTimeout(() => { btn.textContent = orig; }, 1600);
+  });
+
+  document.getElementById('clear-btn').addEventListener('click', () => {
+    if (!confirm('Clear all saved ideas? This can\'t be undone.')) return;
+    localStorage.removeItem(STORAGE_KEY);
+    renderIdeas();
+  });
+
+  renderIdeas();
 </script>
 </body>
 </html>

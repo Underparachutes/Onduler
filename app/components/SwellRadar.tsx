@@ -18,7 +18,11 @@ import {
 import {
   ceilDisplay,
   daysInMonth,
+  daysInQuarter,
+  daysInYear,
   monthlyTargetDisplay,
+  quarterlyTargetDisplay,
+  yearlyTargetDisplay,
   type DayKey,
 } from '@/lib/periods'
 import { getBuildPreset, type BuildKey } from '@/lib/builds'
@@ -30,10 +34,9 @@ const RADIUS = 130
 const LABEL_PAD = 22
 const HANDLE_R = 6
 const HANDLE_R_ACTIVE = 9
-// Lifetime view: handle is recognition-only (no drag). Small swell-colored
-// dot replaces the white-filled, blue-bordered marker, which was reading as
-// "this swell is highlighted" when a large actual visually swallowed it.
-const HANDLE_R_STATIC = 3
+const VB_EXTENT = RADIUS + LABEL_PAD + 10
+const VB_ORIGIN = CENTER.x - VB_EXTENT
+const VB_SIZE = VB_EXTENT * 2
 
 // Build seeding default — keeps lib/builds.ts source-of-truth shape (just names),
 // and matches the locked weekly defaults from PROJECT.md / ADR 0004.
@@ -56,12 +59,11 @@ export type RadarSwell = {
   id: string
   name: string
   color: string
-  // Weekly target in the active currency — the source of truth even on
-  // monthly/lifetime views. 0 means no target set.
+  // Weekly target in the active currency — the source of truth. 0 = no target.
   target: number
 }
 
-export type RadarPeriod = 'week' | 'month' | 'lifetime'
+export type RadarPeriod = 'week' | 'month' | 'quarter' | 'year'
 
 type Props = {
   swells: RadarSwell[]
@@ -75,10 +77,7 @@ type Props = {
   // null = no wave wash. Otherwise 0..1 ramp percentage applied to target
   // visuals (week → wave-week ramp; month → 1 when wave month active).
   waveRamp: number | null
-  // ceil(days_since_first_log / 7). Drives the lifetime target display and
-  // the absolute-stat fallback when ≤ 1.
-  weeksSinceFirstLog: number
-  // Pacific day key for "today" — passed in so SSR/CSR agree on month length.
+  // Pacific day key for "today" — passed in so SSR/CSR agree on period length.
   todayKey: DayKey
 }
 
@@ -104,7 +103,6 @@ export function SwellRadar({
   secondaryBuild,
   trackingMode,
   waveRamp,
-  weeksSinceFirstLog,
   todayKey,
 }: Props) {
   const isHours = trackingMode === 'hours'
@@ -122,13 +120,14 @@ export function SwellRadar({
 
   const count = swells.length
 
-  // Period scaling — geometry runs in the period's display units (monthly
-  // and lifetime numbers are larger), so the scale config bumps too.
+  // Period scaling — geometry runs in the period's display units, so the
+  // scale config bumps too.
   const periodMultiplier = useMemo(() => {
     if (period === 'month') return daysInMonth(todayKey) / 7
-    if (period === 'lifetime') return Math.max(1, weeksSinceFirstLog)
+    if (period === 'quarter') return daysInQuarter(todayKey) / 7
+    if (period === 'year') return daysInYear(todayKey) / 7
     return 1
-  }, [period, todayKey, weeksSinceFirstLog])
+  }, [period, todayKey])
 
   const scale = useMemo(
     () => ({
@@ -145,22 +144,20 @@ export function SwellRadar({
   const weeklyToDisplayExact = useMemo(() => {
     return (weekly: number): number => {
       if (period === 'month') return (weekly * daysInMonth(todayKey)) / 7
-      if (period === 'lifetime') return weekly * Math.max(0, weeksSinceFirstLog)
+      if (period === 'quarter') return (weekly * daysInQuarter(todayKey)) / 7
+      if (period === 'year') return (weekly * daysInYear(todayKey)) / 7
       return weekly
     }
-  }, [period, todayKey, weeksSinceFirstLog])
+  }, [period, todayKey])
 
-  // Inverse — used on monthly drag commit to reconstruct the weekly target.
   const displayToWeekly = useMemo(() => {
     return (display: number): number => {
       if (period === 'month') return (display * 7) / daysInMonth(todayKey)
-      if (period === 'lifetime') {
-        const w = Math.max(1, weeksSinceFirstLog)
-        return display / w
-      }
+      if (period === 'quarter') return (display * 7) / daysInQuarter(todayKey)
+      if (period === 'year') return (display * 7) / daysInYear(todayKey)
       return display
     }
-  }, [period, todayKey, weeksSinceFirstLog])
+  }, [period, todayKey])
 
   // Targets in period-display units, with optional wave ramp applied
   // visually. Geometry uses these directly so wedges and slices match.
@@ -207,11 +204,9 @@ export function SwellRadar({
     )
   }
 
-  const dragDisabled = period === 'lifetime'
-
   // Drag handlers — projecting pointer onto the dragged axis so movement is
-  // radial-only (perpendicular drift is ignored). On monthly view the
-  // projected value is in monthly units; we convert to weekly so the stored
+  // radial-only (perpendicular drift is ignored). On non-weekly views the
+  // projected value is in period units; we convert to weekly so the stored
   // target (and the drag pill copy) stays anchored to weekly source-of-truth.
   function pointerToSvg(e: React.PointerEvent): { x: number; y: number } {
     const svg = svgRef.current
@@ -226,7 +221,6 @@ export function SwellRadar({
   }
 
   function startDrag(e: React.PointerEvent, index: number) {
-    if (dragDisabled) return
     e.preventDefault()
     ;(e.currentTarget as Element).setPointerCapture?.(e.pointerId)
     setDrag({ index, value: targets[index], origin: targets[index], refMax: chartMax })
@@ -284,13 +278,22 @@ export function SwellRadar({
       const monthlyDisplay = monthlyTargetDisplay(weekly, todayKey, isHours)
       return `${monthlyDisplay} ${currencyShort}/mo · ${weeklyDisplay} ${currencyShort}/wk`
     }
+    if (period === 'quarter') {
+      const qtrDisplay = quarterlyTargetDisplay(weekly, todayKey, isHours)
+      return `${qtrDisplay} ${currencyShort}/qtr · ${weeklyDisplay} ${currencyShort}/wk`
+    }
+    if (period === 'year') {
+      const yrDisplay = yearlyTargetDisplay(weekly, todayKey, isHours)
+      return `${yrDisplay} ${currencyShort}/yr · ${weeklyDisplay} ${currencyShort}/wk`
+    }
     return `${weeklyDisplay} ${currencyShort}/wk`
   }
 
   // Subtitle + wave-pill copy are period-aware.
   const subtitleCopy =
     period === 'month' ? 'Your swells this month'
-    : period === 'lifetime' ? 'Your swells over time'
+    : period === 'quarter' ? 'Your swells this quarter'
+    : period === 'year' ? 'Your swells this year'
     : 'Your swells this week'
   const waveLabel =
     waveRamp == null ? null
@@ -377,7 +380,7 @@ export function SwellRadar({
       <div className="relative flex justify-center">
         <svg
           ref={svgRef}
-          viewBox={`0 0 ${SIZE} ${SIZE}`}
+          viewBox={`${VB_ORIGIN} ${VB_ORIGIN} ${VB_SIZE} ${VB_SIZE}`}
           className="w-full"
           role="img"
           aria-label="Weekly shape radar"
@@ -386,17 +389,50 @@ export function SwellRadar({
           onPointerCancel={endDrag}
           style={{ touchAction: drag ? 'none' : 'auto', overflow: 'visible' }}
         >
-          {/* Wedge fills (target ring tiling) */}
+          <defs>
+            <filter id="frost" x="-10%" y="-10%" width="120%" height="120%">
+              <feGaussianBlur stdDeviation="2" />
+            </filter>
+            <clipPath id="wake-cutout">
+              <path d={`M ${VB_ORIGIN} ${VB_ORIGIN} h ${VB_SIZE} v ${VB_SIZE} h -${VB_SIZE} Z ${actualPolygon}`} clipRule="evenodd" />
+            </clipPath>
+            {swells.map((s, i) => {
+              const targetR = chartMax > 0 ? (displayTargets[i] / chartMax) * RADIUS : 0
+              return (
+                <radialGradient
+                  key={`grad-${s.id}`}
+                  id={`slice-grad-${s.id}`}
+                  cx={CENTER.x}
+                  cy={CENTER.y}
+                  r={Math.max(targetR, 1)}
+                  gradientUnits="userSpaceOnUse"
+                >
+                  <stop offset="0%" stopColor={`color-mix(in oklch, ${s.color} 35%, var(--th-surface))`} />
+                  <stop offset="100%" stopColor={s.color} />
+                </radialGradient>
+              )
+            })}
+          </defs>
+
+          {/* Wedge fills (target ring tiling) — frosted glass effect */}
           {swells.map((s, i) => (
-            <path
-              key={`wedge-${s.id}`}
-              d={wedgePath(i, displayTargets, chartMax, RADIUS, CENTER)}
-              fill={s.color}
-              fillOpacity={0.34}
-            />
+            <g key={`wedge-${s.id}`}>
+              <path
+                d={wedgePath(i, displayTargets, chartMax, RADIUS, CENTER)}
+                fill={s.color}
+                fillOpacity={0.25}
+                filter="url(#frost)"
+              />
+              <path
+                d={wedgePath(i, displayTargets, chartMax, RADIUS, CENTER)}
+                fill="var(--th-frost-overlay)"
+                fillOpacity={0.35}
+                clipPath="url(#wake-cutout)"
+              />
+            </g>
           ))}
 
-          {/* Filled slices per swell — fuel-gauge shape inside each wedge */}
+          {/* Filled slices per swell — ombre from complement at center to swell color at edge */}
           {swells.map((s, i) => {
             const d = slicePath(i, actuals, displayTargets, chartMax, RADIUS, CENTER)
             if (!d) return null
@@ -404,8 +440,8 @@ export function SwellRadar({
               <path
                 key={`slice-${s.id}`}
                 d={d}
-                fill={s.color}
-                fillOpacity={0.65}
+                fill={`url(#slice-grad-${s.id})`}
+                fillOpacity={0.95}
               />
             )
           })}
@@ -486,25 +522,9 @@ export function SwellRadar({
             )
           })}
 
-          {/* Drag handles — static dots on lifetime (recognition surface,
-              ADR 0005 §4); draggable on week/month. Lifetime uses a small
-              swell-colored dot at the target peak so a white marker doesn't
-              read as "this swell is highlighted" when actuals dwarf the target. */}
           {swells.map((s, i) => {
             const v = vertexAt(i, count, displayTargets[i], chartMax, RADIUS, CENTER)
             const active = drag?.index === i
-            if (dragDisabled) {
-              return (
-                <circle
-                  key={`handle-${i}`}
-                  cx={v.x}
-                  cy={v.y}
-                  r={HANDLE_R_STATIC}
-                  fill={s.color}
-                  opacity="0.7"
-                />
-              )
-            }
             return (
               <circle
                 key={`handle-${i}`}
@@ -605,10 +625,15 @@ function ResetDialog({
     const weeklyDisplay = ceilDisplay(weekly, isHours)
     if (period === 'month') {
       const monthlyDisplay = monthlyTargetDisplay(weekly, todayKey, isHours)
-      return {
-        primary: `${monthlyDisplay} ${currency}/mo`,
-        secondary: `(${weeklyDisplay} ${currency}/wk)`,
-      }
+      return { primary: `${monthlyDisplay} ${currency}/mo`, secondary: `(${weeklyDisplay} ${currency}/wk)` }
+    }
+    if (period === 'quarter') {
+      const qtrDisplay = quarterlyTargetDisplay(weekly, todayKey, isHours)
+      return { primary: `${qtrDisplay} ${currency}/qtr`, secondary: `(${weeklyDisplay} ${currency}/wk)` }
+    }
+    if (period === 'year') {
+      const yrDisplay = yearlyTargetDisplay(weekly, todayKey, isHours)
+      return { primary: `${yrDisplay} ${currency}/yr`, secondary: `(${weeklyDisplay} ${currency}/wk)` }
     }
     return { primary: `${weeklyDisplay} ${currency}/wk`, secondary: null }
   }

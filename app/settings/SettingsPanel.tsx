@@ -88,6 +88,7 @@ export function SettingsPanel({
   useEffect(() => { setVibrateSupported('vibrate' in navigator) }, [])
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null)
   const [localHiddenIds, setLocalHiddenIds] = useState<Set<string>>(new Set())
+  const [openSection, setOpenSection] = useState<string | null>(null)
   const [, startTransition] = useTransition()
 
   function handleTheme(t: string) {
@@ -173,7 +174,6 @@ export function SettingsPanel({
     ? primaryPreset.label
     : 'None'
 
-  const [openSection, setOpenSection] = useState<string | null>(null)
   function toggle(section: string) { setOpenSection(prev => prev === section ? null : section) }
 
   return (
