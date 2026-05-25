@@ -25,11 +25,9 @@ export function vertexAt(
   return { x: center.x + Math.cos(angle) * r, y: center.y + Math.sin(angle) * r }
 }
 
-// Where the chord between the two adjacent target peaks (axis `index` at R_a
-// and axis `index+1` at R_b) crosses the bisector radial between them.
-// Reduces to R × cos(π/N) when R_a = R_b = R (the regular-N-gon case).
-// Used for both wedge corners and the wedge separator endpoints, so wedges
-// and slices share the same boundary geometry even when targets differ.
+// Separator endpoint between axis `index` and axis `index+1`. Extends
+// to the longer of the two adjacent target radii so the separator fully
+// covers both wedge edges.
 export function wedgeBoundary(
   index: number,
   targets: number[],
@@ -43,23 +41,14 @@ export function wedgeBoundary(
   const half = Math.PI / count
   const rA = (Math.max(0, targets[index]) / chartMax) * radius
   const rB = (Math.max(0, targets[next]) / chartMax) * radius
-  const sum = rA + rB
-  let r: number
-  if (sum <= 0) {
-    r = 0
-  } else if (rA <= 0 || rB <= 0) {
-    r = Math.max(rA, rB) * Math.cos(half)
-  } else {
-    r = (2 * rA * rB / sum) * Math.cos(half)
-  }
+  const r = Math.max(rA, rB)
   const angle = axisAngleRad(index, count) + half
   return { x: center.x + Math.cos(angle) * r, y: center.y + Math.sin(angle) * r }
 }
 
-// Pie-slice wedge for axis `index`: center → boundary(prev,this) → peak →
-// boundary(this,next) → center. Boundaries are the chord-bisector
-// intersections, so the wedge and slice geometries share the same radial
-// boundaries even when adjacent targets differ.
+// Independent pie-slice wedge for axis `index`. The shape is determined
+// solely by this axis's target — adjacent targets have no effect.
+// center → (R, axis−π/N) → (R, axis) → (R, axis+π/N) → center.
 export function wedgePath(
   index: number,
   targets: number[],
@@ -68,30 +57,28 @@ export function wedgePath(
   center: Point = { x: 0, y: 0 },
 ): string {
   const count = targets.length
-  if (count === 0) return ''
-  const prevIdx = (index - 1 + count) % count
-  const ccw = wedgeBoundary(prevIdx, targets, chartMax, radius, center)
-  const peak = vertexAt(index, count, targets[index], chartMax, radius, center)
-  const cw = wedgeBoundary(index, targets, chartMax, radius, center)
-  return `M ${center.x},${center.y} L ${ccw.x},${ccw.y} L ${peak.x},${peak.y} L ${cw.x},${cw.y} Z`
+  if (count === 0 || chartMax <= 0) return ''
+  const half = Math.PI / count
+  const a = axisAngleRad(index, count)
+  const R = (Math.max(0, targets[index]) / chartMax) * radius
+  return [
+    `M ${center.x},${center.y}`,
+    `L ${center.x + Math.cos(a - half) * R},${center.y + Math.sin(a - half) * R}`,
+    `L ${center.x + Math.cos(a) * R},${center.y + Math.sin(a) * R}`,
+    `L ${center.x + Math.cos(a + half) * R},${center.y + Math.sin(a + half) * R}`,
+    'Z',
+  ].join(' ')
 }
 
-// Shoulder vertex for an axis: sits on the boundary radial between axis
-// `index` and its neighbor at `axisAngle ± π/N`. `side`: +1 for CW (between
-// i and i+1), -1 for CCW (between i and i-1).
-//
-// Radial distance matches slicePath's chord-end rule: `min(actualR, wedgeBoundaryR)`
-// where wedgeBoundaryR is the chord-bisector intersection of the two adjacent
-// target peaks. This keeps the outline aligned with the slice fill in the
-// under-target case (where actualR < boundaryR, both land at actualR — no
-// bleed) and still lets the outline extend past the slice peak in overshoot
-// (where actualR > targetR, slice caps at target but the outline rides up to
-// the boundary along the bisector).
+// Shoulder vertex on the bisector radial between axis `index` and its
+// neighbor. `side`: +1 for CW (between i and i+1), -1 for CCW (between
+// i and i-1). Radial distance is purely this axis's actual value — no
+// clamping to neighbor wedge boundaries.
 export function shoulderVertex(
   index: number,
   count: number,
   actualValue: number,
-  targets: number[],
+  _targets: number[],
   chartMax: number,
   radius: number,
   center: Point = { x: 0, y: 0 },
@@ -100,14 +87,7 @@ export function shoulderVertex(
   if (count === 0 || chartMax <= 0) return center
   const half = Math.PI / count
   const angle = axisAngleRad(index, count) + side * half
-  const actualR = (Math.max(0, actualValue) / chartMax) * radius
-  // Boundary radial limit: chord intersection with the adjacent wedge on
-  // the requested side. side=+1 uses boundary(i, i+1); side=-1 uses
-  // boundary(i-1, i).
-  const adjIdx = side > 0 ? index : (index - 1 + count) % count
-  const b = wedgeBoundary(adjIdx, targets, chartMax, radius, center)
-  const boundaryR = Math.hypot(b.x - center.x, b.y - center.y)
-  const r = Math.min(actualR, boundaryR)
+  const r = (Math.max(0, actualValue) / chartMax) * radius
   return { x: center.x + Math.cos(angle) * r, y: center.y + Math.sin(angle) * r }
 }
 
@@ -140,13 +120,9 @@ export function actualPolygonPath(
   return parts.join(' ')
 }
 
-// One axis's filled slice: center → left chord-end → peak → right chord-end
-// → center. Chord ends clamp to the neighbor wedge boundary radii so a
-// large actual next to a small-target neighbor never bleeds past the
-// bisector into the neighbor's wedge. Peak clamps at the swell's own
-// target so the slice never overshoots its wedge — overshoot is read
-// through the shoulder-polygon perimeter, not the per-axis fill.
-// Returns empty path when there's nothing meaningful to render.
+// Independent filled slice for one axis. All three outer points use the
+// same radius (min of actual and target), so the shape is a uniform
+// pie-slice that doesn't depend on neighboring targets.
 export function slicePath(
   index: number,
   actuals: number[],
@@ -165,25 +141,16 @@ export function slicePath(
   const fillR = Math.min(actualR, targetR)
   if (fillR < 4) return ''
 
-  const prevIdx = (index - 1 + n) % n
-  const leftBoundary = wedgeBoundary(prevIdx, targets, chartMax, radius, center)
-  const rightBoundary = wedgeBoundary(index, targets, chartMax, radius, center)
-  const leftBoundaryR = Math.hypot(leftBoundary.x - center.x, leftBoundary.y - center.y)
-  const rightBoundaryR = Math.hypot(rightBoundary.x - center.x, rightBoundary.y - center.y)
-
   const half = Math.PI / n
   const a = axisAngleRad(index, n)
-  const leftChordR = Math.min(fillR, leftBoundaryR)
-  const rightChordR = Math.min(fillR, rightBoundaryR)
 
-  const peakX = center.x + Math.cos(a) * fillR
-  const peakY = center.y + Math.sin(a) * fillR
-  const b1X = center.x + Math.cos(a - half) * leftChordR
-  const b1Y = center.y + Math.sin(a - half) * leftChordR
-  const b2X = center.x + Math.cos(a + half) * rightChordR
-  const b2Y = center.y + Math.sin(a + half) * rightChordR
-
-  return `M ${center.x},${center.y} L ${b1X},${b1Y} L ${peakX},${peakY} L ${b2X},${b2Y} Z`
+  return [
+    `M ${center.x},${center.y}`,
+    `L ${center.x + Math.cos(a - half) * fillR},${center.y + Math.sin(a - half) * fillR}`,
+    `L ${center.x + Math.cos(a) * fillR},${center.y + Math.sin(a) * fillR}`,
+    `L ${center.x + Math.cos(a + half) * fillR},${center.y + Math.sin(a + half) * fillR}`,
+    'Z',
+  ].join(' ')
 }
 
 // Per-axis max blend of primary and secondary build targets. Secondary

@@ -17,6 +17,7 @@ import { bonusBySwell, type WaypointHitRow, type OneShotCompletionRow } from '@/
 import { currentRamp, type WelcomeBackMode } from '@/lib/welcomeback'
 import { SwellRadar, type RadarSwell } from '@/app/components/SwellRadar'
 import { LockedCadenceTile } from './components/LockedCadenceTile'
+import { WaveField, type WaveLine } from '@/app/components/WaveField'
 import { LockedPage } from './components/LockedPage'
 import { getActiveChapterId } from '@/lib/chapters'
 import { getCeremonyState, getUnlockState, type CeremonyState } from '@/app/actions/reflections'
@@ -24,6 +25,34 @@ import { formatCycleLabel, type Cadence } from '@/lib/cycles'
 import type { BuildKey } from '@/lib/builds'
 
 type CeremonyResult = { state: CeremonyState; cycleStart: string; cycleEnd: string; chapterId: string | null }
+
+const COMING_TOGETHER_WAVES: WaveLine[] = [
+  { yBase: 0.18, amplitude: 10, frequency: 0.020, speed: 0.0012, phase: 0.0, width: 0.5, opacity: 0.05 },
+  { yBase: 0.21, amplitude: 12, frequency: 0.030, speed: 0.0038, phase: 1.2, width: 0.5, opacity: 0.06 },
+  { yBase: 0.24, amplitude: 11, frequency: 0.025, speed: 0.0022, phase: 2.8, width: 0.6, opacity: 0.07 },
+  { yBase: 0.28, amplitude: 12, frequency: 0.022, speed: 0.0045, phase: 0.5, width: 0.6, opacity: 0.08 },
+  { yBase: 0.31, amplitude: 14, frequency: 0.032, speed: 0.0015, phase: 1.8, width: 0.7, opacity: 0.09 },
+  { yBase: 0.34, amplitude: 13, frequency: 0.027, speed: 0.0032, phase: 3.4, width: 0.7, opacity: 0.10 },
+  { yBase: 0.38, amplitude: 14, frequency: 0.024, speed: 0.0050, phase: 0.9, width: 0.8, opacity: 0.13 },
+  { yBase: 0.41, amplitude: 16, frequency: 0.034, speed: 0.0018, phase: 2.2, width: 0.8, opacity: 0.15 },
+  { yBase: 0.44, amplitude: 15, frequency: 0.028, speed: 0.0040, phase: 4.0, width: 0.9, opacity: 0.17 },
+  { yBase: 0.48, amplitude: 16, frequency: 0.020, speed: 0.0014, phase: 1.4, width: 1.0, opacity: 0.19 },
+  { yBase: 0.51, amplitude: 18, frequency: 0.030, speed: 0.0048, phase: 2.8, width: 1.0, opacity: 0.21 },
+  { yBase: 0.54, amplitude: 17, frequency: 0.025, speed: 0.0028, phase: 0.3, width: 1.1, opacity: 0.23 },
+  { yBase: 0.58, amplitude: 18, frequency: 0.022, speed: 0.0055, phase: 1.9, width: 1.2, opacity: 0.26 },
+  { yBase: 0.61, amplitude: 20, frequency: 0.032, speed: 0.0020, phase: 3.2, width: 1.3, opacity: 0.29 },
+  { yBase: 0.64, amplitude: 19, frequency: 0.026, speed: 0.0042, phase: 0.7, width: 1.4, opacity: 0.32 },
+  { yBase: 0.68, amplitude: 20, frequency: 0.018, speed: 0.0016, phase: 2.5, width: 1.6, opacity: 0.35 },
+  { yBase: 0.71, amplitude: 22, frequency: 0.028, speed: 0.0052, phase: 0.1, width: 1.7, opacity: 0.38 },
+  { yBase: 0.74, amplitude: 21, frequency: 0.023, speed: 0.0035, phase: 3.8, width: 1.8, opacity: 0.41 },
+  { yBase: 0.78, amplitude: 22, frequency: 0.020, speed: 0.0058, phase: 1.6, width: 2.0, opacity: 0.44 },
+  { yBase: 0.81, amplitude: 24, frequency: 0.030, speed: 0.0024, phase: 3.0, width: 2.2, opacity: 0.47 },
+  { yBase: 0.84, amplitude: 23, frequency: 0.024, speed: 0.0046, phase: 0.4, width: 2.3, opacity: 0.50 },
+  { yBase: 0.88, amplitude: 24, frequency: 0.016, speed: 0.0030, phase: 2.2, width: 2.6, opacity: 0.53 },
+  { yBase: 0.92, amplitude: 26, frequency: 0.026, speed: 0.0060, phase: 0.8, width: 2.8, opacity: 0.56 },
+  { yBase: 0.96, amplitude: 28, frequency: 0.021, speed: 0.0019, phase: 3.5, width: 3.2, opacity: 0.60 },
+]
+
 const CADENCES: Cadence[] = ['week', 'month', 'quarter', 'year']
 const CADENCE_LABEL: Record<Cadence, string> = {
   week: 'Last week',
@@ -617,14 +646,26 @@ export default async function AnchorsPage({
           </>
         )}
 
-        {(!unlocks.month || !unlocks.quarter || !unlocks.year) && (
-          <div className="mt-12 flex flex-col gap-3 pb-12">
-            <p className="text-[10px] uppercase tracking-widest text-th-muted">Coming together</p>
-            {!unlocks.month && <LockedCadenceTile cadence="month" actuals={radarActuals} inWave={inWave} />}
-            {!unlocks.quarter && <LockedCadenceTile cadence="quarter" actuals={radarActuals} inWave={inWave} />}
-            {!unlocks.year && <LockedCadenceTile cadence="year" actuals={radarActuals} inWave={inWave} />}
-          </div>
-        )}
+        {(() => {
+          const locked: ('month' | 'quarter' | 'year')[] = []
+          if (!unlocks.month) locked.push('month')
+          if (!unlocks.quarter) locked.push('quarter')
+          if (!unlocks.year) locked.push('year')
+          if (locked.length === 0) return null
+          return (
+            <div className="mt-12 pb-12">
+              <p className="mb-3 text-[10px] uppercase tracking-widest text-th-muted">Coming together</p>
+              <div className="relative overflow-hidden rounded-xl bg-th-surface/60">
+                <WaveField lines={COMING_TOGETHER_WAVES} />
+                <div className="relative" style={{ zIndex: 1 }}>
+                  {locked.map(c => (
+                    <LockedCadenceTile key={c} cadence={c} />
+                  ))}
+                </div>
+              </div>
+            </div>
+          )
+        })()}
       </div>
     </div>
   )

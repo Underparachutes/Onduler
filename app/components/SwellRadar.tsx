@@ -27,6 +27,7 @@ import {
 } from '@/lib/periods'
 import { getBuildPreset, type BuildKey } from '@/lib/builds'
 import { updateSwellTarget } from '@/app/actions/swells'
+import { WaveField, type WaveLine } from '@/app/components/WaveField'
 
 const SIZE = 360
 const CENTER = { x: SIZE / 2, y: SIZE / 2 }
@@ -34,7 +35,34 @@ const RADIUS = 130
 const LABEL_PAD = 22
 const HANDLE_R = 6
 const HANDLE_R_ACTIVE = 9
-const VB_EXTENT = RADIUS + LABEL_PAD + 10
+
+const WAVE_LINES: WaveLine[] = [
+  { yBase: 0.18, amplitude: 10, frequency: 0.020, speed: 0.0012, phase: 0.0, width: 0.5, opacity: 0.05 },
+  { yBase: 0.21, amplitude: 12, frequency: 0.030, speed: 0.0038, phase: 1.2, width: 0.5, opacity: 0.06 },
+  { yBase: 0.24, amplitude: 11, frequency: 0.025, speed: 0.0022, phase: 2.8, width: 0.6, opacity: 0.07 },
+  { yBase: 0.28, amplitude: 12, frequency: 0.022, speed: 0.0045, phase: 0.5, width: 0.6, opacity: 0.08 },
+  { yBase: 0.31, amplitude: 14, frequency: 0.032, speed: 0.0015, phase: 1.8, width: 0.7, opacity: 0.09 },
+  { yBase: 0.34, amplitude: 13, frequency: 0.027, speed: 0.0032, phase: 3.4, width: 0.7, opacity: 0.10 },
+  { yBase: 0.38, amplitude: 14, frequency: 0.024, speed: 0.0050, phase: 0.9, width: 0.8, opacity: 0.13 },
+  { yBase: 0.41, amplitude: 16, frequency: 0.034, speed: 0.0018, phase: 2.2, width: 0.8, opacity: 0.15 },
+  { yBase: 0.44, amplitude: 15, frequency: 0.028, speed: 0.0040, phase: 4.0, width: 0.9, opacity: 0.17 },
+  { yBase: 0.48, amplitude: 16, frequency: 0.020, speed: 0.0014, phase: 1.4, width: 1.0, opacity: 0.19 },
+  { yBase: 0.51, amplitude: 18, frequency: 0.030, speed: 0.0048, phase: 2.8, width: 1.0, opacity: 0.21 },
+  { yBase: 0.54, amplitude: 17, frequency: 0.025, speed: 0.0028, phase: 0.3, width: 1.1, opacity: 0.23 },
+  { yBase: 0.58, amplitude: 18, frequency: 0.022, speed: 0.0055, phase: 1.9, width: 1.2, opacity: 0.26 },
+  { yBase: 0.61, amplitude: 20, frequency: 0.032, speed: 0.0020, phase: 3.2, width: 1.3, opacity: 0.29 },
+  { yBase: 0.64, amplitude: 19, frequency: 0.026, speed: 0.0042, phase: 0.7, width: 1.4, opacity: 0.32 },
+  { yBase: 0.68, amplitude: 20, frequency: 0.018, speed: 0.0016, phase: 2.5, width: 1.6, opacity: 0.35 },
+  { yBase: 0.71, amplitude: 22, frequency: 0.028, speed: 0.0052, phase: 0.1, width: 1.7, opacity: 0.38 },
+  { yBase: 0.74, amplitude: 21, frequency: 0.023, speed: 0.0035, phase: 3.8, width: 1.8, opacity: 0.41 },
+  { yBase: 0.78, amplitude: 22, frequency: 0.020, speed: 0.0058, phase: 1.6, width: 2.0, opacity: 0.44 },
+  { yBase: 0.81, amplitude: 24, frequency: 0.030, speed: 0.0024, phase: 3.0, width: 2.2, opacity: 0.47 },
+  { yBase: 0.84, amplitude: 23, frequency: 0.024, speed: 0.0046, phase: 0.4, width: 2.3, opacity: 0.50 },
+  { yBase: 0.88, amplitude: 24, frequency: 0.016, speed: 0.0030, phase: 2.2, width: 2.6, opacity: 0.53 },
+  { yBase: 0.92, amplitude: 26, frequency: 0.026, speed: 0.0060, phase: 0.8, width: 2.8, opacity: 0.56 },
+  { yBase: 0.96, amplitude: 28, frequency: 0.021, speed: 0.0019, phase: 3.5, width: 3.2, opacity: 0.60 },
+]
+const VB_EXTENT = RADIUS + LABEL_PAD + 40
 const VB_ORIGIN = CENTER.x - VB_EXTENT
 const VB_SIZE = VB_EXTENT * 2
 
@@ -307,10 +335,10 @@ export function SwellRadar({
     const r = RADIUS + LABEL_PAD
     const x = CENTER.x + Math.cos(angle) * r
     const y = CENTER.y + Math.sin(angle) * r
-    let anchor: 'start' | 'middle' | 'end' = 'middle'
-    if (Math.cos(angle) > 0.2) anchor = 'start'
-    else if (Math.cos(angle) < -0.2) anchor = 'end'
-    return { x, y, anchor }
+    const deg = (angle * 180) / Math.PI
+    const onBottom = Math.sin(angle) > 0.01
+    const rotation = onBottom ? deg - 90 : deg + 90
+    return { x, y, anchor: 'middle' as const, rotation }
   }
 
   const actualPolygon = actualPolygonPath(actuals, displayTargets, chartMax, RADIUS, CENTER)
@@ -327,15 +355,9 @@ export function SwellRadar({
   })).filter(r => r.to > 0 && Math.abs(r.from - r.to) > 0.01)
 
   return (
-    <div className="relative mb-8">
-      {/* Wave wash — week or month, gated by period at the page */}
-      {waveRamp != null && (
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 rounded-lg"
-          style={{ backgroundColor: '#378ADD', opacity: 0.08 }}
-        />
-      )}
+    <div className="relative mb-8 overflow-hidden rounded-lg">
+      {/* Wave wash — animated waves behind the radar in wave mode */}
+      {waveRamp != null && <WaveField lines={WAVE_LINES} />}
 
       <div className="relative mb-2 flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -358,24 +380,6 @@ export function SwellRadar({
         )}
       </div>
 
-      {/* Wavy underline subtitle decoration on wave periods */}
-      {waveRamp != null && (
-        <svg
-          aria-hidden
-          className="relative mb-3 block w-full"
-          viewBox="0 0 100 4"
-          preserveAspectRatio="none"
-          style={{ height: 4 }}
-        >
-          <path
-            d="M 0 2 Q 6.25 0, 12.5 2 T 25 2 T 37.5 2 T 50 2 T 62.5 2 T 75 2 T 87.5 2 T 100 2"
-            fill="none"
-            stroke="#378ADD"
-            strokeWidth="1"
-            strokeOpacity="0.55"
-          />
-        </svg>
-      )}
 
       <div className="relative flex justify-center">
         <svg
@@ -502,7 +506,7 @@ export function SwellRadar({
             )
           })()}
 
-          {/* Axis labels */}
+          {/* Axis labels — tangent to the circle, readable on both halves */}
           {swells.map((s, i) => {
             const pos = labelPos(i)
             return (
@@ -516,6 +520,7 @@ export function SwellRadar({
                 fontWeight="500"
                 fill="var(--color-th-text, currentColor)"
                 fillOpacity="0.85"
+                transform={`rotate(${pos.rotation}, ${pos.x}, ${pos.y})`}
               >
                 {s.name}
               </text>
