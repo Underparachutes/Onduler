@@ -495,9 +495,9 @@ export function DailyChecklist({
 
   function getAnimType(): CelebrationState['type'] | null {
     const theme = document.documentElement.dataset.theme ?? 'biarritz'
-    if (theme === 'biarritz') return null
+    if (theme === 'biarritz') return 'tideline'
     if (theme === 'bolinas') return 'bloom'
-    return 'glow'
+    return 'ripple'
   }
 
   function checkSwellCrossing(motion: Motion): boolean {

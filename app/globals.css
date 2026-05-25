@@ -269,11 +269,6 @@ h2 {
 }
 
 /* Celebration animations */
-@keyframes celebration-glow {
-  from { transform: translate(-50%, -50%) scale(0); opacity: 0.75; }
-  to   { transform: translate(-50%, -50%) scale(7); opacity: 0; }
-}
-
 @keyframes duck-dive {
   0%   { opacity: 1; transform: translateY(0); }
   100% { opacity: 0; transform: translateY(8px); }
@@ -288,6 +283,16 @@ h2 {
     transform: translate(-50%, -50%) translate(var(--p-dx), var(--p-dy)) scale(0);
     opacity: 0;
   }
+}
+
+@keyframes celebration-ripple {
+  0%   { transform: translate(-50%, -50%) scale(0); opacity: 0.5; }
+  100% { transform: translate(-50%, -50%) scale(7); opacity: 0; }
+}
+
+@keyframes celebration-tideline {
+  0%   { transform: scaleX(0); opacity: 0.4; }
+  100% { transform: scaleX(1); opacity: 0; }
 }
 
 /* Locked-cadence tile: slow horizontal drift for the tide-line overlay. */
