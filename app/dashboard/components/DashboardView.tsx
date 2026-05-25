@@ -68,7 +68,7 @@ export function DashboardView(props: Props) {
 
   return (
     <div className="flex min-h-full flex-col items-center px-4 pb-12">
-      <div className="w-full max-w-[22rem]">
+      <div className="w-full max-w-[22rem] lg:max-w-none">
         {openForm === 'motion' && (
           <div style={{ paddingTop: safeTop }}>
             <AddMotionForm

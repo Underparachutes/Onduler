@@ -93,8 +93,9 @@ export default async function SettingsPage() {
         />
       </div>
 
-      <div className="fixed bottom-[calc(3.5rem+env(safe-area-inset-bottom))] md:bottom-0 left-0 right-0 md:left-60 z-10 border-t border-th-border bg-th-bg px-4 py-3">
-        <div className="mx-auto flex max-w-[22rem] flex-col gap-2 lg:mx-0 lg:ml-12">
+      <div className="fixed bottom-[calc(3.5rem+env(safe-area-inset-bottom))] md:bottom-0 left-0 right-0 md:left-60 z-10 bg-th-bg">
+        <div className="mx-auto max-w-lg px-4 md:mx-0 md:ml-12 md:mr-auto lg:max-w-4xl">
+          <div className="border-t border-th-border pt-3 pb-3 flex flex-col gap-2 max-w-[22rem] lg:max-w-none">
           <a
             href="mailto:ondulertest@gmail.com?subject=Onduler feedback"
             className="text-sm text-th-faint transition-colors hover:text-th-muted active:scale-[0.97]"
@@ -109,6 +110,7 @@ export default async function SettingsPage() {
               Sign out
             </button>
           </form>
+          </div>
         </div>
       </div>
     </div>

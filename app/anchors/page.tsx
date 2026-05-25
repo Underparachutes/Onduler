@@ -402,7 +402,7 @@ export default async function AnchorsPage({
 
   return (
     <div className="flex min-h-full flex-col items-center px-4 pb-12">
-      <div className="w-full max-w-[22rem]">
+      <div className="w-full max-w-[22rem] lg:max-w-none">
         {/* Sticky header: onduler + date + stats + filters */}
         <div className="sticky top-0 z-10 bg-th-bg pb-4 pt-8">
           <div className="mb-1 flex items-center justify-between">
