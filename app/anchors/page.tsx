@@ -23,6 +23,8 @@ import { getActiveChapterId } from '@/lib/chapters'
 import { getCeremonyState, getUnlockState, type CeremonyState } from '@/app/actions/reflections'
 import { formatCycleLabel, type Cadence } from '@/lib/cycles'
 import type { BuildKey } from '@/lib/builds'
+import { HintCard } from '@/app/components/HintCard'
+import { markHintSeen } from '@/app/actions/settings'
 
 type CeremonyResult = { state: CeremonyState; cycleStart: string; cycleEnd: string; chapterId: string | null }
 
@@ -166,10 +168,11 @@ export default async function AnchorsPage({
     ])
     const { data: lockSettings } = await supabase
       .from('user_settings')
-      .select('tracking_mode')
+      .select('tracking_mode, hints_seen')
       .eq('user_id', user.id)
       .single()
     const lockIsHours = lockSettings?.tracking_mode === 'hours'
+    const lockHintsSeen = (lockSettings?.hints_seen as Record<string, boolean>) ?? {}
     const lockActuals = new Map<string, number>()
     lockSwells?.forEach(s => lockActuals.set(s.id, 0))
     for (const log of lockLogs ?? []) {
@@ -183,7 +186,7 @@ export default async function AnchorsPage({
       })
     }
     const wakeActuals = (lockSwells ?? []).map(s => lockActuals.get(s.id) ?? 0)
-    return <LockedPage actuals={wakeActuals} inWave={inWave} />
+    return <LockedPage actuals={wakeActuals} inWave={inWave} hintSeen={!!lockHintsSeen.anchors_locked} />
   }
 
   const [
@@ -215,7 +218,7 @@ export default async function AnchorsPage({
       .order('sort_order'),
     supabase
       .from('user_settings')
-      .select('tracking_mode, primary_build, secondary_build, welcome_back_mode, welcome_back_started_at')
+      .select('tracking_mode, primary_build, secondary_build, welcome_back_mode, welcome_back_started_at, hints_seen')
       .eq('user_id', user.id)
       .single(),
     supabase
@@ -235,6 +238,8 @@ export default async function AnchorsPage({
   const formatValue = (n: number) => (isHours ? formatHrs(ceilDisplay(n, true)) : formatPts(ceilDisplay(n)))
   const primaryBuild = (settings?.primary_build as BuildKey | null) ?? null
   const secondaryBuild = (settings?.secondary_build as BuildKey | null) ?? null
+  const hintsSeen = (settings?.hints_seen as Record<string, boolean>) ?? {}
+  if (!hintsSeen.anchors_locked) markHintSeen('anchors_locked')
   const welcomeBackMode = (settings?.welcome_back_mode as WelcomeBackMode | null) ?? null
   const welcomeBackStartedKey = settings?.welcome_back_started_at
     ? pacificDayKey(settings.welcome_back_started_at as string)
@@ -478,6 +483,10 @@ export default async function AnchorsPage({
             })}
           </div>
         )}
+
+        <HintCard hintKey="anchors_unlocked" title="You unlocked Anchors." seen={!!hintsSeen.anchors_unlocked}>
+          <p>Each week you can drop an anchor, a marker for what you noticed. Onduler holds the mirror; you do the noticing.</p>
+        </HintCard>
 
         {radarSwells.length >= 3 && (
           <SwellRadar

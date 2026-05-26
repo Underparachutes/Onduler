@@ -145,7 +145,8 @@ CREATE TABLE user_settings (
   subscription_status     text        DEFAULT 'none'
     CHECK (subscription_status IN ('active', 'past_due', 'canceled', 'incomplete', 'trialing', 'lifetime', 'none')),
   subscription_id         text        UNIQUE,
-  current_period_end      timestamptz
+  current_period_end      timestamptz,
+  hints_seen              jsonb       NOT NULL DEFAULT '{}'::jsonb
 );
 
 CREATE INDEX IF NOT EXISTS user_settings_stripe_customer_idx

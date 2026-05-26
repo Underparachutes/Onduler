@@ -20,7 +20,7 @@ export default async function SwellsPage() {
     getActiveChapterId(supabase, user.id),
     supabase
       .from('user_settings')
-      .select('groups_enabled, submotions_enabled, tracking_mode')
+      .select('groups_enabled, submotions_enabled, tracking_mode, hints_seen')
       .eq('user_id', user.id)
       .single(),
     getTodayStart(),
@@ -209,6 +209,7 @@ export default async function SwellsPage() {
   const groupsEnabled = settings?.groups_enabled ?? false
   const submotionsEnabled = settings?.submotions_enabled ?? false
   const trackingMode: 'points' | 'hours' = (settings?.tracking_mode as 'points' | 'hours') ?? 'points'
+  const hintsSeen = (settings?.hints_seen as Record<string, boolean>) ?? {}
   const allGroups = groups ?? []
 
   const weekLabel = `Week of ${weekStart.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'America/Los_Angeles' })}`
@@ -233,6 +234,7 @@ export default async function SwellsPage() {
       trackingMode={trackingMode}
       hasAnyMotions={motions.length > 0}
       weekLabel={weekLabel}
+      hintSwellsSeen={!!hintsSeen.swells}
     />
   )
 }

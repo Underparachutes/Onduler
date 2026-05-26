@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { getActiveChapterId } from '@/lib/chapters'
+import { markHintSeen } from '@/app/actions/settings'
 
 export async function createSwell(prevState: unknown, formData: FormData) {
   const name = (formData.get('name') as string)?.trim()
@@ -36,6 +37,7 @@ export async function createSwell(prevState: unknown, formData: FormData) {
 
   if (error) return { error: error.message }
   revalidatePath('/swells')
+  markHintSeen('swells')
   return { success: true }
 }
 
@@ -179,6 +181,7 @@ export async function updateSwellDirect(
   if (error) return { error: error.message }
 
   revalidatePath('/swells')
+  markHintSeen('swells')
   return { success: true }
 }
 

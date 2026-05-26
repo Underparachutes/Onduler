@@ -1,5 +1,6 @@
 import { WaveField, type WaveLine } from '@/app/components/WaveField'
 import { Wake } from './Wake'
+import { HintCard } from '@/app/components/HintCard'
 
 const WAVE_LINES: WaveLine[] = [
   { yBase: 0.18, amplitude: 10, frequency: 0.020, speed: 0.0012, phase: 0.0, width: 0.5, opacity: 0.05 },
@@ -31,12 +32,19 @@ const WAVE_LINES: WaveLine[] = [
 type Props = {
   actuals?: number[]
   inWave?: boolean
+  hintSeen?: boolean
 }
 
-export function LockedPage({ actuals = [], inWave = false }: Props) {
+export function LockedPage({ actuals = [], inWave = false, hintSeen = true }: Props) {
   return (
     <div className="relative flex min-h-[420px] flex-1 flex-col items-center justify-center overflow-hidden px-6 py-14 text-center">
       <WaveField lines={WAVE_LINES} />
+
+      <div className="relative w-full max-w-[22rem]" style={{ zIndex: 1 }}>
+        <HintCard hintKey="anchors_locked" title="Anchors unlocks after your first week." seen={hintSeen} translucent>
+          <p>This is where you'll see your wake, the shape of how you've been showing up. Nothing to do yet. Just keep logging.</p>
+        </HintCard>
+      </div>
 
       {!inWave && (
         <div className="relative mb-6">

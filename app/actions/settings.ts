@@ -129,6 +129,7 @@ export async function setTrackingMode(mode: 'points' | 'hours') {
   revalidatePath('/swells')
   revalidatePath('/anchors')
   revalidatePath('/settings')
+  markHintSeen('settings')
   return { success: true }
 }
 
@@ -158,6 +159,25 @@ export async function setGroupsEnabled(enabled: boolean) {
   revalidatePath('/dashboard')
   revalidatePath('/anchors')
   revalidatePath('/settings')
+  return { success: true }
+}
+
+export async function markHintSeen(key: 'motions' | 'swells' | 'anchors_locked' | 'anchors_unlocked' | 'settings') {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const { data: current } = await supabase
+    .from('user_settings')
+    .select('hints_seen')
+    .eq('user_id', user.id)
+    .single()
+
+  const hints = (current?.hints_seen as Record<string, boolean>) ?? {}
+  hints[key] = true
+
+  await supabase.from('user_settings').upsert({ user_id: user.id, hints_seen: hints })
+
   return { success: true }
 }
 

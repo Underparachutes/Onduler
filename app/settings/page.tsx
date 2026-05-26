@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getActiveChapterId } from '@/lib/chapters'
 import { signOut } from '@/app/actions/auth'
 import { SettingsPanel } from './SettingsPanel'
+import { HintCard } from '@/app/components/HintCard'
 
 export default async function SettingsPage() {
   const supabase = await createClient()
@@ -16,7 +17,7 @@ export default async function SettingsPage() {
     getActiveChapterId(supabase, user.id),
     supabase
       .from('user_settings')
-      .select('theme, groups_enabled, submotions_enabled, daily_goal, daily_goal_hours, tracking_mode, celebration_enabled, haptic_enabled, primary_build, is_admin, subscription_status')
+      .select('theme, groups_enabled, submotions_enabled, daily_goal, daily_goal_hours, tracking_mode, celebration_enabled, haptic_enabled, primary_build, is_admin, subscription_status, hints_seen')
       .eq('user_id', user.id)
       .single(),
   ])
@@ -72,6 +73,9 @@ export default async function SettingsPage() {
       </div>
 
       <div className="w-full max-w-[22rem] pb-12 lg:max-w-none">
+        <HintCard hintKey="settings" seen={!!((settings?.hints_seen as Record<string, boolean>)?.settings)}>
+          <p>Everything's tunable here. Themes, tracking mode, your starter set. Nothing locked in.</p>
+        </HintCard>
         <SettingsPanel
           theme={settings?.theme ?? 'biarritz'}
           groupsEnabled={settings?.groups_enabled ?? false}

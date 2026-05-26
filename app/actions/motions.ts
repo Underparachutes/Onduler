@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { getActiveChapterId } from '@/lib/chapters'
 import { normalizeEntries } from '@/lib/contributions'
+import { markHintSeen } from '@/app/actions/settings'
 
 export async function createMotion(prevState: unknown, formData: FormData) {
   const supabase = await createClient()
@@ -41,6 +42,7 @@ export async function createMotion(prevState: unknown, formData: FormData) {
 
   revalidatePath('/dashboard')
   revalidatePath('/swells')
+  markHintSeen('motions')
   return { success: true }
 }
 
@@ -76,6 +78,7 @@ export async function updateMotion(id: string, prevState: unknown, formData: For
   revalidatePath('/dashboard')
   revalidatePath('/swells')
   revalidatePath('/settings')
+  markHintSeen('motions')
   return { success: true }
 }
 

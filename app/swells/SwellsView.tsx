@@ -7,6 +7,7 @@ import { setSwellHidden } from '@/app/actions/swells'
 import { SwellsList } from './SwellsList'
 import { AddSwellForm } from './AddSwellForm'
 import { AddGroupForm } from '@/app/dashboard/components/AddGroupForm'
+import { HintCard } from '@/app/components/HintCard'
 
 type Swell = { id: string; name: string; color: string }
 type MotionSwell = { id: string; name: string; color: string; weight: number }
@@ -54,6 +55,7 @@ type Props = {
   hasAnyMotions: boolean
   hiddenSwells: Swell[]
   weekLabel: string
+  hintSwellsSeen: boolean
 }
 
 function usePersistedHideDone(key: string): [boolean, () => void] {
@@ -221,6 +223,11 @@ export function SwellsView(props: Props) {
                 </button>
               </div>
             </div>
+
+            <HintCard hintKey="swells" title="Your swells." seen={props.hintSwellsSeen}>
+              <p className="mb-1.5">A swell is a noun-shaped area of your life. A person, a place, a thing you want to feed. Movement, Home, your dog, the band you're starting. Pick a color that feels like it. Set a weekly target.</p>
+              <p>Your motions flow into your swells. Each motion can feed more than one.</p>
+            </HintCard>
 
             {props.swells.length === 0 && !props.hasAnyMotions && (
               <p className="mb-8 text-sm text-th-muted">No motions yet. Add some from Today first.</p>

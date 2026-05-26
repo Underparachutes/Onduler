@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { markHintSeen } from '@/app/actions/settings'
 
 export async function setTheme(theme: string) {
   const supabase = await createClient()
@@ -13,5 +14,6 @@ export async function setTheme(theme: string) {
     .upsert({ user_id: user.id, theme })
 
   revalidatePath('/', 'layout')
+  markHintSeen('settings')
   return { success: true }
 }

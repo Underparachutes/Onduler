@@ -1,10 +1,13 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import dynamic from 'next/dynamic'
 import { DailyChecklist } from './DailyChecklist'
 import { WavePrompt } from './WavePrompt'
-import { AddMotionForm } from './AddMotionForm'
-import { AddGroupForm } from './AddGroupForm'
+import { HintCard } from '@/app/components/HintCard'
+
+const AddMotionForm = dynamic(() => import('./AddMotionForm').then(m => m.AddMotionForm))
+const AddGroupForm = dynamic(() => import('./AddGroupForm').then(m => m.AddGroupForm))
 
 type Swell = { id: string; name: string; color: string }
 type MotionSwell = { id: string; name: string; color: string; weight: number }
@@ -37,6 +40,7 @@ type Props = {
   swellWeeklyProgress: Record<string, number>
   swellTargets: Record<string, number>
   weeklyLogMap: Record<string, Record<string, string[]>>
+  hintMotionsSeen: boolean
 }
 
 export function DashboardView(props: Props) {
@@ -92,6 +96,11 @@ export function DashboardView(props: Props) {
                 <WavePrompt durationSeconds={props.waveDurationSeconds} />
               </div>
             )}
+
+            <HintCard hintKey="motions" title="This is your list." seen={props.hintMotionsSeen}>
+              <p className="mb-1.5">Motions are the verbs of your week, the things you do. Tap a row to log it. The kebab on each row opens everything else: points, swells, hide.</p>
+              <p>You decide what counts and how much. A 5-minute walk can be worth 1 point or 10. It's yours to weight.</p>
+            </HintCard>
 
             {hasMotions ? (
               <DailyChecklist

@@ -49,11 +49,17 @@ export default async function DashboardPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: settings } = await supabase
-    .from('user_settings')
-    .select('groups_enabled, submotions_enabled, onboarding_complete, daily_goal, daily_goal_hours, tracking_mode, celebration_enabled, haptic_enabled, welcome_back_mode, welcome_back_started_at')
-    .eq('user_id', user.id)
-    .single()
+  const [{ data: settings }, todayStart, weekStart, lastWeekStart, chapterId] = await Promise.all([
+    supabase
+      .from('user_settings')
+      .select('groups_enabled, submotions_enabled, onboarding_complete, daily_goal, daily_goal_hours, tracking_mode, celebration_enabled, haptic_enabled, welcome_back_mode, welcome_back_started_at, hints_seen')
+      .eq('user_id', user.id)
+      .single(),
+    getTodayStart(),
+    getWeekStart(),
+    getLastWeekStart(),
+    getActiveChapterId(supabase, user.id),
+  ])
 
   if (!settings?.onboarding_complete) redirect('/onboarding')
 
@@ -64,13 +70,7 @@ export default async function DashboardPage() {
   const trackingMode: 'points' | 'hours' = (settings?.tracking_mode as 'points' | 'hours') ?? 'points'
   const celebrationEnabled = settings?.celebration_enabled ?? true
   const hapticEnabled = settings?.haptic_enabled ?? true
-
-  const [todayStart, weekStart, lastWeekStart, chapterId] = await Promise.all([
-    getTodayStart(),
-    getWeekStart(),
-    getLastWeekStart(),
-    getActiveChapterId(supabase, user.id),
-  ])
+  const hintsSeen = (settings?.hints_seen as Record<string, boolean>) ?? {}
 
   const [
     { data: todayLogs },
@@ -281,6 +281,7 @@ export default async function DashboardPage() {
       swellWeeklyProgress={swellWeeklyProgress}
       swellTargets={swellTargets}
       weeklyLogMap={weeklyLogMap}
+      hintMotionsSeen={!!hintsSeen.motions}
     />
   )
 }

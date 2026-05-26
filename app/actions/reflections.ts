@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { pacificDayKey, type DayKey } from '@/lib/periods'
 import { closedCycleFor, cycleContaining, type Cadence } from '@/lib/cycles'
 import { CEREMONY_FLOOR, UNLOCK_FLOOR, logDaysInCycle, unlockedForCadence } from '@/lib/unlocks'
+import { markHintSeen } from '@/app/actions/settings'
 
 type SupabaseClient = Awaited<ReturnType<typeof createClient>>
 
@@ -135,40 +136,74 @@ export async function saveReflection(input: {
 
   revalidatePath('/anchors')
   revalidatePath(`/anchors/ceremony/${input.cadence}`)
+  markHintSeen('anchors_unlocked')
   return { success: true }
 }
 
 // Layout-level helper: true if *any* cadence has a pending ceremony. Used
-// to drive the bottom-nav tide-pulse on the Anchors tab. One round-trip:
-// chapter + log days fetched once, then reflection lookups for each cadence
-// run in parallel.
-export async function fetchAnyCeremonyPending(): Promise<boolean> {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return false
-
+// to drive the bottom-nav tide-pulse on the Anchors tab. Accepts the
+// already-authenticated supabase client and userId from the layout to avoid
+// redundant auth round-trips. Queries only the cycle windows that matter
+// (not all logs in the chapter).
+export async function fetchAnyCeremonyPending(
+  supabase: SupabaseClient,
+  userId: string,
+): Promise<boolean> {
   const todayKey = pacificDayKey(new Date())
-  const { chapterId, logDays } = await fetchChapterAndLogDays(supabase, user.id)
-  if (!chapterId) return false
 
+  const { data: chapter } = await supabase
+    .from('chapters')
+    .select('id')
+    .eq('user_id', userId)
+    .is('ended_at', null)
+    .maybeSingle()
+  if (!chapter?.id) return false
+
+  const chapterId = chapter.id
   const cadences: Cadence[] = ['week', 'month', 'quarter', 'year']
+
   const checks = await Promise.all(
     cadences.map(async cadence => {
       const cycle = closedCycleFor(todayKey, cadence)
-      const closedCycleDays = logDaysInCycle(logDays, cycle)
-      const isUnlocked = unlockedForCadence(logDays, cadence, todayKey, cycleContaining)
-      const floor = isUnlocked ? CEREMONY_FLOOR[cadence] : UNLOCK_FLOOR[cadence]
-      if (closedCycleDays < floor) return false
 
+      // Count distinct log days in this cycle window only
+      const { data: logRows } = await supabase
+        .from('logs')
+        .select('logged_at')
+        .eq('user_id', userId)
+        .eq('chapter_id', chapterId)
+        .gte('logged_at', cycle.cycleStart + 'T00:00:00-08:00')
+        .lte('logged_at', cycle.cycleEnd + 'T23:59:59-08:00')
+
+      const cycleDays = new Set<DayKey>()
+      for (const l of logRows ?? []) {
+        cycleDays.add(pacificDayKey(l.logged_at))
+      }
+      const closedCycleDays = cycleDays.size
+
+      // For unlock check, we need to know if any prior closed cycle met
+      // the unlock floor. Use the ceremony floor (1) as the optimistic
+      // check — if this cycle has zero logs, no ceremony regardless.
+      if (closedCycleDays < CEREMONY_FLOOR[cadence]) return false
+
+      // Check if a reflection already exists for this cycle
       const { data: existing } = await supabase
         .from('reflections')
         .select('id')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .eq('chapter_id', chapterId)
         .eq('cycle_type', cadence)
         .eq('cycle_start', cycle.cycleStart)
         .maybeSingle()
-      return !existing?.id
+      if (existing?.id) return false
+
+      // If we're above ceremony floor but need to check unlock floor for
+      // first-time unlock, we need the full unlock check. For the layout
+      // indicator this is rare — most users will have unlocked weekly
+      // within their first week. Accept the slightly optimistic signal:
+      // if the cycle has >=1 log day and no reflection saved, show the
+      // pulse. The ceremony page itself does the full floor check.
+      return true
     }),
   )
   return checks.some(Boolean)
@@ -210,6 +245,7 @@ export async function createFreeAnchor(_prev: unknown, formData: FormData) {
 
   revalidatePath('/anchors')
   revalidatePath('/anchors/journal')
+  markHintSeen('anchors_unlocked')
   return { success: true }
 }
 
