@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Onduler postcard back — tester recruitment v1 (2026-05-25)
+  4 × 6 in portrait. Cream stock.
+
+  Carries a short first-person invitation from Josh, leaves a generous open
+  area in the middle for a handwritten name / personal note, and anchors the
+  URL at the foot.
+
+  PRINT NOTES
+  - BG fill matches Moo "Luxe Cream" approximately. Drop BG fill (or set #ffffff)
+    if your stock has a different tint.
+  - Convert text to outlines on export if the printer doesn't have Manrope.
+  - The "WRITE HERE" guide is for layout only — DO NOT export it. Hide before print.
+-->
+<svg xmlns="http://www.w3.org/2000/svg"
+     viewBox="0 0 400 600"
+     width="4in"
+     height="6in"
+     preserveAspectRatio="xMidYMid meet">
+  <title>Onduler tester-recruit postcard back</title>
+  <desc>Cream stock. First-person tester invitation up top, open handwriting area below, onduler.app/signup at the foot.</desc>
+
+  <g id="BACKGROUND">
+    <rect width="400" height="600" fill="#f5efe2"/>
+  </g>
+
+  <g id="GREETING">
+    <text x="40" y="80"
+          font-family="Manrope, ui-sans-serif, system-ui, sans-serif"
+          font-size="22"
+          font-weight="500"
+          letter-spacing="0.012em"
+          fill="#1c2333">Hi —</text>
+  </g>
+
+  <g id="INVITATION_COPY"
+     font-family="IBM Plex Mono, ui-monospace, monospace"
+     font-size="11"
+     fill="#1c2333">
+    <text x="40" y="125">I&apos;m building Onduler. It tracks what</text>
+    <text x="40" y="143">you actually do, without making you</text>
+    <text x="40" y="161">feel bad for the weeks you can&apos;t.</text>
+
+    <text x="40" y="202" font-size="13" font-weight="600">I&apos;m looking for the first wave</text>
+    <text x="40" y="222" font-size="13" font-weight="600">of testers.</text>
+
+    <text x="40" y="258">Sign up, give it a week, tell me</text>
+    <text x="40" y="276">what&apos;s off.</text>
+
+    <text x="40" y="318" font-style="italic" opacity="0.78">— Josh</text>
+  </g>
+
+  <!--
+    Generous open area between y=300 and y=500 reserved for a handwritten
+    name / personal note. Intentionally no printed rules — leaves you free to
+    write whatever shape of note you want.
+  -->
+
+  <g id="FOOT">
+    <line x1="40" y1="520" x2="360" y2="520" stroke="#1c2333" stroke-width="0.4" opacity="0.25"/>
+
+    <text x="40" y="548"
+          font-family="Manrope, ui-sans-serif, system-ui, sans-serif"
+          font-size="13"
+          font-weight="500"
+          letter-spacing="0.10em"
+          fill="#1c2333"
+          opacity="0.92">onduler.app/signup</text>
+
+    <text x="360" y="548"
+          text-anchor="end"
+          font-family="Manrope, ui-sans-serif, system-ui, sans-serif"
+          font-style="italic"
+          font-size="10"
+          letter-spacing="0.02em"
+          fill="#1c2333"
+          opacity="0.55">Every motion leaves a wake.</text>
+  </g>
+
+  <!-- Uncomment to see safe-area / trim during layout. Hide before export.
+  <g id="TRIM_GUIDE" fill="none" stroke="#ff00ff" stroke-width="0.4" opacity="0.5">
+    <rect x="12.5" y="12.5" width="375" height="575"/>
+    <rect x="0" y="0" width="400" height="600"/>
+  </g>
+  -->
+</svg>

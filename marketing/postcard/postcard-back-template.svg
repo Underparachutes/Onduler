@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Onduler postcard back — template v1
+  4 × 6 in portrait. Cream stock. Just the tagline and URL.
+
+  NOTES
+  - Background color matches Moo's "Luxe Cream" stock approximately. If your
+    printer uses a different stock, set BG fill to #ffffff or remove it entirely
+    and let the paper color show through.
+  - If you want to hand-write a note on the back, hide TAGLINE and URL groups
+    and leave the card blank.
+  - Convert text to outlines before exporting if the printer doesn't have Manrope.
+-->
+<svg xmlns="http://www.w3.org/2000/svg"
+     viewBox="0 0 400 600"
+     width="4in"
+     height="6in"
+     preserveAspectRatio="xMidYMid meet">
+  <title>Onduler postcard back — template</title>
+  <desc>Cream stock, modest Manrope tagline centered, onduler.app URL near the bottom.</desc>
+
+  <g id="BACKGROUND">
+    <rect width="400" height="600" fill="#f5efe2"/>
+  </g>
+
+  <g id="TAGLINE">
+    <text x="200" y="280"
+          text-anchor="middle"
+          font-family="Manrope, ui-sans-serif, system-ui, sans-serif"
+          font-size="22"
+          font-weight="500"
+          letter-spacing="0.012em"
+          fill="#1c2333">Every motion</text>
+    <text x="200" y="312"
+          text-anchor="middle"
+          font-family="Manrope, ui-sans-serif, system-ui, sans-serif"
+          font-size="22"
+          font-weight="500"
+          letter-spacing="0.012em"
+          fill="#1c2333">leaves a wake.</text>
+  </g>
+
+  <g id="URL">
+    <text x="200" y="490"
+          text-anchor="middle"
+          font-family="Manrope, ui-sans-serif, system-ui, sans-serif"
+          font-size="13"
+          font-weight="500"
+          letter-spacing="0.08em"
+          fill="#1c2333"
+          opacity="0.78">onduler.app</text>
+  </g>
+
+  <!--
+  <g id="TRIM_GUIDE" fill="none" stroke="#ff00ff" stroke-width="0.4" opacity="0.5">
+    <rect x="12.5" y="12.5" width="375" height="575"/>
+    <rect x="0" y="0" width="400" height="600"/>
+  </g>
+  -->
+</svg>

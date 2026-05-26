@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=1300" />
+  <title>Onduler — Per-theme celebrations</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="tokens.css" />
+  <style>
+    html, body { margin: 0; padding: 0; background: #fafbfc; min-height: 100%; }
+    body {
+      font-family: 'Manrope', 'Helvetica Neue', sans-serif;
+      color: #0e2238;
+      padding: 36px 32px 64px;
+    }
+    .pagehead { max-width: 1240px; margin: 0 auto 28px; }
+    .pagehead .kicker {
+      font-size: 10.5px; letter-spacing: 0.18em; text-transform: uppercase;
+      color: #2772bd; font-weight: 600; margin-bottom: 6px;
+    }
+    .pagehead h1 {
+      margin: 0; font-size: 26px; font-weight: 600; letter-spacing: -0.005em;
+    }
+    .pagehead p {
+      margin: 8px 0 0; color: #6b7f93; font-size: 14px; max-width: 720px;
+      line-height: 1.55; text-wrap: pretty;
+    }
+    .grid {
+      max-width: 1240px; margin: 0 auto;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 28px;
+    }
+    .col { display: flex; flex-direction: column; gap: 14px; }
+    .col-head {
+      display: flex; align-items: baseline; justify-content: space-between;
+      padding: 0 2px;
+    }
+    .col-head .name {
+      font-size: 13px; font-weight: 600; letter-spacing: 0.02em;
+    }
+    .col-head .desc {
+      font-size: 11.5px; color: #6b7f93;
+    }
+    .col-head .pill {
+      font-size: 9.5px; letter-spacing: 0.16em; text-transform: uppercase;
+      color: #355068; font-weight: 600;
+      padding: 3px 7px; border-radius: 3px;
+      background: #e3eaf0;
+    }
+    .replay-bar {
+      display: flex; gap: 8px; align-items: center;
+      padding: 8px 2px 0;
+    }
+    .replay-bar button {
+      background: #0e2238; color: #fff;
+      border: none; border-radius: 5px;
+      padding: 7px 12px;
+      font-size: 11.5px; letter-spacing: 0.06em;
+      font-family: inherit;
+      cursor: pointer;
+    }
+    .replay-bar button:hover { background: #355068; }
+    .replay-bar .hint {
+      font-size: 11px; color: #98a8b6; font-family: 'IBM Plex Mono', monospace;
+    }
+  </style>
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+  <div class="pagehead">
+    <div class="kicker">Onduler · Per-theme celebrations</div>
+    <h1>Ripple for Tjörnuvík · Tide line for Biarritz</h1>
+    <p>Each theme gets its own quiet celebration. Tap any row to log it, or use Replay to fire the celebration on the highlighted row. Light and dark modes shown for both themes.</p>
+  </div>
+  <div id="root"></div>
+
+  <script type="text/babel" src="final-celebrations.jsx"></script>
+</body>
+</html>

@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Onduler postcard back — landscape v1 (2026-05-25)
+  6 × 4 in landscape. Cream stock. Rounded corners (14 unit radius).
+
+  Carries Josh's paragraph + signature. URL + tagline at the bottom-right
+  paired with a tiny Onduler wordmark top-left to mirror the front.
+-->
+<svg xmlns="http://www.w3.org/2000/svg"
+     viewBox="0 0 600 400"
+     width="6in"
+     height="4in"
+     preserveAspectRatio="xMidYMid meet">
+  <title>Onduler tester-recruit postcard — landscape back</title>
+  <desc>Cream stock. Onduler wordmark top-left. Paragraph copy explaining the app. URL + tagline at the bottom. Rounded corners.</desc>
+
+
+  <defs>
+    <!-- Rounded-rect mask. Reveals content only inside the 14-unit-rounded card area;
+         the rest is hidden, giving a visible rounded-corner card in the preview. -->
+    <mask id="card-mask-back" maskUnits="userSpaceOnUse">
+      <rect x="0" y="0" width="600" height="400" rx="14" ry="14" fill="white"/>
+    </mask>
+  </defs>
+<g mask="url(#card-mask-back)">
+    <g id="BACKGROUND">
+      <rect width="600" height="400" fill="#f5efe2" rx="14" ry="14"/>
+    </g>
+
+    <g id="WORDMARK">
+      <text x="28" y="32"
+            font-family="Manrope, ui-sans-serif, system-ui, sans-serif"
+            font-size="9"
+            font-weight="600"
+            letter-spacing="0.32em"
+            fill="#1c2333"
+            opacity="0.65">ONDULER</text>
+    </g>
+
+    <g id="COPY"
+       font-family="IBM Plex Mono, ui-monospace, monospace"
+       font-size="11.5"
+       fill="#1c2333"
+       text-anchor="middle">
+      <text x="300" y="92">Onduler is a daily tracker app for</text>
+      <text x="300" y="110">reflection, momentum, and noticing your</text>
+      <text x="300" y="128">patterns.</text>
+
+      <text x="300" y="162">Choose the motions you want to track.</text>
+      <text x="300" y="180">Connect them to the swells they feed.</text>
+      <text x="300" y="198">Watch your wake build over time.</text>
+
+      <text x="300" y="232">Designed for people who are curious about</text>
+      <text x="300" y="250">what their daily life is actually building.</text>
+
+      <text x="300" y="290" font-weight="600">Join the first wave of testers by scanning</text>
+      <text x="300" y="308" font-weight="600">the front.</text>
+    </g>
+
+    <g id="FOOT">
+      <line x1="40" y1="338" x2="560" y2="338" stroke="#1c2333" stroke-width="0.4" opacity="0.22"/>
+      <text x="40" y="362"
+            font-family="Manrope, ui-sans-serif, system-ui, sans-serif"
+            font-size="11"
+            font-weight="500"
+            letter-spacing="0.10em"
+            fill="#1c2333"
+            opacity="0.88">onduler.app/signup</text>
+      <text x="560" y="362"
+            text-anchor="end"
+            font-family="Manrope, ui-sans-serif, system-ui, sans-serif"
+            font-style="italic"
+            font-size="10"
+            letter-spacing="0.02em"
+            fill="#F67E4E"
+            opacity="0.95">Every motion leaves a wake.</text>
+    </g>
+  </g>
+</svg>

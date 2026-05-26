@@ -11,13 +11,13 @@ import "./globals.css";
 const manrope = Manrope({
   variable: "--font-manrope",
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
+  weight: ["300", "400", "500", "600"],
 });
 
 const ibmPlexMono = IBM_Plex_Mono({
   variable: "--font-ibm-plex-mono",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  weight: ["400", "500", "600"],
   style: ["normal", "italic"],
 });
 
@@ -51,7 +51,7 @@ export default async function RootLayout({
   if (user) {
     const [{ data }, anyPending] = await Promise.all([
       supabase.from("user_settings").select("theme").eq("user_id", user.id).single(),
-      fetchAnyCeremonyPending(),
+      fetchAnyCeremonyPending(supabase, user.id),
     ]);
     if (data?.theme) theme = data.theme;
     pendingAnchor = anyPending;

@@ -19,7 +19,7 @@ export async function signUp(state: unknown, formData: FormData) {
     return { message: 'Check your email to confirm your account.' }
   }
 
-  redirect('/dashboard')
+  redirect('/onboarding')
 }
 
 export async function signIn(state: unknown, formData: FormData) {
@@ -40,6 +40,21 @@ export async function signOut() {
   const supabase = await createClient()
   await supabase.auth.signOut()
   redirect('/login')
+}
+
+export async function resetPassword(state: unknown, formData: FormData) {
+  const supabase = await createClient()
+  const email = formData.get('email') as string
+
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback?next=/reset-password`,
+  })
+
+  if (error) {
+    return { error: error.message }
+  }
+
+  return { message: 'Check your email for a reset link.' }
 }
 
 export async function changePassword(prevState: unknown, formData: FormData) {

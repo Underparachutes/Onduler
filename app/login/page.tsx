@@ -69,6 +69,11 @@ export default function LoginPage() {
             Sign up
           </Link>
         </p>
+        <p className="mt-3 text-center text-sm text-th-muted">
+          <Link href="/forgot-password" className="text-th-muted underline underline-offset-4 hover:text-th-text">
+            Forgot your password?
+          </Link>
+        </p>
       </div>
     </div>
   )

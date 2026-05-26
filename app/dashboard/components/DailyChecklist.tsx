@@ -28,10 +28,14 @@ import { reassignMotionToGroup, reorderMotions, setMotionSwells, duplicateMotion
 import { formatPts, formatHrs } from '@/lib/format'
 import { ceilDisplay } from '@/lib/periods'
 import { useToast } from '@/app/components/Toast'
-import { CelebrationOverlay, type CelebrationState } from './CelebrationOverlay'
-import { MotionDetailSheet } from './MotionDetailSheet'
+import dynamic from 'next/dynamic'
+import { type CelebrationState } from './CelebrationOverlay'
 import { SortableMotionList, SortableMotionRow } from './SortableMotionList'
-import { WeekEditView, getWeekDayKeys } from './WeekEditView'
+import { getWeekDayKeys } from './weekDayKeys'
+
+const CelebrationOverlay = dynamic(() => import('./CelebrationOverlay').then(m => m.CelebrationOverlay))
+const MotionDetailSheet = dynamic(() => import('./MotionDetailSheet').then(m => m.MotionDetailSheet))
+const WeekEditView = dynamic(() => import('./WeekEditView').then(m => m.WeekEditView))
 
 type Swell = { id: string; name: string; color: string }
 type MotionSwell = { id: string; name: string; color: string; weight: number }

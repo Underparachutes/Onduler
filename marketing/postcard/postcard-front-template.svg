@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Onduler postcard front — template v1
+  4 × 6 in portrait. Internal coordinate system: 1 in = 100 units.
+
+  HOW TO USE
+  1. Open this file in Figma / Affinity / Illustrator.
+  2. Generate a wake SVG: hit /api/wake-svg?seed=N&n=7&size=400&bg=transparent&download
+     in a browser (replace N with 1, 2, 3, …). You get one wake SVG per seed.
+  3. Paste each wake SVG into the WAKE_SLOT group, centered at (200, 200).
+     The wake's intrinsic 400×400 viewBox lines up with the slot if its center
+     stays anchored to (200, 200) on this template.
+  4. Replace QR_SLOT with the real onduler.app QR (recommend qrserver.com/api/v1
+     with data=https://onduler.app?utm_source=postcard). Keep it inside the 68px
+     cream rect so it stays scannable.
+  5. Before exporting for print: extend the deep-ocean BG rect ~12 units (0.12 in)
+     beyond every edge to give the printer a bleed margin, or rely on the printer's
+     bleed setting.
+  6. Export each finished card as PDF (vector, embed fonts) at 4 × 6 in.
+
+  NOTES
+  - Fonts: Manrope (display) and IBM Plex Mono (italic body). Make sure both are
+    installed locally before exporting so they rasterize correctly. If exporting
+    as SVG instead of PDF, convert text to outlines so the printer doesn't need
+    the font files.
+  - Wake generator clamps actuals to [0.3, 1.0], so the smallest possible inner
+    radius is ~30% of the max. The QR slot (68 px wide, centered on the wake
+    center) fits comfortably inside any seed when the wake's max radius is 140.
+  - The Tolkien line is optional. Hide the TOLKIEN group if you want a quieter card.
+-->
+<svg xmlns="http://www.w3.org/2000/svg"
+     viewBox="0 0 400 600"
+     width="4in"
+     height="6in"
+     preserveAspectRatio="xMidYMid meet">
+  <title>Onduler postcard front — template</title>
+  <desc>Deep-ocean ground, layered WaveField wash, wake polygon with QR tucked inside, Tolkien italic at lower-middle. Drop a wake SVG into WAKE_SLOT, replace QR_SLOT with a real QR before printing.</desc>
+
+  <g id="BACKGROUND">
+    <rect width="400" height="600" fill="#0b2330"/>
+  </g>
+
+  <g id="WAVES" fill="none" stroke="#e6decb" stroke-linecap="round">
+    <path d="M0,90 Q50,86 100,90 T200,90 T300,90 T400,90" stroke-width="0.5" opacity="0.10"/>
+    <path d="M0,150 Q60,156 120,150 T240,150 T360,150 T400,150" stroke-width="0.5" opacity="0.12"/>
+    <path d="M0,225 Q70,219 140,225 T280,225 T400,225" stroke-width="0.5" opacity="0.14"/>
+    <path d="M0,300 Q60,306 120,300 T240,300 T360,300 T400,300" stroke-width="0.55" opacity="0.18"/>
+    <path d="M0,395 Q60,387 120,395 T240,395 T360,395 T400,395" stroke-width="0.6" opacity="0.22"/>
+    <path d="M0,430 Q70,446 140,430 T280,430 T400,430" stroke-width="0.65" opacity="0.28"/>
+    <path d="M0,465 Q80,449 160,465 T320,465 T400,465" stroke-width="0.7" opacity="0.32"/>
+    <path d="M0,545 Q70,565 140,545 T280,545 T400,545" stroke-width="0.7" opacity="0.36"/>
+    <path d="M0,578 Q80,558 160,578 T320,578 T400,578" stroke-width="0.75" opacity="0.38"/>
+  </g>
+
+  <!--
+    WAKE_SLOT — replace this group's contents with a wake SVG from /api/wake-svg.
+    Dashed circle indicates the wake's max radius (140 units = 1.4 in at print).
+    Center anchor: (200, 200).
+  -->
+  <g id="WAKE_SLOT">
+    <circle cx="200" cy="200" r="140" fill="none" stroke="#ede4cc" stroke-width="0.6" stroke-dasharray="3 3" opacity="0.30"/>
+    <text x="200" y="62" text-anchor="middle" font-family="Manrope, ui-sans-serif, system-ui, sans-serif" font-size="9" fill="#ede4cc" opacity="0.5" letter-spacing="0.08em">WAKE SLOT — DROP /api/wake-svg HERE</text>
+  </g>
+
+  <!--
+    QR_SLOT — replace with the real onduler.app QR. Keep the cream rect; QR modules
+    render as dark squares on the cream background for legibility.
+  -->
+  <g id="QR_SLOT">
+    <rect x="166" y="166" width="68" height="68" rx="1.5" fill="#ede4cc" opacity="0.97"/>
+    <text x="200" y="196" text-anchor="middle" font-family="Manrope, ui-sans-serif, system-ui, sans-serif" font-size="8" fill="#0b2330" opacity="0.6" letter-spacing="0.06em">REPLACE</text>
+    <text x="200" y="208" text-anchor="middle" font-family="Manrope, ui-sans-serif, system-ui, sans-serif" font-size="8" fill="#0b2330" opacity="0.6" letter-spacing="0.06em">WITH QR</text>
+  </g>
+
+  <g id="TOLKIEN">
+    <text x="200" y="513"
+          text-anchor="middle"
+          font-family="Manrope, ui-sans-serif, system-ui, sans-serif"
+          font-style="italic"
+          font-size="13"
+          letter-spacing="0.02em"
+          fill="#ede4cc"
+          opacity="0.78">Not all those who wander are lost.</text>
+  </g>
+
+  <!--
+    Optional: uncomment TRIM_GUIDE to see safe-area / trim lines during layout.
+    Hide before exporting for print.
+  -->
+  <!--
+  <g id="TRIM_GUIDE" fill="none" stroke="#ff00ff" stroke-width="0.4" opacity="0.5">
+    <rect x="12.5" y="12.5" width="375" height="575"/>
+    <rect x="0" y="0" width="400" height="600"/>
+  </g>
+  -->
+</svg>
