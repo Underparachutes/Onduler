@@ -27,7 +27,7 @@ All copy is em-dash-free per the voice rule. Use periods, commas, or restructure
 
 > **This is your list.**
 >
-> Motions are the verbs of your week, the things you do. Tap a row to log it. Tap the kebab to edit points, add it to a swell, or hide it.
+> Motions are the verbs of your week, the things you do. Tap a row to log it. The kebab on each row opens everything else: points, swells, hide.
 >
 > You decide what counts and how much. A 5-minute walk can be worth 1 point or 10. It's yours to weight.
 
@@ -39,11 +39,15 @@ All copy is em-dash-free per the voice rule. Use periods, commas, or restructure
 >
 > Your motions flow into your swells. Each motion can feed more than one.
 
-### Anchors, locked (week 1, before first weekly ceremony unlocks)
+### Anchors, locked (week 1, before weekly ceremony unlocks)
 
 > **Anchors unlocks after your first week.**
 >
 > This is where you'll see your wake, the shape of how you've been showing up. Nothing to do yet. Just keep logging.
+
+**Note on placement.** This card renders on the LockedPage, which is a vibe-only surface (WaveField, breathing hex silhouette, soft copy). To avoid breaking the mystery posture, this card uses a translucent treatment instead of the standard solid card: `bg-th-surface/60 backdrop-blur-sm` replaces the opaque `bg-th-surface`. Border stays `border-th-border-soft`. The card should feel like it's floating on the vibe surface, not sitting on top of it.
+
+**Scope.** This card only appears when `!unlocks.week` (the full LockedPage renders). Once weekly unlocks, the LockedPage no longer renders and individual locked-cadence "Coming Together" tiles take over for month/quarter/year. Those tiles already carry their own anticipation copy. The `anchors_locked` hint card does not repeat on those tiles.
 
 ### Anchors, unlocked (shown once, the first time the user lands on Anchors after the weekly ceremony unlocks)
 
@@ -62,9 +66,9 @@ All copy is em-dash-free per the voice rule. Use periods, commas, or restructure
 **Dismiss control is the `×` in the top-right corner of the card.** No "Got it" button. A button implies a checkpoint; `×` implies "this is just here if you want it."
 
 **Auto-dismiss on first action.**
-- **Motions** card auto-dismisses when the user creates their first motion (separate from the seeded onboarding motions; this is their first user-created or first user-edited motion).
+- **Motions** card auto-dismisses when the user creates their first motion outside of the onboarding seeding step, or edits any existing motion (name, points, hours). See edge cases below for how to gate the seeding path.
 - **Swells** card auto-dismisses when the user creates their first swell beyond the onboarding-seeded ones, or when they edit any seeded swell's name, color, or target.
-- **Anchors-locked** card stays until the weekly cadence unlocks. It auto-clears at unlock; the unlocked card takes its place. This is the exception to the auto-dismiss-on-action rule because the whole point is to signal that something is coming.
+- **Anchors-locked** card stays until the weekly cadence unlocks. It auto-clears at unlock; the unlocked card takes its place. This is the exception to the auto-dismiss-on-action rule because the whole point is to signal that something is coming. The card only appears on the full LockedPage (`!unlocks.week`), not on individual locked-cadence tiles that render after weekly unlocks.
 - **Anchors-unlocked** card auto-dismisses when the user completes (or skips) their first weekly ceremony, or when they drop their first free anchor.
 - **Settings** card auto-dismisses when the user changes any setting.
 
@@ -89,6 +93,8 @@ Matches the paper-list aesthetic. No card chrome escalation.
 - Press feedback on the `×`: `active:scale-[0.97]` per the press-feedback working agreement
 
 The card should feel like a sticky note on a paper list, not a modal interruption.
+
+**LockedPage exception.** The Anchors-locked card uses `bg-th-surface/60 backdrop-blur-sm` instead of opaque `bg-th-surface` so it doesn't break the vibe-only LockedPage aesthetic. All other cards use the standard solid treatment.
 
 ## Schema change
 
@@ -175,9 +181,7 @@ Each main page reads `hints_seen` from `user_settings` and passes the relevant k
 
 ## Edge cases
 
-**Existing users.** All existing users get the cards on their next visit because `hints_seen` defaults to `{}`. This is the correct behavior: existing users have probably figured the app out, but the cards are quiet and dismissible, and the auto-dismiss-on-action triggers will silently clear them for anyone who's already active.
-
-If we want to skip existing users entirely, the migration could backfill `hints_seen` to `{"motions": true, "swells": true, "anchors_locked": true, "anchors_unlocked": true, "settings": true}` for any user with `onboarding_complete = true` at migration time. Recommended: backfill, since existing testers don't need the orientation. New signups after the migration date get the cards naturally.
+**Existing users.** The migration backfills `hints_seen` to `{"motions": true, "swells": true, "anchors_locked": true, "anchors_unlocked": true, "settings": true}` for any user with `onboarding_complete = true` at migration time. Existing testers don't need orientation cards. New signups after the migration get the cards naturally.
 
 **The seeded onboarding motions and swells.** The Motions auto-dismiss should not trigger from the onboarding seeding step itself, only from a user-initiated `createMotion` call. If the onboarding seeding goes through `createMotion`, gate the `markHintSeen` call behind a flag or skip it when the call originates from onboarding. Cleanest path: have onboarding's bulk-insert action use a separate `seedMotions` / `seedSwells` helper that does not call `markHintSeen`, leaving the user-facing `createMotion` / `createSwell` to handle the auto-dismiss.
 
