@@ -14,7 +14,10 @@ export function BottomNav({ pendingAnchor = false }: { pendingAnchor?: boolean }
   return (
     <nav
       className="fixed bottom-0 left-0 right-0 z-40 border-t border-th-border bg-th-bg md:hidden"
-      style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 0px)' }}
+      style={{
+        paddingBottom: 'max(env(safe-area-inset-bottom), 0px)',
+        transform: 'translate3d(0,0,0)',
+      }}
     >
       <div className="mx-auto flex h-14 max-w-sm items-center justify-around px-2">
         {NAV_ITEMS.map(({ href, label, icon }) => {
