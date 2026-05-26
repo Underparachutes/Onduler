@@ -46,6 +46,7 @@ type TrackingMode = 'points' | 'hours'
 
 type Props = {
   topBar: React.ReactNode
+  belowHeader?: React.ReactNode
   groupsEnabled: boolean
   submotionsEnabled: boolean
   motions: Motion[]
@@ -228,6 +229,7 @@ function MotionDragOverlay({
 
 export function DailyChecklist({
   topBar,
+  belowHeader,
   groupsEnabled,
   submotionsEnabled,
   motions,
@@ -791,6 +793,7 @@ export function DailyChecklist({
             {progressStats}
             {groupChipsRow}
           </div>
+          {belowHeader}
           <WeekEditView
             motions={activeGroup ? motions.filter(m => m.groupId === activeGroup) : motions}
             submotionsMap={submotionsMap}
@@ -829,6 +832,7 @@ export function DailyChecklist({
             {progressStats}
             {groupChipsRow}
           </div>
+          {belowHeader}
           <DndContext
             sensors={sensors}
             collisionDetection={closestCorners}
@@ -892,6 +896,7 @@ export function DailyChecklist({
             {headerToolbar}
             {progressStats}
           </div>
+          {belowHeader}
           <SortableMotionList
             motions={motions}
             submotionsMap={submotionsMap}
@@ -935,6 +940,7 @@ export function DailyChecklist({
           {headerToolbar}
           {groupChipsRow}
         </div>
+        {belowHeader}
 
         <DndContext
           sensors={sensors}

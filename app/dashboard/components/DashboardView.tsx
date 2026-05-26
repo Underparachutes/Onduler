@@ -97,11 +97,6 @@ export function DashboardView(props: Props) {
               </div>
             )}
 
-            <HintCard hintKey="motions" title="This is your list." seen={props.hintMotionsSeen}>
-              <p className="mb-1.5">Motions are the verbs of your week, the things you do. Tap a row to log it. The kebab on each row opens everything else: points, swells, hide.</p>
-              <p>You decide what counts and how much. A 5-minute walk can be worth 1 point or 10. It's yours to weight.</p>
-            </HintCard>
-
             {hasMotions ? (
               <DailyChecklist
                 key={`${props.motions.length}-${props.trackingMode}`}
@@ -135,6 +130,12 @@ export function DashboardView(props: Props) {
                       )}
                     </div>
                   </div>
+                }
+                belowHeader={
+                  <HintCard hintKey="motions" title="This is your list." seen={props.hintMotionsSeen}>
+                    <p className="mb-1.5">Motions are the verbs of your week, the things you do. Tap a row to log it. The kebab on each row opens everything else: points, swells, hide.</p>
+                    <p>You decide what counts and how much. A 5-minute walk can be worth 1 point or 10. It's yours to weight.</p>
+                  </HintCard>
                 }
                 groupsEnabled={props.groupsEnabled}
                 submotionsEnabled={props.submotionsEnabled}
