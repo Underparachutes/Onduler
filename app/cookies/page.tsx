@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { TermlyContent } from '@/app/components/TermlyContent'
 
 export const metadata: Metadata = {
-  title: 'Cookie Policy — Onduler',
+  title: 'Cookie Policy | Onduler',
   description: 'How Onduler uses cookies and similar technologies.',
 }
 

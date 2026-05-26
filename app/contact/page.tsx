@@ -19,7 +19,7 @@ export default function ContactPage() {
 
         <h1 className="mb-2 text-2xl font-semibold text-th-text">Contact</h1>
         <p className="mb-8 text-sm text-th-muted">
-          Questions, feedback, or data requests — we&apos;d like to hear from you.
+          Questions, feedback, or data requests. We&apos;d like to hear from you.
         </p>
 
         {state?.ok ? (

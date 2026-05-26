@@ -76,7 +76,7 @@ export function ShapePicker({ primary, existingSwellNames, mvsPool, resolvedMvsI
 
         <h1 className="mb-2 text-2xl font-semibold text-th-text">Starter sets</h1>
         <p className="mb-8 text-sm text-th-muted">
-          A curated starting point for your week. Swap or clear at any time — nothing gets deleted.
+          A curated starting point for your week. Swap or clear at any time. Nothing gets deleted.
         </p>
 
         <section className="mb-8">
@@ -210,7 +210,7 @@ function StillShowingUpEditor({
         )}
       </div>
       <p className="mb-3 text-xs text-th-muted">
-        The smallest version of your {shapeName.toLowerCase() || 'set'} that&apos;s still you — what we surface when you ease back from a wave. Up to {MVS_MAX}.
+        The smallest version of your {shapeName.toLowerCase() || 'set'} that&apos;s still you. What we surface when you ease back from a wave. Up to {MVS_MAX}.
       </p>
       <div className="flex flex-wrap items-center gap-1.5">
         {ids.map(id => {
@@ -355,7 +355,7 @@ function PreviewScreen({
           {seededRows.every(r => r.alreadyHave) ? (
             <div className="rounded-xl border border-th-border bg-th-surface px-4 py-3">
               <p className="text-sm text-th-text">
-                All {seededRows.length} already in your set — tap below to make it active.
+                All {seededRows.length} already in your set. Tap below to make it active.
               </p>
             </div>
           ) : (

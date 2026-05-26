@@ -246,7 +246,7 @@ export function CycleCeremony({
                 disabled={isPending}
                 className="flex items-center justify-between rounded-lg border border-th-border px-4 py-3 text-sm text-th-text transition-colors hover:bg-th-surface active:scale-[0.99] disabled:opacity-50"
               >
-                <span>Swells — targets, focus, what you&apos;re feeding</span>
+                <span>Swells. Targets, focus, what you&apos;re feeding.</span>
                 <span className="text-th-faint">→</span>
               </button>
               <button
@@ -255,7 +255,7 @@ export function CycleCeremony({
                 disabled={isPending}
                 className="flex items-center justify-between rounded-lg border border-th-border px-4 py-3 text-sm text-th-text transition-colors hover:bg-th-surface active:scale-[0.99] disabled:opacity-50"
               >
-                <span>Motions — what you actually do, day to day</span>
+                <span>Motions. What you actually do, day to day.</span>
                 <span className="text-th-faint">→</span>
               </button>
               <button
@@ -264,7 +264,7 @@ export function CycleCeremony({
                 disabled={isPending}
                 className="mt-2 text-xs text-th-faint transition-colors hover:text-th-muted active:scale-[0.97] disabled:opacity-50"
               >
-                Skip — nothing to change this time
+                Skip. Nothing to change this time.
               </button>
 
               <button
@@ -283,7 +283,7 @@ export function CycleCeremony({
           <div className="flex flex-col gap-6">
             <h1 className="text-2xl font-semibold text-th-text">Close this chapter?</h1>
             <p className="text-sm leading-relaxed text-th-secondary">
-              Your motions, swells, logs, and anchors stay safe — you can revisit them
+              Your motions, swells, logs, and anchors stay safe. You can revisit them
               from Settings → Past chapters. The active app starts fresh: a new shape,
               new swells, new motions. Reflection unlocks reset.
             </p>
@@ -305,7 +305,7 @@ export function CycleCeremony({
                 disabled={isPending}
                 className="text-xs text-th-faint transition-colors hover:text-th-muted active:scale-[0.97] disabled:opacity-50"
               >
-                Not yet — take me back
+                Not yet, take me back
               </button>
             </div>
           </div>

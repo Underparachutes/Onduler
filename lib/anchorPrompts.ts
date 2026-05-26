@@ -9,7 +9,7 @@ export const ANCHOR_PROMPTS: AnchorPrompt[] = [
   { theme: 'notice',   text: 'What kept pulling at your attention this week?' },
   { theme: 'notice',   text: 'Where did your energy go without you deciding?' },
   { theme: 'notice',   text: 'What felt different about this week compared to last?' },
-  { theme: 'notice',   text: 'What motion surprised you — either by showing up or by not?' },
+  { theme: 'notice',   text: 'What motion surprised you, either by showing up or by not?' },
   { theme: 'notice',   text: 'What did your body know before your mind caught up?' },
   { theme: 'honor',    text: 'What did you show up for, even when it was quiet?' },
   { theme: 'honor',    text: 'What took effort that nobody else saw?' },

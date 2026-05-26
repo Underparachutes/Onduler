@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 
 export const metadata: Metadata = {
-  title: 'Terms of Service — Onduler',
+  title: 'Terms of Service | Onduler',
   description: 'Terms of Service for Onduler, the personal habit-tracking and reflection tool.',
 }
 
@@ -108,7 +108,7 @@ export default function TermsPage() {
           Onduler is a personal reflection tool, not a healthcare product. The Service is not
           medical advice, mental-health treatment, therapy, diagnosis, or care of any kind. Onduler
           does not assess your wellbeing, evaluate your habits, or intervene if your patterns
-          appear concerning — by design, the Service witnesses what you choose to log and reflects
+          appear concerning. By design, the Service witnesses what you choose to log and reflects
           it back without judgment.
         </p>
         <p>You agree that:</p>
@@ -203,7 +203,7 @@ export default function TermsPage() {
           </li>
         </ul>
         <p>
-          We may take action — up to and including termination of your account — in response to
+          We may take action, up to and including termination of your account, in response to
           conduct that we reasonably believe violates this section.
         </p>
 

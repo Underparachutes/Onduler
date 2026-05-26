@@ -264,7 +264,7 @@ export function OnboardingFlow() {
     return (
       <ScreenShell
         title="Choose your swells."
-        description="Swells are nouns — the areas of life you want to invest in. Pick a few or add your own. You can edit them anytime."
+        description="Swells are nouns. The areas of life you want to invest in. Pick a few or add your own. You can edit them anytime."
       >
         <div className="flex flex-col gap-2">
           <p className="text-xs font-medium uppercase tracking-widest text-th-faint">Or try a mix</p>
@@ -403,7 +403,7 @@ export function OnboardingFlow() {
       <ScreenShell
         onBack={() => setStep('swells')}
         title="What do you do for each?"
-        description="Motions are verbs — the daily actions that feed each swell. Add a few or skip and add them later."
+        description="Motions are verbs. The daily actions that feed each swell. Add a few or skip and add them later."
       >
         <div className="flex flex-col gap-6">
           {pickedSwells.map(s => {

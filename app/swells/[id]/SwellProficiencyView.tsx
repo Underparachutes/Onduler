@@ -340,7 +340,7 @@ export function SwellProficiencyView({
           const countLabel = b.count === 1 ? '1 log' : `${b.count} logs`
           return (
             <g key={`node-${m.id}`}>
-              <title>{`${m.name} — ${formatValue(value)}, ${countLabel}`}</title>
+              <title>{`${m.name}: ${formatValue(value)}, ${countLabel}`}</title>
               <circle
                 cx={x}
                 cy={y}

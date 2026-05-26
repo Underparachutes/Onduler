@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { TermlyContent } from '@/app/components/TermlyContent'
 
 export const metadata: Metadata = {
-  title: 'Privacy Policy — Onduler',
+  title: 'Privacy Policy | Onduler',
   description: 'How Onduler collects, uses, and protects your personal information.',
 }
 

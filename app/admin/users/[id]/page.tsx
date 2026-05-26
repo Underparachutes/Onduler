@@ -115,7 +115,7 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
 
         <section>
           <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-th-muted">
-            Activity — last log {lastLog?.logged_at ? formatDateTime(lastLog.logged_at) : 'never'}
+            Activity. Last log {lastLog?.logged_at ? formatDateTime(lastLog.logged_at) : 'never'}
           </p>
           {logs.length === 0 ? (
             <p className="rounded-lg border border-th-border px-4 py-3 text-xs text-th-faint">

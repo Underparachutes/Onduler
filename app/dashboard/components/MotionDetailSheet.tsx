@@ -933,7 +933,7 @@ export function MotionDetailSheet({
               })}
             </div>
             {Array.from(localSwellWeights.values()).some(w => Math.round(w * 100) === 0) && (
-              <p className="mt-2 text-[11px] text-th-faint">Dashed swells are at 0% — edit % to allocate</p>
+              <p className="mt-2 text-[11px] text-th-faint">Dashed swells are at 0%. Edit % to allocate.</p>
             )}
           </div>
           )

@@ -29,7 +29,7 @@ export function WelcomeBackChoices() {
           </span>
         </div>
         <p className="text-xs text-th-muted">
-          Soft 3-week ramp — targets at 40% this week, 70% next, then back to full.
+          Soft 3-week ramp. Targets at 40% this week, 70% next, then back to full.
         </p>
       </button>
 
@@ -42,7 +42,7 @@ export function WelcomeBackChoices() {
           Pick up where you left off
         </p>
         <p className="text-xs text-th-muted">
-          Full weekly targets — same as before the wave.
+          Full weekly targets, same as before the wave.
         </p>
       </button>
     </div>
