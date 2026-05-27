@@ -86,36 +86,35 @@
   </g>
 
   <g id="WORDMARK">
-    <text x="540" y="155"
+    <text x="540" y="170"
           text-anchor="middle"
           font-family="Manrope, ui-sans-serif, system-ui, sans-serif"
-          font-size="22"
+          font-size="38"
           font-weight="600"
-          letter-spacing="0.42em"
+          letter-spacing="0.28em"
           fill="#ede4cc"
-          opacity="0.88">ONDULER</text>
+          opacity="0.94">ONDULER</text>
   </g>
 
   <!--
-    WAKE — seed 42, n=7, radius 300, centered at (540, 540).
+    WAKE — seed 1256, n=7, radius 300, centered at (540, 540).
     Three stacked outline strokes (no filter — deterministic across IG's
     compression pipeline): faint wide halo + medium stroke + sharp inner stroke.
     Mirrors the in-product LockedPage wake.
   -->
   <g id="WAKE" fill="none" stroke="#ede4cc">
-    <path d="M 500.25,457.46 L 540.00,448.38 L 579.75,457.46 L 628.34,356.56 L 699.18,413.06 L 738.50,494.69 L 782.40,484.67 L 782.40,595.33 L 734.39,695.02 L 655.55,632.15 L 604.12,673.15 L 540.00,687.79 L 540.00,711.91 L 465.41,694.89 L 405.60,647.18 L 435.65,623.22 L 409.87,569.70 L 409.87,510.30 L 247.52,473.24 L 305.45,352.95 L 409.83,269.71 Z"
+    <path d="M 450.84,354.86 L 540.00,334.51 L 629.16,354.86 L 670.17,269.71 L 774.55,352.95 L 832.48,473.24 L 754.25,491.10 L 754.25,588.90 L 711.82,677.02 L 720.72,684.12 L 640.29,748.26 L 540.00,771.15 L 540.00,813.84 L 421.19,786.72 L 325.90,710.74 L 378.28,668.97 L 338.33,586.03 L 338.33,493.97 L 303.92,486.12 L 350.68,389.02 L 434.94,321.83 Z"
           stroke-width="10" opacity="0.10"/>
-    <path d="M 500.25,457.46 L 540.00,448.38 L 579.75,457.46 L 628.34,356.56 L 699.18,413.06 L 738.50,494.69 L 782.40,484.67 L 782.40,595.33 L 734.39,695.02 L 655.55,632.15 L 604.12,673.15 L 540.00,687.79 L 540.00,711.91 L 465.41,694.89 L 405.60,647.18 L 435.65,623.22 L 409.87,569.70 L 409.87,510.30 L 247.52,473.24 L 305.45,352.95 L 409.83,269.71 Z"
+    <path d="M 450.84,354.86 L 540.00,334.51 L 629.16,354.86 L 670.17,269.71 L 774.55,352.95 L 832.48,473.24 L 754.25,491.10 L 754.25,588.90 L 711.82,677.02 L 720.72,684.12 L 640.29,748.26 L 540.00,771.15 L 540.00,813.84 L 421.19,786.72 L 325.90,710.74 L 378.28,668.97 L 338.33,586.03 L 338.33,493.97 L 303.92,486.12 L 350.68,389.02 L 434.94,321.83 Z"
           stroke-width="4.5" opacity="0.30"/>
-    <path d="M 500.25,457.46 L 540.00,448.38 L 579.75,457.46 L 628.34,356.56 L 699.18,413.06 L 738.50,494.69 L 782.40,484.67 L 782.40,595.33 L 734.39,695.02 L 655.55,632.15 L 604.12,673.15 L 540.00,687.79 L 540.00,711.91 L 465.41,694.89 L 405.60,647.18 L 435.65,623.22 L 409.87,569.70 L 409.87,510.30 L 247.52,473.24 L 305.45,352.95 L 409.83,269.71 Z"
+    <path d="M 450.84,354.86 L 540.00,334.51 L 629.16,354.86 L 670.17,269.71 L 774.55,352.95 L 832.48,473.24 L 754.25,491.10 L 754.25,588.90 L 711.82,677.02 L 720.72,684.12 L 640.29,748.26 L 540.00,771.15 L 540.00,813.84 L 421.19,786.72 L 325.90,710.74 L 378.28,668.97 L 338.33,586.03 L 338.33,493.97 L 303.92,486.12 L 350.68,389.02 L 434.94,321.83 Z"
           stroke-width="1.6" opacity="0.88"/>
   </g>
 
   <g id="HEADLINE">
     <text x="540" y="960"
           text-anchor="middle"
-          font-family="Manrope, ui-sans-serif, system-ui, sans-serif"
-          font-style="italic"
+          font-family="IBM Plex Mono, ui-monospace, monospace"
           font-size="46"
           font-weight="500"
           letter-spacing="0.01em"
@@ -124,14 +123,14 @@
   </g>
 
   <g id="SUB"
-     font-family="Manrope, ui-sans-serif, system-ui, sans-serif"
+     font-family="IBM Plex Mono, ui-monospace, monospace"
      font-size="22"
      font-weight="400"
      letter-spacing="0.02em"
      fill="#ede4cc"
      opacity="0.88">
-    <text x="540" y="1020" text-anchor="middle">A gentler way to track what you actually do —</text>
-    <text x="540" y="1052" text-anchor="middle">built for the weeks you show up</text>
+    <text x="540" y="1020" text-anchor="middle">A gentler way to track what you actually do.</text>
+    <text x="540" y="1052" text-anchor="middle">Built for the weeks you show up</text>
     <text x="540" y="1082" text-anchor="middle">and the weeks you can't.</text>
   </g>
 

@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Onduler Instagram carousel — slide 2 (2026-05-25)
+  1080 × 1350 px portrait (IG feed-post optimal 4:5).
+
+  Cream stock to mirror the postcard back. Visually reads as "the same postcard
+  flipped over". First-person message from Josh, monospace body, signature.
+
+  EXPORT
+  - Open in Figma / Affinity / Illustrator.
+  - Export as PNG at 1080 × 1350 (no scaling).
+  - Convert text to outlines on export if your tool doesn't have Manrope /
+    IBM Plex Mono.
+
+  POSTING (carousel)
+  - Slide 1: instagram-post-tester.svg (wake hero, headline, CTA)
+  - Slide 2: this file (personal note from Josh)
+  - Use the same caption + first comment from HANDOFF.md.
+-->
+<svg xmlns="http://www.w3.org/2000/svg"
+     viewBox="0 0 1080 1350"
+     width="1080"
+     height="1350"
+     preserveAspectRatio="xMidYMid meet">
+  <title>Onduler IG carousel slide 2 — personal note</title>
+  <desc>Cream stock, Onduler wordmark top-left, first-person message from Josh, URL + tagline at the foot.</desc>
+
+  <g id="BACKGROUND">
+    <rect width="1080" height="1350" fill="#f5efe2"/>
+  </g>
+
+  <g id="WORDMARK">
+    <text x="60" y="100"
+          font-family="Manrope, ui-sans-serif, system-ui, sans-serif"
+          font-size="32"
+          font-weight="600"
+          letter-spacing="0.28em"
+          fill="#1c2333"
+          opacity="0.78">ONDULER</text>
+  </g>
+
+  <g id="GREETING">
+    <text x="60" y="280"
+          font-family="Manrope, ui-sans-serif, system-ui, sans-serif"
+          font-size="80"
+          font-weight="500"
+          letter-spacing="0.012em"
+          fill="#1c2333">Hi —</text>
+  </g>
+
+  <g id="MESSAGE"
+     font-family="IBM Plex Mono, ui-monospace, monospace"
+     font-size="34"
+     fill="#1c2333">
+    <text x="60" y="400">I&apos;m building Onduler. It tracks what</text>
+    <text x="60" y="452">you actually do, without making you</text>
+    <text x="60" y="504">feel bad for the weeks you can&apos;t.</text>
+
+    <text x="60" y="616" font-weight="600">I&apos;m looking for the first wave</text>
+    <text x="60" y="664" font-weight="600">of testers.</text>
+
+    <text x="60" y="776">Sign up, give it a week, tell me</text>
+    <text x="60" y="828">what&apos;s off.</text>
+
+    <text x="60" y="936" font-style="italic" opacity="0.78">— Josh</text>
+  </g>
+
+  <g id="FOOT">
+    <line x1="60" y1="1180" x2="1020" y2="1180" stroke="#1c2333" stroke-width="1" opacity="0.22"/>
+    <text x="60" y="1240"
+          font-family="Manrope, ui-sans-serif, system-ui, sans-serif"
+          font-size="28"
+          font-weight="500"
+          letter-spacing="0.10em"
+          fill="#1c2333"
+          opacity="0.88">onduler.app/signup</text>
+    <text x="1020" y="1240"
+          text-anchor="end"
+          font-family="Manrope, ui-sans-serif, system-ui, sans-serif"
+          
+          font-size="26"
+          letter-spacing="0.02em"
+          fill="#F67E4E"
+          opacity="0.95">Every motion leaves a wake.</text>
+  </g>
+</svg>
