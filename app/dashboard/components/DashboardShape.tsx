@@ -71,8 +71,8 @@ export function DashboardShape({ swells, actuals: initialActuals, trackingMode, 
 
   return (
     <div
-      className={`pointer-events-none sticky bottom-[calc(2.75rem+env(safe-area-inset-bottom,0px))] z-10 flex flex-col items-center rounded-2xl pb-1 md:bottom-0 ${frosted ? 'backdrop-blur-md' : ''}`}
-      style={frosted ? { background: 'rgba(255, 255, 255, 0.12)' } : undefined}
+      className={`pointer-events-none sticky bottom-[calc(2.75rem+env(safe-area-inset-bottom,0px))] z-10 flex flex-col items-center pb-1 md:bottom-0 ${frosted ? '-mx-4 px-4 backdrop-blur-md' : ''}`}
+      style={frosted ? { background: 'rgba(144, 216, 196, 0.18)' } : undefined}
     >
       <svg
         viewBox={`0 0 ${SIZE} ${SIZE}`}
