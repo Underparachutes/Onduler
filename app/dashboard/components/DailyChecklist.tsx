@@ -110,7 +110,6 @@ function DroppableGroup({
               motion={motion}
               done={localDone.has(motion.id)}
               diving={motion.id === divingId}
-              hasSubmotions={submotionsEnabled && (submotionsMap[motion.id]?.length ?? 0) > 0}
               trackingMode={trackingMode}
               hidePtsHrs={hidePtsHrs}
               onLog={(e, rb) => onLog(motion, e.clientX, e.clientY, rb)}
@@ -176,7 +175,6 @@ function DroppableSwellSection({
               motion={motion}
               done={localDone.has(motion.id)}
               diving={motion.id === divingId}
-              hasSubmotions={submotionsEnabled && (submotionsMap[motion.id]?.length ?? 0) > 0}
               trackingMode={trackingMode}
               hidePtsHrs={hidePtsHrs}
               onLog={(e, rb) => onLog(motion, e.clientX, e.clientY, rb)}

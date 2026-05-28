@@ -31,7 +31,6 @@ type RowProps = {
   motion: Motion
   done: boolean
   diving?: boolean
-  hasSubmotions: boolean
   trackingMode: TrackingMode
   hidePtsHrs?: boolean
   sortableId?: string
@@ -39,7 +38,7 @@ type RowProps = {
   onOpenSheet: () => void
 }
 
-export function SortableMotionRow({ motion, done, diving, hasSubmotions, trackingMode, hidePtsHrs, sortableId, onLog, onOpenSheet }: RowProps) {
+export function SortableMotionRow({ motion, done, diving, trackingMode, hidePtsHrs, sortableId, onLog, onOpenSheet }: RowProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: sortableId ?? motion.id })
 
@@ -69,12 +68,12 @@ export function SortableMotionRow({ motion, done, diving, hasSubmotions, trackin
         )}
       </button>
 
-      {/* Row body — drag handle */}
+      {/* Row body */}
       <div
-        {...listeners}
-        className={`flex flex-1 items-center gap-3 rounded-lg px-3 py-3 cursor-grab transition-colors ${
+        className={`flex flex-1 items-center gap-3 rounded-lg px-3 py-3 transition-colors ${
           done ? 'opacity-50' : diving ? 'opacity-50' : ''
         }`}
+        onClick={onOpenSheet}
       >
         <div className="min-w-0 flex-1">
           <p className={`text-sm font-medium ${done ? 'text-th-muted line-through' : 'text-th-text'}`}>
@@ -88,26 +87,15 @@ export function SortableMotionRow({ motion, done, diving, hasSubmotions, trackin
         )}
       </div>
 
-      {/* Right-side controls */}
-      <div className="flex shrink-0 items-center">
-        {hasSubmotions && (
-          <button
-            onPointerDown={e => e.stopPropagation()}
-            onClick={onOpenSheet}
-            className="px-1 py-3 text-xs text-th-faint transition-colors hover:text-th-muted"
-            aria-label="Expand submotions"
-          >
-            ›
-          </button>
-        )}
-        <button
-          onPointerDown={e => e.stopPropagation()}
-          onClick={onOpenSheet}
-          className="shrink-0 px-2 py-3 text-base leading-none text-th-faint transition-colors hover:text-th-muted"
-          aria-label="Open details"
-        >
-          ···
-        </button>
+      {/* Kebab — tap to open detail sheet, long-press to drag */}
+      <div
+        {...listeners}
+        onClick={onOpenSheet}
+        className="shrink-0 cursor-grab px-2 py-3 text-base leading-none text-th-faint transition-colors hover:text-th-muted"
+        style={{ touchAction: 'none' }}
+        aria-label="Open details or drag to reorder"
+      >
+        ···
       </div>
 
     </div>
@@ -183,7 +171,6 @@ export function SortableMotionList({
               motion={motion}
               done={localDone.has(motion.id)}
               diving={motion.id === divingId}
-              hasSubmotions={submotionsEnabled && (submotionsMap[motion.id]?.length ?? 0) > 0}
               trackingMode={trackingMode}
               hidePtsHrs={hidePtsHrs}
               onLog={(e, rb) => onLog(motion, e.clientX, e.clientY, rb)}
