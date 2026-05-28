@@ -419,6 +419,18 @@ export function SettingsPanel({
           )}
         </div>
 
+        {/* Add to home screen */}
+        <Link
+          href="/welcome"
+          className="flex items-center justify-between gap-3 py-4 transition-all active:scale-[0.99]"
+        >
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-th-text">Add to home screen</p>
+            <p className="truncate text-xs text-th-muted">Install Onduler on your phone</p>
+          </div>
+          <span className="shrink-0 text-sm text-th-faint">→</span>
+        </Link>
+
         {/* Data */}
         <div>
           <button
@@ -446,15 +458,6 @@ export function SettingsPanel({
                 </div>
                 <Link href="/settings/import" className="text-sm text-th-secondary hover:underline">
                   Import
-                </Link>
-              </div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-th-text">Add to home screen</p>
-                  <p className="text-xs text-th-muted">Install Onduler on your phone</p>
-                </div>
-                <Link href="/welcome" className="text-sm text-th-secondary hover:underline">
-                  Instructions
                 </Link>
               </div>
               {visibleHidden.length > 0 && (

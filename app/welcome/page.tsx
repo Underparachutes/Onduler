@@ -1,9 +1,21 @@
 import Link from 'next/link'
+import { createClient } from '@/lib/supabase/server'
 
-export default function WelcomePage() {
+export default async function WelcomePage() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
   return (
     <div className="flex min-h-full flex-col items-center px-4 py-16">
       <div className="w-full max-w-[22rem]">
+        {user && (
+          <Link
+            href="/settings"
+            className="mb-6 inline-block text-xs text-th-faint transition-all hover:text-th-muted active:scale-[0.97]"
+          >
+            ← Settings
+          </Link>
+        )}
         <h1 className="mb-1 text-2xl font-semibold tracking-[0.05em] text-th-text">Install Onduler</h1>
         <p className="mb-10 text-sm text-th-muted">
           Onduler works best as a home-screen app. Follow the steps for your device.
@@ -54,20 +66,29 @@ export default function WelcomePage() {
           </ol>
         </section>
 
-        <div className="flex gap-3">
+        {user ? (
           <Link
-            href="/signup"
-            className="rounded-lg bg-th-btn px-4 py-2 text-sm font-medium text-th-btn-text transition-colors active:scale-[0.97]"
+            href="/dashboard"
+            className="inline-block rounded-lg bg-th-btn px-4 py-2 text-sm font-medium text-th-btn-text transition-colors active:scale-[0.97]"
           >
-            Sign up
+            Go to motions
           </Link>
-          <Link
-            href="/login"
-            className="rounded-lg border border-th-border px-4 py-2 text-sm font-medium text-th-secondary transition-colors active:scale-[0.97]"
-          >
-            Sign in
-          </Link>
-        </div>
+        ) : (
+          <div className="flex gap-3">
+            <Link
+              href="/signup"
+              className="rounded-lg bg-th-btn px-4 py-2 text-sm font-medium text-th-btn-text transition-colors active:scale-[0.97]"
+            >
+              Sign up
+            </Link>
+            <Link
+              href="/login"
+              className="rounded-lg border border-th-border px-4 py-2 text-sm font-medium text-th-secondary transition-colors active:scale-[0.97]"
+            >
+              Sign in
+            </Link>
+          </div>
+        )}
       </div>
     </div>
   )
