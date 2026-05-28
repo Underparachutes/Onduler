@@ -75,7 +75,6 @@ export function SortableMotionRow({ motion, done, diving, hasSubmotions, trackin
         className={`flex flex-1 items-center gap-3 rounded-lg px-3 py-3 cursor-grab transition-colors ${
           done ? 'opacity-50' : diving ? 'opacity-50' : ''
         }`}
-        style={{ touchAction: 'none' }}
       >
         <div className="min-w-0 flex-1">
           <p className={`text-sm font-medium ${done ? 'text-th-muted line-through' : 'text-th-text'}`}>

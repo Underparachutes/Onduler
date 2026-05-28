@@ -278,22 +278,6 @@ h2 {
   100% { opacity: 0; transform: translateY(8px); }
 }
 
-@keyframes celebration-particle {
-  from {
-    transform: translate(-50%, -50%) translate(0, 0) scale(1);
-    opacity: 1;
-  }
-  to {
-    transform: translate(-50%, -50%) translate(var(--p-dx), var(--p-dy)) scale(0);
-    opacity: 0;
-  }
-}
-
-@keyframes celebration-ripple {
-  0%   { transform: translate(-50%, -50%) scale(0); opacity: 0.5; }
-  100% { transform: translate(-50%, -50%) scale(7); opacity: 0; }
-}
-
 @keyframes celebration-tideline {
   0%   { clip-path: inset(0 100% 0 0); opacity: 1; }
   60%  { clip-path: inset(0 0 0 0); opacity: 1; }

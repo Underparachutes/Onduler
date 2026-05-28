@@ -499,13 +499,6 @@ export function DailyChecklist({
   const formatValue = (n: number) => isHours ? formatHrs(ceilDisplay(n, true)) : formatPts(ceilDisplay(n))
   const motionDelta = (motion: Motion) => isHours ? Number(motion.default_hours) : motion.default_points
 
-  function getAnimType(): CelebrationState['type'] | null {
-    const theme = document.documentElement.dataset.theme ?? 'biarritz'
-    if (theme === 'biarritz') return 'tideline'
-    if (theme === 'bolinas') return 'bloom'
-    return 'ripple'
-  }
-
   function updateSwellProgress(motion: Motion, sign: 1 | -1) {
     for (const ms of motion.swells) {
       const contribution = isHours ? Number(motion.default_hours) * ms.weight : motion.default_points * ms.weight
@@ -523,9 +516,8 @@ export function DailyChecklist({
       startTransition(async () => { await unlogMotion(motion.id) })
     } else {
       if (hapticEnabled && 'vibrate' in navigator) navigator.vibrate([15, 30, 15, 30, 15])
-      const animType = getAnimType()
-      if (celebrationEnabled && animType) {
-        setCelebration({ x: clientX, y: clientY, type: animType, colors: motion.swells.map(s => s.color), rowBottom })
+      if (celebrationEnabled) {
+        setCelebration({ x: clientX, y: clientY, colors: motion.swells.map(s => s.color), rowBottom })
       }
       if (celebrationEnabled) {
         setDivingId(motion.id)
