@@ -71,7 +71,7 @@ type Props = {
   hideDone: boolean
 }
 
-function SortableSwellItem({ swell, hit, children }: { swell: SwellWithMotions; hit: boolean; children: React.ReactNode }) {
+function SortableSwellItem({ swell, children }: { swell: SwellWithMotions; children: React.ReactNode }) {
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } =
     useSortable({ id: swell.id })
 
@@ -82,21 +82,21 @@ function SortableSwellItem({ swell, hit, children }: { swell: SwellWithMotions; 
       suppressHydrationWarning
       style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 }}
     >
-      <div className="flex items-start gap-3">
+      <div className="flex items-center gap-2">
+        <div className="flex-1 min-w-0">{children}</div>
         <div
           ref={setActivatorNodeRef}
           {...listeners}
           style={{ touchAction: 'none' }}
           aria-label="Drag to reorder"
-          className={`mt-1.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 transition-all cursor-grab active:cursor-grabbing ${hit ? 'border-th-btn text-th-btn' : 'border-th-border'}`}
+          className="shrink-0 cursor-grab px-2 py-3 text-th-faint transition-colors hover:text-th-muted"
         >
-          {hit && (
-            <svg viewBox="0 0 12 10" fill="none" className="h-3 w-3">
-              <path d="M1 5l3.5 3.5L11 1" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          )}
+          <svg viewBox="0 0 10 16" fill="currentColor" className="h-4 w-2.5">
+            <circle cx="3" cy="2" r="1.5" /><circle cx="7" cy="2" r="1.5" />
+            <circle cx="3" cy="8" r="1.5" /><circle cx="7" cy="8" r="1.5" />
+            <circle cx="3" cy="14" r="1.5" /><circle cx="7" cy="14" r="1.5" />
+          </svg>
         </div>
-        <div className="flex-1 min-w-0">{children}</div>
       </div>
     </div>
   )
@@ -185,7 +185,7 @@ export function SwellsList({
       return sum + (hrsLastWeekMap.get(m.id) ?? 0) * w
     }, 0)
     return (
-      <SortableSwellItem key={swell.id} swell={swell} hit={hit}>
+      <SortableSwellItem key={swell.id} swell={swell}>
         <SwellRow
           swell={swell}
           swellPtsThisWeek={swellPtsThisWeek}

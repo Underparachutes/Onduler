@@ -87,15 +87,18 @@ export function SortableMotionRow({ motion, done, diving, trackingMode, hidePtsH
         )}
       </div>
 
-      {/* Kebab — tap to open detail sheet, long-press to drag */}
+      {/* Grip — drag handle */}
       <div
         {...listeners}
-        onClick={onOpenSheet}
-        className="shrink-0 cursor-grab px-2 py-3 text-base leading-none text-th-faint transition-colors hover:text-th-muted"
+        className="shrink-0 cursor-grab px-2 py-3 text-th-faint transition-colors hover:text-th-muted"
         style={{ touchAction: 'none' }}
-        aria-label="Open details or drag to reorder"
+        aria-label="Drag to reorder"
       >
-        ···
+        <svg viewBox="0 0 10 16" fill="currentColor" className="h-4 w-2.5">
+          <circle cx="3" cy="2" r="1.5" /><circle cx="7" cy="2" r="1.5" />
+          <circle cx="3" cy="8" r="1.5" /><circle cx="7" cy="8" r="1.5" />
+          <circle cx="3" cy="14" r="1.5" /><circle cx="7" cy="14" r="1.5" />
+        </svg>
       </div>
 
     </div>
