@@ -193,15 +193,12 @@ function DroppableSwellSection({
 }
 
 function MotionDragOverlay({
-  motion, done, submotionsMap, submotionsEnabled, trackingMode,
+  motion, done, trackingMode,
 }: {
   motion: Motion
   done: boolean
-  submotionsMap: Record<string, Submotion[]>
-  submotionsEnabled: boolean
   trackingMode: TrackingMode
 }) {
-  const hasSubmotions = submotionsEnabled && (submotionsMap[motion.id]?.length ?? 0) > 0
   return (
     <div className="flex items-center gap-1 select-none rotate-1 shadow-xl">
       <div className={`flex flex-1 items-center gap-3 rounded-lg border px-3 py-3 bg-th-bg ${done ? 'border-th-border opacity-50' : 'border-th-btn'}`}>
@@ -215,12 +212,15 @@ function MotionDragOverlay({
         <div className="min-w-0 flex-1">
           <p className={`text-sm font-medium ${done ? 'text-th-muted line-through' : 'text-th-text'}`}>{motion.name}</p>
         </div>
-        <div className="flex shrink-0 items-center gap-1.5">
-          <span className={`text-sm font-semibold ${done ? 'text-th-faint' : 'text-th-secondary'}`}>{trackingMode === 'hours' ? formatHrs(motion.default_hours) : formatPts(motion.default_points)}</span>
-          {hasSubmotions && <span className="text-xs text-th-faint">›</span>}
-        </div>
+        <span className={`shrink-0 text-sm font-semibold ${done ? 'text-th-faint' : 'text-th-secondary'}`}>{trackingMode === 'hours' ? formatHrs(motion.default_hours) : formatPts(motion.default_points)}</span>
       </div>
-      <div className="shrink-0 px-2 py-3 text-base leading-none text-th-faint">···</div>
+      <div className="shrink-0 px-2 py-3 text-th-faint">
+        <svg viewBox="0 0 10 14" fill="currentColor" className="h-3.5 w-2.5">
+          <circle cx="3" cy="1.5" r="1.2" /><circle cx="7" cy="1.5" r="1.2" />
+          <circle cx="3" cy="7" r="1.2" /><circle cx="7" cy="7" r="1.2" />
+          <circle cx="3" cy="12.5" r="1.2" /><circle cx="7" cy="12.5" r="1.2" />
+        </svg>
+      </div>
     </div>
   )
 }
@@ -849,8 +849,6 @@ export function DailyChecklist({
                 <MotionDragOverlay
                   motion={swellDragMotion}
                   done={localDone.has(swellDragMotion.id)}
-                  submotionsMap={submotionsMap}
-                  submotionsEnabled={submotionsEnabled}
                   trackingMode={trackingMode}
                 />
               )}
@@ -979,8 +977,6 @@ export function DailyChecklist({
               <MotionDragOverlay
                 motion={dragActiveMotion}
                 done={localDone.has(dragActiveMotion.id)}
-                submotionsMap={submotionsMap}
-                submotionsEnabled={submotionsEnabled}
                 trackingMode={trackingMode}
               />
             )}

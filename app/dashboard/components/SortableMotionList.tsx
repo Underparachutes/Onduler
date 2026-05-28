@@ -94,10 +94,10 @@ export function SortableMotionRow({ motion, done, diving, trackingMode, hidePtsH
         style={{ touchAction: 'none' }}
         aria-label="Drag to reorder"
       >
-        <svg viewBox="0 0 10 16" fill="currentColor" className="h-4 w-2.5">
-          <circle cx="3" cy="2" r="1.5" /><circle cx="7" cy="2" r="1.5" />
-          <circle cx="3" cy="8" r="1.5" /><circle cx="7" cy="8" r="1.5" />
-          <circle cx="3" cy="14" r="1.5" /><circle cx="7" cy="14" r="1.5" />
+        <svg viewBox="0 0 10 14" fill="currentColor" className="h-3.5 w-2.5">
+          <circle cx="3" cy="1.5" r="1.2" /><circle cx="7" cy="1.5" r="1.2" />
+          <circle cx="3" cy="7" r="1.2" /><circle cx="7" cy="7" r="1.2" />
+          <circle cx="3" cy="12.5" r="1.2" /><circle cx="7" cy="12.5" r="1.2" />
         </svg>
       </div>
 
