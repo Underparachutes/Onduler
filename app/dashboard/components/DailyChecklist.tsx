@@ -84,7 +84,7 @@ function DroppableGroup({
   trackingMode: TrackingMode
   hidePtsHrs?: boolean
   divingId: string | null
-  onLog: (motion: Motion, x: number, y: number) => void
+  onLog: (motion: Motion, x: number, y: number, rowBottom?: number) => void
   onOpenSheet: (id: string) => void
 }) {
   const { setNodeRef, isOver } = useDroppable({ id })
@@ -113,7 +113,7 @@ function DroppableGroup({
               hasSubmotions={submotionsEnabled && (submotionsMap[motion.id]?.length ?? 0) > 0}
               trackingMode={trackingMode}
               hidePtsHrs={hidePtsHrs}
-              onLog={(e) => onLog(motion, e.clientX, e.clientY)}
+              onLog={(e, rb) => onLog(motion, e.clientX, e.clientY, rb)}
               onOpenSheet={() => onOpenSheet(motion.id)}
             />
           ))}
@@ -145,7 +145,7 @@ function DroppableSwellSection({
   trackingMode: TrackingMode
   hidePtsHrs?: boolean
   divingId: string | null
-  onLog: (motion: Motion, x: number, y: number) => void
+  onLog: (motion: Motion, x: number, y: number, rowBottom?: number) => void
   onOpenSheet: (id: string) => void
 }) {
   const { setNodeRef, isOver } = useDroppable({ id })
@@ -179,7 +179,7 @@ function DroppableSwellSection({
               hasSubmotions={submotionsEnabled && (submotionsMap[motion.id]?.length ?? 0) > 0}
               trackingMode={trackingMode}
               hidePtsHrs={hidePtsHrs}
-              onLog={(e) => onLog(motion, e.clientX, e.clientY)}
+              onLog={(e, rb) => onLog(motion, e.clientX, e.clientY, rb)}
               onOpenSheet={() => onOpenSheet(motion.id)}
             />
           ))}
@@ -506,17 +506,6 @@ export function DailyChecklist({
     return 'ripple'
   }
 
-  function checkSwellCrossing(motion: Motion): boolean {
-    for (const ms of motion.swells) {
-      const target = swellTargets[ms.id]
-      if (target === undefined) continue
-      const current = swellProgressRef.current[ms.id] ?? 0
-      const contribution = isHours ? Number(motion.default_hours) * ms.weight : motion.default_points * ms.weight
-      if (current < target && current + contribution >= target) return true
-    }
-    return false
-  }
-
   function updateSwellProgress(motion: Motion, sign: 1 | -1) {
     for (const ms of motion.swells) {
       const contribution = isHours ? Number(motion.default_hours) * ms.weight : motion.default_points * ms.weight
@@ -524,7 +513,7 @@ export function DailyChecklist({
     }
   }
 
-  function handleLog(motion: Motion, clientX = 0, clientY = 0) {
+  function handleLog(motion: Motion, clientX = 0, clientY = 0, rowBottom?: number) {
     const done = localDone.has(motion.id)
     const delta = motionDelta(motion)
     if (done) {
@@ -534,10 +523,9 @@ export function DailyChecklist({
       startTransition(async () => { await unlogMotion(motion.id) })
     } else {
       if (hapticEnabled && 'vibrate' in navigator) navigator.vibrate([15, 30, 15, 30, 15])
-      const crossesSwell = celebrationEnabled && checkSwellCrossing(motion)
       const animType = getAnimType()
       if (celebrationEnabled && animType) {
-        setCelebration({ x: clientX, y: clientY, type: crossesSwell ? 'bloom' : animType })
+        setCelebration({ x: clientX, y: clientY, type: animType, colors: motion.swells.map(s => s.color), rowBottom })
       }
       if (celebrationEnabled) {
         setDivingId(motion.id)

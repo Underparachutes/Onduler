@@ -295,8 +295,9 @@ h2 {
 }
 
 @keyframes celebration-tideline {
-  0%   { transform: scaleX(0); opacity: 0.4; }
-  100% { transform: scaleX(1); opacity: 0; }
+  0%   { clip-path: inset(0 100% 0 0); opacity: 1; }
+  60%  { clip-path: inset(0 0 0 0); opacity: 1; }
+  100% { clip-path: inset(0 0 0 0); opacity: 0; }
 }
 
 /* Locked-cadence tile: slow horizontal drift for the tide-line overlay. */

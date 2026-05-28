@@ -35,7 +35,7 @@ type RowProps = {
   trackingMode: TrackingMode
   hidePtsHrs?: boolean
   sortableId?: string
-  onLog: (e: React.MouseEvent) => void
+  onLog: (e: React.MouseEvent, rowBottom?: number) => void
   onOpenSheet: () => void
 }
 
@@ -54,27 +54,28 @@ export function SortableMotionRow({ motion, done, diving, hasSubmotions, trackin
         opacity: isDragging ? 0.4 : 1,
         animation: diving ? 'duck-dive 0.5s ease-out forwards' : undefined,
       }}
-      className="flex items-center gap-1 select-none"
+      data-motion-row
+      className="flex items-center gap-1 select-none outline-none"
     >
-      {/* Checkbox — drag handle only, no log */}
-      <div
-        {...listeners}
-        className={`flex h-5 w-5 shrink-0 cursor-grab items-center justify-center rounded border-2 transition-all ml-3 ${done ? 'border-th-btn text-th-btn' : 'border-th-border'}`}
-        style={{ touchAction: 'none' }}
+      {/* Checkbox — tap to log */}
+      <button
+        onClick={(e) => { const rect = e.currentTarget.closest('[data-motion-row]')!.getBoundingClientRect(); onLog(e, rect.bottom); }}
+        className={`flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center rounded border-2 transition-all ml-3 ${done || diving ? 'border-th-btn text-th-btn' : 'border-th-border'}`}
       >
-        {done && (
+        {(done || diving) && (
           <svg viewBox="0 0 12 10" fill="none" className="h-3 w-3">
             <path d="M1 5l3.5 3.5L11 1" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         )}
-      </div>
+      </button>
 
-      {/* Row body — tap to log */}
-      <button
-        onClick={(e) => { if (!done) onLog(e) }}
-        className={`flex flex-1 items-center gap-3 rounded-lg px-3 py-3 text-left transition-colors ${
-          done ? 'opacity-50 cursor-default' : 'hover:bg-th-surface active:scale-[0.985]'
+      {/* Row body — drag handle */}
+      <div
+        {...listeners}
+        className={`flex flex-1 items-center gap-3 rounded-lg px-3 py-3 cursor-grab transition-colors ${
+          done ? 'opacity-50' : diving ? 'opacity-50' : ''
         }`}
+        style={{ touchAction: 'none' }}
       >
         <div className="min-w-0 flex-1">
           <p className={`text-sm font-medium ${done ? 'text-th-muted line-through' : 'text-th-text'}`}>
@@ -86,7 +87,7 @@ export function SortableMotionRow({ motion, done, diving, hasSubmotions, trackin
             {trackingMode === 'hours' ? formatHrs(motion.default_hours) : formatPts(motion.default_points)}
           </span>
         )}
-      </button>
+      </div>
 
       {/* Right-side controls */}
       <div className="flex shrink-0 items-center">
@@ -125,7 +126,7 @@ type ListProps = {
   trackingMode: TrackingMode
   hidePtsHrs?: boolean
   divingId?: string | null
-  onLog: (motion: Motion, x: number, y: number) => void
+  onLog: (motion: Motion, x: number, y: number, rowBottom?: number) => void
   onOpenSheet: (id: string) => void
 }
 
@@ -186,7 +187,7 @@ export function SortableMotionList({
               hasSubmotions={submotionsEnabled && (submotionsMap[motion.id]?.length ?? 0) > 0}
               trackingMode={trackingMode}
               hidePtsHrs={hidePtsHrs}
-              onLog={(e) => onLog(motion, e.clientX, e.clientY)}
+              onLog={(e, rb) => onLog(motion, e.clientX, e.clientY, rb)}
               onOpenSheet={() => onOpenSheet(motion.id)}
             />
           ))}

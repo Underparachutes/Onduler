@@ -4,6 +4,8 @@ export type CelebrationState = {
   x: number
   y: number
   type: 'bloom' | 'ripple' | 'tideline'
+  colors?: string[]
+  rowBottom?: number
 }
 
 const BLOOM_PARTICLES = [
@@ -19,11 +21,7 @@ const BLOOM_PARTICLES = [
 
 const RIPPLE_DELAYS = [0, 200, 400]
 
-const TIDELINE_LINES = [
-  { offsetY: -4, height: 2,   delay: 0   },
-  { offsetY:  0, height: 1.5, delay: 100 },
-  { offsetY:  4, height: 1,   delay: 200 },
-]
+const TIDELINE_HEIGHT = 5
 
 export function CelebrationOverlay({
   celebration,
@@ -57,22 +55,23 @@ export function CelebrationOverlay({
   }
 
   if (type === 'tideline') {
+    const colors = celebration.colors ?? []
+    const bg = colors.length > 1
+      ? `linear-gradient(to right, ${colors.join(', ')})`
+      : colors[0] ?? 'var(--th-muted)'
+    const top = celebration.rowBottom ?? y
     return (
       <div className="pointer-events-none fixed inset-0 z-50">
-        {TIDELINE_LINES.map((line, i) => (
-          <div
-            key={i}
-            className="absolute left-0 right-0"
-            style={{
-              top: y + line.offsetY,
-              height: line.height,
-              backgroundColor: 'var(--th-muted)',
-              transformOrigin: `${x}px center`,
-              animation: `celebration-tideline 0.9s ease-out ${line.delay}ms both`,
-            }}
-            onAnimationEnd={i === TIDELINE_LINES.length - 1 ? onDone : undefined}
-          />
-        ))}
+        <div
+          className="absolute left-0 right-0"
+          style={{
+            top,
+            height: TIDELINE_HEIGHT,
+            background: bg,
+            animation: 'celebration-tideline 0.9s ease-out both',
+          }}
+          onAnimationEnd={onDone}
+        />
       </div>
     )
   }
