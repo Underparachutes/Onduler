@@ -132,6 +132,7 @@ export function SortableMotionList({
   onOpenSheet,
 }: ListProps) {
   const [ordered, setOrdered] = useState(motions)
+  const [dragging, setDragging] = useState(false)
   const [, startTransition] = useTransition()
 
   const sensors = useSensors(
@@ -141,6 +142,7 @@ export function SortableMotionList({
   )
 
   function handleDragEnd(event: DragEndEvent) {
+    setDragging(false)
     const { active, over } = event
     if (!over || active.id === over.id) return
     const next = arrayMove(
@@ -162,7 +164,8 @@ export function SortableMotionList({
   })
 
   return (
-    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={() => setDragging(true)} onDragEnd={handleDragEnd} onDragCancel={() => setDragging(false)}>
+      {dragging && <div className="fixed inset-0 z-40" />}
       <SortableContext items={ordered.map(m => m.id)} strategy={verticalListSortingStrategy}>
         <div className="flex flex-col gap-2">
           {visible.map(motion => (

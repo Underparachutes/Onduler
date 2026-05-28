@@ -817,6 +817,7 @@ export function DailyChecklist({
             onDragStart={handleSwellDragStart}
             onDragEnd={handleSwellDragEnd}
           >
+            {!!swellDragActiveId && <div className="fixed inset-0 z-40" />}
             <div className="flex flex-col gap-6">
               {sectionIds.map(cid => {
                 const swell = allSwells.find(s => s.id === cid)
@@ -926,6 +927,7 @@ export function DailyChecklist({
           onDragStart={handleGroupsDragStart}
           onDragEnd={handleGroupsDragEnd}
         >
+          {!!dragActiveId && <div className="fixed inset-0 z-40" />}
           <div className="flex flex-col gap-6">
             {visibleGroupIds.map(gid => {
               const groupMeta = groups.find(g => g.id === gid)

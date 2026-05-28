@@ -83,7 +83,12 @@ export function CadenceSection({ motionId, motionName, motionSwells, trackingMod
   // Section only makes sense once the motion feeds at least one swell — a
   // recurring waypoint must live on a swell.
   if (motionSwells.length === 0) return null
-  if (loading) return null
+  if (loading) return (
+    <div className="mb-6">
+      <p className="mb-3 text-xs font-medium uppercase tracking-widest text-th-faint">Cadence</p>
+      <div className="h-4 w-24 animate-pulse rounded bg-th-surface" />
+    </div>
+  )
 
   const isHours = trackingMode === 'hours'
 
