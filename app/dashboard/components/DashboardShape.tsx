@@ -70,7 +70,7 @@ export function DashboardShape({ swells, actuals: initialActuals, trackingMode, 
 
   return (
     <div
-      className="flex flex-col items-center pt-2 pb-1"
+      className="sticky bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px))] z-10 flex flex-col items-center bg-th-bg pt-2 pb-1 md:bottom-0"
       onClick={() => router.push('/anchors')}
       role="link"
       style={{ cursor: 'pointer' }}
