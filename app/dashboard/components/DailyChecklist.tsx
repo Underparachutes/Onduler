@@ -216,9 +216,9 @@ function MotionDragOverlay({
       </div>
       <div className="shrink-0 px-2 py-3 text-th-faint">
         <svg viewBox="0 0 10 10" fill="currentColor" className="h-2.5 w-2.5">
-          <circle cx="2" cy="2" r="1.2" /><circle cx="8" cy="2" r="1.2" />
-          <circle cx="2" cy="5" r="1.2" /><circle cx="8" cy="5" r="1.2" />
-          <circle cx="2" cy="8" r="1.2" /><circle cx="8" cy="8" r="1.2" />
+          <circle cx="2" cy="2" r="1.1" /><circle cx="5" cy="2" r="1.1" /><circle cx="8" cy="2" r="1.1" />
+          <circle cx="2" cy="5" r="1.1" /><circle cx="5" cy="5" r="1.1" /><circle cx="8" cy="5" r="1.1" />
+          <circle cx="2" cy="8" r="1.1" /><circle cx="5" cy="8" r="1.1" /><circle cx="8" cy="8" r="1.1" />
         </svg>
       </div>
     </div>

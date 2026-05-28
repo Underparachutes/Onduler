@@ -95,9 +95,9 @@ export function SortableMotionRow({ motion, done, diving, trackingMode, hidePtsH
         aria-label="Drag to reorder"
       >
         <svg viewBox="0 0 10 10" fill="currentColor" className="h-2.5 w-2.5">
-          <circle cx="2" cy="2" r="1.2" /><circle cx="8" cy="2" r="1.2" />
-          <circle cx="2" cy="5" r="1.2" /><circle cx="8" cy="5" r="1.2" />
-          <circle cx="2" cy="8" r="1.2" /><circle cx="8" cy="8" r="1.2" />
+          <circle cx="2" cy="2" r="1.1" /><circle cx="5" cy="2" r="1.1" /><circle cx="8" cy="2" r="1.1" />
+          <circle cx="2" cy="5" r="1.1" /><circle cx="5" cy="5" r="1.1" /><circle cx="8" cy="5" r="1.1" />
+          <circle cx="2" cy="8" r="1.1" /><circle cx="5" cy="8" r="1.1" /><circle cx="8" cy="8" r="1.1" />
         </svg>
       </div>
 
