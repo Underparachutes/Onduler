@@ -82,14 +82,14 @@ function SortableSwellItem({ swell, children }: { swell: SwellWithMotions; child
       suppressHydrationWarning
       style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 }}
     >
-      <div className="flex items-center gap-2">
+      <div className="flex items-start gap-2">
         <div className="flex-1 min-w-0">{children}</div>
         <div
           ref={setActivatorNodeRef}
           {...listeners}
           style={{ touchAction: 'none' }}
           aria-label="Drag to reorder"
-          className="shrink-0 cursor-grab px-2 py-3 text-th-faint transition-colors hover:text-th-muted"
+          className="mt-1 shrink-0 cursor-grab px-2 py-1 text-th-faint transition-colors hover:text-th-muted"
         >
           <svg viewBox="0 0 10 10" fill="currentColor" className="h-2.5 w-2.5">
             <circle cx="2" cy="2" r="1.1" /><circle cx="5" cy="2" r="1.1" /><circle cx="8" cy="2" r="1.1" />
