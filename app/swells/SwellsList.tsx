@@ -91,10 +91,10 @@ function SortableSwellItem({ swell, children }: { swell: SwellWithMotions; child
           aria-label="Drag to reorder"
           className="shrink-0 cursor-grab px-2 py-3 text-th-faint transition-colors hover:text-th-muted"
         >
-          <svg viewBox="0 0 10 14" fill="currentColor" className="h-3.5 w-2.5">
-            <circle cx="3" cy="1.5" r="1.2" /><circle cx="7" cy="1.5" r="1.2" />
-            <circle cx="3" cy="7" r="1.2" /><circle cx="7" cy="7" r="1.2" />
-            <circle cx="3" cy="12.5" r="1.2" /><circle cx="7" cy="12.5" r="1.2" />
+          <svg viewBox="0 0 10 10" fill="currentColor" className="h-2.5 w-2.5">
+            <circle cx="2" cy="2" r="1.2" /><circle cx="8" cy="2" r="1.2" />
+            <circle cx="2" cy="5" r="1.2" /><circle cx="8" cy="5" r="1.2" />
+            <circle cx="2" cy="8" r="1.2" /><circle cx="8" cy="8" r="1.2" />
           </svg>
         </div>
       </div>

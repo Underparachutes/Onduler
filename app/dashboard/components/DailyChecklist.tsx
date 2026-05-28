@@ -215,10 +215,10 @@ function MotionDragOverlay({
         <span className={`shrink-0 text-sm font-semibold ${done ? 'text-th-faint' : 'text-th-secondary'}`}>{trackingMode === 'hours' ? formatHrs(motion.default_hours) : formatPts(motion.default_points)}</span>
       </div>
       <div className="shrink-0 px-2 py-3 text-th-faint">
-        <svg viewBox="0 0 10 14" fill="currentColor" className="h-3.5 w-2.5">
-          <circle cx="3" cy="1.5" r="1.2" /><circle cx="7" cy="1.5" r="1.2" />
-          <circle cx="3" cy="7" r="1.2" /><circle cx="7" cy="7" r="1.2" />
-          <circle cx="3" cy="12.5" r="1.2" /><circle cx="7" cy="12.5" r="1.2" />
+        <svg viewBox="0 0 10 10" fill="currentColor" className="h-2.5 w-2.5">
+          <circle cx="2" cy="2" r="1.2" /><circle cx="8" cy="2" r="1.2" />
+          <circle cx="2" cy="5" r="1.2" /><circle cx="8" cy="5" r="1.2" />
+          <circle cx="2" cy="8" r="1.2" /><circle cx="8" cy="8" r="1.2" />
         </svg>
       </div>
     </div>
