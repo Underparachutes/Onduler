@@ -158,6 +158,8 @@ function DroppableSwellSection({
     return true
   })
 
+  if (visible.length === 0 && !isDragging) return null
+
   return (
     <div>
       <p
