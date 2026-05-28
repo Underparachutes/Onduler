@@ -98,11 +98,19 @@ export function LandingPage() {
             {' '}and{' '}
             <Link href="/privacy" className="underline underline-offset-2">Privacy Policy</Link>.
           </p>
+          <p className="mt-4 text-center text-xs text-th-muted">
+            On a phone?{' '}
+            <Link href="/welcome" className="font-medium text-th-text underline underline-offset-4">
+              Install Onduler to your home screen
+            </Link>
+          </p>
         </div>
 
         {/* Footer */}
         <footer className="mt-auto pt-12 flex flex-col items-center gap-3">
           <div className="flex gap-3 text-[11px] text-th-faint">
+            <Link href="/welcome" className="hover:text-th-muted transition-colors">Install</Link>
+            <span>|</span>
             <Link href="/privacy" className="hover:text-th-muted transition-colors">Privacy</Link>
             <span>|</span>
             <Link href="/terms" className="hover:text-th-muted transition-colors">Terms</Link>
