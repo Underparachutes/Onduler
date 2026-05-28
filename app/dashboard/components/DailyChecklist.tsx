@@ -528,6 +528,15 @@ export function DailyChecklist({
       }
       setLocalValue(prev => prev + delta)
       updateSwellProgress(motion, 1)
+      window.dispatchEvent(new CustomEvent('onduler:log-committed', {
+        detail: {
+          motion_id: motion.id,
+          swell_ids: motion.swells.map(s => s.id),
+          weights: Object.fromEntries(motion.swells.map(s => [s.id, s.weight])),
+          points: motion.default_points,
+          hours: Number(motion.default_hours),
+        },
+      }))
       startTransition(async () => { await quickLogMotion(motion.id) })
       if (undoTimeoutRef.current) clearTimeout(undoTimeoutRef.current)
       undoTimeoutRef.current = setTimeout(() => setUndoToast(null), 3500)

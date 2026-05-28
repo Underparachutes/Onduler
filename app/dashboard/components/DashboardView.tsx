@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import dynamic from 'next/dynamic'
 import { DailyChecklist } from './DailyChecklist'
+import { DashboardShape } from './DashboardShape'
 import { WavePrompt } from './WavePrompt'
 import { HintCard } from '@/app/components/HintCard'
 import { InstallTile } from './InstallTile'
@@ -48,6 +49,14 @@ export function DashboardView(props: Props) {
   const [openForm, setOpenForm] = useState<null | 'motion' | 'group'>(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
+
+  const shapeSwells = props.allSwells.map(s => ({
+    id: s.id,
+    name: s.name,
+    color: s.color,
+    target: props.swellTargets[s.id] ?? 0,
+  }))
+  const shapeActuals = props.allSwells.map(s => props.swellWeeklyProgress[s.id] ?? 0)
 
   useEffect(() => {
     if (!menuOpen) return
@@ -96,6 +105,15 @@ export function DashboardView(props: Props) {
               <div style={{ paddingTop: safeTop }}>
                 <WavePrompt durationSeconds={props.waveDurationSeconds} />
               </div>
+            )}
+
+            {shapeSwells.length >= 3 && (
+              <DashboardShape
+                swells={shapeSwells}
+                actuals={shapeActuals}
+                trackingMode={props.trackingMode}
+                isInWave={props.showWavePrompt}
+              />
             )}
 
             {hasMotions ? (
