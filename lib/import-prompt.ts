@@ -5,8 +5,9 @@ Onduler vocabulary (use these terms only — do NOT use "goals", "tasks", "habit
 - **Swell**: an aspirational area I'm building toward, optionally with a points target (e.g., "Movement", "Creativity"). A motion can contribute to multiple swells.
 - **Group**: an organizational bucket for motions (e.g., "Morning routine", "Creative work"). Optional. A motion belongs to one group at most.
 
-Output format (markdown, exactly this structure):
+IMPORTANT: Output the entire doc inside a single markdown code block (triple backticks) so I can copy the raw text. Use exactly this structure:
 
+\`\`\`
 # Onduler Setup
 
 ## Swells
@@ -32,6 +33,7 @@ Output format (markdown, exactly this structure):
 - Evening routine
   - Read
   - Sleep well
+\`\`\`
 
 Rules:
 - List 4-12 motions total. Substantial but not overwhelming.
@@ -39,4 +41,4 @@ Rules:
 - Swell targets are optional weekly point targets — only include them if a number feels meaningful given the motions inside.
 - Groups are optional. Skip the Groups section entirely if no natural grouping exists.
 - A motion can appear under multiple swells but only one group.
-- Don't add commentary, explanations, or formatting outside the structure above. Just the markdown doc.`
+- Don't add commentary, explanations, or formatting outside the code block. Just the raw markdown doc inside triple backticks.`
