@@ -68,6 +68,7 @@ type Props = {
   weeklyLogMap: Record<string, Record<string, string[]>>
   hideShape: boolean
   onToggleShape: () => void
+  onViewsModeChange?: (isViews: boolean) => void
 }
 
 function DroppableGroup({
@@ -251,6 +252,7 @@ export function DailyChecklist({
   weeklyLogMap,
   hideShape,
   onToggleShape,
+  onViewsModeChange,
 }: Props) {
   const isHours = trackingMode === 'hours'
   const todayValue = isHours ? todayHours : todayPoints
@@ -704,7 +706,7 @@ export function DailyChecklist({
   const headerToolbar = (
     <div className="flex items-center gap-2">
       <button
-        onClick={() => setViewsMode(prev => !prev)}
+        onClick={() => setViewsMode(prev => { const next = !prev; onViewsModeChange?.(next); return next })}
         className={`shrink-0 p-1.5 transition-colors active:scale-[0.97] ${viewsMode ? 'text-th-text' : 'text-th-faint hover:text-th-muted'}`}
         aria-label="Views"
       >

@@ -66,14 +66,7 @@ export default async function WelcomePage() {
           </ol>
         </section>
 
-        {user ? (
-          <Link
-            href="/dashboard"
-            className="inline-block rounded-lg bg-th-btn px-4 py-2 text-sm font-medium text-th-btn-text transition-colors active:scale-[0.97]"
-          >
-            Go to motions
-          </Link>
-        ) : (
+        {!user && (
           <div className="flex gap-3">
             <Link
               href="/signup"

@@ -50,6 +50,7 @@ export function DashboardView(props: Props) {
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
   const [hideShape, setHideShape] = useState(false)
+  const [isViewsMode, setIsViewsMode] = useState(false)
   useEffect(() => {
     if (localStorage.getItem('onduler-filter-hide-shape') === 'true') setHideShape(true)
   }, [])
@@ -172,6 +173,7 @@ export function DashboardView(props: Props) {
                 weeklyLogMap={props.weeklyLogMap}
                 hideShape={hideShape}
                 onToggleShape={() => setHideShape(prev => { const next = !prev; localStorage.setItem('onduler-filter-hide-shape', String(next)); return next })}
+                onViewsModeChange={setIsViewsMode}
               />
             ) : (
               <>
@@ -202,6 +204,7 @@ export function DashboardView(props: Props) {
                 actuals={shapeActuals}
                 trackingMode={props.trackingMode}
                 isInWave={props.showWavePrompt}
+                frosted={isViewsMode}
               />
             )}
           </>

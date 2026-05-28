@@ -27,9 +27,10 @@ type Props = {
   actuals: number[]
   trackingMode: 'points' | 'hours'
   isInWave: boolean
+  frosted?: boolean
 }
 
-export function DashboardShape({ swells, actuals: initialActuals, trackingMode, isInWave }: Props) {
+export function DashboardShape({ swells, actuals: initialActuals, trackingMode, isInWave, frosted }: Props) {
   const router = useRouter()
   const [actuals, setActuals] = useState(initialActuals)
   const count = swells.length
@@ -70,8 +71,8 @@ export function DashboardShape({ swells, actuals: initialActuals, trackingMode, 
 
   return (
     <div
-      className="pointer-events-none sticky bottom-[calc(2.75rem+env(safe-area-inset-bottom,0px))] z-10 flex flex-col items-center rounded-2xl pb-1 md:bottom-0"
-      style={{ background: 'color-mix(in oklch, var(--th-bg) 70%, transparent)' }}
+      className={`pointer-events-none sticky bottom-[calc(2.75rem+env(safe-area-inset-bottom,0px))] z-10 flex flex-col items-center rounded-2xl pb-1 md:bottom-0 ${frosted ? 'backdrop-blur-md' : ''}`}
+      style={frosted ? { background: 'rgba(255, 255, 255, 0.12)' } : undefined}
     >
       <svg
         viewBox={`0 0 ${SIZE} ${SIZE}`}
