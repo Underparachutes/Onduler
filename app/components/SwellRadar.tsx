@@ -319,10 +319,10 @@ export function SwellRadar({
 
   // Subtitle + wave-pill copy are period-aware.
   const subtitleCopy =
-    period === 'month' ? 'Your swells this month'
-    : period === 'quarter' ? 'Your swells this quarter'
-    : period === 'year' ? 'Your swells this year'
-    : 'Your swells this week'
+    period === 'month' ? 'Your wakes this month'
+    : period === 'quarter' ? 'Your wakes this quarter'
+    : period === 'year' ? 'Your wakes this year'
+    : 'Your wakes this week'
   const waveLabel =
     waveRamp == null ? null
     : waveRamp < 1 ? `Ramp · ${Math.round(waveRamp * 100)}%`

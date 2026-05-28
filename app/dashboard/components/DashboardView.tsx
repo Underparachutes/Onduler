@@ -49,6 +49,10 @@ export function DashboardView(props: Props) {
   const [openForm, setOpenForm] = useState<null | 'motion' | 'group'>(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
+  const [hideShape, setHideShape] = useState(false)
+  useEffect(() => {
+    if (localStorage.getItem('onduler-filter-hide-shape') === 'true') setHideShape(true)
+  }, [])
 
   const shapeSwells = props.allSwells.map(s => ({
     id: s.id,
@@ -166,6 +170,8 @@ export function DashboardView(props: Props) {
                 swellWeeklyProgress={props.swellWeeklyProgress}
                 swellTargets={props.swellTargets}
                 weeklyLogMap={props.weeklyLogMap}
+                hideShape={hideShape}
+                onToggleShape={() => setHideShape(prev => { const next = !prev; localStorage.setItem('onduler-filter-hide-shape', String(next)); return next })}
               />
             ) : (
               <>
@@ -190,7 +196,7 @@ export function DashboardView(props: Props) {
 
             <InstallTile />
 
-            {shapeSwells.length >= 3 && (
+            {!hideShape && shapeSwells.length >= 3 && (
               <DashboardShape
                 swells={shapeSwells}
                 actuals={shapeActuals}

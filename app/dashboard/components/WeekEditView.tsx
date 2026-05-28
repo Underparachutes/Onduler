@@ -24,6 +24,7 @@ type Props = {
   bySwell?: boolean
   allSwells?: Swell[]
   hideDone?: boolean
+  hideNav?: boolean
 }
 
 import { getWeekDayKeys } from './weekDayKeys'
@@ -87,7 +88,7 @@ function MotionWeekRow({
   return (
     <div className={`flex items-center gap-2 ${indent ? 'pl-6' : ''}`}>
       <div className="min-w-0 flex-1">
-        <p className={`truncate text-sm ${indent ? 'text-th-muted' : 'text-th-text'}`}>
+        <p className="truncate text-sm text-th-text">
           {motion.name}
         </p>
       </div>
@@ -147,6 +148,7 @@ export function WeekEditView({
   bySwell,
   allSwells,
   hideDone,
+  hideNav,
 }: Props) {
   const [, startTransition] = useTransition()
   const router = useRouter()
@@ -230,7 +232,7 @@ export function WeekEditView({
     const visibleSubs = subs.filter(s => !weekCompleteIds.has(s.id))
 
     return (
-      <div key={motion.id}>
+      <div key={motion.id} className="flex flex-col gap-2">
         <MotionWeekRow
           motion={motion}
           dayKeys={dayKeys}
@@ -297,37 +299,41 @@ export function WeekEditView({
 
   return (
     <div>
-      <div className="mb-3 flex items-center justify-between">
-        <p className="text-xs font-semibold uppercase tracking-widest text-th-muted">{weekLabel}</p>
-        <div className="flex gap-2">
-          <button
-            onClick={() => onWeekOffsetChange(-1)}
-            disabled={weekOffset === -1}
-            className="px-2 py-1 text-xs text-th-faint transition-colors hover:text-th-muted disabled:opacity-30"
-          >
-            ‹ Last
-          </button>
-          <button
-            onClick={() => onWeekOffsetChange(0)}
-            disabled={weekOffset === 0}
-            className="px-2 py-1 text-xs text-th-faint transition-colors hover:text-th-muted disabled:opacity-30"
-          >
-            This ›
-          </button>
-        </div>
-      </div>
-
-      <div className="mb-2 flex items-center gap-2">
-        <div className="min-w-0 flex-1" />
-        {!hidePtsHrs && <span className="shrink-0 w-6" />}
-        <div className="flex shrink-0 gap-1">
-          {DAY_LABELS.map((label, i) => (
-            <div key={i} className="flex h-5 w-7 items-center justify-center text-[10px] font-semibold uppercase text-th-faint">
-              {label}
+      {!hideNav && (
+        <>
+          <div className="mb-3 flex items-center justify-between">
+            <p className="text-xs font-semibold uppercase tracking-widest text-th-muted">{weekLabel}</p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => onWeekOffsetChange(-1)}
+                disabled={weekOffset === -1}
+                className="px-2 py-1 text-xs text-th-faint transition-colors hover:text-th-muted disabled:opacity-30"
+              >
+                ‹ Last
+              </button>
+              <button
+                onClick={() => onWeekOffsetChange(0)}
+                disabled={weekOffset === 0}
+                className="px-2 py-1 text-xs text-th-faint transition-colors hover:text-th-muted disabled:opacity-30"
+              >
+                This ›
+              </button>
             </div>
-          ))}
-        </div>
-      </div>
+          </div>
+
+          <div className="mb-2 flex items-center gap-2">
+            <div className="min-w-0 flex-1" />
+            {!hidePtsHrs && <span className="shrink-0 w-6" />}
+            <div className="flex shrink-0 gap-1">
+              {DAY_LABELS.map((label, i) => (
+                <div key={i} className="flex h-5 w-7 items-center justify-center text-[10px] font-semibold uppercase text-th-faint">
+                  {label}
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
 
       {renderMotionSections()}
     </div>

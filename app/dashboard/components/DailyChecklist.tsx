@@ -66,6 +66,8 @@ type Props = {
   swellWeeklyProgress: Record<string, number>
   swellTargets: Record<string, number>
   weeklyLogMap: Record<string, Record<string, string[]>>
+  hideShape: boolean
+  onToggleShape: () => void
 }
 
 function DroppableGroup({
@@ -247,21 +249,23 @@ export function DailyChecklist({
   swellWeeklyProgress,
   swellTargets,
   weeklyLogMap,
+  hideShape,
+  onToggleShape,
 }: Props) {
   const isHours = trackingMode === 'hours'
   const todayValue = isHours ? todayHours : todayPoints
   const goalValue = isHours ? dailyGoalHours : dailyGoal
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
   const [activeGroup, setActiveGroup] = useState<string | null>(null)
-  const [showCompleted, setShowCompleted] = useState(false)
-  const [showSwells, setShowSwells] = useState(false)
-  const [showPtsHrs, setShowPtsHrs] = useState(false)
+  const [hideCompleted, setHideCompleted] = useState(false)
+  const [hideSwells, setHideSwells] = useState(false)
+  const [hidePts, setHidePts] = useState(false)
   const [filterOpen, setFilterOpen] = useState(false)
   const filterRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
-    if (localStorage.getItem('onduler-filter-show-completed') === 'true') setShowCompleted(true)
-    if (localStorage.getItem('onduler-motions-by-swell') === 'true') setShowSwells(true)
-    if (localStorage.getItem('onduler-filter-show-pts') === 'true') setShowPtsHrs(true)
+    if (localStorage.getItem('onduler-filter-hide-completed') === 'true') setHideCompleted(true)
+    if (localStorage.getItem('onduler-filter-hide-swells') === 'true') setHideSwells(true)
+    if (localStorage.getItem('onduler-filter-hide-pts') === 'true') setHidePts(true)
   }, [])
   useEffect(() => {
     if (!filterOpen) return
@@ -271,21 +275,23 @@ export function DailyChecklist({
     document.addEventListener('mousedown', handleOutside)
     return () => document.removeEventListener('mousedown', handleOutside)
   }, [filterOpen])
-  function toggleFilter(key: 'showCompleted' | 'showSwells' | 'showPtsHrs') {
-    if (key === 'showCompleted') {
-      setShowCompleted(prev => { const next = !prev; localStorage.setItem('onduler-filter-show-completed', String(next)); return next })
-    } else if (key === 'showSwells') {
-      setShowSwells(prev => { const next = !prev; localStorage.setItem('onduler-motions-by-swell', String(next)); return next })
+  function toggleFilter(key: 'hideCompleted' | 'hideSwells' | 'hidePts' | 'hideShape') {
+    if (key === 'hideCompleted') {
+      setHideCompleted(prev => { const next = !prev; localStorage.setItem('onduler-filter-hide-completed', String(next)); return next })
+    } else if (key === 'hideSwells') {
+      setHideSwells(prev => { const next = !prev; localStorage.setItem('onduler-filter-hide-swells', String(next)); return next })
+    } else if (key === 'hidePts') {
+      setHidePts(prev => { const next = !prev; localStorage.setItem('onduler-filter-hide-pts', String(next)); return next })
     } else {
-      setShowPtsHrs(prev => { const next = !prev; localStorage.setItem('onduler-filter-show-pts', String(next)); return next })
+      onToggleShape()
     }
   }
   const [viewsMode, setViewsMode] = useState(false)
   const [weekOffset, setWeekOffset] = useState(0)
   const [viewsDelta, setViewsDelta] = useState(0)
-  const hideDone = !showCompleted
-  const bySwell = showSwells
-  const hidePtsHrs = !showPtsHrs
+  const hideDone = hideCompleted
+  const bySwell = !hideSwells
+  const hidePtsHrs = hidePts
   const [localDone, setLocalDone] = useState(() => new Set(doneMotionIds))
   const [divingId, setDivingId] = useState<string | null>(null)
   const [, startTransition] = useTransition()
@@ -693,7 +699,7 @@ export function DailyChecklist({
     </div>
   )
 
-  const hasNonDefaultFilter = showCompleted || showSwells || showPtsHrs
+  const hasNonDefaultFilter = hideCompleted || hideSwells || hidePts || hideShape
 
   const headerToolbar = (
     <div className="flex items-center gap-2">
@@ -731,16 +737,20 @@ export function DailyChecklist({
           <div className="fixed inset-0 z-10" onClick={() => setFilterOpen(false)} />
           <div className="absolute right-0 top-full z-20 mt-1 w-44 rounded-lg border border-th-border bg-th-bg p-2 shadow-lg">
             <label className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-xs text-th-text transition-colors hover:bg-th-surface">
-              <input type="checkbox" checked={showCompleted} onChange={() => toggleFilter('showCompleted')} className="accent-th-btn" />
-              Show completed
+              <input type="checkbox" checked={hideCompleted} onChange={() => toggleFilter('hideCompleted')} className="accent-th-btn" />
+              Hide completed
             </label>
             <label className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-xs text-th-text transition-colors hover:bg-th-surface">
-              <input type="checkbox" checked={showSwells} onChange={() => toggleFilter('showSwells')} className="accent-th-btn" />
-              Show swells
+              <input type="checkbox" checked={hideSwells} onChange={() => toggleFilter('hideSwells')} className="accent-th-btn" />
+              Hide swells
             </label>
             <label className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-xs text-th-text transition-colors hover:bg-th-surface">
-              <input type="checkbox" checked={showPtsHrs} onChange={() => toggleFilter('showPtsHrs')} className="accent-th-btn" />
-              Show pts/hrs
+              <input type="checkbox" checked={hidePts} onChange={() => toggleFilter('hidePts')} className="accent-th-btn" />
+              Hide pts/hrs
+            </label>
+            <label className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-xs text-th-text transition-colors hover:bg-th-surface">
+              <input type="checkbox" checked={hideShape} onChange={() => toggleFilter('hideShape')} className="accent-th-btn" />
+              Hide wake
             </label>
           </div>
           </>
@@ -769,6 +779,9 @@ export function DailyChecklist({
     </div>
   ) : null
 
+  const viewsWeekLabel = weekOffset === 0 ? 'This week' : 'Last week'
+  const viewsDayLabels = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
+
   if (viewsMode) {
     return (
       <>
@@ -779,6 +792,36 @@ export function DailyChecklist({
             {headerToolbar}
             {progressStats}
             {groupChipsRow}
+            <div className="mt-3 flex items-center justify-between">
+              <p className="text-xs font-semibold uppercase tracking-widest text-th-muted">{viewsWeekLabel}</p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setWeekOffset(-1)}
+                  disabled={weekOffset === -1}
+                  className="px-2 py-1 text-xs text-th-faint transition-colors hover:text-th-muted disabled:opacity-30"
+                >
+                  ‹ Last
+                </button>
+                <button
+                  onClick={() => setWeekOffset(0)}
+                  disabled={weekOffset === 0}
+                  className="px-2 py-1 text-xs text-th-faint transition-colors hover:text-th-muted disabled:opacity-30"
+                >
+                  This ›
+                </button>
+              </div>
+            </div>
+            <div className="mt-2 flex items-center gap-2">
+              <div className="min-w-0 flex-1" />
+              {!hidePtsHrs && <span className="shrink-0 w-6" />}
+              <div className="flex shrink-0 gap-1">
+                {viewsDayLabels.map((label, i) => (
+                  <div key={i} className="flex h-5 w-7 items-center justify-center text-[10px] font-semibold uppercase text-th-faint">
+                    {label}
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
           {belowHeader}
           <WeekEditView
@@ -794,6 +837,7 @@ export function DailyChecklist({
             bySwell={bySwell}
             allSwells={allSwells}
             hideDone={hideDone}
+            hideNav
           />
         </div>
         {detailSheet}
