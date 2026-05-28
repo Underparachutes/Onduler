@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic'
 import { DailyChecklist } from './DailyChecklist'
 import { WavePrompt } from './WavePrompt'
 import { HintCard } from '@/app/components/HintCard'
+import { InstallTile } from './InstallTile'
 
 const AddMotionForm = dynamic(() => import('./AddMotionForm').then(m => m.AddMotionForm))
 const AddGroupForm = dynamic(() => import('./AddGroupForm').then(m => m.AddGroupForm))
@@ -177,6 +178,8 @@ export function DashboardView(props: Props) {
                 </div>
               </>
             )}
+
+            <InstallTile />
           </>
         )}
       </div>

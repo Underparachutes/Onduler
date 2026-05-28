@@ -4,8 +4,10 @@ import { useEffect, useMemo, useState, useTransition } from 'react'
 import { completeOnboarding } from '@/app/actions/settings'
 import { detectMode, getRandomThemeAccent, getShuffledThemePalette } from '@/lib/theme-colors'
 import { BUILD_PRESETS } from '@/lib/builds'
+import { shouldShowOnboardingInstall, markOnboardingSeen } from '@/lib/install'
+import { InstallInstructions } from '@/app/components/InstallInstructions'
 
-type Step = 'swells' | 'motions' | 'personalize'
+type Step = 'swells' | 'motions' | 'personalize' | 'install'
 type TrackingMode = 'points' | 'hours'
 
 type SwellEntry = {
@@ -224,6 +226,21 @@ export function OnboardingFlow() {
   function previewTheme(t: string) {
     setTheme(t)
     document.documentElement.dataset.theme = t
+  }
+
+  const [showInstall, setShowInstall] = useState(false)
+
+  useEffect(() => {
+    setShowInstall(shouldShowOnboardingInstall())
+  }, [])
+
+  function proceedFromPersonalize(useDefaults = false) {
+    if (!useDefaults && showInstall) {
+      markOnboardingSeen()
+      setStep('install')
+      return
+    }
+    finish(useDefaults)
   }
 
   function finish(useDefaults = false) {
@@ -525,6 +542,27 @@ export function OnboardingFlow() {
     )
   }
 
+  if (step === 'install') {
+    return (
+      <ScreenShell
+        title="Install Onduler"
+        description="Onduler lives best on your home screen. Add it once and it opens like an app."
+      >
+        <InstallInstructions onDone={() => finish(false)} />
+
+        {error && <p className="text-xs text-red-500">{error}</p>}
+
+        <button
+          onClick={() => finish(false)}
+          disabled={isPending}
+          className="w-full text-center text-sm text-th-faint transition-colors hover:text-th-muted disabled:opacity-50"
+        >
+          {isPending ? 'Setting up…' : 'Not now'}
+        </button>
+      </ScreenShell>
+    )
+  }
+
   return (
     <ScreenShell
       onBack={() => setStep('motions')}
@@ -606,11 +644,11 @@ export function OnboardingFlow() {
 
       <div className="flex flex-col gap-3">
         <button
-          onClick={() => finish(false)}
+          onClick={() => proceedFromPersonalize(false)}
           disabled={isPending}
           className="w-full rounded-lg bg-th-btn py-3 text-sm font-medium text-th-btn-text transition-all hover:bg-th-btn-hover active:scale-[0.97] disabled:opacity-50"
         >
-          {isPending ? 'Setting up…' : 'Go to dashboard →'}
+          {isPending ? 'Setting up…' : 'Next →'}
         </button>
         <button
           onClick={() => finish(true)}

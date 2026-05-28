@@ -419,14 +419,14 @@ export function SettingsPanel({
           )}
         </div>
 
-        {/* Add to home screen */}
+        {/* Install Onduler */}
         <Link
           href="/welcome"
           className="flex items-center justify-between gap-3 py-4 transition-all active:scale-[0.99]"
         >
           <div className="min-w-0">
-            <p className="text-sm font-medium text-th-text">Add to home screen</p>
-            <p className="truncate text-xs text-th-muted">Install Onduler on your phone</p>
+            <p className="text-sm font-medium text-th-text">Install Onduler</p>
+            <p className="truncate text-xs text-th-muted">Add to your home screen</p>
           </div>
           <span className="shrink-0 text-sm text-th-faint">→</span>
         </Link>
