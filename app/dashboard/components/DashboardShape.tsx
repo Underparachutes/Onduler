@@ -72,7 +72,7 @@ export function DashboardShape({ swells, actuals: initialActuals, trackingMode, 
   return (
     <div
       className={`pointer-events-none sticky bottom-[calc(2.75rem+env(safe-area-inset-bottom,0px))] z-10 flex flex-col items-center pb-1 md:bottom-0 ${frosted ? '-mx-4 px-4 backdrop-blur-md' : ''}`}
-      style={frosted ? { background: 'rgba(144, 216, 196, 0.18)' } : undefined}
+      style={frosted ? { background: 'color-mix(in oklch, color-mix(in oklch, rgb(144, 216, 196) 60%, var(--th-bg)) 20%, transparent)' } : undefined}
     >
       <svg
         viewBox={`0 0 ${SIZE} ${SIZE}`}
