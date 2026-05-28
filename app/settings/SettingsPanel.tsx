@@ -448,6 +448,15 @@ export function SettingsPanel({
                   Import
                 </Link>
               </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-th-text">Add to home screen</p>
+                  <p className="text-xs text-th-muted">Install Onduler on your phone</p>
+                </div>
+                <Link href="/welcome" className="text-sm text-th-secondary hover:underline">
+                  Instructions
+                </Link>
+              </div>
               {visibleHidden.length > 0 && (
                 <div className="mt-2">
                   <p className="mb-2 text-xs text-th-faint">Hidden motions</p>
