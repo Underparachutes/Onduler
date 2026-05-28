@@ -439,6 +439,15 @@ export function SettingsPanel({
                   Download
                 </a>
               </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-th-text">Import from your AI</p>
+                  <p className="text-xs text-th-muted">Set up swells and motions with any LLM</p>
+                </div>
+                <Link href="/settings/import" className="text-sm text-th-secondary hover:underline">
+                  Import
+                </Link>
+              </div>
               {visibleHidden.length > 0 && (
                 <div className="mt-2">
                   <p className="mb-2 text-xs text-th-faint">Hidden motions</p>
