@@ -107,15 +107,6 @@ export function DashboardView(props: Props) {
               </div>
             )}
 
-            {shapeSwells.length >= 3 && (
-              <DashboardShape
-                swells={shapeSwells}
-                actuals={shapeActuals}
-                trackingMode={props.trackingMode}
-                isInWave={props.showWavePrompt}
-              />
-            )}
-
             {hasMotions ? (
               <DailyChecklist
                 key={`${props.motions.length}-${props.trackingMode}`}
@@ -198,6 +189,15 @@ export function DashboardView(props: Props) {
             )}
 
             <InstallTile />
+
+            {shapeSwells.length >= 3 && (
+              <DashboardShape
+                swells={shapeSwells}
+                actuals={shapeActuals}
+                trackingMode={props.trackingMode}
+                isInWave={props.showWavePrompt}
+              />
+            )}
           </>
         )}
       </div>
