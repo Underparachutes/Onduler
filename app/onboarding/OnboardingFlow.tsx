@@ -533,7 +533,13 @@ export function OnboardingFlow() {
         </div>
 
         <button
-          onClick={() => setStep('personalize')}
+          onClick={() => {
+            pickedSwells.forEach(s => {
+              const draft = (motionDrafts[s.id] ?? '').trim()
+              if (draft) addMotion(s.id)
+            })
+            setStep('personalize')
+          }}
           className="w-full rounded-lg bg-th-btn py-3 text-sm font-medium text-th-btn-text transition-all hover:bg-th-btn-hover active:scale-[0.97]"
         >
           Next →
