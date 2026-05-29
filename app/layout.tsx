@@ -1,11 +1,9 @@
+import { Suspense } from "react";
 import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Mono, Manrope } from "next/font/google";
-import { createClient } from "@/lib/supabase/server";
-import { TimezoneSync } from "./components/TimezoneSync";
-import { BottomNav } from "./components/BottomNav";
-import { SideNav } from "./components/SideNav";
 import { ToastProvider } from "./components/Toast";
-import { fetchAnyCeremonyPending } from "./actions/reflections";
+import { AppShell } from "./AppShell";
+import Loading from "./loading";
 import "./globals.css";
 
 const manrope = Manrope({
@@ -38,37 +36,22 @@ export const viewport: Viewport = {
   themeColor: "#5a6f55",
 };
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  let theme = "biarritz";
-  let pendingAnchor = false;
-  if (user) {
-    const [{ data }, anyPending] = await Promise.all([
-      supabase.from("user_settings").select("theme").eq("user_id", user.id).single(),
-      fetchAnyCeremonyPending(supabase, user.id),
-    ]);
-    if (data?.theme) theme = data.theme;
-    pendingAnchor = anyPending;
-  }
-
   return (
     <html
       lang="en"
-      data-theme={theme}
+      data-theme="biarritz"
       className={`${manrope.variable} ${ibmPlexMono.variable} h-full antialiased`}
     >
       <body className="min-h-[100dvh] flex flex-col bg-th-bg text-th-text pb-[calc(3.5rem+env(safe-area-inset-bottom))] overflow-x-hidden md:flex-row md:pb-0">
         <ToastProvider>
-          <TimezoneSync />
-          {user && <SideNav pendingAnchor={pendingAnchor} />}
-          <div className="mx-auto flex w-full max-w-lg flex-col flex-1 md:mx-0 md:ml-12 md:mr-auto lg:max-w-4xl">{children}</div>
-          {user && <BottomNav pendingAnchor={pendingAnchor} />}
+          <Suspense fallback={<Loading />}>
+            <AppShell>{children}</AppShell>
+          </Suspense>
         </ToastProvider>
       </body>
     </html>
