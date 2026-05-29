@@ -311,8 +311,8 @@ export default async function SwellDetailPage({ params }: { params: Promise<{ id
         const hitKeys = hitsByMilestone.get(m.id) ?? []
         currentCycleCount = hitKeys.filter(k => k >= cycleStart).length
       }
-      const hitKeys = hitsByMilestone.get(m.id) ?? []
-      cycleHit = hitKeys.some(k => k >= cycleStart)
+      const target = m.target_count ?? 1
+      cycleHit = currentCycleCount >= target
     }
     return {
       id: m.id,
