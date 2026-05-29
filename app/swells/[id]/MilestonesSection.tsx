@@ -2,10 +2,32 @@
 
 import { useEffect, useRef, useState, useTransition } from 'react'
 import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  TouchSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+  type DragOverEvent,
+  useDroppable,
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+  arrayMove,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+import {
   createMilestone,
   deleteMilestone,
   markRecurringHit,
+  unmarkRecurringHit,
   renameMilestone,
+  reorderMilestones,
   setOneShotComplete,
   updateMilestone,
 } from '@/app/actions/milestones'
@@ -20,16 +42,10 @@ export type Milestone = {
   cadence: string | null
   completedAt: string | null
   sortOrder: number
-  // Enrichment fields plumbed in from the page-side aggregation. Recurring
-  // waypoints linked to a motion auto-progress; unlinked recurring waypoints
-  // surface a manual "Mark this cycle hit" tap.
   targetCount: number | null
   bonusPoints: number
   motionId: string | null
   motionName: string | null
-  // Count toward the current cycle: motion log count if linked, hit count if
-  // unlinked. cycleHit is true when the current cycle has already been
-  // recorded (gates re-firing celebration / disables the manual button).
   currentCycleCount: number
   cycleHit: boolean
 }
@@ -40,6 +56,33 @@ type Props = {
   milestones: Milestone[]
 }
 
+const DragHandle = ({ listeners }: { listeners?: Record<string, Function> }) => (
+  <div
+    {...listeners}
+    className="shrink-0 cursor-grab px-2 py-3 text-th-faint transition-colors hover:text-th-muted"
+    style={{ touchAction: 'none' }}
+    aria-label="Drag to reorder"
+  >
+    <svg viewBox="0 0 10 10" fill="currentColor" className="h-2.5 w-2.5">
+      <circle cx="2" cy="2" r="1.1" /><circle cx="5" cy="2" r="1.1" /><circle cx="8" cy="2" r="1.1" />
+      <circle cx="2" cy="5" r="1.1" /><circle cx="5" cy="5" r="1.1" /><circle cx="8" cy="5" r="1.1" />
+      <circle cx="2" cy="8" r="1.1" /><circle cx="5" cy="8" r="1.1" /><circle cx="8" cy="8" r="1.1" />
+    </svg>
+  </div>
+)
+
+function DroppableSection({ id, children }: { id: string; children: React.ReactNode }) {
+  const { setNodeRef, isOver } = useDroppable({ id })
+  return (
+    <div
+      ref={setNodeRef}
+      className={`rounded-lg transition-shadow ${isOver ? 'ring-1 ring-th-focus/40' : ''}`}
+    >
+      {children}
+    </div>
+  )
+}
+
 export function MilestonesSection({ swellId, swellColor, milestones }: Props) {
   const [adding, setAdding] = useState(false)
   const [showCompleted, setShowCompleted] = useState(false)
@@ -48,6 +91,122 @@ export function MilestonesSection({ swellId, swellColor, milestones }: Props) {
   const oneShotsAll = milestones.filter(m => m.kind === 'one_shot')
   const oneShotsActive = oneShotsAll.filter(m => m.completedAt === null)
   const oneShotsDone = oneShotsAll.filter(m => m.completedAt !== null)
+
+  const [orderedRecurring, setOrderedRecurring] = useState(recurring)
+  const [orderedOneShotsActive, setOrderedOneShotsActive] = useState(oneShotsActive)
+
+  useEffect(() => { setOrderedRecurring(recurring) }, [milestones])
+  useEffect(() => { setOrderedOneShotsActive(oneShotsActive) }, [milestones])
+
+  const recurringRef = useRef(orderedRecurring)
+  recurringRef.current = orderedRecurring
+  const oneShotRef = useRef(orderedOneShotsActive)
+  oneShotRef.current = orderedOneShotsActive
+
+  const [, startReorder] = useTransition()
+  const [dragging, setDragging] = useState(false)
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { delay: 250, tolerance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  )
+
+  function findContainer(id: string): 'recurring' | 'oneShot' | null {
+    if (id === 'section-recurring') return 'recurring'
+    if (id === 'section-oneShot') return 'oneShot'
+    if (recurringRef.current.some(m => m.id === id)) return 'recurring'
+    if (oneShotRef.current.some(m => m.id === id)) return 'oneShot'
+    return null
+  }
+
+  function handleDragOver(event: DragOverEvent) {
+    const { active, over } = event
+    if (!over) return
+    const activeId = active.id as string
+    const overId = over.id as string
+    const from = findContainer(activeId)
+    const to = findContainer(overId)
+    if (!from || !to || from === to) return
+
+    const sourceArr = from === 'recurring' ? recurringRef.current : oneShotRef.current
+    const targetArr = from === 'recurring' ? oneShotRef.current : recurringRef.current
+    const item = sourceArr.find(m => m.id === activeId)
+    if (!item) return
+
+    const overIndex = targetArr.findIndex(m => m.id === overId)
+    const insertAt = overIndex >= 0 ? overIndex : targetArr.length
+    const newSource = sourceArr.filter(m => m.id !== activeId)
+    const newTarget = [...targetArr.slice(0, insertAt), item, ...targetArr.slice(insertAt)]
+
+    if (from === 'recurring') {
+      recurringRef.current = newSource
+      oneShotRef.current = newTarget
+      setOrderedRecurring(newSource)
+      setOrderedOneShotsActive(newTarget)
+    } else {
+      oneShotRef.current = newSource
+      recurringRef.current = newTarget
+      setOrderedOneShotsActive(newSource)
+      setOrderedRecurring(newTarget)
+    }
+  }
+
+  function handleDragEnd(event: DragEndEvent) {
+    setDragging(false)
+    const { active, over } = event
+    if (!over) {
+      recurringRef.current = recurring
+      oneShotRef.current = oneShotsActive
+      setOrderedRecurring(recurring)
+      setOrderedOneShotsActive(oneShotsActive)
+      return
+    }
+    const activeId = active.id as string
+    const overId = over.id as string
+    if (activeId === overId) {
+      // Detect cross-container even when active===over (dropped on container itself)
+      const wasRecurring = recurring.some(m => m.id === activeId)
+      const nowRecurring = recurringRef.current.some(m => m.id === activeId)
+      if (wasRecurring && !nowRecurring) {
+        startReorder(async () => { await updateMilestone(activeId, swellId, { kind: 'one_shot' }) })
+      } else if (!wasRecurring && nowRecurring) {
+        startReorder(async () => { await updateMilestone(activeId, swellId, { kind: 'recurring' }) })
+      }
+      return
+    }
+
+    const container = findContainer(activeId)
+    if (container === 'recurring' && recurringRef.current.some(m => m.id === overId)) {
+      const arr = recurringRef.current
+      const next = arrayMove(arr, arr.findIndex(m => m.id === activeId), arr.findIndex(m => m.id === overId))
+      recurringRef.current = next
+      setOrderedRecurring(next)
+      startReorder(async () => { await reorderMilestones(next.map(m => m.id), swellId) })
+    } else if (container === 'oneShot' && oneShotRef.current.some(m => m.id === overId)) {
+      const arr = oneShotRef.current
+      const next = arrayMove(arr, arr.findIndex(m => m.id === activeId), arr.findIndex(m => m.id === overId))
+      oneShotRef.current = next
+      setOrderedOneShotsActive(next)
+      startReorder(async () => { await reorderMilestones(next.map(m => m.id), swellId) })
+    }
+
+    const wasRecurring = recurring.some(m => m.id === activeId)
+    const nowRecurring = recurringRef.current.some(m => m.id === activeId)
+    if (wasRecurring && !nowRecurring) {
+      startReorder(async () => { await updateMilestone(activeId, swellId, { kind: 'one_shot' }) })
+    } else if (!wasRecurring && nowRecurring) {
+      startReorder(async () => { await updateMilestone(activeId, swellId, { kind: 'recurring' }) })
+    }
+  }
+
+  function handleDragCancel() {
+    setDragging(false)
+    recurringRef.current = recurring
+    oneShotRef.current = oneShotsActive
+    setOrderedRecurring(recurring)
+    setOrderedOneShotsActive(oneShotsActive)
+  }
 
   return (
     <section className="mt-8">
@@ -80,37 +239,66 @@ export function MilestonesSection({ swellId, swellColor, milestones }: Props) {
         </p>
       )}
 
-      {recurring.length > 0 && (
-        <div className="mb-4">
-          <p className="mb-1 text-[10px] uppercase tracking-widest text-th-faint">Recurring</p>
-          <ul className="flex flex-col">
-            {recurring.map(m => (
-              <RecurringRow
-                key={m.id}
-                milestone={m}
-                swellId={swellId}
-                swellColor={swellColor}
-              />
-            ))}
-          </ul>
-        </div>
-      )}
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={() => setDragging(true)}
+        onDragOver={handleDragOver}
+        onDragEnd={handleDragEnd}
+        onDragCancel={handleDragCancel}
+      >
+        {dragging && <div className="fixed inset-0 z-40" />}
 
-      {oneShotsActive.length > 0 && (
-        <div className="mb-3">
-          <p className="mb-1 text-[10px] uppercase tracking-widest text-th-faint">One-shots</p>
-          <ul className="flex flex-col">
-            {oneShotsActive.map(m => (
-              <OneShotRow
-                key={m.id}
-                milestone={m}
-                swellId={swellId}
-                swellColor={swellColor}
-              />
-            ))}
-          </ul>
-        </div>
-      )}
+        {(orderedRecurring.length > 0 || dragging) && (
+          <DroppableSection id="section-recurring">
+            <div className="mb-4">
+              <p className="mb-1 text-[10px] uppercase tracking-widest text-th-faint">Recurring</p>
+              <SortableContext items={orderedRecurring.map(m => m.id)} strategy={verticalListSortingStrategy}>
+                <ul className="flex flex-col">
+                  {orderedRecurring.map(m => (
+                    <SortableRecurringRow
+                      key={m.id}
+                      milestone={m}
+                      swellId={swellId}
+                      swellColor={swellColor}
+                    />
+                  ))}
+                </ul>
+              </SortableContext>
+              {orderedRecurring.length === 0 && dragging && (
+                <p className="rounded-lg border border-dashed border-th-border py-3 text-center text-[11px] text-th-faint">
+                  Drop here to make recurring
+                </p>
+              )}
+            </div>
+          </DroppableSection>
+        )}
+
+        {(orderedOneShotsActive.length > 0 || dragging) && (
+          <DroppableSection id="section-oneShot">
+            <div className="mb-3">
+              <p className="mb-1 text-[10px] uppercase tracking-widest text-th-faint">One-shots</p>
+              <SortableContext items={orderedOneShotsActive.map(m => m.id)} strategy={verticalListSortingStrategy}>
+                <ul className="flex flex-col">
+                  {orderedOneShotsActive.map(m => (
+                    <SortableOneShotRow
+                      key={m.id}
+                      milestone={m}
+                      swellId={swellId}
+                      swellColor={swellColor}
+                    />
+                  ))}
+                </ul>
+              </SortableContext>
+              {orderedOneShotsActive.length === 0 && dragging && (
+                <p className="rounded-lg border border-dashed border-th-border py-3 text-center text-[11px] text-th-faint">
+                  Drop here to make one-shot
+                </p>
+              )}
+            </div>
+          </DroppableSection>
+        )}
+      </DndContext>
 
       {oneShotsDone.length > 0 && (
         <div>
@@ -127,11 +315,12 @@ export function MilestonesSection({ swellId, swellColor, milestones }: Props) {
           {showCompleted && (
             <ul className="mt-2 flex flex-col">
               {oneShotsDone.map(m => (
-                <OneShotRow
+                <SortableOneShotRow
                   key={m.id}
                   milestone={m}
                   swellId={swellId}
                   swellColor={swellColor}
+                  disableDrag
                 />
               ))}
             </ul>
@@ -272,12 +461,10 @@ function MilestoneRowName({
   milestone,
   swellId,
   completed,
-  strikeThrough,
 }: {
   milestone: Milestone
   swellId: string
   completed?: boolean
-  strikeThrough?: boolean
 }) {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(milestone.name)
@@ -311,7 +498,7 @@ function MilestoneRowName({
       type="button"
       onClick={() => { setDraft(milestone.name); setEditing(true) }}
       className={`min-w-0 flex-1 truncate text-left text-sm transition-colors hover:text-th-text ${
-        completed || strikeThrough ? 'text-th-faint line-through' : 'text-th-text'
+        completed ? 'text-th-faint line-through' : 'text-th-text'
       }`}
     >
       {milestone.name}
@@ -328,8 +515,6 @@ function ProgressRing({
   hit: boolean
   color: string
 }) {
-  // Compact ring — 18px outer, 2px stroke. SVG arc filled by stroke-dasharray
-  // so we don't need a separate Path.
   const size = 18
   const stroke = 2
   const r = (size - stroke) / 2
@@ -354,7 +539,6 @@ function ProgressRing({
         strokeWidth={stroke}
         strokeLinecap="round"
         strokeDasharray={`${dash} ${circumference}`}
-        // Start the arc at 12 o'clock (top), grow clockwise.
         transform={`rotate(-90 ${size / 2} ${size / 2})`}
         opacity={hit ? 1 : 0.85}
       />
@@ -362,7 +546,7 @@ function ProgressRing({
   )
 }
 
-function RecurringRow({
+function SortableRecurringRow({
   milestone,
   swellId,
   swellColor,
@@ -371,37 +555,209 @@ function RecurringRow({
   swellId: string
   swellColor: string
 }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: milestone.id })
+
   const target = milestone.targetCount ?? 0
   const prog = cycleProgress(milestone.currentCycleCount, target > 0 ? target : 1)
   const hasTarget = target > 0
-  const isLinked = milestone.motionId !== null
-  const [marking, startMark] = useTransition()
+  const [toggling, startToggle] = useTransition()
+  const [editing, setEditing] = useState(false)
+  const [cadence, setCadence] = useState<'weekly' | 'monthly'>((milestone.cadence as 'weekly' | 'monthly') ?? 'weekly')
+  const [targetDraft, setTargetDraft] = useState(String(milestone.targetCount ?? 1))
+  const [bonusDraft, setBonusDraft] = useState(String(milestone.bonusPoints ?? 0))
+  const [, startSave] = useTransition()
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
+  const [, startDelete] = useTransition()
+  const deleteTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [, startFlip] = useTransition()
 
-  function handleMark() {
-    if (milestone.cycleHit || isLinked || marking) return
-    startMark(async () => {
-      await markRecurringHit(milestone.id, swellId)
+  function handleToggleHit() {
+    if (toggling) return
+    startToggle(async () => {
+      if (milestone.cycleHit) {
+        await unmarkRecurringHit(milestone.id, swellId)
+      } else {
+        await markRecurringHit(milestone.id, swellId)
+      }
     })
   }
 
-  // Sub-label: "via {motion}" when linked; otherwise just the cadence.
-  const subLabel = isLinked
+  function handleSaveEdit() {
+    const count = parseInt(targetDraft)
+    if (isNaN(count) || count <= 0) return
+    const bonus = parseInt(bonusDraft)
+    const bonusValid = !isNaN(bonus) && bonus >= 0 ? bonus : 0
+    startSave(async () => {
+      await updateMilestone(milestone.id, swellId, {
+        cadence,
+        targetCount: count,
+        bonusPoints: bonusValid,
+      })
+      setEditing(false)
+    })
+  }
+
+  function cancelEdit() {
+    setCadence((milestone.cadence as 'weekly' | 'monthly') ?? 'weekly')
+    setTargetDraft(String(milestone.targetCount ?? 1))
+    setBonusDraft(String(milestone.bonusPoints ?? 0))
+    setEditing(false)
+  }
+
+  function handleDelete() {
+    if (!confirmingDelete) {
+      setConfirmingDelete(true)
+      deleteTimer.current = setTimeout(() => setConfirmingDelete(false), 3000)
+      return
+    }
+    if (deleteTimer.current) clearTimeout(deleteTimer.current)
+    startDelete(async () => { await deleteMilestone(milestone.id, swellId) })
+  }
+
+  function handleFlipKind() {
+    startFlip(async () => {
+      await updateMilestone(milestone.id, swellId, { kind: 'one_shot' })
+    })
+  }
+
+  const subLabel = milestone.motionId
     ? `${milestone.cadence ?? 'weekly'} · via ${milestone.motionName ?? 'motion'}`
     : (milestone.cadence ?? 'weekly')
 
-  return (
-    <li className="flex items-center gap-3 px-1 py-2">
-      {hasTarget ? (
-        <ProgressRing ratio={prog.ratio} hit={prog.hit} color={swellColor} />
-      ) : (
-        <span
-          aria-hidden
-          className="inline-block h-2 w-2 shrink-0 rounded-full"
-          style={{ backgroundColor: swellColor, opacity: 0.55 }}
-        />
-      )}
-      <div className="min-w-0 flex-1">
+  if (editing) {
+    return (
+      <li
+        ref={setNodeRef}
+        {...attributes}
+        suppressHydrationWarning
+        style={{ transform: CSS.Transform.toString(transform), transition }}
+        className="flex flex-col gap-2 rounded-lg border border-th-border px-3 py-3"
+      >
         <MilestoneRowName milestone={milestone} swellId={swellId} />
+        <div className="flex items-center gap-2">
+          <span className="shrink-0 text-xs text-th-muted">Every</span>
+          <div className="flex gap-1">
+            {(['weekly', 'monthly'] as const).map(c => (
+              <button
+                key={c}
+                type="button"
+                onClick={() => setCadence(c)}
+                className={`rounded-md border px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider transition-colors ${
+                  cadence === c
+                    ? 'border-th-text bg-th-text text-th-bg'
+                    : 'border-th-border text-th-muted hover:bg-th-surface'
+                }`}
+              >
+                {c === 'weekly' ? 'Week' : 'Month'}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <label className="shrink-0 text-xs text-th-muted">Times</label>
+          <input
+            type="number"
+            min="1"
+            value={targetDraft}
+            onChange={e => setTargetDraft(e.target.value)}
+            inputMode="numeric"
+            className="w-14 rounded-lg border border-th-border bg-th-surface px-2 py-1.5 text-sm text-th-text outline-none focus:border-th-focus"
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <label className="shrink-0 text-xs text-th-muted">Bonus pts</label>
+          <input
+            type="number"
+            min="0"
+            value={bonusDraft}
+            onChange={e => setBonusDraft(e.target.value)}
+            inputMode="numeric"
+            className="w-14 rounded-lg border border-th-border bg-th-surface px-2 py-1.5 text-sm text-th-text outline-none focus:border-th-focus"
+          />
+        </div>
+        <div className="flex items-center gap-2 pt-1">
+          <button
+            type="button"
+            onClick={handleSaveEdit}
+            className="rounded-lg bg-th-btn px-3 py-1.5 text-xs font-medium text-th-btn-text active:scale-[0.97]"
+          >
+            Save
+          </button>
+          <button
+            type="button"
+            onClick={cancelEdit}
+            className="text-xs text-th-faint transition-colors hover:text-th-muted"
+          >
+            Cancel
+          </button>
+        </div>
+        <div className="flex items-center gap-2 border-t border-th-border pt-2">
+          <button
+            type="button"
+            onClick={handleFlipKind}
+            className="text-[11px] text-th-faint transition-colors hover:text-th-muted active:scale-[0.97]"
+          >
+            Make one-shot
+          </button>
+          <button
+            type="button"
+            onClick={handleDelete}
+            className={`ml-auto text-[11px] transition-colors active:scale-[0.97] ${
+              confirmingDelete ? 'font-medium text-orange-500' : 'text-th-faint hover:text-red-500'
+            }`}
+          >
+            {confirmingDelete ? 'Tap again to delete' : 'Delete'}
+          </button>
+        </div>
+      </li>
+    )
+  }
+
+  return (
+    <li
+      ref={setNodeRef}
+      {...attributes}
+      suppressHydrationWarning
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.4 : 1,
+      }}
+      className="flex items-center gap-1 select-none outline-none"
+    >
+      <button
+        type="button"
+        onClick={handleToggleHit}
+        disabled={toggling}
+        className="shrink-0 px-1 py-2 transition-transform active:scale-90"
+        aria-label={milestone.cycleHit ? 'Unmark this cycle' : 'Mark as hit'}
+      >
+        {milestone.cycleHit ? (
+          <span
+            className="flex h-[18px] w-[18px] items-center justify-center rounded-full"
+            style={{ backgroundColor: swellColor }}
+          >
+            <svg viewBox="0 0 12 10" fill="none" className="h-2.5 w-2.5">
+              <path d="M1 5l3.5 3.5L11 1" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </span>
+        ) : hasTarget ? (
+          <ProgressRing ratio={prog.ratio} hit={prog.hit} color={swellColor} />
+        ) : (
+          <span
+            aria-hidden
+            className="inline-block h-2 w-2 rounded-full"
+            style={{ backgroundColor: swellColor, opacity: 0.55 }}
+          />
+        )}
+      </button>
+      <button
+        type="button"
+        onClick={() => setEditing(true)}
+        className="min-w-0 flex-1 py-2 text-left"
+      >
+        <p className="truncate text-sm text-th-text">{milestone.name}</p>
         <p className="text-[10px] uppercase tracking-widest text-th-faint">
           {subLabel}
           {hasTarget && (
@@ -410,36 +766,33 @@ function RecurringRow({
             </span>
           )}
         </p>
-      </div>
-      {/* Manual mark-cycle-hit for unlinked recurring (ADR 0004 §7 (c)).
-          Linked recurring auto-progresses from logs. */}
-      {!isLinked && hasTarget && (
-        <button
-          type="button"
-          onClick={handleMark}
-          disabled={milestone.cycleHit || marking}
-          className="rounded-md border border-th-border px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-th-muted transition-colors hover:bg-th-surface disabled:opacity-40 active:scale-[0.97]"
-        >
-          {milestone.cycleHit ? 'Hit' : 'Mark'}
-        </button>
-      )}
-      <FlipKindAction milestoneId={milestone.id} swellId={swellId} kind="recurring" />
-      <DeleteAction milestoneId={milestone.id} swellId={swellId} />
+      </button>
+      <DragHandle listeners={listeners} />
     </li>
   )
 }
 
-function OneShotRow({
+function SortableOneShotRow({
   milestone,
   swellId,
   swellColor,
+  disableDrag,
 }: {
   milestone: Milestone
   swellId: string
   swellColor: string
+  disableDrag?: boolean
 }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: milestone.id, disabled: disableDrag })
+
   const completed = milestone.completedAt !== null
   const [, startToggle] = useTransition()
+  const [editing, setEditing] = useState(false)
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
+  const [, startDelete] = useTransition()
+  const deleteTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [, startFlip] = useTransition()
 
   function toggle() {
     startToggle(async () => {
@@ -447,13 +800,80 @@ function OneShotRow({
     })
   }
 
+  function handleDelete() {
+    if (!confirmingDelete) {
+      setConfirmingDelete(true)
+      deleteTimer.current = setTimeout(() => setConfirmingDelete(false), 3000)
+      return
+    }
+    if (deleteTimer.current) clearTimeout(deleteTimer.current)
+    startDelete(async () => { await deleteMilestone(milestone.id, swellId) })
+  }
+
+  function handleFlipKind() {
+    startFlip(async () => {
+      await updateMilestone(milestone.id, swellId, { kind: 'recurring' })
+    })
+  }
+
+  if (editing) {
+    return (
+      <li
+        ref={setNodeRef}
+        {...attributes}
+        suppressHydrationWarning
+        style={{ transform: CSS.Transform.toString(transform), transition }}
+        className="flex flex-col gap-2 rounded-lg border border-th-border px-3 py-3"
+      >
+        <MilestoneRowName milestone={milestone} swellId={swellId} completed={completed} />
+        <div className="flex items-center gap-2 pt-1">
+          <button
+            type="button"
+            onClick={() => setEditing(false)}
+            className="text-xs text-th-faint transition-colors hover:text-th-muted"
+          >
+            Done
+          </button>
+        </div>
+        <div className="flex items-center gap-2 border-t border-th-border pt-2">
+          <button
+            type="button"
+            onClick={handleFlipKind}
+            className="text-[11px] text-th-faint transition-colors hover:text-th-muted active:scale-[0.97]"
+          >
+            Make recurring
+          </button>
+          <button
+            type="button"
+            onClick={handleDelete}
+            className={`ml-auto text-[11px] transition-colors active:scale-[0.97] ${
+              confirmingDelete ? 'font-medium text-orange-500' : 'text-th-faint hover:text-red-500'
+            }`}
+          >
+            {confirmingDelete ? 'Tap again to delete' : 'Delete'}
+          </button>
+        </div>
+      </li>
+    )
+  }
+
   return (
-    <li className="flex items-center gap-3 px-1 py-2">
+    <li
+      ref={setNodeRef}
+      {...attributes}
+      suppressHydrationWarning
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.4 : 1,
+      }}
+      className="flex items-center gap-1 select-none outline-none"
+    >
       <button
         type="button"
         onClick={toggle}
         aria-label={completed ? 'Mark incomplete' : 'Mark complete'}
-        className="shrink-0 transition-transform active:scale-95"
+        className="shrink-0 px-1 py-2 transition-transform active:scale-95"
       >
         <span
           className="block h-4 w-4 rounded-full border-2"
@@ -463,70 +883,16 @@ function OneShotRow({
           }}
         />
       </button>
-      <MilestoneRowName milestone={milestone} swellId={swellId} completed={completed} />
-      <FlipKindAction milestoneId={milestone.id} swellId={swellId} kind="one_shot" />
-      <DeleteAction milestoneId={milestone.id} swellId={swellId} />
+      <button
+        type="button"
+        onClick={() => setEditing(true)}
+        className="min-w-0 flex-1 py-2 text-left"
+      >
+        <p className={`truncate text-sm ${completed ? 'text-th-faint line-through' : 'text-th-text'}`}>
+          {milestone.name}
+        </p>
+      </button>
+      {!disableDrag && <DragHandle listeners={listeners} />}
     </li>
-  )
-}
-
-function FlipKindAction({
-  milestoneId,
-  swellId,
-  kind,
-}: {
-  milestoneId: string
-  swellId: string
-  kind: 'recurring' | 'one_shot'
-}) {
-  const [, startFlip] = useTransition()
-  // Flipping clears the inactive kind's fields server-side (cadence + target_count
-  // when going to one_shot; completed_at when going to recurring). bonus_points
-  // and motion_id survive.
-  const nextKind = kind === 'recurring' ? 'one_shot' : 'recurring'
-  function handle() {
-    startFlip(async () => {
-      await updateMilestone(milestoneId, swellId, { kind: nextKind })
-    })
-  }
-  return (
-    <button
-      type="button"
-      onClick={handle}
-      title={`Make ${nextKind === 'one_shot' ? 'one-shot' : 'recurring'}`}
-      className="shrink-0 text-[11px] text-th-faint transition-colors hover:text-th-muted active:scale-[0.97]"
-    >
-      ↔
-    </button>
-  )
-}
-
-function DeleteAction({ milestoneId, swellId }: { milestoneId: string; swellId: string }) {
-  const [confirming, setConfirming] = useState(false)
-  const [, startDelete] = useTransition()
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current) }, [])
-
-  function handle() {
-    if (!confirming) {
-      setConfirming(true)
-      timerRef.current = setTimeout(() => setConfirming(false), 3000)
-      return
-    }
-    if (timerRef.current) clearTimeout(timerRef.current)
-    startDelete(async () => { await deleteMilestone(milestoneId, swellId) })
-  }
-
-  return (
-    <button
-      type="button"
-      onClick={handle}
-      className={`shrink-0 text-[11px] transition-colors ${
-        confirming ? 'font-medium text-orange-500' : 'text-th-faint hover:text-red-500'
-      }`}
-    >
-      {confirming ? 'Confirm' : 'Delete'}
-    </button>
   )
 }

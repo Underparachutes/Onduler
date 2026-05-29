@@ -425,3 +425,10 @@ h2 {
 .legal-content table td span {
   color: var(--th-muted) !important;
 }
+
+@keyframes onduler-fill {
+  0%   { clip-path: inset(0 100% 0 0); }
+  40%  { clip-path: inset(0 0 0 0); }
+  60%  { clip-path: inset(0 0 0 0); }
+  100% { clip-path: inset(0 0 0 100%); }
+}

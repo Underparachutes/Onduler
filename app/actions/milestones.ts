@@ -116,6 +116,21 @@ export async function renameMilestone(milestoneId: string, name: string, swellId
   return updateMilestone(milestoneId, swellId, { name })
 }
 
+export async function reorderMilestones(orderedIds: string[], swellId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  await Promise.all(
+    orderedIds.map((id, index) =>
+      supabase.from('milestones').update({ sort_order: index }).eq('id', id).eq('user_id', user.id)
+    )
+  )
+
+  revalidatePath(`/swells/${swellId}`)
+  return { success: true }
+}
+
 export async function deleteMilestone(milestoneId: string, swellId: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -173,15 +188,11 @@ export async function getMotionCadence(motionId: string) {
   return { waypoint: data ?? null }
 }
 
-// Manual "this cycle is hit" tap for recurring waypoints that aren't linked
-// to a motion — the auto-progress hook (in actions/logs.ts) handles linked
-// recurring; this is the explicit-tap counterpart per ADR 0004 §7.
 export async function markRecurringHit(milestoneId: string, swellId: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
-  // Confirm the waypoint exists and is recurring before inserting a hit row.
   const { data: milestone, error: readErr } = await supabase
     .from('milestones')
     .select('id, kind')
@@ -196,6 +207,35 @@ export async function markRecurringHit(milestoneId: string, swellId: string) {
     user_id: user.id,
     milestone_id: milestoneId,
   })
+  if (error) return { error: error.message }
+
+  revalidatePath(`/swells/${swellId}`)
+  revalidatePath('/dashboard')
+  return { success: true }
+}
+
+export async function unmarkRecurringHit(milestoneId: string, swellId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const { data: hits } = await supabase
+    .from('milestone_hits')
+    .select('id, hit_at')
+    .eq('user_id', user.id)
+    .eq('milestone_id', milestoneId)
+    .order('hit_at', { ascending: false })
+    .limit(1)
+
+  const latest = hits?.[0]
+  if (!latest) return { error: 'No hit to undo' }
+
+  const { error } = await supabase
+    .from('milestone_hits')
+    .delete()
+    .eq('id', latest.id)
+    .eq('user_id', user.id)
+
   if (error) return { error: error.message }
 
   revalidatePath(`/swells/${swellId}`)

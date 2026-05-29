@@ -13,7 +13,7 @@ import { SwellProficiencyView } from './SwellProficiencyView'
 
 type RawJunction = {
   contribution_weight: number
-  motions: { id: string; name: string; default_points: number; default_hours: number } | null
+  motions: { id: string; name: string; default_points: number; default_hours: number; group_id: string | null; submotion_mode: string | null } | null
 }
 
 function pacificSundayKey(date: Date): string {
@@ -45,7 +45,7 @@ export default async function SwellDetailPage({ params }: { params: Promise<{ id
     getActiveChapterId(supabase, user.id),
     supabase
       .from('motion_swells')
-      .select('contribution_weight, motions(id, name, default_points, default_hours)')
+      .select('contribution_weight, motions(id, name, default_points, default_hours, group_id, submotion_mode)')
       .eq('swell_id', id),
     supabase
       .from('milestones')
@@ -56,7 +56,7 @@ export default async function SwellDetailPage({ params }: { params: Promise<{ id
       .order('created_at', { ascending: true }),
     supabase
       .from('user_settings')
-      .select('tracking_mode, groups_enabled')
+      .select('tracking_mode, groups_enabled, submotions_enabled')
       .eq('user_id', user.id)
       .single(),
     getWeekStart(),
@@ -103,6 +103,8 @@ export default async function SwellDetailPage({ params }: { params: Promise<{ id
       default_points: j.motions!.default_points,
       default_hours: Number(j.motions!.default_hours),
       weight: Number(j.contribution_weight) || 1,
+      groupId: j.motions!.group_id ?? null,
+      submotionMode: (j.motions!.submotion_mode as 'distribute' | 'rollup' | null) ?? null,
     }))
 
   const weights: Record<string, number> = {}
@@ -124,7 +126,14 @@ export default async function SwellDetailPage({ params }: { params: Promise<{ id
   const rawMilestones = (milestonesRaw ?? []) as RawMilestoneJoin[]
   const milestoneIds = rawMilestones.map(m => m.id)
 
-  const [{ data: allLogs }, { data: hitsForSwell }] = await Promise.all([
+  const [
+    { data: allLogs },
+    { data: hitsForSwell },
+    { data: allSwellsRaw },
+    { data: allMotionSwellsRaw },
+    { data: submotionsRaw },
+    { data: todayLogsRaw },
+  ] = await Promise.all([
     motionIds.length > 0
       ? supabase
           .from('logs')
@@ -140,6 +149,36 @@ export default async function SwellDetailPage({ params }: { params: Promise<{ id
           .eq('user_id', user.id)
           .in('milestone_id', milestoneIds)
       : Promise.resolve({ data: [] as { hit_at: string; milestone_id: string; milestones: { swell_id: string; bonus_points: number } | null }[] }),
+    supabase
+      .from('swells')
+      .select('id, name, color')
+      .eq('user_id', user.id)
+      .eq('chapter_id', chapterId)
+      .eq('hidden', false)
+      .order('sort_order', { ascending: true }),
+    motionIds.length > 0
+      ? supabase
+          .from('motion_swells')
+          .select('motion_id, contribution_weight, swells(id, name, color)')
+          .in('motion_id', motionIds)
+      : Promise.resolve({ data: [] as { motion_id: string; contribution_weight: number; swells: { id: string; name: string; color: string } | null }[] }),
+    motionIds.length > 0
+      ? supabase
+          .from('motions')
+          .select('id, name, default_points, default_hours, parent_id')
+          .eq('user_id', user.id)
+          .eq('chapter_id', chapterId)
+          .in('parent_id', motionIds)
+          .order('sort_order', { ascending: true })
+      : Promise.resolve({ data: [] as { id: string; name: string; default_points: number; default_hours: number; parent_id: string | null }[] }),
+    motionIds.length > 0
+      ? supabase
+          .from('logs')
+          .select('motion_id')
+          .eq('user_id', user.id)
+          .gte('logged_at', todayStart.toISOString())
+          .in('motion_id', motionIds)
+      : Promise.resolve({ data: [] as { motion_id: string | null }[] }),
   ])
 
   // "Month" view = the calendar month containing today (1st-of-month → today).
@@ -292,7 +331,55 @@ export default async function SwellDetailPage({ params }: { params: Promise<{ id
   })
 
   const groupsEnabled = settings?.groups_enabled ?? false
+  const submotionsEnabled = settings?.submotions_enabled ?? false
   const allGroups = (groupsRaw ?? []).map(g => ({ id: g.id, name: g.name, color: g.color }))
+
+  // Build full swell assignments per motion for the detail sheet.
+  type RawMotionSwellJoin = {
+    motion_id: string
+    contribution_weight: number
+    swells: { id: string; name: string; color: string } | { id: string; name: string; color: string }[] | null
+  }
+  const motionSwellMap = new Map<string, { id: string; name: string; color: string; weight: number }[]>()
+  for (const row of (allMotionSwellsRaw ?? []) as RawMotionSwellJoin[]) {
+    const s = Array.isArray(row.swells) ? row.swells[0] : row.swells
+    if (!s) continue
+    const arr = motionSwellMap.get(row.motion_id) ?? []
+    arr.push({ id: s.id, name: s.name, color: s.color, weight: Number(row.contribution_weight) || 1 })
+    motionSwellMap.set(row.motion_id, arr)
+  }
+
+  // Build full Motion objects for the detail sheet.
+  const motionDetails = motions.map(m => ({
+    id: m.id,
+    name: m.name,
+    default_points: m.default_points,
+    default_hours: m.default_hours,
+    swells: motionSwellMap.get(m.id) ?? [],
+    groupId: m.groupId,
+    submotionMode: m.submotionMode,
+  }))
+
+  // Build submotions grouped by parent.
+  const submotionsByParent: Record<string, { id: string; name: string; default_points: number; default_hours: number; swells: { id: string; name: string; color: string; weight: number }[] }[]> = {}
+  for (const sub of submotionsRaw ?? []) {
+    if (!sub.parent_id) continue
+    const arr = submotionsByParent[sub.parent_id] ?? []
+    arr.push({
+      id: sub.id,
+      name: sub.name,
+      default_points: sub.default_points,
+      default_hours: Number(sub.default_hours),
+      swells: [],
+    })
+    submotionsByParent[sub.parent_id] = arr
+  }
+
+  // Today's done motion IDs.
+  const doneMotionIds = [...new Set((todayLogsRaw ?? []).map(l => l.motion_id).filter(Boolean) as string[])]
+
+  // All swells for the chip picker in the detail sheet.
+  const allSwells = (allSwellsRaw ?? []).map(s => ({ id: s.id, name: s.name, color: s.color }))
 
   return (
     <SwellProficiencyView
@@ -318,6 +405,11 @@ export default async function SwellDetailPage({ params }: { params: Promise<{ id
       todayKey={todayKey}
       groupsEnabled={groupsEnabled}
       allGroups={allGroups}
+      allSwells={allSwells}
+      motionDetails={motionDetails}
+      submotionsByParent={submotionsByParent}
+      doneMotionIds={doneMotionIds}
+      submotionsEnabled={submotionsEnabled}
     />
   )
 }

@@ -1,12 +1,15 @@
 'use client'
 
-import { useRef, useState, useTransition } from 'react'
+import { useEffect, useRef, useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { formatPts, formatHrs } from '@/lib/format'
 import { ceilDisplay, monthlyTargetDisplay, lifetimeTargetDisplay, type DayKey } from '@/lib/periods'
 import { setSwellHidden, updateSwellDirect, setSwellGroup, deleteSwell } from '@/app/actions/swells'
+import { unlogMotion } from '@/app/actions/logs'
+import { hideMotion } from '@/app/actions/motions'
 import { AddMotionForm } from '@/app/dashboard/components/AddMotionForm'
+import { MotionDetailSheet } from '@/app/dashboard/components/MotionDetailSheet'
 import { MilestonesSection, type Milestone } from './MilestonesSection'
 
 type Swell = {
@@ -20,6 +23,25 @@ type Swell = {
 }
 
 type Group = { id: string; name: string; color: string }
+type ChipSwell = { id: string; name: string; color: string }
+type MotionSwell = { id: string; name: string; color: string; weight: number }
+type MotionFull = {
+  id: string
+  name: string
+  default_points: number
+  default_hours: number
+  swells: MotionSwell[]
+  groupId: string | null
+  submotionMode: 'distribute' | 'rollup' | null
+}
+type SubSwell = { id: string; name: string; color: string; weight: number }
+type SubFull = {
+  id: string
+  name: string
+  default_points: number
+  default_hours: number
+  swells: SubSwell[]
+}
 
 type Bucket = { count: number; pts: number; hrs: number }
 type MotionStat = {
@@ -42,8 +64,6 @@ type Props = {
   weekHrs: number
   lifetimePts: number
   lifetimeHrs: number
-  // Calendar-month bonus accrual (points mode only). The View sums motion
-  // month buckets, then adds this to produce the displayed monthValue.
   monthBonus: number
   weeksActive: number
   weeksSinceFirstLog: number
@@ -53,6 +73,11 @@ type Props = {
   todayKey: DayKey
   groupsEnabled: boolean
   allGroups: Group[]
+  allSwells: ChipSwell[]
+  motionDetails: MotionFull[]
+  submotionsByParent: Record<string, SubFull[]>
+  doneMotionIds: string[]
+  submotionsEnabled: boolean
 }
 
 const TIME_OPTIONS: { value: TimeView; label: string }[] = [
@@ -93,11 +118,17 @@ export function SwellProficiencyView({
   todayKey,
   groupsEnabled,
   allGroups,
+  allSwells,
+  motionDetails,
+  submotionsByParent,
+  doneMotionIds,
+  submotionsEnabled,
 }: Props) {
   const router = useRouter()
   const [timeView, setTimeView] = useState<TimeView>('week')
   const [viewMode, setViewMode] = useState<ViewMode>('constellation')
   const [addOpen, setAddOpen] = useState(false)
+  const [selectedMotionId, setSelectedMotionId] = useState<string | null>(null)
 
   // Inline-edit state: header name / color / weekly target. Mirrors the
   // MotionDetailSheet pattern — autosave on blur via updateSwellDirect.
@@ -131,9 +162,18 @@ export function SwellProficiencyView({
     persistAll(trimmed, swell.color, swell.target_points, swell.target_hours)
   }
 
-  function commitColor(nextColor: string) {
-    if (nextColor === swell.color) return
-    persistAll(lastValidName.current, nextColor, swell.target_points, swell.target_hours)
+  const [localColor, setLocalColor] = useState(swell.color)
+  const colorTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  useEffect(() => { setLocalColor(swell.color) }, [swell.color])
+
+  function handleColorChange(nextColor: string) {
+    setLocalColor(nextColor)
+    if (colorTimer.current) clearTimeout(colorTimer.current)
+    colorTimer.current = setTimeout(() => {
+      if (nextColor !== swell.color) {
+        persistAll(lastValidName.current, nextColor, swell.target_points, swell.target_hours)
+      }
+    }, 400)
   }
 
   function commitTarget() {
@@ -339,7 +379,11 @@ export function SwellProficiencyView({
           const sizeFactor = radius / NODE_MAX_RADIUS
           const countLabel = b.count === 1 ? '1 log' : `${b.count} logs`
           return (
-            <g key={`node-${m.id}`}>
+            <g
+              key={`node-${m.id}`}
+              onClick={() => setSelectedMotionId(m.id)}
+              style={{ cursor: 'pointer' }}
+            >
               <title>{`${m.name}: ${formatValue(value)}, ${countLabel}`}</title>
               <circle
                 cx={x}
@@ -404,7 +448,8 @@ export function SwellProficiencyView({
           return (
             <li
               key={m.id}
-              className="flex items-center gap-3 px-1 py-2.5"
+              onClick={() => setSelectedMotionId(m.id)}
+              className="flex cursor-pointer items-center gap-3 px-1 py-2.5 transition-colors active:bg-th-surface"
             >
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium text-th-text">{m.name}</p>
@@ -497,12 +542,12 @@ export function SwellProficiencyView({
                 <span
                   aria-hidden
                   className="block h-full w-full rounded-full"
-                  style={{ backgroundColor: swell.color }}
+                  style={{ backgroundColor: localColor }}
                 />
                 <input
                   type="color"
-                  value={swell.color}
-                  onChange={e => commitColor(e.target.value)}
+                  value={localColor}
+                  onChange={e => handleColorChange(e.target.value)}
                   aria-label="Swell color"
                   className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
                 />
@@ -718,6 +763,35 @@ export function SwellProficiencyView({
           </div>
         </div>
       </div>
+
+      {selectedMotionId && (() => {
+        const detail = motionDetails.find(m => m.id === selectedMotionId)
+        if (!detail) return null
+        const isLogged = doneMotionIds.includes(selectedMotionId)
+        return (
+          <MotionDetailSheet
+            motion={detail}
+            submotions={submotionsByParent[selectedMotionId] ?? []}
+            doneMotionIds={doneMotionIds}
+            onClose={() => setSelectedMotionId(null)}
+            onPointsDelta={() => router.refresh()}
+            onHide={(id) => {
+              setSelectedMotionId(null)
+              hideMotion(id).then(() => router.refresh())
+            }}
+            isLogged={isLogged}
+            onUnlog={() => {
+              unlogMotion(selectedMotionId).then(() => router.refresh())
+            }}
+            allSwells={allSwells}
+            allGroups={allGroups}
+            groupsEnabled={groupsEnabled}
+            submotionsEnabled={submotionsEnabled}
+            trackingMode={trackingMode}
+            onOpenDuplicate={(id) => setSelectedMotionId(id)}
+          />
+        )
+      })()}
     </div>
   )
 }
