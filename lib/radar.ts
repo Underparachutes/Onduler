@@ -174,15 +174,15 @@ export type ScaleConfig = {
 
 export const POINTS_SCALE: ScaleConfig = {
   initialCeiling: 200,
-  floor: 100,
-  hardCeiling: 1000,
+  floor: 1,
+  hardCeiling: Infinity,
   overshootHeadroomPct: 0.85,
 }
 
 export const HOURS_SCALE: ScaleConfig = {
   initialCeiling: 10,
-  floor: 5,
-  hardCeiling: 50,
+  floor: 0.5,
+  hardCeiling: Infinity,
   overshootHeadroomPct: 0.85,
 }
 

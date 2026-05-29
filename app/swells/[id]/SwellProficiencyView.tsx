@@ -743,6 +743,7 @@ export function SwellProficiencyView({
             swellId={swell.id}
             swellColor={swell.color}
             milestones={milestones}
+            swellMotions={motions.map(m => ({ id: m.id, name: m.name }))}
           />
 
           <div className="mt-12 flex justify-end border-t border-th-border pt-4">

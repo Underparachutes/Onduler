@@ -25,7 +25,7 @@ import {
   createMilestone,
   deleteMilestone,
   markRecurringHit,
-  unmarkRecurringHit,
+  resetCycleHits,
   renameMilestone,
   reorderMilestones,
   setOneShotComplete,
@@ -50,10 +50,17 @@ export type Milestone = {
   cycleHit: boolean
 }
 
+function cadenceMax(cadence: Cadence): number {
+  return cadence === 'weekly' ? 7 : 31
+}
+
+type SwellMotion = { id: string; name: string }
+
 type Props = {
   swellId: string
   swellColor: string
   milestones: Milestone[]
+  swellMotions: SwellMotion[]
 }
 
 const DragHandle = ({ listeners }: { listeners?: Record<string, Function> }) => (
@@ -83,7 +90,7 @@ function DroppableSection({ id, children }: { id: string; children: React.ReactN
   )
 }
 
-export function MilestonesSection({ swellId, swellColor, milestones }: Props) {
+export function MilestonesSection({ swellId, swellColor, milestones, swellMotions }: Props) {
   const [adding, setAdding] = useState(false)
   const [showCompleted, setShowCompleted] = useState(false)
 
@@ -261,6 +268,7 @@ export function MilestonesSection({ swellId, swellColor, milestones }: Props) {
                       milestone={m}
                       swellId={swellId}
                       swellColor={swellColor}
+                      swellMotions={swellMotions}
                     />
                   ))}
                 </ul>
@@ -348,7 +356,8 @@ function AddMilestoneForm({ swellId, onClose }: { swellId: string; onClose: () =
     setError(null)
     const trimmed = name.trim()
     if (!trimmed) { setError('Name required'); return }
-    const count = kind === 'recurring' ? parseInt(targetCount) : 0
+    const max = cadenceMax(cadence)
+    const count = kind === 'recurring' ? Math.min(parseInt(targetCount), max) : 0
     if (kind === 'recurring' && (isNaN(count) || count <= 0)) {
       setError('Set a positive count')
       return
@@ -414,6 +423,7 @@ function AddMilestoneForm({ swellId, onClose }: { swellId: string; onClose: () =
           <input
             type="number"
             min="1"
+            max={cadenceMax(cadence)}
             value={targetCount}
             onChange={e => setTargetCount(e.target.value)}
             inputMode="numeric"
@@ -521,7 +531,7 @@ function ProgressRing({
   const circumference = 2 * Math.PI * r
   const dash = Math.max(0, Math.min(1, ratio)) * circumference
   return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden>
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden className="pointer-events-none">
       <circle
         cx={size / 2}
         cy={size / 2}
@@ -550,10 +560,12 @@ function SortableRecurringRow({
   milestone,
   swellId,
   swellColor,
+  swellMotions,
 }: {
   milestone: Milestone
   swellId: string
   swellColor: string
+  swellMotions: SwellMotion[]
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: milestone.id })
@@ -561,8 +573,9 @@ function SortableRecurringRow({
   const target = milestone.targetCount ?? 0
   const prog = cycleProgress(milestone.currentCycleCount, target > 0 ? target : 1)
   const hasTarget = target > 0
-  const [toggling, startToggle] = useTransition()
+  const [, startHit] = useTransition()
   const [editing, setEditing] = useState(false)
+  const editRef = useRef<HTMLLIElement>(null)
   const [cadence, setCadence] = useState<'weekly' | 'monthly'>((milestone.cadence as 'weekly' | 'monthly') ?? 'weekly')
   const [targetDraft, setTargetDraft] = useState(String(milestone.targetCount ?? 1))
   const [bonusDraft, setBonusDraft] = useState(String(milestone.bonusPoints ?? 0))
@@ -572,37 +585,49 @@ function SortableRecurringRow({
   const deleteTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [, startFlip] = useTransition()
 
-  function handleToggleHit() {
-    if (toggling) return
-    startToggle(async () => {
+  useEffect(() => {
+    if (!editing) return
+    function handleClick(e: MouseEvent) {
+      if (editRef.current && !editRef.current.contains(e.target as Node)) setEditing(false)
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [editing])
+
+  function handleHitClick() {
+    startHit(async () => {
       if (milestone.cycleHit) {
-        await unmarkRecurringHit(milestone.id, swellId)
+        await resetCycleHits(milestone.id, swellId)
       } else {
         await markRecurringHit(milestone.id, swellId)
       }
     })
   }
 
-  function handleSaveEdit() {
-    const count = parseInt(targetDraft)
-    if (isNaN(count) || count <= 0) return
-    const bonus = parseInt(bonusDraft)
-    const bonusValid = !isNaN(bonus) && bonus >= 0 ? bonus : 0
+  function persist(patch: { cadence?: 'weekly' | 'monthly'; targetCount?: number; bonusPoints?: number }) {
     startSave(async () => {
-      await updateMilestone(milestone.id, swellId, {
-        cadence,
-        targetCount: count,
-        bonusPoints: bonusValid,
-      })
-      setEditing(false)
+      await updateMilestone(milestone.id, swellId, patch)
     })
   }
 
-  function cancelEdit() {
-    setCadence((milestone.cadence as 'weekly' | 'monthly') ?? 'weekly')
-    setTargetDraft(String(milestone.targetCount ?? 1))
-    setBonusDraft(String(milestone.bonusPoints ?? 0))
-    setEditing(false)
+  function commitCadence(next: 'weekly' | 'monthly') {
+    setCadence(next)
+    if (next !== milestone.cadence) persist({ cadence: next })
+  }
+
+  function commitTarget() {
+    const max = cadenceMax(cadence)
+    const raw = parseInt(targetDraft)
+    if (isNaN(raw) || raw <= 0) { setTargetDraft(String(milestone.targetCount ?? 1)); return }
+    const count = Math.min(raw, max)
+    if (count !== raw) setTargetDraft(String(count))
+    if (count !== milestone.targetCount) persist({ targetCount: count })
+  }
+
+  function commitBonus() {
+    const bonus = parseInt(bonusDraft)
+    const val = !isNaN(bonus) && bonus >= 0 ? bonus : 0
+    if (val !== milestone.bonusPoints) persist({ bonusPoints: val })
   }
 
   function handleDelete() {
@@ -628,13 +653,48 @@ function SortableRecurringRow({
   if (editing) {
     return (
       <li
-        ref={setNodeRef}
+        ref={(node) => { setNodeRef(node); (editRef as React.MutableRefObject<HTMLLIElement | null>).current = node }}
         {...attributes}
         suppressHydrationWarning
         style={{ transform: CSS.Transform.toString(transform), transition }}
         className="flex flex-col gap-2 rounded-lg border border-th-border px-3 py-3"
       >
-        <MilestoneRowName milestone={milestone} swellId={swellId} />
+        <div className="flex items-center gap-1">
+          <MilestoneRowName milestone={milestone} swellId={swellId} />
+          <button
+            type="button"
+            onClick={() => setEditing(false)}
+            className="shrink-0 p-1 text-th-faint transition-colors hover:text-th-muted"
+            aria-label="Close"
+          >
+            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="h-3 w-3">
+              <path d="M2 2l8 8M10 2l-8 8" />
+            </svg>
+          </button>
+        </div>
+        {swellMotions.length > 0 && (
+          <div className="flex items-center gap-2">
+            <label className="shrink-0 text-xs text-th-muted">Motion</label>
+            <select
+              value={milestone.motionId ?? ''}
+              onChange={e => {
+                const val = e.target.value || null
+                startSave(async () => { await updateMilestone(milestone.id, swellId, { motionId: val }) })
+              }}
+              className="flex-1 rounded-lg border border-th-border bg-th-surface px-2 py-1.5 text-sm text-th-text outline-none focus:border-th-focus"
+            >
+              <option value="">None (manual)</option>
+              {swellMotions.map(m => (
+                <option key={m.id} value={m.id}>{m.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
+        {milestone.motionId && (
+          <p className="text-[10px] text-th-faint">
+            Tracks automatically from motion logs
+          </p>
+        )}
         <div className="flex items-center gap-2">
           <span className="shrink-0 text-xs text-th-muted">Every</span>
           <div className="flex gap-1">
@@ -642,7 +702,7 @@ function SortableRecurringRow({
               <button
                 key={c}
                 type="button"
-                onClick={() => setCadence(c)}
+                onClick={() => commitCadence(c)}
                 className={`rounded-md border px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider transition-colors ${
                   cadence === c
                     ? 'border-th-text bg-th-text text-th-bg'
@@ -659,8 +719,10 @@ function SortableRecurringRow({
           <input
             type="number"
             min="1"
+            max={cadenceMax(cadence)}
             value={targetDraft}
             onChange={e => setTargetDraft(e.target.value)}
+            onBlur={commitTarget}
             inputMode="numeric"
             className="w-14 rounded-lg border border-th-border bg-th-surface px-2 py-1.5 text-sm text-th-text outline-none focus:border-th-focus"
           />
@@ -672,25 +734,10 @@ function SortableRecurringRow({
             min="0"
             value={bonusDraft}
             onChange={e => setBonusDraft(e.target.value)}
+            onBlur={commitBonus}
             inputMode="numeric"
             className="w-14 rounded-lg border border-th-border bg-th-surface px-2 py-1.5 text-sm text-th-text outline-none focus:border-th-focus"
           />
-        </div>
-        <div className="flex items-center gap-2 pt-1">
-          <button
-            type="button"
-            onClick={handleSaveEdit}
-            className="rounded-lg bg-th-btn px-3 py-1.5 text-xs font-medium text-th-btn-text active:scale-[0.97]"
-          >
-            Save
-          </button>
-          <button
-            type="button"
-            onClick={cancelEdit}
-            className="text-xs text-th-faint transition-colors hover:text-th-muted"
-          >
-            Cancel
-          </button>
         </div>
         <div className="flex items-center gap-2 border-t border-th-border pt-2">
           <button
@@ -726,32 +773,42 @@ function SortableRecurringRow({
       }}
       className="flex items-center gap-1 select-none outline-none"
     >
-      <button
-        type="button"
-        onClick={handleToggleHit}
-        disabled={toggling}
-        className="shrink-0 px-1 py-2 transition-transform active:scale-90"
-        aria-label={milestone.cycleHit ? 'Unmark this cycle' : 'Mark as hit'}
-      >
-        {milestone.cycleHit ? (
-          <span
-            className="flex h-[18px] w-[18px] items-center justify-center rounded-full"
-            style={{ backgroundColor: swellColor }}
-          >
-            <svg viewBox="0 0 12 10" fill="none" className="h-2.5 w-2.5">
-              <path d="M1 5l3.5 3.5L11 1" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </span>
-        ) : hasTarget ? (
-          <ProgressRing ratio={prog.ratio} hit={prog.hit} color={swellColor} />
-        ) : (
-          <span
-            aria-hidden
-            className="inline-block h-2 w-2 rounded-full"
-            style={{ backgroundColor: swellColor, opacity: 0.55 }}
-          />
-        )}
-      </button>
+      {milestone.motionId ? (
+        <span className="shrink-0 px-1 py-2">
+          {milestone.cycleHit ? (
+            <span
+              className="flex h-[18px] w-[18px] items-center justify-center rounded-full"
+              style={{ backgroundColor: swellColor }}
+            >
+              <svg viewBox="0 0 12 10" fill="none" className="h-2.5 w-2.5">
+                <path d="M1 5l3.5 3.5L11 1" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </span>
+          ) : (
+            <ProgressRing ratio={hasTarget ? prog.ratio : 0} hit={false} color={swellColor} />
+          )}
+        </span>
+      ) : (
+        <button
+          type="button"
+          onClick={handleHitClick}
+          className="shrink-0 px-1 py-2 transition-transform active:scale-90"
+          aria-label={milestone.cycleHit ? 'Reset cycle' : 'Add one hit'}
+        >
+          {milestone.cycleHit ? (
+            <span
+              className="pointer-events-none flex h-[18px] w-[18px] items-center justify-center rounded-full"
+              style={{ backgroundColor: swellColor }}
+            >
+              <svg viewBox="0 0 12 10" fill="none" className="h-2.5 w-2.5">
+                <path d="M1 5l3.5 3.5L11 1" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </span>
+          ) : (
+            <ProgressRing ratio={hasTarget ? prog.ratio : 0} hit={false} color={swellColor} />
+          )}
+        </button>
+      )}
       <button
         type="button"
         onClick={() => setEditing(true)}
@@ -789,10 +846,22 @@ function SortableOneShotRow({
   const completed = milestone.completedAt !== null
   const [, startToggle] = useTransition()
   const [editing, setEditing] = useState(false)
+  const editRef = useRef<HTMLLIElement>(null)
+  const [bonusDraft, setBonusDraft] = useState(String(milestone.bonusPoints ?? 0))
+  const [, startSave] = useTransition()
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [, startDelete] = useTransition()
   const deleteTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [, startFlip] = useTransition()
+
+  useEffect(() => {
+    if (!editing) return
+    function handleClick(e: MouseEvent) {
+      if (editRef.current && !editRef.current.contains(e.target as Node)) setEditing(false)
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [editing])
 
   function toggle() {
     startToggle(async () => {
@@ -810,6 +879,12 @@ function SortableOneShotRow({
     startDelete(async () => { await deleteMilestone(milestone.id, swellId) })
   }
 
+  function commitBonus() {
+    const bonus = parseInt(bonusDraft)
+    const val = !isNaN(bonus) && bonus >= 0 ? bonus : 0
+    if (val !== milestone.bonusPoints) startSave(async () => { await updateMilestone(milestone.id, swellId, { bonusPoints: val }) })
+  }
+
   function handleFlipKind() {
     startFlip(async () => {
       await updateMilestone(milestone.id, swellId, { kind: 'recurring' })
@@ -819,21 +894,36 @@ function SortableOneShotRow({
   if (editing) {
     return (
       <li
-        ref={setNodeRef}
+        ref={(node) => { setNodeRef(node); (editRef as React.MutableRefObject<HTMLLIElement | null>).current = node }}
         {...attributes}
         suppressHydrationWarning
         style={{ transform: CSS.Transform.toString(transform), transition }}
         className="flex flex-col gap-2 rounded-lg border border-th-border px-3 py-3"
       >
-        <MilestoneRowName milestone={milestone} swellId={swellId} completed={completed} />
-        <div className="flex items-center gap-2 pt-1">
+        <div className="flex items-center gap-1">
+          <MilestoneRowName milestone={milestone} swellId={swellId} completed={completed} />
           <button
             type="button"
             onClick={() => setEditing(false)}
-            className="text-xs text-th-faint transition-colors hover:text-th-muted"
+            className="shrink-0 p-1 text-th-faint transition-colors hover:text-th-muted"
+            aria-label="Close"
           >
-            Done
+            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="h-3 w-3">
+              <path d="M2 2l8 8M10 2l-8 8" />
+            </svg>
           </button>
+        </div>
+        <div className="flex items-center gap-2">
+          <label className="shrink-0 text-xs text-th-muted">Bonus pts</label>
+          <input
+            type="number"
+            min="0"
+            value={bonusDraft}
+            onChange={e => setBonusDraft(e.target.value)}
+            onBlur={commitBonus}
+            inputMode="numeric"
+            className="w-14 rounded-lg border border-th-border bg-th-surface px-2 py-1.5 text-sm text-th-text outline-none focus:border-th-focus"
+          />
         </div>
         <div className="flex items-center gap-2 border-t border-th-border pt-2">
           <button

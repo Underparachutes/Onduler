@@ -2,9 +2,15 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { getWeekStart } from '@/lib/timezone'
+import { pacificDayKey } from '@/lib/periods'
+import { cycleStartKey, type Cadence } from '@/lib/cadence'
 
 type MilestoneKind = 'recurring' | 'one_shot'
-type Cadence = 'weekly' | 'monthly'
+
+function cadenceMax(cadence: Cadence | null): number {
+  return cadence === 'monthly' ? 31 : 7
+}
 
 export async function createMilestone(
   swellId: string,
@@ -25,9 +31,11 @@ export async function createMilestone(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
+  const effectiveCadence = kind === 'recurring' ? cadence ?? 'weekly' : null
+  const max = cadenceMax(effectiveCadence)
   const targetCount =
     kind === 'recurring' && options?.targetCount && options.targetCount > 0
-      ? Math.floor(options.targetCount)
+      ? Math.min(Math.floor(options.targetCount), max)
       : null
   const bonusPoints =
     options?.bonusPoints && options.bonusPoints > 0 ? Math.floor(options.bonusPoints) : 0
@@ -89,8 +97,11 @@ export async function updateMilestone(
   }
   if (patch.cadence !== undefined) update.cadence = patch.cadence
   if (patch.targetCount !== undefined) {
+    const max = cadenceMax(patch.cadence ?? (update.cadence as Cadence | null) ?? null)
     update.target_count =
-      patch.targetCount && patch.targetCount > 0 ? Math.floor(patch.targetCount) : null
+      patch.targetCount && patch.targetCount > 0
+        ? Math.min(Math.floor(patch.targetCount), max)
+        : null
   }
   if (patch.bonusPoints !== undefined) {
     update.bonus_points =
@@ -238,6 +249,39 @@ export async function unmarkRecurringHit(milestoneId: string, swellId: string) {
 
   if (error) return { error: error.message }
 
+  revalidatePath(`/swells/${swellId}`)
+  revalidatePath('/dashboard')
+  return { success: true }
+}
+
+export async function resetCycleHits(milestoneId: string, swellId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const { data: milestone } = await supabase
+    .from('milestones')
+    .select('cadence')
+    .eq('id', milestoneId)
+    .eq('user_id', user.id)
+    .single()
+  if (!milestone) return { error: 'Waypoint not found' }
+
+  const now = new Date()
+  const todayKey = pacificDayKey(now)
+  const weekStart = await getWeekStart()
+  const weekStartStr = pacificDayKey(weekStart)
+  const cadence: Cadence = (milestone.cadence as Cadence) ?? 'weekly'
+  const cycleStart = cycleStartKey(cadence, weekStartStr, todayKey)
+
+  const { error } = await supabase
+    .from('milestone_hits')
+    .delete()
+    .eq('user_id', user.id)
+    .eq('milestone_id', milestoneId)
+    .gte('hit_at', cycleStart)
+
+  if (error) return { error: error.message }
   revalidatePath(`/swells/${swellId}`)
   revalidatePath('/dashboard')
   return { success: true }
