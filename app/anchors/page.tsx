@@ -98,9 +98,10 @@ function periodDateLabel(todayKey: DayKey, period: Period, weekStart: Date): str
 export default async function AnchorsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ period?: string }>
+  searchParams: Promise<{ period?: string; sort?: string }>
 }) {
-  const { period: rawPeriod } = await searchParams
+  const { period: rawPeriod, sort: rawSort } = await searchParams
+  const swellSort: 'earned' | 'goal' = rawSort === 'goal' ? 'goal' : 'earned'
   let period = parsePeriod(rawPeriod)
 
   const supabase = await createClient()
@@ -199,7 +200,7 @@ export default async function AnchorsPage({
   ] = await Promise.all([
     supabase
       .from('logs')
-      .select('points, hours, logged_at, motions(name, motion_swells(contribution_weight, swells(id, name, color)))')
+      .select('points, hours, logged_at, motion_id, motions(name, motion_swells(contribution_weight, swells(id, name, color)))')
       .eq('user_id', user.id)
       .eq('chapter_id', chapterId)
       .order('logged_at', { ascending: false }),
@@ -348,8 +349,8 @@ export default async function AnchorsPage({
   const totalValue = isHours ? totalHours : totalPoints + periodBonusTotal
 
   // Swells breakdown — period-filtered.
-  const swellAccum = new Map<string, { name: string; color: string; points: number; hours: number }>()
-  swells?.forEach(s => swellAccum.set(s.id, { name: s.name, color: s.color, points: 0, hours: 0 }))
+  const swellAccum = new Map<string, { name: string; color: string; points: number; hours: number; target: number }>()
+  swells?.forEach(s => swellAccum.set(s.id, { name: s.name, color: s.color, points: 0, hours: 0, target: isHours ? (s.target_hours ? Number(s.target_hours) : 0) : (s.target_points ?? 0) }))
   for (const log of periodLogs) {
     const motion = readMotion(log)
     motion?.motion_swells?.forEach(ms => {
@@ -371,10 +372,10 @@ export default async function AnchorsPage({
     }
   }
 
-  const swellBreakdown = Array.from(swellAccum.values())
-    .map(s => ({ ...s, value: isHours ? s.hours : s.points }))
+  const swellBreakdown = Array.from(swellAccum.entries())
+    .map(([id, s]) => ({ id, ...s, value: isHours ? s.hours : s.points }))
     .filter(s => s.value > 0)
-    .sort((a, b) => b.value - a.value)
+    .sort((a, b) => swellSort === 'goal' ? b.target - a.target : b.value - a.value)
   const maxSwellValue = swellBreakdown[0]?.value ?? 1
 
   const activeDaySet = new Set<DayKey>()
@@ -507,10 +508,18 @@ export default async function AnchorsPage({
           <>
             {swellBreakdown.length > 0 && (
               <div className="mb-8">
-                <h2 className="mb-3 text-sm font-medium text-th-text">By swell</h2>
+                <div className="mb-3 flex items-center justify-between">
+                  <h2 className="text-sm font-medium text-th-text">By swell</h2>
+                  <Link
+                    href={`/anchors?period=${period}&sort=${swellSort === 'earned' ? 'goal' : 'earned'}`}
+                    className="text-xs text-th-faint transition-colors hover:text-th-muted"
+                  >
+                    {swellSort === 'earned' ? 'By earned' : 'By goal'}
+                  </Link>
+                </div>
                 <div className="flex flex-col gap-3">
                   {swellBreakdown.map(s => (
-                    <div key={s.name} className="flex items-center gap-3">
+                    <Link key={s.id} href={`/swells/${s.id}`} className="flex items-center gap-3 transition-opacity active:opacity-60">
                       <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: s.color }} />
                       <span className="w-20 shrink-0 truncate text-xs text-th-secondary">{s.name}</span>
                       <div className="flex-1 overflow-hidden rounded-full bg-th-surface" style={{ height: '6px' }}>
@@ -524,7 +533,7 @@ export default async function AnchorsPage({
                         />
                       </div>
                       <span className="w-16 text-right text-xs text-th-faint">{formatValue(s.value)}</span>
-                    </div>
+                    </Link>
                   ))}
                 </div>
               </div>
@@ -574,13 +583,20 @@ export default async function AnchorsPage({
                     timeZone: 'America/Los_Angeles',
                   })
                   const entryValue = isHours ? ceilDisplay(Number(log.hours), true) : log.points
-                  return (
-                    <div key={`${log.logged_at}-${i}`} className="flex items-center gap-2">
+                  const row = (
+                    <div className="flex items-center gap-2">
                       <span className="h-2 w-2 shrink-0 rounded-full bg-th-border" />
                       <span className="flex-1 truncate text-xs text-th-muted">{motion?.name ?? '—'}</span>
                       <span className="text-xs text-th-faint">{logDate}</span>
                       <span className="w-12 text-right text-xs text-th-faint">+{entryValue}</span>
                     </div>
+                  )
+                  return log.motion_id ? (
+                    <Link key={`${log.logged_at}-${i}`} href={`/dashboard?detail=${log.motion_id}`} className="transition-opacity active:opacity-60">
+                      {row}
+                    </Link>
+                  ) : (
+                    <div key={`${log.logged_at}-${i}`}>{row}</div>
                   )
                 })}
               </div>
@@ -598,13 +614,20 @@ export default async function AnchorsPage({
                         timeZone: 'America/Los_Angeles',
                       })
                       const entryValue = isHours ? ceilDisplay(Number(log.hours), true) : log.points
-                      return (
-                        <div key={`${log.logged_at}-${i}-more`} className="flex items-center gap-2">
+                      const row = (
+                        <div className="flex items-center gap-2">
                           <span className="h-2 w-2 shrink-0 rounded-full bg-th-border" />
                           <span className="flex-1 truncate text-xs text-th-muted">{motion?.name ?? '—'}</span>
                           <span className="text-xs text-th-faint">{logDate}</span>
                           <span className="w-12 text-right text-xs text-th-faint">+{entryValue}</span>
                         </div>
+                      )
+                      return log.motion_id ? (
+                        <Link key={`${log.logged_at}-${i}-more`} href={`/dashboard?detail=${log.motion_id}`} className="transition-opacity active:opacity-60">
+                          {row}
+                        </Link>
+                      ) : (
+                        <div key={`${log.logged_at}-${i}-more`}>{row}</div>
                       )
                     })}
                   </div>

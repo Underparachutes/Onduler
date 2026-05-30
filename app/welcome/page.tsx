@@ -8,14 +8,6 @@ export default async function WelcomePage() {
   return (
     <div className="flex min-h-full flex-col items-center px-4 py-16">
       <div className="w-full max-w-[22rem]">
-        {user && (
-          <Link
-            href="/settings"
-            className="mb-6 inline-block text-xs text-th-faint transition-all hover:text-th-muted active:scale-[0.97]"
-          >
-            ← Settings
-          </Link>
-        )}
         <h1 className="mb-1 text-2xl font-semibold tracking-[0.05em] text-th-text">Install Onduler</h1>
         <p className="mb-10 text-sm text-th-muted">
           Onduler works best as a home-screen app. Follow the steps for your device.

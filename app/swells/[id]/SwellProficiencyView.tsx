@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useRef, useState, useTransition } from 'react'
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { formatPts, formatHrs } from '@/lib/format'
 import { ceilDisplay, monthlyTargetDisplay, lifetimeTargetDisplay, type DayKey } from '@/lib/periods'
@@ -516,27 +515,11 @@ export function SwellProficiencyView({
   }
 
   return (
-    <div className="flex min-h-full flex-col items-center px-4 pb-12 lg:items-start">
+    <div className="flex flex-col items-center px-4 lg:items-start">
       <div className="w-full max-w-[22rem] lg:max-w-none lg:grid lg:grid-cols-[22rem_1fr] lg:gap-10">
         {/* Left column: header + constellation */}
-        <div className="lg:sticky lg:top-0 lg:self-start">
-          <div className="sticky top-0 z-10 bg-th-bg pb-3 lg:static" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.5rem)' }}>
-            <div className="mb-3 flex items-center justify-between">
-              <Link
-                href="/swells"
-                className="text-xs text-th-faint transition-all hover:text-th-muted active:scale-[0.97]"
-              >
-                ← Swells
-              </Link>
-              <button
-                type="button"
-                onClick={toggleHidden}
-                className="text-xs text-th-faint transition-colors hover:text-th-muted active:scale-[0.97]"
-              >
-                {swell.hidden ? 'Restore' : 'Hide'}
-              </button>
-            </div>
-
+        <div className="contents lg:block lg:sticky lg:top-0 lg:self-start">
+          <div className="sticky top-0 z-10 bg-th-bg pb-3" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.5rem)' }}>
             <div className="mb-2 flex items-center gap-2">
               <label className="relative inline-block h-3 w-3 shrink-0 cursor-pointer">
                 <span
@@ -746,21 +729,30 @@ export function SwellProficiencyView({
             swellMotions={motions.map(m => ({ id: m.id, name: m.name }))}
           />
 
-          <div className="mt-12 flex justify-end border-t border-th-border pt-4">
-            <button
-              type="button"
-              onClick={handleDelete}
-              disabled={isDeleting}
-              className={`text-xs transition-colors disabled:opacity-50 ${
-                confirmingDelete ? 'font-medium text-orange-500' : 'text-th-faint hover:text-red-500'
-              }`}
-            >
-              {isDeleting
-                ? 'Deleting…'
-                : confirmingDelete
-                ? 'Tap again to delete swell'
-                : 'Delete swell'}
-            </button>
+          <div className="sticky bottom-0 z-10 border-t border-th-border bg-th-bg pb-4 pt-4">
+            <div className="flex justify-between">
+              <button
+                type="button"
+                onClick={toggleHidden}
+                className="text-xs text-th-faint transition-colors hover:text-th-muted active:scale-[0.97]"
+              >
+                {swell.hidden ? 'Restore swell' : 'Hide swell'}
+              </button>
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={isDeleting}
+                className={`text-xs transition-colors disabled:opacity-50 ${
+                  confirmingDelete ? 'font-medium text-orange-500' : 'text-th-faint hover:text-red-500'
+                }`}
+              >
+                {isDeleting
+                  ? 'Deleting…'
+                  : confirmingDelete
+                  ? 'Tap again to delete swell'
+                  : 'Delete swell'}
+              </button>
+            </div>
           </div>
         </div>
       </div>

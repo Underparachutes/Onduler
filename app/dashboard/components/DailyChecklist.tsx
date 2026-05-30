@@ -69,6 +69,8 @@ type Props = {
   hideShape: boolean
   onToggleShape: () => void
   onViewsModeChange?: (isViews: boolean) => void
+  initialDetailId?: string | null
+  initialViews?: boolean
 }
 
 function DroppableGroup({
@@ -255,6 +257,8 @@ export function DailyChecklist({
   hideShape,
   onToggleShape,
   onViewsModeChange,
+  initialDetailId,
+  initialViews,
 }: Props) {
   const isHours = trackingMode === 'hours'
   const todayValue = isHours ? todayHours : todayPoints
@@ -290,7 +294,7 @@ export function DailyChecklist({
       onToggleShape()
     }
   }
-  const [viewsMode, setViewsMode] = useState(false)
+  const [viewsMode, setViewsMode] = useState(initialViews ?? false)
   const [weekOffset, setWeekOffset] = useState(0)
   const [viewsDelta, setViewsDelta] = useState(0)
   const hideDone = hideCompleted
@@ -300,7 +304,7 @@ export function DailyChecklist({
   const [divingId, setDivingId] = useState<string | null>(null)
   const [, startTransition] = useTransition()
   const [localValue, setLocalValue] = useState(todayValue)
-  const [openSheetId, setOpenSheetId] = useState<string | null>(null)
+  const [openSheetId, setOpenSheetId] = useState<string | null>(initialDetailId ?? null)
   const [localHiddenIds, setLocalHiddenIds] = useState<Set<string>>(new Set())
   const [celebration, setCelebration] = useState<CelebrationState | null>(null)
   const swellProgressRef = useRef({ ...swellWeeklyProgress })
@@ -708,7 +712,7 @@ export function DailyChecklist({
   const headerToolbar = (
     <div className="flex items-center gap-2">
       <button
-        onClick={() => setViewsMode(prev => { const next = !prev; onViewsModeChange?.(next); return next })}
+        onClick={() => { setViewsMode(prev => !prev); onViewsModeChange?.(!viewsMode) }}
         className={`shrink-0 p-1.5 transition-colors active:scale-[0.97] ${viewsMode ? 'text-th-text' : 'text-th-faint hover:text-th-muted'}`}
         aria-label="Views"
       >

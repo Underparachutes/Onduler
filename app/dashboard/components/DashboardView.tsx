@@ -43,6 +43,8 @@ type Props = {
   swellTargets: Record<string, number>
   weeklyLogMap: Record<string, Record<string, string[]>>
   hintMotionsSeen: boolean
+  initialDetailId: string | null
+  initialViews: boolean
 }
 
 export function DashboardView(props: Props) {
@@ -50,7 +52,7 @@ export function DashboardView(props: Props) {
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
   const [hideShape, setHideShape] = useState(false)
-  const [isViewsMode, setIsViewsMode] = useState(false)
+  const [isViewsMode, setIsViewsMode] = useState(props.initialViews)
   useEffect(() => {
     if (localStorage.getItem('onduler-filter-hide-shape') === 'true') setHideShape(true)
   }, [])
@@ -174,6 +176,8 @@ export function DashboardView(props: Props) {
                 hideShape={hideShape}
                 onToggleShape={() => setHideShape(prev => { const next = !prev; localStorage.setItem('onduler-filter-hide-shape', String(next)); return next })}
                 onViewsModeChange={setIsViewsMode}
+                initialDetailId={props.initialDetailId}
+                initialViews={props.initialViews}
               />
             ) : (
               <>

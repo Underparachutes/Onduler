@@ -123,16 +123,6 @@ export default async function AnchorJournalPage() {
   return (
     <div className="flex min-h-full flex-col items-center px-4 py-12">
       <div className="w-full max-w-[22rem]">
-        <div className="mb-6 flex items-center justify-between">
-          <p className="text-xs uppercase tracking-widest text-th-muted">Onduler</p>
-          <Link
-            href="/anchors"
-            className="text-xs text-th-faint transition-all hover:text-th-muted active:scale-[0.97]"
-          >
-            ← Anchors
-          </Link>
-        </div>
-
         <h1 className="mb-2 text-2xl font-semibold text-th-text">Your anchors</h1>
         <p className="mb-8 text-xs text-th-muted">
           Every anchor you&apos;ve dropped, oldest chapters at the bottom.

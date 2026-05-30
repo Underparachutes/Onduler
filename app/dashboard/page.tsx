@@ -44,7 +44,8 @@ async function detectWave(
   }
 }
 
-export default async function DashboardPage() {
+export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ detail?: string; views?: string }> }) {
+  const { detail: initialDetailId, views: initialViews } = await searchParams
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -282,6 +283,8 @@ export default async function DashboardPage() {
       swellTargets={swellTargets}
       weeklyLogMap={weeklyLogMap}
       hintMotionsSeen={!!hintsSeen.motions}
+      initialDetailId={initialDetailId ?? null}
+      initialViews={initialViews === 'true'}
     />
   )
 }

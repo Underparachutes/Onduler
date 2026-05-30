@@ -189,7 +189,6 @@ export function SettingsPanel({
               <p className="text-sm font-medium text-th-text">Appearance</p>
               <p className="text-xs text-th-muted">{currentThemeObj?.label ?? 'Default'}</p>
             </div>
-            <span className={`shrink-0 text-sm text-th-faint transition-transform ${openSection === 'appearance' ? 'rotate-90' : ''}`}>→</span>
           </button>
           {openSection === 'appearance' && (
             <div className="pb-4">
@@ -216,7 +215,6 @@ export function SettingsPanel({
             <p className="text-sm font-medium text-th-text">Starter sets</p>
             <p className="truncate text-xs text-th-muted">{shapeSummary}</p>
           </div>
-          <span className="shrink-0 text-sm text-th-faint">→</span>
         </Link>
 
         {/* Past chapters */}
@@ -231,8 +229,7 @@ export function SettingsPanel({
                 {archivedChapterCount} closed {archivedChapterCount === 1 ? 'chapter' : 'chapters'}
               </p>
             </div>
-            <span className="shrink-0 text-sm text-th-faint">→</span>
-          </Link>
+            </Link>
         )}
 
         {/* Tracking */}
@@ -242,10 +239,9 @@ export function SettingsPanel({
             className="flex w-full items-center justify-between py-4 text-left transition-all active:scale-[0.99]"
           >
             <div>
-              <p className="text-sm font-medium text-th-text">Tracking</p>
+              <p className="text-sm font-medium text-th-text">Tracking and organization</p>
               <p className="text-xs text-th-muted">{currentModeObj?.label} · {goalLabel}/day</p>
             </div>
-            <span className={`shrink-0 text-sm text-th-faint transition-transform ${openSection === 'tracking' ? 'rotate-90' : ''}`}>→</span>
           </button>
           {openSection === 'tracking' && (
             <div className="flex flex-col divide-y divide-th-border pb-4">
@@ -363,7 +359,6 @@ export function SettingsPanel({
                 {celebration ? 'Visual on' : 'Visual off'}{haptic ? ' · Haptic on' : ''}
               </p>
             </div>
-            <span className={`shrink-0 text-sm text-th-faint transition-transform ${openSection === 'celebration' ? 'rotate-90' : ''}`}>→</span>
           </button>
           {openSection === 'celebration' && (
             <div className="flex flex-col divide-y divide-th-border pb-4">
@@ -410,7 +405,6 @@ export function SettingsPanel({
               <p className="text-sm font-medium text-th-text">Account</p>
               <p className="truncate text-xs text-th-muted">{email}</p>
             </div>
-            <span className={`shrink-0 text-sm text-th-faint transition-transform ${openSection === 'account' ? 'rotate-90' : ''}`}>→</span>
           </button>
           {openSection === 'account' && (
             <div className="pb-4">
@@ -428,7 +422,6 @@ export function SettingsPanel({
             <p className="text-sm font-medium text-th-text">Install Onduler</p>
             <p className="truncate text-xs text-th-muted">Add to your home screen</p>
           </div>
-          <span className="shrink-0 text-sm text-th-faint">→</span>
         </Link>
 
         {/* Data */}
@@ -438,7 +431,6 @@ export function SettingsPanel({
             className="flex w-full items-center justify-between py-4 text-left transition-all active:scale-[0.99]"
           >
             <p className="text-sm font-medium text-th-text">Data</p>
-            <span className={`shrink-0 text-sm text-th-faint transition-transform ${openSection === 'data' ? 'rotate-90' : ''}`}>→</span>
           </button>
           {openSection === 'data' && (
             <div className="flex flex-col gap-3 pb-4">
@@ -447,9 +439,21 @@ export function SettingsPanel({
                   <p className="text-sm font-medium text-th-text">Export your data</p>
                   <p className="text-xs text-th-muted">Download everything as JSON</p>
                 </div>
-                <a href="/api/export" className="text-sm text-th-secondary hover:underline">
+                <button
+                  onClick={async () => {
+                    const res = await fetch('/api/export')
+                    const blob = await res.blob()
+                    const url = URL.createObjectURL(blob)
+                    const a = document.createElement('a')
+                    a.href = url
+                    a.download = `onduler-export-${new Date().toISOString().slice(0, 10)}.json`
+                    a.click()
+                    URL.revokeObjectURL(url)
+                  }}
+                  className="text-sm text-th-secondary hover:underline"
+                >
                   Download
-                </a>
+                </button>
               </div>
               <div className="flex items-center justify-between">
                 <div>
@@ -496,8 +500,7 @@ export function SettingsPanel({
                     : 'Support Onduler'}
               </p>
             </div>
-            <span className="shrink-0 text-sm text-th-faint">→</span>
-          </Link>
+            </Link>
         )}
       </div>
 

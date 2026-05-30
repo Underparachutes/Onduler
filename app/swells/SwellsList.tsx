@@ -120,7 +120,8 @@ export function SwellsList({
   trackingMode,
   hideDone,
   activeGroup,
-}: Props & { activeGroup: string | null }) {
+  sortMode,
+}: Props & { activeGroup: string | null; sortMode: 'custom' | 'goal' | 'earned' }) {
   const [openSheetId, setOpenSheetId] = useState<string | null>(null)
   const [localDone, setLocalDone] = useState<Set<string>>(() => new Set(doneMotionIds))
   const [localHiddenIds, setLocalHiddenIds] = useState<Set<string>>(new Set())
@@ -198,10 +199,33 @@ export function SwellsList({
     )
   }
 
-  const filteredSwells = orderedSwells.filter(s => {
+  function swellValue(swell: SwellWithMotions): number {
+    const isHrs = trackingMode === 'hours'
+    const bonus = isHrs ? 0 : (swellBonusThisWeek[swell.id] ?? 0)
+    return swell.motions.reduce((sum, m) => {
+      const w = m.swellWeights?.[swell.id] ?? 1
+      if (isHrs) return sum + (hrsThisWeekMap.get(m.id) ?? 0) * w
+      return sum + Math.floor((ptsThisWeekMap.get(m.id) ?? 0) * w)
+    }, 0) + bonus
+  }
+
+  function swellTarget(swell: SwellWithMotions): number {
+    const isHrs = trackingMode === 'hours'
+    return isHrs ? (swell.target_hours ? Number(swell.target_hours) : 0) : (swell.target_points ?? 0)
+  }
+
+  const baseFiltered = orderedSwells.filter(s => {
     if (activeGroup && s.groupId !== activeGroup) return false
     return true
   })
+
+  const filteredSwells = sortMode === 'custom'
+    ? baseFiltered
+    : [...baseFiltered].sort((a, b) =>
+        sortMode === 'goal'
+          ? swellTarget(b) - swellTarget(a)
+          : swellValue(b) - swellValue(a)
+      )
 
   // Group swells by groupId for display
   const groupedSwells = new Map<string | null, SwellWithMotions[]>()

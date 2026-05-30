@@ -1,7 +1,6 @@
 'use client'
 
 import { useMemo, useState, useTransition } from 'react'
-import Link from 'next/link'
 import { BUILD_PRESETS, getBuildPreset, type BuildKey } from '@/lib/builds'
 import { adoptBuild, setBuildSlot } from '@/app/actions/builds'
 import { detectMode } from '@/lib/theme-colors'
@@ -65,15 +64,6 @@ export function ShapePicker({ primary, existingSwellNames, mvsPool, resolvedMvsI
   return (
     <div className="flex min-h-full flex-col items-center px-4 py-12">
       <div className="w-full max-w-[22rem]">
-        <div className="mb-6 flex items-center justify-between">
-          <Link
-            href="/settings"
-            className="text-xs text-th-faint transition-all hover:text-th-muted active:scale-[0.97]"
-          >
-            ← Settings
-          </Link>
-        </div>
-
         <h1 className="mb-2 text-2xl font-semibold text-th-text">Starter sets</h1>
         <p className="mb-8 text-sm text-th-muted">
           A curated starting point for your week. Swap or clear at any time. Nothing gets deleted.

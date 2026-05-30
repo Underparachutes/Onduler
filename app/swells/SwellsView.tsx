@@ -82,7 +82,10 @@ export function SwellsView(props: Props) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [hideDone, toggleHideDone] = usePersistedHideDone('onduler-hide-done-swells')
   const [activeGroup, setActiveGroup] = useState<string | null>(null)
+  const [sortMode, setSortMode] = useState<'custom' | 'goal' | 'earned'>('custom')
   const menuRef = useRef<HTMLDivElement>(null)
+  const filterRef = useRef<HTMLDivElement>(null)
+  const [filterOpen, setFilterOpen] = useState(false)
 
   useEffect(() => {
     if (!menuOpen) return
@@ -180,48 +183,83 @@ export function SwellsView(props: Props) {
                 </p>
               </div>
 
-              {/* The denominator stays visible as a teaching signal for
-                  right-sizing per-swell targets — but quieter than the actuals. */}
-              {combinedTarget > 0 && props.swells.length > 0 && (
-                <div className="mb-3">
-                  <div className="mb-1.5 rounded-full bg-th-surface" style={{ height: '5px' }}>
+              <div className="flex items-center gap-2">
+                <Link
+                  href="/dashboard?views=true"
+                  className="shrink-0 p-1.5 text-th-faint transition-colors hover:text-th-muted active:scale-[0.97]"
+                  aria-label="Weekly view"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4.5 w-4.5">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                    <line x1="16" y1="2" x2="16" y2="6" />
+                    <line x1="8" y1="2" x2="8" y2="6" />
+                    <line x1="3" y1="10" x2="21" y2="10" />
+                  </svg>
+                </Link>
+                <div className="flex-1 h-[5px] overflow-hidden rounded-full bg-th-surface">
+                  {combinedTarget > 0 && (
                     <div
                       className="h-full rounded-full transition-all duration-500"
                       style={{ width: `${Math.min((weeklyTotal / combinedTarget) * 100, 100)}%`, background: 'linear-gradient(to right, color-mix(in oklch, var(--th-accent) 35%, var(--th-surface)), var(--th-accent))', backgroundSize: `${10000 / Math.min((weeklyTotal / combinedTarget) * 100, 100)}% 100%` }}
                     />
-                  </div>
-                  <div className="flex justify-between text-xs text-th-secondary">
-                    <span>{formatValue(weeklyTotal)} / {formatValue(combinedTarget)} weekly</span>
-                    <span>{ceilDisplay(Math.min((weeklyTotal / combinedTarget) * 100, 100))}%</span>
-                  </div>
+                  )}
+                </div>
+                <div className="relative shrink-0" ref={filterRef}>
+                  <button
+                    onClick={() => setFilterOpen(prev => !prev)}
+                    className={`p-1.5 transition-colors active:scale-[0.97] ${hideDone || sortMode !== 'custom' ? 'text-th-text' : 'text-th-faint hover:text-th-muted'}`}
+                    aria-label="Filter"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4.5 w-4.5">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                      <circle cx="12" cy="12" r="3" />
+                    </svg>
+                  </button>
+                  {filterOpen && (
+                    <>
+                      <div className="fixed inset-0 z-10" onClick={() => setFilterOpen(false)} />
+                      <div className="absolute right-0 top-full z-20 mt-1 w-44 rounded-lg border border-th-border bg-th-bg p-2 shadow-lg">
+                        <label className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-xs text-th-text transition-colors hover:bg-th-surface">
+                          <input type="checkbox" checked={hideDone} onChange={toggleHideDone} className="accent-th-btn" />
+                          Hide completed
+                        </label>
+                        <label className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-xs text-th-text transition-colors hover:bg-th-surface">
+                          <input type="checkbox" checked={sortMode === 'earned'} onChange={() => setSortMode(m => m === 'earned' ? 'custom' : 'earned')} className="accent-th-btn" />
+                          Sort {isHours ? 'hrs' : 'pts'}
+                        </label>
+                        <label className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-xs text-th-text transition-colors hover:bg-th-surface">
+                          <input type="checkbox" checked={sortMode === 'goal'} onChange={() => setSortMode(m => m === 'goal' ? 'custom' : 'goal')} className="accent-th-btn" />
+                          Sort target
+                        </label>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {combinedTarget > 0 && props.swells.length > 0 && (
+                <div className="mt-1 flex justify-between text-xs text-th-secondary">
+                  <span>{formatValue(weeklyTotal)} / {formatValue(combinedTarget)} weekly</span>
+                  <span>{ceilDisplay(Math.min((weeklyTotal / combinedTarget) * 100, 100))}%</span>
                 </div>
               )}
 
-              {/* Group filter + hide done */}
-              <div className="flex items-center gap-2">
-                {props.groupsEnabled && visibleGroups.length > 0 && (
-                  <div className="flex flex-1 flex-wrap gap-2">
-                    {visibleGroups.map(g => (
-                      <button
-                        key={g.id}
-                        onClick={() => setActiveGroup(activeGroup === g.id ? null : g.id)}
-                        className="rounded-full border px-3 py-1 text-xs font-medium transition-colors"
-                        style={activeGroup === g.id ? { backgroundColor: g.color, borderColor: g.color, color: '#fff' } : {}}
-                      >
-                        <span className={activeGroup !== g.id ? 'text-th-muted' : ''}>
-                          {g.name.toUpperCase()}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-                <button
-                  onClick={toggleHideDone}
-                  className="shrink-0 text-xs text-th-faint transition-colors hover:text-th-muted ml-auto"
-                >
-                  {hideDone ? 'Show all' : 'Hide done'}
-                </button>
-              </div>
+              {props.groupsEnabled && visibleGroups.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {visibleGroups.map(g => (
+                    <button
+                      key={g.id}
+                      onClick={() => setActiveGroup(activeGroup === g.id ? null : g.id)}
+                      className="rounded-full border px-3 py-1 text-xs font-medium transition-colors"
+                      style={activeGroup === g.id ? { backgroundColor: g.color, borderColor: g.color, color: '#fff' } : {}}
+                    >
+                      <span className={activeGroup !== g.id ? 'text-th-muted' : ''}>
+                        {g.name.toUpperCase()}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             <HintCard hintKey="swells" title="Your swells." seen={props.hintSwellsSeen}>
@@ -251,6 +289,7 @@ export function SwellsView(props: Props) {
               trackingMode={props.trackingMode}
               hideDone={hideDone}
               activeGroup={activeGroup}
+              sortMode={sortMode}
             />
 
             {props.hiddenSwells.length > 0 && (

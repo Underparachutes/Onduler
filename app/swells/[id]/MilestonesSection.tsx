@@ -32,6 +32,7 @@ import {
   updateMilestone,
 } from '@/app/actions/milestones'
 import { cycleProgress } from '@/lib/cadence'
+import { CelebrationOverlay, type CelebrationState } from '@/app/dashboard/components/CelebrationOverlay'
 
 type Cadence = 'weekly' | 'monthly'
 
@@ -93,6 +94,11 @@ function DroppableSection({ id, children }: { id: string; children: React.ReactN
 export function MilestonesSection({ swellId, swellColor, milestones, swellMotions }: Props) {
   const [adding, setAdding] = useState(false)
   const [showCompleted, setShowCompleted] = useState(false)
+  const [celebration, setCelebration] = useState<CelebrationState | null>(null)
+
+  function handleCelebrate(y: number) {
+    setCelebration({ x: 0, y, colors: [swellColor], rowBottom: y })
+  }
 
   const recurring = milestones.filter(m => m.kind === 'recurring')
   const oneShotsAll = milestones.filter(m => m.kind === 'one_shot')
@@ -269,6 +275,7 @@ export function MilestonesSection({ swellId, swellColor, milestones, swellMotion
                       swellId={swellId}
                       swellColor={swellColor}
                       swellMotions={swellMotions}
+                      onCelebrate={handleCelebrate}
                     />
                   ))}
                 </ul>
@@ -294,6 +301,7 @@ export function MilestonesSection({ swellId, swellColor, milestones, swellMotion
                       milestone={m}
                       swellId={swellId}
                       swellColor={swellColor}
+                      onCelebrate={handleCelebrate}
                     />
                   ))}
                 </ul>
@@ -329,11 +337,15 @@ export function MilestonesSection({ swellId, swellColor, milestones, swellMotion
                   swellId={swellId}
                   swellColor={swellColor}
                   disableDrag
+                  onCelebrate={handleCelebrate}
                 />
               ))}
             </ul>
           )}
         </div>
+      )}
+      {celebration && (
+        <CelebrationOverlay celebration={celebration} onDone={() => setCelebration(null)} />
       )}
     </section>
   )
@@ -561,11 +573,13 @@ function SortableRecurringRow({
   swellId,
   swellColor,
   swellMotions,
+  onCelebrate,
 }: {
   milestone: Milestone
   swellId: string
   swellColor: string
   swellMotions: SwellMotion[]
+  onCelebrate: (y: number) => void
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: milestone.id })
@@ -594,7 +608,11 @@ function SortableRecurringRow({
     return () => document.removeEventListener('mousedown', handleClick)
   }, [editing])
 
-  function handleHitClick() {
+  function handleHitClick(e: React.MouseEvent) {
+    if (!milestone.cycleHit) {
+      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+      onCelebrate(rect.bottom)
+    }
     startHit(async () => {
       if (milestone.cycleHit) {
         await resetCycleHits(milestone.id, swellId)
@@ -834,11 +852,13 @@ function SortableOneShotRow({
   swellId,
   swellColor,
   disableDrag,
+  onCelebrate,
 }: {
   milestone: Milestone
   swellId: string
   swellColor: string
   disableDrag?: boolean
+  onCelebrate: (y: number) => void
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: milestone.id, disabled: disableDrag })
@@ -863,7 +883,11 @@ function SortableOneShotRow({
     return () => document.removeEventListener('mousedown', handleClick)
   }, [editing])
 
-  function toggle() {
+  function toggle(e: React.MouseEvent) {
+    if (!completed) {
+      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+      onCelebrate(rect.bottom)
+    }
     startToggle(async () => {
       await setOneShotComplete(milestone.id, !completed, swellId)
     })
