@@ -1,6 +1,6 @@
 # Onduler — State of the Project
 
-*Last updated: 2026-05-30*
+*Last updated: 2026-05-31*
 
 ## The big picture
 
@@ -190,9 +190,9 @@ Backlog of small/mid items (polish, investigations, future features) lives at `d
 | ~~**Engagement layer v1.1**~~ | **Shipped 2026-05-28.** Three moves from `docs/specs/engagement-layer.md`: A (compact live radar at dashboard top — `DashboardShape.tsx`, 140px, pulsing circle → fills on log, hides in wave, taps to `/anchors`), B (visible morph on every log — `onduler:log-committed` CustomEvent with weighted swell deltas, 250ms CSS transition on shape), G.1 (pre-unlock wake audit — confirmed live logs, no change needed). No schema changes. |
 | ~~**Dashboard polish (2026-05-28)**~~ | **Shipped 2026-05-28.** Filter defaults flipped to show-all with "Hide X" labels. Hide wake toggle. Calendar view sticky nav (week label + nav buttons + day letters). Submotion row spacing. Wake: fixed-position, transparent on motions, frosted sea foam green (theme-blended) on calendar view. Anchors copy "swells" → "wakes". Removed "Go to motions" from `/welcome`. |
 | ~~**Waypoint polish (2026-05-29)**~~ | **Shipped 2026-05-29.** Auto-save edit cards, click-outside/X close, motion link dropdown, target count cap (7 weekly / 31 monthly), one-shot bonus points, additive recurring hits with proportional ring + reset, fully dynamic radar scale (no fixed floor/ceiling). |
-| **Next** | Cleanup session — lint errors/warnings audit, unused imports/variables sweep, pre-existing ESLint violations, dead code removal, hydration warning investigation. |
-| **After next** | Premium feature gating + remove admin gate on Crew (paused until testing phase clears v1 exit criteria). |
-| **After** | App integrations — meditation / cooking / exercise app completions auto-log to Onduler. Write the spec first at `docs/specs/app-integrations.md` (OAuth + webhook shape, mapping from external completions to motions, conflict handling), then schedule implementation. Per testing-notes #3 / #29. |
+| ~~**Cleanup session (2026-05-31)**~~ | **Shipped 2026-05-31.** ESLint audit: 66 issues → 0 across 30 files. Removed unused imports/variables (closestCenter, logMotionOnDay, removeLogById, formatHrs, interpolatedWakePath, CENTER, dead newName assignment). Escaped 11 JSX entities. Fixed Unicode curly quotes in WavePrompt. Converted 3 localStorage reads to lazy `useState` initializers. Replaced `any` casts with proper types (`BeforeInstallPromptEvent` interface in `lib/install.ts`, typed navigator/window casts). Converted render-phase ref assignments to `useEffect`-based sync (SwellsList, MilestonesSection, MotionDetailSheet). Suppressed 18 legitimate `set-state-in-effect` false positives (DOM reads, prop sync) and 4 `purity` false positives (`Date.now()` in server components) with targeted `eslint-disable` comments. Added `varsIgnorePattern: "^_"` to ESLint config. TypeScript and production build clean. |
+| **Next** | Premium feature gating + remove admin gate on Crew (paused until testing phase clears v1 exit criteria). |
+| **After next** | App integrations — meditation / cooking / exercise app completions auto-log to Onduler. Write the spec first at `docs/specs/app-integrations.md` (OAuth + webhook shape, mapping from external completions to motions, conflict handling), then schedule implementation. Per testing-notes #3 / #29. |
 
 ## Decisions
 
