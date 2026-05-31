@@ -28,7 +28,7 @@ export default async function WaveReturnPage() {
   const lastLog = lastLogData?.[0] ?? null
 
   const durationSeconds = lastLog
-    ? Math.floor((Date.now() - new Date(lastLog.logged_at).getTime()) / 1000)
+    ? Math.floor((Date.now() - new Date(lastLog.logged_at).getTime()) / 1000) // eslint-disable-line react-hooks/purity -- server component
     : null
 
   return (
@@ -41,7 +41,7 @@ export default async function WaveReturnPage() {
           {durationSeconds !== null
             ? `You've been away for ${formatDuration(durationSeconds)}. `
             : ''}
-          How'd the wave treat you?
+          How&apos;d the wave treat you?
         </p>
         <WaveGrid durationSeconds={durationSeconds} />
       </div>

@@ -74,7 +74,7 @@ export default async function SettingsPage() {
 
       <div className="w-full max-w-[22rem] pb-12 lg:max-w-none">
         <HintCard hintKey="settings" seen={!!((settings?.hints_seen as Record<string, boolean>)?.settings)}>
-          <p>Everything's tunable here. Themes, tracking mode, your starter set. Nothing locked in.</p>
+          <p>Everything&apos;s tunable here. Themes, tracking mode, your starter set. Nothing locked in.</p>
         </HintCard>
         <SettingsPanel
           theme={settings?.theme ?? 'biarritz'}

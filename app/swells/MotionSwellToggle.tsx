@@ -19,7 +19,7 @@ export function MotionSwellToggle({
 
   function toggle(swellId: string) {
     const next = new Set(active)
-    next.has(swellId) ? next.delete(swellId) : next.add(swellId)
+    if (next.has(swellId)) next.delete(swellId); else next.add(swellId)
     setActive(next)
     startTransition(async () => {
       await setMotionSwells(motionId, Array.from(next).map(id => ({ swellId: id, weight: 1 })))

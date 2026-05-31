@@ -64,6 +64,7 @@ type Props = {
   swellMotions: SwellMotion[]
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unsafe-function-type -- dnd-kit's SyntheticListenerMap uses Function
 const DragHandle = ({ listeners }: { listeners?: Record<string, Function> }) => (
   <div
     {...listeners}
@@ -108,13 +109,13 @@ export function MilestonesSection({ swellId, swellColor, milestones, swellMotion
   const [orderedRecurring, setOrderedRecurring] = useState(recurring)
   const [orderedOneShotsActive, setOrderedOneShotsActive] = useState(oneShotsActive)
 
-  useEffect(() => { setOrderedRecurring(recurring) }, [milestones])
-  useEffect(() => { setOrderedOneShotsActive(oneShotsActive) }, [milestones])
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- sync prop → local state for drag reorder
+  useEffect(() => { setOrderedRecurring(recurring); setOrderedOneShotsActive(oneShotsActive) }, [milestones]) // eslint-disable-line react-hooks/exhaustive-deps -- sync from milestones prop
 
   const recurringRef = useRef(orderedRecurring)
-  recurringRef.current = orderedRecurring
   const oneShotRef = useRef(orderedOneShotsActive)
-  oneShotRef.current = orderedOneShotsActive
+  useEffect(() => { recurringRef.current = orderedRecurring }, [orderedRecurring])
+  useEffect(() => { oneShotRef.current = orderedOneShotsActive }, [orderedOneShotsActive])
 
   const [, startReorder] = useTransition()
   const [dragging, setDragging] = useState(false)

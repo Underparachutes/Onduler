@@ -22,7 +22,7 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import { quickLogMotion, unlogMotion } from '@/app/actions/logs'
 import { createSubmotion, hideMotion, deleteMotion, duplicateMotion, setMotionSwells, setMotionGroup, setSubmotionMode, updateSubmotionDirect, updateMotionDirect, reorderMotions } from '@/app/actions/motions'
-import { formatPts, formatHrs } from '@/lib/format'
+import { formatPts } from '@/lib/format'
 import { applyWeightEdit, defaultWeightForNewSwell, totalAllocation } from '@/lib/contributions'
 import { useToast } from '@/app/components/Toast'
 import { CadenceSection } from './CadenceSection'
@@ -332,6 +332,7 @@ export function MotionDetailSheet({
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   )
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- sync prop → local state for drag reorder
   useEffect(() => { setOrderedSubs(submotions) }, [submotions])
 
   function handleSubDragEnd(event: DragEndEvent) {
@@ -359,10 +360,12 @@ export function MotionDetailSheet({
   // section-header chip. Render-phase sync mirrors the SwellsList pattern.
   const [mode, setMode] = useState<'distribute' | 'rollup'>(motion.submotionMode ?? 'distribute')
   const prevSubmotionModeRef = useRef(motion.submotionMode ?? 'distribute')
-  if ((motion.submotionMode ?? 'distribute') !== prevSubmotionModeRef.current) {
-    prevSubmotionModeRef.current = motion.submotionMode ?? 'distribute'
-    setMode(motion.submotionMode ?? 'distribute')
-  }
+  useEffect(() => {
+    if ((motion.submotionMode ?? 'distribute') !== prevSubmotionModeRef.current) {
+      prevSubmotionModeRef.current = motion.submotionMode ?? 'distribute'
+      setMode(motion.submotionMode ?? 'distribute')
+    }
+  }, [motion.submotionMode])
   const [, startMode] = useTransition()
   function toggleMode() {
     const next = mode === 'rollup' ? 'distribute' : 'rollup'
@@ -575,7 +578,6 @@ export function MotionDetailSheet({
       const result = await duplicateMotion(motion.id)
       if (result.error) return
       const newId = result.id!
-      const newName = result.name!
       onClose()
       router.refresh()
       toast.show({

@@ -52,11 +52,8 @@ export function DashboardView(props: Props) {
   const [openForm, setOpenForm] = useState<null | 'motion' | 'group'>(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
-  const [hideShape, setHideShape] = useState(false)
+  const [hideShape, setHideShape] = useState(() => typeof window !== 'undefined' && localStorage.getItem('onduler-filter-hide-shape') === 'true')
   const [isViewsMode, setIsViewsMode] = useState(props.initialViews)
-  useEffect(() => {
-    if (localStorage.getItem('onduler-filter-hide-shape') === 'true') setHideShape(true)
-  }, [])
 
   const shapeSwells = props.allSwells.map(s => ({
     id: s.id,
@@ -152,7 +149,7 @@ export function DashboardView(props: Props) {
                 belowHeader={
                   <HintCard hintKey="motions" title="This is your list." seen={props.hintMotionsSeen}>
                     <p className="mb-1.5">Motions are the verbs of your week, the things you do. Tap a row to log it. The kebab on each row opens everything else: points, swells, hide.</p>
-                    <p>You decide what counts and how much. A 5-minute walk can be worth 1 point or 10. It's yours to weight.</p>
+                    <p>You decide what counts and how much. A 5-minute walk can be worth 1 point or 10. It&apos;s yours to weight.</p>
                   </HintCard>
                 }
                 groupsEnabled={props.groupsEnabled}

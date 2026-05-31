@@ -5,7 +5,6 @@ import {
   DndContext,
   DragOverlay,
   useDroppable,
-  closestCenter,
   closestCorners,
   PointerSensor,
   TouchSensor,
@@ -22,7 +21,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { useRouter } from 'next/navigation'
-import { quickLogMotion, unlogMotion, logMotionOnDay, removeLogById } from '@/app/actions/logs'
+import { quickLogMotion, unlogMotion } from '@/app/actions/logs'
 import { setDailyGoal, setDailyGoalHours } from '@/app/actions/settings'
 import { reassignMotionToGroup, reorderMotions, setMotionSwells, duplicateMotion } from '@/app/actions/motions'
 import { formatPts, formatHrs } from '@/lib/format'
@@ -74,7 +73,7 @@ type Props = {
 }
 
 function DroppableGroup({
-  id, label, color, items, isDragging, localDone, localHiddenIds, hideDone, submotionsMap, submotionsEnabled, trackingMode, hidePtsHrs, divingId, onLog, onOpenSheet,
+  id, label, color, items, isDragging, localDone, localHiddenIds, hideDone, submotionsMap: _submotionsMap, submotionsEnabled: _submotionsEnabled, trackingMode, hidePtsHrs, divingId, onLog, onOpenSheet,
 }: {
   id: string
   label: string
@@ -134,7 +133,7 @@ function DroppableGroup({
 
 
 function DroppableSwellSection({
-  id, label, color, items, isDragging, localDone, localHiddenIds, hideDone, submotionsMap, submotionsEnabled, trackingMode, hidePtsHrs, divingId, onLog, onOpenSheet,
+  id, label, color, items, isDragging, localDone, localHiddenIds, hideDone, submotionsMap: _submotionsMap, submotionsEnabled: _submotionsEnabled, trackingMode, hidePtsHrs, divingId, onLog, onOpenSheet,
 }: {
   id: string
   label: string
@@ -252,7 +251,7 @@ export function DailyChecklist({
   allSwells,
   allGroups,
   swellWeeklyProgress,
-  swellTargets,
+  swellTargets: _swellTargets,
   weeklyLogMap,
   hideShape,
   onToggleShape,
@@ -265,16 +264,11 @@ export function DailyChecklist({
   const goalValue = isHours ? dailyGoalHours : dailyGoal
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
   const [activeGroup, setActiveGroup] = useState<string | null>(null)
-  const [hideCompleted, setHideCompleted] = useState(false)
-  const [hideSwells, setHideSwells] = useState(false)
-  const [hidePts, setHidePts] = useState(false)
+  const [hideCompleted, setHideCompleted] = useState(() => typeof window !== 'undefined' && localStorage.getItem('onduler-filter-hide-completed') === 'true')
+  const [hideSwells, setHideSwells] = useState(() => typeof window !== 'undefined' && localStorage.getItem('onduler-filter-hide-swells') === 'true')
+  const [hidePts, setHidePts] = useState(() => typeof window !== 'undefined' && localStorage.getItem('onduler-filter-hide-pts') === 'true')
   const [filterOpen, setFilterOpen] = useState(false)
   const filterRef = useRef<HTMLDivElement>(null)
-  useEffect(() => {
-    if (localStorage.getItem('onduler-filter-hide-completed') === 'true') setHideCompleted(true)
-    if (localStorage.getItem('onduler-filter-hide-swells') === 'true') setHideSwells(true)
-    if (localStorage.getItem('onduler-filter-hide-pts') === 'true') setHidePts(true)
-  }, [])
   useEffect(() => {
     if (!filterOpen) return
     function handleOutside(e: MouseEvent) {
@@ -341,9 +335,8 @@ export function DailyChecklist({
     return containers
   }
 
-  useEffect(() => {
-    if (bySwell) setSwellContainers(buildSwellContainers(motions, activeGroup))
-  }, [bySwell, motions, activeGroup, allSwells])
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- rebuild swell containers when inputs change
+  useEffect(() => { if (bySwell) setSwellContainers(buildSwellContainers(motions, activeGroup)) }, [bySwell, motions, activeGroup, allSwells]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function parseCompositeId(compositeId: string): { containerId: string; motionId: string } | null {
     const idx = compositeId.indexOf(':')
@@ -503,6 +496,7 @@ export function DailyChecklist({
     return `Week of ${d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}`
   })()
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- reset optimistic delta when source data changes
   useEffect(() => { setViewsDelta(0) }, [weeklyLogMap, weekOffset])
 
   const displayValue = viewsMode ? viewsWeekValue : localValue

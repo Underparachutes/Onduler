@@ -141,7 +141,7 @@ export default async function AnchorsPage({
     .limit(1)
   let inWave = false
   if (lastLogRow?.[0]) {
-    const hoursSince = (Date.now() - new Date(lastLogRow[0].logged_at).getTime()) / 3_600_000
+    const hoursSince = (Date.now() - new Date(lastLogRow[0].logged_at).getTime()) / 3_600_000 // eslint-disable-line react-hooks/purity -- server component
     if (hoursSince >= 72) {
       const { data: checkin } = await supabase
         .from('wave_checkins')
@@ -183,7 +183,7 @@ export default async function AnchorsPage({
     lockSwells?.forEach(s => lockActuals.set(s.id, 0))
     for (const log of lockLogs ?? []) {
       const motion = Array.isArray(log.motions) ? log.motions[0] : log.motions
-      const ms = (motion as any)?.motion_swells as { contribution_weight: number; swells: { id: string } | null }[] | undefined
+      const ms = (motion as Record<string, unknown>)?.motion_swells as { contribution_weight: number; swells: { id: string } | null }[] | undefined
       ms?.forEach(link => {
         if (!link.swells) return
         const w = Number(link.contribution_weight) || 1

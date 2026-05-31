@@ -2,7 +2,6 @@ import { wakePolygonPath, circlePath, interpolatedWakePath } from '@/lib/wakes'
 
 const SIZE = 180
 const RADIUS = 70
-const CENTER = { x: SIZE / 2, y: SIZE / 2 }
 
 type Props = {
   actuals: number[]

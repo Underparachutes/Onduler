@@ -42,7 +42,7 @@ export function LockedPage({ actuals = [], inWave = false, hintSeen = true }: Pr
 
       <div className="relative w-full max-w-[22rem]" style={{ zIndex: 1 }}>
         <HintCard hintKey="anchors_locked" title="Anchors unlocks after your first week." seen={hintSeen} translucent>
-          <p>This is where you'll see your wake, the shape of how you've been showing up. Nothing to do yet. Just keep logging.</p>
+          <p>This is where you&apos;ll see your wake, the shape of how you&apos;ve been showing up. Nothing to do yet. Just keep logging.</p>
         </HintCard>
       </div>
 

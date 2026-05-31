@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { axisAngleRad } from '@/lib/radar'
-import { wakePolygonPath, circlePath, interpolatedWakePath } from '@/lib/wakes'
+import { wakePolygonPath, circlePath } from '@/lib/wakes'
 
 const SIZE = 180
 const RADIUS = 70
@@ -28,9 +28,8 @@ export function DashboardShape({ swells, actuals: initialActuals, trackingMode, 
   const [actuals, setActuals] = useState(initialActuals)
   const count = swells.length
 
-  useEffect(() => {
-    setActuals(initialActuals)
-  }, [initialActuals])
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- sync prop → local state for optimistic morph
+  useEffect(() => { setActuals(initialActuals) }, [initialActuals])
 
   useEffect(() => {
     function handler(e: Event) {
@@ -57,7 +56,6 @@ export function DashboardShape({ swells, actuals: initialActuals, trackingMode, 
   if (count < 3) return null
 
   const hasData = actuals.some(v => v > 0)
-  const activeCount = actuals.filter(v => v > 0).length
   const max = actuals.reduce((m, v) => (v > m ? v : m), 0)
 
   let path: string

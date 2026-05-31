@@ -162,9 +162,8 @@ export function WeekEditView({
 
   const [localLogMap, setLocalLogMap] = useState(weeklyLogMap)
 
-  useEffect(() => {
-    setLocalLogMap(weeklyLogMap)
-  }, [weeklyLogMap])
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- sync prop → local state for optimistic updates
+  useEffect(() => { setLocalLogMap(weeklyLogMap) }, [weeklyLogMap])
 
   function handleTapDay(motionId: string, dayKey: string, logIds: string[]) {
     const allMotions = [...motions, ...Object.values(submotionsMap).flat()]

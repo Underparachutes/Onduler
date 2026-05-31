@@ -84,7 +84,7 @@ export function InstallInstructions({ onDone }: { onDone?: () => void }) {
           </li>
         </ol>
         {!isSafari && (
-          <p className="mt-3 text-xs text-th-faint">Must use Safari. Chrome and Firefox on iOS don't support home-screen apps.</p>
+          <p className="mt-3 text-xs text-th-faint">Must use Safari. Chrome and Firefox on iOS don&apos;t support home-screen apps.</p>
         )}
         <div className="mt-6 flex justify-center">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-bounce text-th-muted">

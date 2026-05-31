@@ -86,7 +86,7 @@ function parseLine(line: string): { text: string; indent: number } | null {
   return null
 }
 
-export function parseImportMarkdown(markdown: string, trackingMode: 'points' | 'hours'): ImportPreview {
+export function parseImportMarkdown(markdown: string, _trackingMode: 'points' | 'hours'): ImportPreview {
   const lines = markdown.split('\n')
   let section: Section = null
   let currentParent: string | null = null

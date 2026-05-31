@@ -46,7 +46,7 @@ export function WavePrompt({ durationSeconds }: { durationSeconds: number | null
         Welcome back.
       </h2>
       <p className="mb-6 text-sm text-th-muted">
-        {durationLabel ? `You've been away for ${durationLabel}. ` : ''}How'd the wave treat you?
+        {durationLabel ? `You've been away for ${durationLabel}. ` : ''}How&apos;d the wave treat you?
       </p>
 
       <div className="flex flex-col items-center gap-3">

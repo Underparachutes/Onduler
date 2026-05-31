@@ -43,7 +43,7 @@ export function BillingPanel({ subscriptionStatus, currentPeriodEnd }: Props) {
   if (isLifetime) {
     return (
       <div className="rounded-lg border border-th-border bg-th-surface px-4 py-6 text-center">
-        <p className="text-sm font-medium text-th-text">You're crew for life.</p>
+        <p className="text-sm font-medium text-th-text">You&apos;re crew for life.</p>
         <p className="mt-1 text-xs text-th-muted">Thank you for supporting Onduler.</p>
       </div>
     )

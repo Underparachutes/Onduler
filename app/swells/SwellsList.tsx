@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition, useRef } from 'react'
+import { useState, useEffect, useTransition, useRef } from 'react'
 import {
   DndContext,
   closestCenter,
@@ -129,10 +129,12 @@ export function SwellsList({
   const [, startTransition] = useTransition()
 
   const prevSwellsRef = useRef(swells)
-  if (swells !== prevSwellsRef.current) {
-    prevSwellsRef.current = swells
-    setOrderedSwells(swells)
-  }
+  useEffect(() => {
+    if (swells !== prevSwellsRef.current) {
+      prevSwellsRef.current = swells
+      setOrderedSwells(swells)
+    }
+  }, [swells])
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { delay: 250, tolerance: 8 } }),

@@ -30,8 +30,9 @@ export default async function AdminHomePage() {
   await requireAdmin()
   const admin = createAdminClient()
 
-  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
-  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+  const now = Date.now() // eslint-disable-line react-hooks/purity -- server component
+  const sevenDaysAgo = new Date(now - 7 * 24 * 60 * 60 * 1000).toISOString()
+  const thirtyDaysAgo = new Date(now - 30 * 24 * 60 * 60 * 1000).toISOString()
 
   // Auth users via service role — admin schema is on the dashboard, but
   // listUsers gives us what we need.

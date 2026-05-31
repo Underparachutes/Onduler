@@ -11,13 +11,13 @@ export function getIsStandalone(): boolean {
   if (typeof window === 'undefined') return false
   return (
     window.matchMedia('(display-mode: standalone)').matches ||
-    (window.navigator as any).standalone === true
+    (window.navigator as unknown as { standalone?: boolean }).standalone === true
   )
 }
 
 export function getIsIOS(): boolean {
   if (typeof navigator === 'undefined') return false
-  return /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as unknown as { MSStream?: unknown }).MSStream
 }
 
 export function getIsAndroid(): boolean {
@@ -92,13 +92,18 @@ export function shouldShowInstallTile(): boolean {
   return true
 }
 
-let deferredPrompt: any = null
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => void
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>
+}
+
+let deferredPrompt: BeforeInstallPromptEvent | null = null
 
 export function initBeforeInstallPrompt(): void {
   if (typeof window === 'undefined') return
   window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault()
-    deferredPrompt = e
+    deferredPrompt = e as BeforeInstallPromptEvent
   })
   window.addEventListener('appinstalled', () => {
     markInstallCompleted()
@@ -123,6 +128,7 @@ export function useInstallState() {
   const [showOnboarding, setShowOnboarding] = useState(false)
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- client-only state from localStorage/DOM
     setShowTile(shouldShowInstallTile())
     setShowOnboarding(shouldShowOnboardingInstall())
 

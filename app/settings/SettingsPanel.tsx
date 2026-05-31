@@ -89,6 +89,7 @@ export function SettingsPanel({
   const [haptic, setHaptic] = useState(hapticEnabled)
   const [cycleEmail, setCycleEmail] = useState(emailCycleCloseEnabled)
   const [vibrateSupported, setVibrateSupported] = useState(true)
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- navigator check on mount
   useEffect(() => { setVibrateSupported('vibrate' in navigator) }, [])
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null)
   const [localHiddenIds, setLocalHiddenIds] = useState<Set<string>>(new Set())
@@ -97,7 +98,7 @@ export function SettingsPanel({
 
   function handleTheme(t: string) {
     setCurrentTheme(t)
-    document.documentElement.dataset.theme = t
+    document.documentElement.dataset.theme = t // eslint-disable-line react-hooks/immutability -- intentional DOM mutation
     startTransition(async () => { await setTheme(t) })
   }
 

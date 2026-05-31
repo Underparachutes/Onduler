@@ -16,10 +16,8 @@ export function ThemeSwitcher() {
   const [current, setCurrent] = useState<Theme>('biarritz')
   const [isPending, startTransition] = useTransition()
 
-  useEffect(() => {
-    const t = document.documentElement.dataset.theme as Theme
-    if (t && THEMES.includes(t)) setCurrent(t)
-  }, [])
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- read theme from DOM on mount
+  useEffect(() => { const t = document.documentElement.dataset.theme as Theme; if (t && THEMES.includes(t)) setCurrent(t) }, [])
 
   function toggle() {
     const idx = THEMES.indexOf(current)

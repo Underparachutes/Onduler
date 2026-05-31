@@ -122,8 +122,8 @@ type ListProps = {
 
 export function SortableMotionList({
   motions,
-  submotionsMap,
-  submotionsEnabled,
+  submotionsMap: _submotionsMap,
+  submotionsEnabled: _submotionsEnabled,
   localDone,
   hideDone,
   localHiddenIds,

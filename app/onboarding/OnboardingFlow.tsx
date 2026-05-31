@@ -79,6 +79,7 @@ export function OnboardingFlow() {
   useEffect(() => {
     const t = document.documentElement.dataset.theme ?? 'biarritz'
     const palette = getShuffledThemePalette(t, detectMode())
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- DOM read for theme palette on mount
     setSwellEntries(
       SEEDED_SWELLS.map((s, i) => ({
         id: i,
@@ -225,14 +226,13 @@ export function OnboardingFlow() {
 
   function previewTheme(t: string) {
     setTheme(t)
-    document.documentElement.dataset.theme = t
+    document.documentElement.dataset.theme = t // eslint-disable-line react-hooks/immutability -- intentional DOM mutation
   }
 
   const [showInstall, setShowInstall] = useState(false)
 
-  useEffect(() => {
-    setShowInstall(shouldShowOnboardingInstall())
-  }, [])
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- check install eligibility on mount
+  useEffect(() => { setShowInstall(shouldShowOnboardingInstall()) }, [])
 
   function proceedFromPersonalize(useDefaults = false) {
     if (!useDefaults && showInstall) {

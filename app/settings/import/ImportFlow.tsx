@@ -117,7 +117,7 @@ export function ImportFlow({ trackingMode }: { trackingMode: 'points' | 'hours' 
         )}
 
         {preview.unparsedLineCount > 0 && (
-          <p className="text-xs text-th-faint">{preview.unparsedLineCount} line{preview.unparsedLineCount === 1 ? '' : 's'} couldn't be parsed and will be ignored.</p>
+          <p className="text-xs text-th-faint">{preview.unparsedLineCount} line{preview.unparsedLineCount === 1 ? '' : 's'} couldn&apos;t be parsed and will be ignored.</p>
         )}
 
         {error && <p className="text-xs text-red-500">{error}</p>}

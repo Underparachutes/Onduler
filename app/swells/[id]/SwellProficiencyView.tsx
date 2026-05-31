@@ -163,6 +163,7 @@ export function SwellProficiencyView({
 
   const [localColor, setLocalColor] = useState(swell.color)
   const colorTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- sync prop → local state for color picker
   useEffect(() => { setLocalColor(swell.color) }, [swell.color])
 
   function handleColorChange(nextColor: string) {

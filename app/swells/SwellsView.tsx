@@ -59,12 +59,10 @@ type Props = {
 }
 
 function usePersistedHideDone(key: string): [boolean, () => void] {
-  const [hideDone, setHideDone] = useState(false)
-
-  useEffect(() => {
-    const stored = localStorage.getItem(key)
-    if (stored === 'true') setHideDone(true)
-  }, [key])
+  const [hideDone, setHideDone] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return localStorage.getItem(key) === 'true'
+  })
 
   function toggle() {
     setHideDone(prev => {
@@ -263,7 +261,7 @@ export function SwellsView(props: Props) {
             </div>
 
             <HintCard hintKey="swells" title="Your swells." seen={props.hintSwellsSeen}>
-              <p className="mb-1.5">A swell is a noun-shaped area of your life. A person, a place, a thing you want to feed. Movement, Home, your dog, the band you're starting. Pick a color that feels like it. Set a weekly target.</p>
+              <p className="mb-1.5">A swell is a noun-shaped area of your life. A person, a place, a thing you want to feed. Movement, Home, your dog, the band you&apos;re starting. Pick a color that feels like it. Set a weekly target.</p>
               <p>Your motions flow into your swells. Each motion can feed more than one.</p>
             </HintCard>
 

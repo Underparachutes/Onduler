@@ -12,10 +12,8 @@ export function AddGroupForm({ onClose }: Props) {
   const [state, formAction, pending] = useActionState(createGroup, null)
   const [color, setColor] = useState('#6366f1')
 
-  useEffect(() => {
-    const theme = document.documentElement.dataset.theme ?? 'biarritz'
-    setColor(getRandomThemeAccent(theme, detectMode()))
-  }, [])
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- DOM read for theme on mount
+  useEffect(() => { setColor(getRandomThemeAccent(document.documentElement.dataset.theme ?? 'biarritz', detectMode())) }, [])
 
   useEffect(() => {
     if (state && 'success' in state && state.success) onClose()

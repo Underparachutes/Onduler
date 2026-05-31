@@ -33,7 +33,7 @@ export default async function WelcomePage() {
               <span>Tap <strong>Add</strong> in the top right</span>
             </li>
           </ol>
-          <p className="mt-3 text-xs text-th-faint">Must use Safari. Chrome and Firefox on iOS don't support home-screen apps.</p>
+          <p className="mt-3 text-xs text-th-faint">Must use Safari. Chrome and Firefox on iOS don&apos;t support home-screen apps.</p>
         </section>
 
         <section className="mb-10">
