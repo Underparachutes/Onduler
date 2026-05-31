@@ -143,6 +143,30 @@ export function yearlyTargetDisplay(weeklyTarget: number, today: DayKey, isHours
   return ceilDisplay((weeklyTarget * daysInYear(today)) / 7, isHours)
 }
 
+export function addDays(key: DayKey, n: number): DayKey {
+  return fromUtcMs(toUtcMs(key) + n * MS_PER_DAY)
+}
+
+export function sundayOf(key: DayKey): DayKey {
+  const ms = toUtcMs(key)
+  const jsDay = new Date(ms).getUTCDay()
+  return fromUtcMs(ms - jsDay * MS_PER_DAY)
+}
+
+export function monthEndKey(key: DayKey): DayKey {
+  const [y, m] = parts(key)
+  const lastDay = new Date(Date.UTC(y, m, 0)).getUTCDate()
+  return `${y}-${String(m).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
+}
+
+export function quarterEndKey(key: DayKey): DayKey {
+  const [y, m] = parts(key)
+  const q = Math.floor((m - 1) / 3)
+  const endMonth = (q + 1) * 3
+  const lastDay = new Date(Date.UTC(y, endMonth, 0)).getUTCDate()
+  return `${y}-${String(endMonth).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
+}
+
 // Pacific calendar day key for a logged_at timestamp. Centralized so the
 // rest of the app stops re-instantiating the Intl formatter.
 const pacificDateFmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Los_Angeles' })

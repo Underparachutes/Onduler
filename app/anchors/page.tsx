@@ -4,12 +4,16 @@ import { createClient } from '@/lib/supabase/server'
 import { getTodayStart, getWeekStart } from '@/lib/timezone'
 import { formatPts, formatHrs } from '@/lib/format'
 import {
+  addDays,
   ceilDisplay,
   consecutiveZeroDayStreak,
   dayKeyRange,
+  monthEndKey,
   monthStartKey,
   pacificDayKey,
+  quarterEndKey,
   quarterStartKey,
+  sundayOf,
   yearStartKey,
   type DayKey,
 } from '@/lib/periods'
@@ -25,6 +29,7 @@ import { formatCycleLabel, type Cadence } from '@/lib/cycles'
 import type { BuildKey } from '@/lib/builds'
 import { HintCard } from '@/app/components/HintCard'
 import { markHintSeen } from '@/app/actions/settings'
+import { PeriodSelector, type PeriodOption } from './components/PeriodSelector'
 
 type CeremonyResult = { state: CeremonyState; cycleStart: string; cycleEnd: string; chapterId: string | null }
 
@@ -76,10 +81,11 @@ function parsePeriod(raw: string | undefined): Period {
   return raw === 'week' || raw === 'month' || raw === 'quarter' || raw === 'year' ? raw : 'week'
 }
 
-function periodDateLabel(todayKey: DayKey, period: Period, weekStart: Date): string {
-  const [y, m] = todayKey.split('-').map(Number)
+function periodDateLabel(startKey: DayKey, period: Period): string {
+  const [y, m, d] = startKey.split('-').map(Number)
   if (period === 'week') {
-    return `Week of ${weekStart.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'America/Los_Angeles' })}`
+    const dt = new Date(Date.UTC(y, m - 1, d))
+    return `Week of ${dt.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'UTC' })}`
   }
   if (period === 'month') {
     return new Date(Date.UTC(y, m - 1, 1)).toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' })
@@ -90,7 +96,7 @@ function periodDateLabel(todayKey: DayKey, period: Period, weekStart: Date): str
     const endMonthIdx = startMonthIdx + 2
     const startName = new Date(Date.UTC(y, startMonthIdx, 1)).toLocaleDateString('en-US', { month: 'long', timeZone: 'UTC' })
     const endName = new Date(Date.UTC(y, endMonthIdx, 1)).toLocaleDateString('en-US', { month: 'long', timeZone: 'UTC' })
-    return `${startName}-${endName} ${y}`
+    return `${startName}–${endName} ${y}`
   }
   return String(y)
 }
@@ -98,9 +104,9 @@ function periodDateLabel(todayKey: DayKey, period: Period, weekStart: Date): str
 export default async function AnchorsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ period?: string; sort?: string }>
+  searchParams: Promise<{ period?: string; sort?: string; start?: string }>
 }) {
-  const { period: rawPeriod, sort: rawSort } = await searchParams
+  const { period: rawPeriod, sort: rawSort, start: rawStart } = await searchParams
   const swellSort: 'earned' | 'goal' = rawSort === 'goal' ? 'goal' : 'earned'
   let period = parsePeriod(rawPeriod)
 
@@ -114,7 +120,6 @@ export default async function AnchorsPage({
     getWeekStart(),
   ])
   const todayKey = pacificDayKey(todayStart)
-  const monthStart = monthStartKey(todayKey)
 
   const [ceremonies, unlocks] = await Promise.all([
     Promise.all(CADENCES.map(c => getCeremonyState(supabase, user.id, c, todayKey))) as Promise<CeremonyResult[]>,
@@ -197,6 +202,7 @@ export default async function AnchorsPage({
     { data: settings },
     { data: allWaypointHits },
     { data: allOneShotCompletions },
+    { data: earliestLogRow },
   ] = await Promise.all([
     supabase
       .from('logs')
@@ -232,6 +238,12 @@ export default async function AnchorsPage({
       .eq('user_id', user.id)
       .eq('kind', 'one_shot')
       .not('completed_at', 'is', null),
+    supabase
+      .from('logs')
+      .select('logged_at')
+      .eq('chapter_id', chapterId)
+      .order('logged_at', { ascending: true })
+      .limit(1),
   ])
 
   const trackingMode: 'points' | 'hours' = (settings?.tracking_mode as 'points' | 'hours') ?? 'points'
@@ -246,19 +258,67 @@ export default async function AnchorsPage({
     ? pacificDayKey(settings.welcome_back_started_at as string)
     : null
   const weeklyRamp = currentRamp(welcomeBackMode, welcomeBackStartedKey, todayKey)
+  const earliestKey: DayKey = earliestLogRow?.[0]
+    ? pacificDayKey(earliestLogRow[0].logged_at)
+    : todayKey
 
-  const quarterStart = quarterStartKey(todayKey)
-  const yearStart = yearStartKey(todayKey)
+  const currentWeekStartKey = pacificDayKey(weekStart)
+  const requestedStart = rawStart && /^\d{4}-\d{2}-\d{2}$/.test(rawStart) ? (rawStart as DayKey) : null
 
-  // Period filtering against the unified all-logs fetch above.
-  const weekStartMs = weekStart.getTime()
+  let periodStart: DayKey
+  let periodEnd: DayKey
+  let isCurrentPeriod: boolean
+
+  if (period === 'week') {
+    if (requestedStart && sundayOf(requestedStart) < currentWeekStartKey) {
+      periodStart = sundayOf(requestedStart)
+      periodEnd = addDays(periodStart, 6)
+      isCurrentPeriod = false
+    } else {
+      periodStart = currentWeekStartKey
+      periodEnd = todayKey
+      isCurrentPeriod = true
+    }
+  } else if (period === 'month') {
+    const currentMs = monthStartKey(todayKey)
+    if (requestedStart && monthStartKey(requestedStart) < currentMs) {
+      periodStart = monthStartKey(requestedStart)
+      periodEnd = monthEndKey(requestedStart)
+      isCurrentPeriod = false
+    } else {
+      periodStart = currentMs
+      periodEnd = todayKey
+      isCurrentPeriod = true
+    }
+  } else if (period === 'quarter') {
+    const currentQs = quarterStartKey(todayKey)
+    if (requestedStart && quarterStartKey(requestedStart) < currentQs) {
+      periodStart = quarterStartKey(requestedStart)
+      periodEnd = quarterEndKey(requestedStart)
+      isCurrentPeriod = false
+    } else {
+      periodStart = currentQs
+      periodEnd = todayKey
+      isCurrentPeriod = true
+    }
+  } else {
+    const currentYs = yearStartKey(todayKey)
+    if (requestedStart && yearStartKey(requestedStart) < currentYs) {
+      periodStart = yearStartKey(requestedStart)
+      periodEnd = `${requestedStart.split('-')[0]}-12-31` as DayKey
+      isCurrentPeriod = false
+    } else {
+      periodStart = currentYs
+      periodEnd = todayKey
+      isCurrentPeriod = true
+    }
+  }
+
   const allLogsList = allLogs ?? []
 
-  function inPeriod(log: { logged_at: string }, p: Period): boolean {
-    if (p === 'week') return new Date(log.logged_at).getTime() >= weekStartMs
-    if (p === 'month') return pacificDayKey(log.logged_at) >= monthStart
-    if (p === 'quarter') return pacificDayKey(log.logged_at) >= quarterStart
-    return pacificDayKey(log.logged_at) >= yearStart
+  function inPeriod(log: { logged_at: string }): boolean {
+    const key = pacificDayKey(log.logged_at)
+    return key >= periodStart && key <= periodEnd
   }
 
   type LogRow = typeof allLogsList[number]
@@ -287,21 +347,19 @@ export default async function AnchorsPage({
     return acc
   }
 
-  const periodLogs = allLogsList.filter(l => inPeriod(l, period))
+  const periodLogs = allLogsList.filter(l => inPeriod(l))
   const radarActualsMap = actualsFor(periodLogs)
 
   // Bonus points per swell for the active period. Filter raw hit/completion
   // rows by Pacific day key against the period window, then aggregate.
   // Points-mode only — bonus_points doesn't currency-translate to hours
   // (see ADR 0004 §7; the integer column can't carry 0.25-hr precision).
-  const weekStartKey = pacificDayKey(weekStart)
-  const periodStartKey: DayKey =
-    period === 'week' ? weekStartKey : period === 'month' ? monthStart : period === 'quarter' ? quarterStart : yearStart
   const filterByPeriodKey = <T extends { hit_at?: string; completed_at?: string | null }>(rows: T[], readAt: (r: T) => string | null | undefined): T[] => {
     return rows.filter(r => {
       const at = readAt(r)
       if (!at) return false
-      return pacificDayKey(at) >= periodStartKey
+      const key = pacificDayKey(at)
+      return key >= periodStart && key <= periodEnd
     })
   }
   const hitsInPeriod = filterByPeriodKey(
@@ -319,18 +377,22 @@ export default async function AnchorsPage({
     radarActualsMap.set(swellId, (radarActualsMap.get(swellId) ?? 0) + bonus)
   }
 
-  // Wave-month detection runs off the calendar-month log-day set.
-  const monthLogs = period === 'month' ? periodLogs : allLogsList.filter(l => inPeriod(l, 'month'))
+  // Wave-month detection runs off the selected month's log-day set.
+  const selectedMonthStart = period === 'month' ? periodStart : monthStartKey(todayKey)
+  const selectedMonthEnd = period === 'month' ? periodEnd : todayKey
+  const monthLogs = period === 'month' ? periodLogs : allLogsList.filter(l => {
+    const key = pacificDayKey(l.logged_at)
+    return key >= selectedMonthStart && key <= selectedMonthEnd
+  })
   const monthLogDays = new Set<DayKey>()
   monthLogs.forEach(l => monthLogDays.add(pacificDayKey(l.logged_at)))
-  const waveMonthStreak = consecutiveZeroDayStreak(monthLogDays, monthStart, todayKey)
+  const waveMonthStreak = consecutiveZeroDayStreak(monthLogDays, selectedMonthStart, selectedMonthEnd)
   const waveMonthActive = waveMonthStreak >= 7
 
-  // Welcome-back ramp drives the soft wash on week view. Month view uses
-  // wave_month_active as its own binary gate (the calendar-month wash isn't
-  // ramp-shaped). Lifetime never washes.
-  const waveRamp: number | null =
-    period === 'week' ? weeklyRamp : period === 'month' ? (waveMonthActive ? 1 : null) : null
+  // Past periods never show welcome-back ramp.
+  const waveRamp: number | null = isCurrentPeriod
+    ? (period === 'week' ? weeklyRamp : period === 'month' ? (waveMonthActive ? 1 : null) : null)
+    : null
 
   const radarSwells: RadarSwell[] = (swells ?? []).map(s => ({
     id: s.id,
@@ -384,11 +446,10 @@ export default async function AnchorsPage({
   const activeDays = activeDaySet.size
   const avgValue = activeDays > 0 ? ceilDisplay(totalValue / activeDays, isHours) : 0
 
-  // Daily chart: anchor to the calendar window (week/month only).
+  // Daily chart: anchor to the selected period window (week/month only).
   const dayMap = new Map<DayKey, number>()
   if (period === 'week' || period === 'month') {
-    const startKey: DayKey = period === 'week' ? pacificDayKey(weekStart) : monthStart
-    for (const k of dayKeyRange(startKey, todayKey)) dayMap.set(k, 0)
+    for (const k of dayKeyRange(periodStart, periodEnd)) dayMap.set(k, 0)
   }
   for (const log of periodLogs) {
     const day = pacificDayKey(log.logged_at)
@@ -401,13 +462,68 @@ export default async function AnchorsPage({
   const maxDayValue = Math.max(...days.map(([, v]) => v), 1)
 
   const waveCheckins = (allWaveCheckins ?? []).filter(c => {
-    if (period === 'week') return new Date(c.checked_in_at).getTime() >= weekStartMs
-    if (period === 'month') return pacificDayKey(c.checked_in_at) >= monthStart
-    if (period === 'quarter') return pacificDayKey(c.checked_in_at) >= quarterStart
-    return pacificDayKey(c.checked_in_at) >= yearStart
+    const key = pacificDayKey(c.checked_in_at)
+    return key >= periodStart && key <= periodEnd
   })
 
-  const headerDate = periodDateLabel(todayKey, period, weekStart)
+  const headerDate = periodDateLabel(periodStart, period)
+
+  const periodOptions: PeriodOption[] = []
+  if (period === 'week') {
+    let sun = sundayOf(todayKey)
+    for (let i = 0; i < 12; i++) {
+      if (sun < earliestKey && i > 0) break
+      const sat = addDays(sun, 6)
+      if (i === 0) {
+        periodOptions.push({ start: sun, label: 'This week', isCurrent: true })
+      } else {
+        const s = new Date(sun + 'T00:00:00Z')
+        const e = new Date(sat + 'T00:00:00Z')
+        const fmt = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })
+        periodOptions.push({ start: sun, label: `${fmt.format(s)} – ${fmt.format(e)}`, isCurrent: false })
+      }
+      sun = addDays(sun, -7)
+    }
+  } else if (period === 'month') {
+    const [ty, tm] = todayKey.split('-').map(Number)
+    for (let i = 0; i < 12; i++) {
+      let am = tm - i, ay = ty
+      while (am <= 0) { am += 12; ay -= 1 }
+      const sk = `${ay}-${String(am).padStart(2, '0')}-01` as DayKey
+      if (sk < earliestKey && i > 0) break
+      if (i === 0) {
+        periodOptions.push({ start: sk, label: 'This month', isCurrent: true })
+      } else {
+        const d = new Date(Date.UTC(ay, am - 1, 1))
+        periodOptions.push({ start: sk, label: d.toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' }), isCurrent: false })
+      }
+    }
+  } else if (period === 'quarter') {
+    const [ty, tm] = todayKey.split('-').map(Number)
+    const cq = Math.floor((tm - 1) / 3)
+    for (let i = 0; i < 8; i++) {
+      let q = cq - i, y = ty
+      while (q < 0) { q += 4; y -= 1 }
+      const sm = q * 3 + 1
+      const sk = `${y}-${String(sm).padStart(2, '0')}-01` as DayKey
+      if (sk < earliestKey && i > 0) break
+      if (i === 0) {
+        periodOptions.push({ start: sk, label: 'This quarter', isCurrent: true })
+      } else {
+        const em = sm + 2
+        const sn = new Date(Date.UTC(y, sm - 1, 1)).toLocaleDateString('en-US', { month: 'short', timeZone: 'UTC' })
+        const en = new Date(Date.UTC(y, em - 1, 1)).toLocaleDateString('en-US', { month: 'short', timeZone: 'UTC' })
+        periodOptions.push({ start: sk, label: `${sn} – ${en} ${y}`, isCurrent: false })
+      }
+    }
+  } else {
+    const [ty] = todayKey.split('-').map(Number)
+    const [ey] = earliestKey.split('-').map(Number)
+    for (let y = ty; y >= ey && ty - y < 5; y--) {
+      const sk = `${y}-01-01` as DayKey
+      periodOptions.push({ start: sk, label: y === ty ? 'This year' : String(y), isCurrent: y === ty })
+    }
+  }
 
   return (
     <div className="flex min-h-full flex-col items-center px-4 pb-12">
@@ -425,7 +541,12 @@ export default async function AnchorsPage({
             </Link>
           </div>
 
-          <h1 className="mb-4 text-lg font-semibold text-th-text">{headerDate}</h1>
+          <PeriodSelector
+            period={period}
+            currentLabel={headerDate}
+            options={periodOptions}
+            sort={swellSort !== 'earned' ? swellSort : undefined}
+          />
 
           <div className="mb-4 grid grid-cols-3 gap-3">
             <div className="text-center">
@@ -543,9 +664,7 @@ export default async function AnchorsPage({
 
             {(period === 'week' || period === 'month') && days.length > 0 && (
               <div className="mb-8">
-                <h2 className="mb-3 text-sm font-medium text-th-text">
-                  {period === 'week' ? 'This week' : 'This month'}
-                </h2>
+                <h2 className="mb-3 text-sm font-medium text-th-text">Daily</h2>
                 <div className="flex flex-col gap-2">
                   {days.map(([date, val]) => {
                     const d = new Date(date + 'T00:00:00Z')

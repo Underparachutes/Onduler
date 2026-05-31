@@ -1,19 +1,13 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import {
-  wedgePath,
-  wedgeBoundary,
-  actualPolygonPath,
-  slicePath,
-  scaleConfigFor,
-  chartCeiling,
-} from '@/lib/radar'
+import { axisAngleRad } from '@/lib/radar'
+import { wakePolygonPath, circlePath, interpolatedWakePath } from '@/lib/wakes'
 
-const SIZE = 140
+const SIZE = 180
+const RADIUS = 70
 const CENTER = { x: SIZE / 2, y: SIZE / 2 }
-const RADIUS = 56
 
 type ShapeSwell = {
   id: string
@@ -27,10 +21,9 @@ type Props = {
   actuals: number[]
   trackingMode: 'points' | 'hours'
   isInWave: boolean
-  frosted?: boolean
 }
 
-export function DashboardShape({ swells, actuals: initialActuals, trackingMode, isInWave, frosted }: Props) {
+export function DashboardShape({ swells, actuals: initialActuals, trackingMode, isInWave }: Props) {
   const router = useRouter()
   const [actuals, setActuals] = useState(initialActuals)
   const count = swells.length
@@ -60,116 +53,93 @@ export function DashboardShape({ swells, actuals: initialActuals, trackingMode, 
     return () => window.removeEventListener('onduler:log-committed', handler)
   }, [swells, trackingMode])
 
-  const targets = useMemo(() => swells.map(s => s.target), [swells])
-  const scale = scaleConfigFor(trackingMode)
-  const max = useMemo(() => chartCeiling([...targets, ...actuals], scale), [targets, actuals, scale])
-
   if (isInWave) return null
   if (count < 3) return null
 
-  const hasLogs = actuals.some(v => v > 0)
+  const hasData = actuals.some(v => v > 0)
+  const activeCount = actuals.filter(v => v > 0).length
+  const max = actuals.reduce((m, v) => (v > m ? v : m), 0)
+
+  let path: string
+  if (!hasData) {
+    path = circlePath(RADIUS * 0.6, CENTER)
+  } else {
+    path = wakePolygonPath(actuals, RADIUS, CENTER)
+  }
 
   return (
     <div
-      className={`pointer-events-none fixed bottom-[calc(2.75rem+env(safe-area-inset-bottom,0px))] left-0 right-0 z-10 flex flex-col items-center pb-1 md:bottom-0 ${frosted ? 'backdrop-blur-md' : ''}`}
-      style={frosted ? { background: 'color-mix(in oklch, color-mix(in oklch, rgb(144, 216, 196) 60%, var(--th-bg)) 20%, transparent)' } : undefined}
+      className="pointer-events-none fixed bottom-[calc(2.75rem+env(safe-area-inset-bottom,0px))] left-0 right-0 z-10 flex flex-col items-center pb-1 md:bottom-0"
     >
-      <svg
-        viewBox={`0 0 ${SIZE} ${SIZE}`}
-        width={SIZE}
-        height={SIZE}
-        role="img"
-        aria-label="Your shape this week"
-        className="pointer-events-auto cursor-pointer"
+      <div
+        className="pointer-events-auto relative cursor-pointer"
+        style={{ width: SIZE, height: SIZE }}
         onClick={() => router.push('/anchors')}
       >
-        {hasLogs ? (
-          <>
+        {hasData ? (
+          <svg
+            viewBox={`0 0 ${SIZE} ${SIZE}`}
+            width={SIZE}
+            height={SIZE}
+            style={{ animation: 'slow-breathe 4s ease-in-out infinite', transformOrigin: 'center' }}
+          >
             <defs>
-              <filter id="ds-frost" x="-10%" y="-10%" width="120%" height="120%">
-                <feGaussianBlur stdDeviation="1.5" />
+              <clipPath id="ds-color-clip">
+                <path d={path} />
+              </clipPath>
+              <filter id="ds-blend" x="-50%" y="-50%" width="200%" height="200%">
+                <feGaussianBlur stdDeviation="14" />
               </filter>
-              {swells.map((s, i) => {
-                const targetR = max > 0 ? (targets[i] / max) * RADIUS : 0
-                return (
-                  <radialGradient
-                    key={`ds-grad-${s.id}`}
-                    id={`ds-grad-${s.id}`}
-                    cx={CENTER.x}
-                    cy={CENTER.y}
-                    r={Math.max(targetR, 1)}
-                    gradientUnits="userSpaceOnUse"
-                  >
-                    <stop offset="0%" stopColor={`color-mix(in oklch, ${s.color} 35%, var(--th-surface))`} />
-                    <stop offset="100%" stopColor={s.color} />
-                  </radialGradient>
-                )
-              })}
             </defs>
 
-            {swells.map((s, i) => (
-              <path
-                key={`w-${s.id}`}
-                d={wedgePath(i, targets, max, RADIUS, CENTER)}
-                fill={s.color}
-                fillOpacity={0.2}
-                filter="url(#ds-frost)"
-              />
-            ))}
-
-            {swells.map((s, i) => {
-              const d = slicePath(i, actuals, targets, max, RADIUS, CENTER)
-              if (!d) return null
-              return (
-                <path
-                  key={`s-${s.id}`}
-                  d={d}
-                  fill={`url(#ds-grad-${s.id})`}
-                  fillOpacity={0.9}
-                  style={{ transition: 'd 250ms ease' }}
-                />
-              )
-            })}
-
-            {swells.map((_, i) => {
-              const b = wedgeBoundary(i, targets, max, RADIUS, CENTER)
-              return (
-                <line
-                  key={`sep-${i}`}
-                  x1={CENTER.x}
-                  y1={CENTER.y}
-                  x2={b.x}
-                  y2={b.y}
-                  stroke="var(--color-th-text, currentColor)"
-                  strokeWidth="0.4"
-                  opacity="0.25"
-                />
-              )
-            })}
+            <g clipPath="url(#ds-color-clip)">
+              <g filter="url(#ds-blend)">
+                {swells.map((s, i) => {
+                  const val = actuals[i]
+                  if (val <= 0) return null
+                  const frac = max > 0 ? val / max : 0
+                  const angle = axisAngleRad(i, count)
+                  const dist = RADIUS * 0.45
+                  return (
+                    <circle
+                      key={s.id}
+                      cx={CENTER.x + Math.cos(angle) * dist}
+                      cy={CENTER.y + Math.sin(angle) * dist}
+                      r={RADIUS * (0.55 + frac * 0.3)}
+                      fill={s.color}
+                      fillOpacity={0.5 + frac * 0.3}
+                    />
+                  )
+                })}
+              </g>
+            </g>
 
             <path
-              d={actualPolygonPath(actuals, targets, max, RADIUS, CENTER)}
+              d={path}
+              fill="none"
+              stroke="var(--color-th-text, currentColor)"
+              strokeWidth="1.5"
+              strokeLinejoin="round"
+              strokeOpacity="0.5"
+            />
+          </svg>
+        ) : (
+          <svg
+            viewBox={`0 0 ${SIZE} ${SIZE}`}
+            width={SIZE}
+            height={SIZE}
+            style={{ animation: 'slow-breathe 4s ease-in-out infinite', transformOrigin: 'center' }}
+          >
+            <path
+              d={path}
               fill="none"
               stroke="var(--color-th-text, currentColor)"
               strokeWidth="1"
-              strokeLinejoin="round"
-              strokeOpacity="0.7"
-              style={{ transition: 'd 250ms ease' }}
+              opacity="0.25"
             />
-          </>
-        ) : (
-          <circle
-            cx={CENTER.x}
-            cy={CENTER.y}
-            r={20}
-            fill="none"
-            stroke="var(--color-th-text, currentColor)"
-            strokeWidth="1"
-            strokeOpacity="0.25"
-            className="animate-pulse"
-          />
+          </svg>
         )}
-      </svg>
+      </div>
     </div>
   )
 }

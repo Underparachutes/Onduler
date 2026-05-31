@@ -157,6 +157,15 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const todayHours = todayLogs?.reduce((sum, l) => sum + Number(l.hours), 0) ?? 0
   const doneMotionIds = (todayLogs ?? []).map(l => l.motion_id).filter(Boolean) as string[]
 
+  const ptsToday: Record<string, number> = {}
+  const hrsToday: Record<string, number> = {}
+  for (const log of todayLogs ?? []) {
+    if (log.motion_id) {
+      ptsToday[log.motion_id] = (ptsToday[log.motion_id] ?? 0) + log.points
+      hrsToday[log.motion_id] = (hrsToday[log.motion_id] ?? 0) + Number(log.hours)
+    }
+  }
+
   const ptsThisWeek: Record<string, number> = {}
   const hrsThisWeek: Record<string, number> = {}
   for (const log of weekLogs ?? []) {
@@ -250,13 +259,41 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     if (target !== null) swellTargets[swell.id] = target
 
     const contributing = motions.filter(m => m.swellWeights[swell.id] !== undefined)
-    const progress = contributing.reduce((sum, m) => {
+    let progress = contributing.reduce((sum, m) => {
       const w = m.swellWeights[swell.id] ?? 1
       const motionVal = isHrs ? (hrsThisWeek[m.id] ?? 0) : (ptsThisWeek[m.id] ?? 0)
       return sum + motionVal * w
     }, 0)
+    for (const subs of Object.values(submotionsMap)) {
+      for (const sub of subs) {
+        const sw = sub.swells.find(s => s.id === swell.id)
+        if (!sw) continue
+        const motionVal = isHrs ? (hrsThisWeek[sub.id] ?? 0) : (ptsThisWeek[sub.id] ?? 0)
+        progress += motionVal * sw.weight
+      }
+    }
     const bonus = isHrs ? 0 : (weeklyBonusBySwell.get(swell.id) ?? 0)
     swellWeeklyProgress[swell.id] = isHrs ? progress : Math.floor(progress) + bonus
+  }
+
+  const swellDailyProgress: Record<string, number> = {}
+  for (const swell of swellsData ?? []) {
+    const isHrs = trackingMode === 'hours'
+    const contributing = motions.filter(m => m.swellWeights[swell.id] !== undefined)
+    let progress = contributing.reduce((sum, m) => {
+      const w = m.swellWeights[swell.id] ?? 1
+      const motionVal = isHrs ? (hrsToday[m.id] ?? 0) : (ptsToday[m.id] ?? 0)
+      return sum + motionVal * w
+    }, 0)
+    for (const subs of Object.values(submotionsMap)) {
+      for (const sub of subs) {
+        const sw = sub.swells.find(s => s.id === swell.id)
+        if (!sw) continue
+        const motionVal = isHrs ? (hrsToday[sub.id] ?? 0) : (ptsToday[sub.id] ?? 0)
+        progress += motionVal * sw.weight
+      }
+    }
+    swellDailyProgress[swell.id] = isHrs ? progress : Math.floor(progress)
   }
 
   return (
@@ -280,6 +317,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       showWavePrompt={showWavePrompt}
       waveDurationSeconds={waveDurationSeconds}
       swellWeeklyProgress={swellWeeklyProgress}
+      swellDailyProgress={swellDailyProgress}
       swellTargets={swellTargets}
       weeklyLogMap={weeklyLogMap}
       hintMotionsSeen={!!hintsSeen.motions}

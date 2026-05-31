@@ -504,6 +504,15 @@ export function MotionDetailSheet({
     } else {
       setLocalDone(prev => new Set([...prev, sub.id]))
       onPointsDelta(delta)
+      window.dispatchEvent(new CustomEvent('onduler:log-committed', {
+        detail: {
+          motion_id: sub.id,
+          swell_ids: sub.swells.map(s => s.id),
+          weights: Object.fromEntries(sub.swells.map(s => [s.id, s.weight])),
+          points: sub.default_points,
+          hours: Number(sub.default_hours),
+        },
+      }))
       startTransition(async () => { await quickLogMotion(sub.id) })
     }
   }

@@ -40,6 +40,7 @@ type Props = {
   showWavePrompt: boolean
   waveDurationSeconds: number | null
   swellWeeklyProgress: Record<string, number>
+  swellDailyProgress: Record<string, number>
   swellTargets: Record<string, number>
   weeklyLogMap: Record<string, Record<string, string[]>>
   hintMotionsSeen: boolean
@@ -63,7 +64,7 @@ export function DashboardView(props: Props) {
     color: s.color,
     target: props.swellTargets[s.id] ?? 0,
   }))
-  const shapeActuals = props.allSwells.map(s => props.swellWeeklyProgress[s.id] ?? 0)
+  const shapeActuals = props.allSwells.map(s => props.swellDailyProgress[s.id] ?? 0)
 
   useEffect(() => {
     if (!menuOpen) return
@@ -202,13 +203,12 @@ export function DashboardView(props: Props) {
 
             <InstallTile />
 
-            {!hideShape && shapeSwells.length >= 3 && (
+            {!hideShape && !isViewsMode && shapeSwells.length >= 3 && (
               <DashboardShape
                 swells={shapeSwells}
                 actuals={shapeActuals}
                 trackingMode={props.trackingMode}
                 isInWave={props.showWavePrompt}
-                frosted={isViewsMode}
               />
             )}
           </>
