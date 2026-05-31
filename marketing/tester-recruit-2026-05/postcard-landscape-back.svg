@@ -69,8 +69,8 @@
       <text x="560" y="362"
             text-anchor="end"
             font-family="Manrope, ui-sans-serif, system-ui, sans-serif"
-            font-style="italic"
             font-size="10"
+            font-weight="500"
             letter-spacing="0.02em"
             fill="#F67E4E"
             opacity="0.95">Every motion leaves a wake.</text>
