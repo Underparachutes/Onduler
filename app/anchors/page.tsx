@@ -340,6 +340,7 @@ export default async function AnchorsPage({
   }))
   const radarActuals: number[] = (swells ?? []).map(s => radarActualsMap.get(s.id) ?? 0)
 
+
   const totalPoints = periodLogs.reduce((sum, l) => sum + l.points, 0)
   const totalHours = periodLogs.reduce((sum, l) => sum + Number(l.hours), 0)
   // Bonus accrues to swell totals; total stat should include it (points only).
@@ -501,6 +502,7 @@ export default async function AnchorsPage({
             todayKey={todayKey}
           />
         )}
+
 
         {totalValue === 0 ? (
           <p className="text-sm text-th-muted">No motions logged for this period.</p>
@@ -687,7 +689,7 @@ export default async function AnchorsPage({
           if (!unlocks.year) locked.push('year')
           if (locked.length === 0) return null
           return (
-            <div className="mt-12 pb-12">
+            <div className="mt-8 pb-6">
               <p className="mb-3 text-[10px] uppercase tracking-widest text-th-muted">Coming together</p>
               <div className="relative overflow-hidden rounded-xl bg-th-surface/60">
                 <WaveField lines={COMING_TOGETHER_WAVES} />

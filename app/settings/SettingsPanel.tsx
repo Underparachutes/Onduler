@@ -356,16 +356,16 @@ export function SettingsPanel({
           )}
         </div>
 
-        {/* Celebration */}
+        {/* Celebrations & Notifications */}
         <div>
           <button
             onClick={() => toggle('celebration')}
             className="flex w-full items-center justify-between py-4 text-left transition-all active:scale-[0.99]"
           >
             <div>
-              <p className="text-sm font-medium text-th-text">Celebration</p>
+              <p className="text-sm font-medium text-th-text">Celebrations and notifications</p>
               <p className="text-xs text-th-muted">
-                {celebration ? 'Visual on' : 'Visual off'}{haptic ? ' · Haptic on' : ''}
+                {celebration ? 'Visual on' : 'Visual off'}{haptic ? ' · Haptic on' : ''}{cycleEmail ? ' · Weekly email on' : ''}
               </p>
             </div>
           </button>
@@ -400,28 +400,9 @@ export function SettingsPanel({
                   <span className={`absolute top-1 left-1 h-4 w-4 rounded-full bg-white shadow transition-transform ${haptic ? 'translate-x-5' : 'translate-x-0'}`} />
                 </button>
               </div>
-            </div>
-          )}
-        </div>
-
-        {/* Email */}
-        <div>
-          <button
-            onClick={() => toggle('email')}
-            className="flex w-full items-center justify-between py-4 text-left transition-all active:scale-[0.99]"
-          >
-            <div>
-              <p className="text-sm font-medium text-th-text">Email</p>
-              <p className="text-xs text-th-muted">
-                {cycleEmail ? 'Weekly wake on' : 'Weekly wake off'}
-              </p>
-            </div>
-          </button>
-          {openSection === 'email' && (
-            <div className="flex flex-col divide-y divide-th-border pb-4">
               <div className="flex items-center justify-between py-3">
                 <div className="pr-4">
-                  <p className="text-sm font-medium text-th-text">Weekly wake</p>
+                  <p className="text-sm font-medium text-th-text">Weekly wake email</p>
                   <p className="text-xs text-th-muted">Sunday morning note when your week closes</p>
                 </div>
                 <button

@@ -38,11 +38,11 @@ export function WaveGrid({ durationSeconds }: { durationSeconds: number | null }
 
   return (
     <div className="flex flex-col items-center gap-3">
-      <p className="text-xs text-th-muted">Closer to my swells</p>
+      <p className="text-xs text-th-muted">High energy</p>
 
       <div className="flex w-full items-center gap-3">
         <p className="w-14 shrink-0 text-right text-xs leading-tight text-th-muted">
-          Wipe<br />Out
+          Negative
         </p>
 
         <div
@@ -68,11 +68,11 @@ export function WaveGrid({ durationSeconds }: { durationSeconds: number | null }
         </div>
 
         <p className="w-14 shrink-0 text-xs leading-tight text-th-muted">
-          Totally<br />Tubular
+          Positive
         </p>
       </div>
 
-      <p className="text-xs text-th-muted">Further from my swells</p>
+      <p className="text-xs text-th-muted">Low energy</p>
 
       <button
         onClick={submit}

@@ -68,6 +68,7 @@ export function CycleCeremony({
   const [step, setStep] = useState<Step>('expectation')
   const [expectation, setExpectation] = useState('')
   const [observation, setObservation] = useState('')
+  const [chapterExpanded, setChapterExpanded] = useState(false)
   const [isPending, startTransition] = useTransition()
 
   const isHours = trackingMode === 'hours'
@@ -267,14 +268,40 @@ export function CycleCeremony({
                 Skip. Nothing to change this time.
               </button>
 
-              <button
-                type="button"
-                onClick={() => setStep('archive_confirm')}
-                disabled={isPending}
-                className="mt-6 text-xs text-th-faint transition-colors hover:text-th-text active:scale-[0.97] disabled:opacity-50"
-              >
-                Start a new chapter
-              </button>
+              {!chapterExpanded ? (
+                <button
+                  type="button"
+                  onClick={() => setChapterExpanded(true)}
+                  disabled={isPending}
+                  className="mt-6 text-xs text-th-faint transition-colors hover:text-th-text active:scale-[0.97] disabled:opacity-50"
+                >
+                  Start a new chapter
+                </button>
+              ) : (
+                <div className="mt-6 rounded-lg border border-th-border bg-th-surface/50 px-4 py-3">
+                  <p className="text-xs font-medium text-th-text">What this means</p>
+                  <p className="mt-1.5 text-xs leading-relaxed text-th-secondary">
+                    Your motions, swells, logs, and anchors stay safe — you can revisit them from Settings → Past chapters. The active app starts fresh: new swells, new motions. Reflection unlocks reset.
+                  </p>
+                  <div className="mt-3 flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setStep('archive_confirm')}
+                      disabled={isPending}
+                      className="rounded-lg border border-th-text bg-th-text px-3 py-1.5 text-xs font-medium text-th-bg transition-colors hover:bg-th-text/90 active:scale-[0.97] disabled:opacity-50"
+                    >
+                      Continue
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setChapterExpanded(false)}
+                      className="text-xs text-th-faint transition-colors hover:text-th-muted active:scale-[0.97]"
+                    >
+                      Never mind
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
