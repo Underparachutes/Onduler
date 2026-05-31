@@ -17,7 +17,7 @@ export default async function SettingsPage() {
     getActiveChapterId(supabase, user.id),
     supabase
       .from('user_settings')
-      .select('theme, groups_enabled, submotions_enabled, daily_goal, daily_goal_hours, tracking_mode, celebration_enabled, haptic_enabled, primary_build, is_admin, subscription_status, hints_seen')
+      .select('theme, groups_enabled, submotions_enabled, daily_goal, daily_goal_hours, tracking_mode, celebration_enabled, haptic_enabled, primary_build, is_admin, subscription_status, hints_seen, email_cycle_close_enabled')
       .eq('user_id', user.id)
       .single(),
   ])
@@ -94,6 +94,7 @@ export default async function SettingsPage() {
           archivedChapterCount={archivedChapterCount ?? 0}
           isAdmin={settings?.is_admin ?? false}
           subscriptionStatus={settings?.subscription_status ?? 'none'}
+          emailCycleCloseEnabled={settings?.email_cycle_close_enabled ?? true}
         />
       </div>
 

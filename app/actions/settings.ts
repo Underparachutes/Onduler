@@ -192,3 +192,16 @@ export async function setSubmotionsEnabled(enabled: boolean) {
   revalidatePath('/settings')
   return { success: true }
 }
+
+export async function setEmailCycleCloseEnabled(enabled: boolean) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  await supabase
+    .from('user_settings')
+    .upsert({ user_id: user.id, email_cycle_close_enabled: enabled })
+
+  revalidatePath('/settings')
+  return { success: true }
+}

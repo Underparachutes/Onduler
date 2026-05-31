@@ -146,11 +146,17 @@ CREATE TABLE user_settings (
     CHECK (subscription_status IN ('active', 'past_due', 'canceled', 'incomplete', 'trialing', 'lifetime', 'none')),
   subscription_id         text        UNIQUE,
   current_period_end      timestamptz,
-  hints_seen              jsonb       NOT NULL DEFAULT '{}'::jsonb
+  hints_seen              jsonb       NOT NULL DEFAULT '{}'::jsonb,
+  email_cycle_close_enabled boolean   NOT NULL DEFAULT true,
+  email_unsubscribe_token   uuid      NOT NULL DEFAULT gen_random_uuid(),
+  last_cycle_email_cycle_start date
 );
 
 CREATE INDEX IF NOT EXISTS user_settings_stripe_customer_idx
   ON user_settings (stripe_customer_id) WHERE stripe_customer_id IS NOT NULL;
+
+CREATE UNIQUE INDEX IF NOT EXISTS user_settings_email_unsubscribe_token_idx
+  ON user_settings (email_unsubscribe_token);
 
 -- ADR 0007: Reflections surface (now Anchors per ADR 0008). Reflections are
 -- chapter-scoped (ceremony + free-form entries). Chapters table itself sits

@@ -11,6 +11,7 @@ import {
   setCelebrationEnabled,
   setHapticEnabled,
   setTrackingMode,
+  setEmailCycleCloseEnabled,
 } from '@/app/actions/settings'
 import { unhideMotion } from '@/app/actions/motions'
 import { changePassword } from '@/app/actions/auth'
@@ -53,6 +54,7 @@ type Props = {
   archivedChapterCount: number
   isAdmin: boolean
   subscriptionStatus: string
+  emailCycleCloseEnabled: boolean
 }
 
 export function SettingsPanel({
@@ -73,6 +75,7 @@ export function SettingsPanel({
   archivedChapterCount,
   isAdmin,
   subscriptionStatus,
+  emailCycleCloseEnabled,
 }: Props) {
   const [currentTheme, setCurrentTheme] = useState(theme)
   const [currentMode, setCurrentMode] = useState<TrackingMode>(trackingMode)
@@ -84,6 +87,7 @@ export function SettingsPanel({
   const [goalInput, setGoalInput] = useState('')
   const [celebration, setCelebration] = useState(celebrationEnabled)
   const [haptic, setHaptic] = useState(hapticEnabled)
+  const [cycleEmail, setCycleEmail] = useState(emailCycleCloseEnabled)
   const [vibrateSupported, setVibrateSupported] = useState(true)
   useEffect(() => { setVibrateSupported('vibrate' in navigator) }, [])
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null)
@@ -120,6 +124,11 @@ export function SettingsPanel({
   function handleHaptic(enabled: boolean) {
     setHaptic(enabled)
     startTransition(async () => { await setHapticEnabled(enabled) })
+  }
+
+  function handleCycleEmail(enabled: boolean) {
+    setCycleEmail(enabled)
+    startTransition(async () => { await setEmailCycleCloseEnabled(enabled) })
   }
 
   function startEditGoal() {
@@ -389,6 +398,39 @@ export function SettingsPanel({
                   className={`relative h-6 w-11 rounded-full transition-colors ${haptic ? 'bg-th-btn' : 'bg-th-border'}`}
                 >
                   <span className={`absolute top-1 left-1 h-4 w-4 rounded-full bg-white shadow transition-transform ${haptic ? 'translate-x-5' : 'translate-x-0'}`} />
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Email */}
+        <div>
+          <button
+            onClick={() => toggle('email')}
+            className="flex w-full items-center justify-between py-4 text-left transition-all active:scale-[0.99]"
+          >
+            <div>
+              <p className="text-sm font-medium text-th-text">Email</p>
+              <p className="text-xs text-th-muted">
+                {cycleEmail ? 'Weekly wake on' : 'Weekly wake off'}
+              </p>
+            </div>
+          </button>
+          {openSection === 'email' && (
+            <div className="flex flex-col divide-y divide-th-border pb-4">
+              <div className="flex items-center justify-between py-3">
+                <div className="pr-4">
+                  <p className="text-sm font-medium text-th-text">Weekly wake</p>
+                  <p className="text-xs text-th-muted">Sunday morning note when your week closes</p>
+                </div>
+                <button
+                  role="switch"
+                  aria-checked={cycleEmail}
+                  onClick={() => handleCycleEmail(!cycleEmail)}
+                  className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${cycleEmail ? 'bg-th-btn' : 'bg-th-border'}`}
+                >
+                  <span className={`absolute top-1 left-1 h-4 w-4 rounded-full bg-white shadow transition-transform ${cycleEmail ? 'translate-x-5' : 'translate-x-0'}`} />
                 </button>
               </div>
             </div>
