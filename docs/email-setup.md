@@ -4,11 +4,7 @@ The cycle-close email feature is wired in code (Resend SDK, cron route, opt-in c
 
 ## 1. Run the database migration
 
-Open the Supabase SQL editor for the Onduler project and paste in:
-
-```
-scripts/migrate-cycle-email.sql
-```
+Open `scripts/migrate-cycle-email.sql` in your editor, copy its full contents, and paste them into the Supabase SQL editor for the Onduler project. Hit Run.
 
 It adds three columns to `user_settings`:
 
@@ -27,16 +23,19 @@ Idempotent. Re-running is safe.
 ## 3. Verify `onduler.app` for sending
 
 1. In Resend, click **Domains** → **Add Domain** → enter `onduler.app`.
-2. Resend shows 3 DNS records to add: one SPF, two for DKIM (and one optional DMARC; add it). Each record has a **Type** (TXT or CNAME), a **Name** (something like `send` or `resend._domainkey`), and a **Value**.
+2. Resend shows 4 records to add: one TXT for DKIM (`resend._domainkey`), one MX for sending (`send`), one TXT for SPF (`send`), and one TXT for DMARC (`_dmarc`).
 3. Open another tab, sign into Namecheap, and go to **Domain List** → click **Manage** next to `onduler.app` → **Advanced DNS**.
-4. For each record Resend shows:
-   - Click **Add New Record**.
-   - Set **Type** to match (TXT Record or CNAME Record).
-   - Set **Host** to the **Name** Resend gave you. Important: Namecheap auto-strips your domain suffix, so if Resend says `send.onduler.app`, enter `send` (not the full name). If it's just `onduler.app`, enter `@`.
-   - Set **Value** to exactly what Resend gave you. For long DKIM values, paste the whole thing in one go; Namecheap accepts it.
-   - **TTL**: Automatic.
-   - Save the record.
-5. After adding all 3-4 records, go back to Resend and click **Verify**. Propagation usually takes a few minutes. If it's still pending after 15 minutes, double-check that the **Host** column in Namecheap doesn't include `.onduler.app` — that's the common gotcha.
+4. **For the three TXT records:**
+   - Under **Host Records**, click **Add New Record**.
+   - Set **Type** to **TXT Record**.
+   - Set **Host** to the **Name** Resend gave you. Namecheap auto-strips your domain suffix, so if Resend says `send.onduler.app`, enter `send` (not the full name). For `_dmarc.onduler.app`, enter `_dmarc`. If it's just `onduler.app`, enter `@`.
+   - Set **Value** to exactly what Resend gave you. For the long DKIM value, paste the whole thing in one go; Namecheap accepts it.
+   - **TTL**: Automatic. Save.
+5. **For the MX record (Namecheap quirk):** the **Host Records** dropdown does not include MX as a type. MX records live under **Mail Settings**, which by default is set to **Email Forwarding**.
+   - Scroll down to the **Mail Settings** section.
+   - Change the dropdown from **Email Forwarding** to **Custom MX**. This removes Namecheap's auto-generated SPF TXT on `@` (the `v=spf1 include:spf.efwd.registrar-servers.com ~all` one) — fine unless you were forwarding `@onduler.app` email somewhere, which we aren't.
+   - An **Add Host Record** modal opens automatically with Type pre-set to **MX Record**. Fill **Host** = `send`, **Priority** = `10`, **Mail Server** = `feedback-smtp.us-east-1.amazonses.com`, **TTL** = Automatic. Save.
+6. After all 4 records are saved, go back to Resend and click **Verify**. Propagation usually takes a few minutes (sometimes faster). If it's still pending after 15 minutes, double-check that the **Host** column in Namecheap doesn't include `.onduler.app` — that's the common gotcha.
 
 ## 4. Set environment variables
 
