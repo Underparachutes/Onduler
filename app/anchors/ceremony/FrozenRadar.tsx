@@ -1,13 +1,11 @@
-// Frozen weekly radar for the ceremony reveal. No drag, no period toggle,
-// no pill. Matches the live SwellRadar's visual treatment — frosted glass
-// wedges, ombré slices, separator lines, tangent-rotated labels — but it's
-// pure SSR, a contemplative snapshot.
+// Frozen radar for the ceremony reveal and journal. No drag, no period
+// toggle, no pill. Contemplative snapshot — colored polygon fills clipped
+// to the actuals outline, separator lines, tangent-rotated labels.
 
 import {
   axisAngleRad,
-  wedgePath,
-  wedgeBoundary,
-  slicePath,
+  vertexAt,
+  shoulderVertex,
   actualPolygonPath,
   chartCeiling,
   scaleConfigFor,
@@ -57,6 +55,31 @@ export function FrozenRadar({
     return { x, y, rotation }
   }
 
+  function wedgeSlicePath(index: number): string {
+    const val = actuals[index]
+    if (!isFinite(val) || val <= 0) return ''
+    const peak = vertexAt(index, count, val, chartMax, RADIUS, CENTER)
+    const sCcw = shoulderVertex(index, count, val, targets, chartMax, RADIUS, CENTER, -1)
+    const sCw = shoulderVertex(index, count, val, targets, chartMax, RADIUS, CENTER, 1)
+    return [
+      `M ${CENTER.x},${CENTER.y}`,
+      `L ${sCcw.x},${sCcw.y}`,
+      `L ${peak.x},${peak.y}`,
+      `L ${sCw.x},${sCw.y}`,
+      'Z',
+    ].join(' ')
+  }
+
+  function separatorEnd(index: number) {
+    const next = (index + 1) % count
+    const half = Math.PI / count
+    const rA = chartMax > 0 ? (Math.max(0, actuals[index]) / chartMax) * RADIUS : 0
+    const rB = chartMax > 0 ? (Math.max(0, actuals[next]) / chartMax) * RADIUS : 0
+    const r = Math.max(rA, rB)
+    const angle = axisAngleRad(index, count) + half
+    return { x: CENTER.x + Math.cos(angle) * r, y: CENTER.y + Math.sin(angle) * r }
+  }
+
   return (
     <svg
       viewBox={`${VB_ORIGIN} ${VB_ORIGIN} ${VB_SIZE} ${VB_SIZE}`}
@@ -64,21 +87,15 @@ export function FrozenRadar({
       style={{ overflow: 'visible' }}
     >
       <defs>
-        <filter id="fr-frost" x="-10%" y="-10%" width="120%" height="120%">
-          <feGaussianBlur stdDeviation="2" />
-        </filter>
-        <clipPath id="fr-wake-cutout">
-          <path d={`M ${VB_ORIGIN} ${VB_ORIGIN} h ${VB_SIZE} v ${VB_SIZE} h -${VB_SIZE} Z ${actualPolygon}`} clipRule="evenodd" />
-        </clipPath>
         {swells.map((s, i) => {
-          const targetR = chartMax > 0 ? (targets[i] / chartMax) * RADIUS : 0
+          const actualR = chartMax > 0 ? (Math.min(actuals[i], chartMax) / chartMax) * RADIUS : 0
           return (
             <radialGradient
               key={`grad-${s.id}`}
               id={`fr-slice-grad-${s.id}`}
               cx={CENTER.x}
               cy={CENTER.y}
-              r={Math.max(targetR, 1)}
+              r={Math.max(actualR, 1)}
               gradientUnits="userSpaceOnUse"
             >
               <stop offset="0%" stopColor={`color-mix(in oklch, ${s.color} 35%, var(--th-surface))`} />
@@ -88,41 +105,23 @@ export function FrozenRadar({
         })}
       </defs>
 
-      {/* Wedge fills — frosted glass effect */}
-      {swells.map((s, i) => (
-        <g key={`wedge-${s.id}`}>
-          <path
-            d={wedgePath(i, targets, chartMax, RADIUS, CENTER)}
-            fill={s.color}
-            fillOpacity={0.25}
-            filter="url(#fr-frost)"
-          />
-          <path
-            d={wedgePath(i, targets, chartMax, RADIUS, CENTER)}
-            fill="var(--th-frost-overlay)"
-            fillOpacity={0.35}
-            clipPath="url(#fr-wake-cutout)"
-          />
-        </g>
-      ))}
-
-      {/* Filled slices — ombré from surface-blend at center to swell color at edge */}
+      {/* Per-wedge colored fills following the polygon boundary */}
       {swells.map((s, i) => {
-        const d = slicePath(i, actuals, targets, chartMax, RADIUS, CENTER)
+        const d = wedgeSlicePath(i)
         if (!d) return null
         return (
           <path
             key={`slice-${s.id}`}
             d={d}
             fill={`url(#fr-slice-grad-${s.id})`}
-            fillOpacity={0.95}
+            fillOpacity={0.85}
           />
         )
       })}
 
       {/* Separator lines on bisector radials */}
       {swells.map((_, i) => {
-        const b = wedgeBoundary(i, targets, chartMax, RADIUS, CENTER)
+        const b = separatorEnd(i)
         return (
           <line
             key={`sep-${i}`}
@@ -132,7 +131,7 @@ export function FrozenRadar({
             y2={b.y}
             stroke="var(--color-th-text, currentColor)"
             strokeWidth="0.5"
-            opacity="0.32"
+            opacity="0.25"
           />
         )
       })}

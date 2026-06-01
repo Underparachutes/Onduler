@@ -13,25 +13,39 @@ async function detectWave(
   supabase: SupabaseClient,
   chapterId: string,
 ): Promise<{ showWavePrompt: boolean; waveDurationSeconds: number | null }> {
-  const { data: lastLogData } = await supabase
-    .from('logs')
-    .select('logged_at')
-    .eq('chapter_id', chapterId)
-    .order('logged_at', { ascending: false })
-    .limit(1)
+  const [{ data: lastLogData }, { data: lastAnchorData }] = await Promise.all([
+    supabase
+      .from('logs')
+      .select('logged_at')
+      .eq('chapter_id', chapterId)
+      .order('logged_at', { ascending: false })
+      .limit(1),
+    supabase
+      .from('reflections')
+      .select('created_at')
+      .eq('chapter_id', chapterId)
+      .order('created_at', { ascending: false })
+      .limit(1),
+  ])
 
-  const lastLog = lastLogData?.[0] ?? null
-  if (!lastLog) return { showWavePrompt: false, waveDurationSeconds: null }
+  const lastLogTs = lastLogData?.[0]?.logged_at
+  const lastAnchorTs = lastAnchorData?.[0]?.created_at
+  const lastEngagement = [lastLogTs, lastAnchorTs]
+    .filter(Boolean)
+    .map(t => new Date(t!).getTime())
+    .sort((a, b) => b - a)[0]
+  if (!lastEngagement) return { showWavePrompt: false, waveDurationSeconds: null }
 
-  const msSinceLog = Date.now() - new Date(lastLog.logged_at).getTime()
-  const hoursSinceLog = msSinceLog / (1000 * 60 * 60)
-  if (hoursSinceLog < 72) return { showWavePrompt: false, waveDurationSeconds: null }
+  const msSince = Date.now() - lastEngagement
+  const hoursSince = msSince / (1000 * 60 * 60)
+  if (hoursSince < 72) return { showWavePrompt: false, waveDurationSeconds: null }
 
+  const lastEngagementIso = new Date(lastEngagement).toISOString()
   const { data: recentCheckinData } = await supabase
     .from('wave_checkins')
     .select('id')
     .eq('chapter_id', chapterId)
-    .gt('checked_in_at', lastLog.logged_at)
+    .gt('checked_in_at', lastEngagementIso)
     .limit(1)
 
   if (recentCheckinData && recentCheckinData.length > 0) {
@@ -40,7 +54,7 @@ async function detectWave(
 
   return {
     showWavePrompt: true,
-    waveDurationSeconds: Math.floor(msSinceLog / 1000),
+    waveDurationSeconds: Math.floor(msSince / 1000),
   }
 }
 

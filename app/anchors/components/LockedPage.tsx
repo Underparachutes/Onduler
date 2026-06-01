@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { WaveField, type WaveLine } from '@/app/components/WaveField'
 import { Wake } from './Wake'
 import { HintCard } from '@/app/components/HintCard'
@@ -40,9 +41,18 @@ export function LockedPage({ actuals = [], inWave = false, hintSeen = true }: Pr
     <div className="relative flex min-h-[420px] flex-1 flex-col items-center justify-center overflow-hidden px-6 py-14 text-center">
       <WaveField lines={WAVE_LINES} />
 
+      <Link
+        href="/anchors/new"
+        aria-label="Drop an anchor"
+        className="absolute right-5 top-8 flex items-center justify-center text-3xl font-light leading-none text-th-muted transition-colors hover:text-th-text"
+        style={{ zIndex: 2 }}
+      >
+        +
+      </Link>
+
       <div className="relative w-full max-w-[22rem]" style={{ zIndex: 1 }}>
-        <HintCard hintKey="anchors_locked" title="Anchors unlocks after your first week." seen={hintSeen} translucent>
-          <p>This is where you&apos;ll see your wake, the shape of how you&apos;ve been showing up. Nothing to do yet. Just keep logging.</p>
+        <HintCard hintKey="anchors_locked" title="The page unlocks after your first week. You can drop an anchor anytime." seen={hintSeen} translucent>
+          <p>This is where you&apos;ll see your wake, the shape of how you&apos;ve been showing up.</p>
         </HintCard>
       </div>
 

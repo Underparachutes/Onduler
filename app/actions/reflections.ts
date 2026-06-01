@@ -2,8 +2,8 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
-import { pacificDayKey, type DayKey } from '@/lib/periods'
-import { closedCycleFor, cycleContaining, type Cadence } from '@/lib/cycles'
+import { pacificDayKey, addDays, sundayOf, type DayKey } from '@/lib/periods'
+import { closedCycleFor, cycleContaining, thisWeekSunday, formatWeekLabel, type Cadence } from '@/lib/cycles'
 import { CEREMONY_FLOOR, UNLOCK_FLOOR, logDaysInCycle, unlockedForCadence } from '@/lib/unlocks'
 import { markHintSeen } from '@/app/actions/settings'
 
@@ -249,10 +249,10 @@ export async function createFreeAnchor(_prev: unknown, formData: FormData) {
   return { success: true }
 }
 
-// Update an existing free-form anchor. Edits to ceremony anchors are
-// rejected — those are meant to be frozen records of what the user said
-// at cycle close. useActionState-compatible.
-export async function updateFreeAnchor(id: string, _prev: unknown, formData: FormData) {
+// Update an anchor. Free anchors: body, prompt, cycle editable. Ceremony
+// anchors: only expectation_text and observation_text (cycle window stays
+// frozen). useActionState-compatible.
+export async function updateAnchor(id: string, _prev: unknown, formData: FormData) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
@@ -264,27 +264,43 @@ export async function updateFreeAnchor(id: string, _prev: unknown, formData: For
     .eq('user_id', user.id)
     .maybeSingle()
   if (!row?.id) return { error: 'Anchor not found' }
-  if (row.cycle_type !== 'free') return { error: 'Ceremony anchors cannot be edited' }
 
-  const bodyText = ((formData.get('body_text') as string) ?? '').trim()
-  if (!bodyText) return { error: 'Anchor cannot be empty' }
-  const promptText = ((formData.get('prompt_text') as string) ?? '').trim() || null
-  const cycleStart = ((formData.get('cycle_start') as string) ?? '').trim() || null
-  const cycleEnd = ((formData.get('cycle_end') as string) ?? '').trim() || null
+  if (row.cycle_type === 'free') {
+    const bodyText = ((formData.get('body_text') as string) ?? '').trim()
+    if (!bodyText) return { error: 'Anchor cannot be empty' }
+    const promptText = ((formData.get('prompt_text') as string) ?? '').trim() || null
+    const cycleStart = ((formData.get('cycle_start') as string) ?? '').trim() || null
+    const cycleEnd = ((formData.get('cycle_end') as string) ?? '').trim() || null
 
-  const { error } = await supabase
-    .from('reflections')
-    .update({
-      body_text: bodyText,
-      prompt_text: promptText,
-      cycle_start: cycleStart,
-      cycle_end: cycleEnd,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', id)
-    .eq('user_id', user.id)
+    const { error } = await supabase
+      .from('reflections')
+      .update({
+        body_text: bodyText,
+        prompt_text: promptText,
+        cycle_start: cycleStart,
+        cycle_end: cycleEnd,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id)
+      .eq('user_id', user.id)
 
-  if (error) return { error: error.message }
+    if (error) return { error: error.message }
+  } else {
+    const expectationText = ((formData.get('expectation_text') as string) ?? '').trim() || null
+    const observationText = ((formData.get('observation_text') as string) ?? '').trim() || null
+
+    const { error } = await supabase
+      .from('reflections')
+      .update({
+        expectation_text: expectationText,
+        observation_text: observationText,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id)
+      .eq('user_id', user.id)
+
+    if (error) return { error: error.message }
+  }
 
   revalidatePath('/anchors')
   revalidatePath('/anchors/journal')
@@ -388,4 +404,227 @@ export async function getAnchorJournal(): Promise<ChapterWithAnchors[]> {
     endedAt: c.ended_at,
     anchors: grouped.get(c.id) ?? [],
   }))
+}
+
+// Period-filtered anchors for the inline log on /anchors. Returns newest
+// first, paginated by offset/limit. `periodStart` and `periodEnd` are
+// inclusive DayKey boundaries derived from the active period filter.
+export async function getAnchorsForPeriod(
+  periodStart: DayKey,
+  periodEnd: DayKey,
+  offset: number = 0,
+  limit: number = 10,
+): Promise<{ anchors: AnchorRow[]; total: number }> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { anchors: [], total: 0 }
+
+  const [{ data: rows }, { count }] = await Promise.all([
+    supabase
+      .from('reflections')
+      .select('id, cycle_type, cycle_start, cycle_end, expectation_text, observation_text, did_tune, body_text, prompt_text, created_at')
+      .eq('user_id', user.id)
+      .gte('created_at', periodStart + 'T00:00:00-08:00')
+      .lte('created_at', periodEnd + 'T23:59:59-08:00')
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1),
+    supabase
+      .from('reflections')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .gte('created_at', periodStart + 'T00:00:00-08:00')
+      .lte('created_at', periodEnd + 'T23:59:59-08:00'),
+  ])
+
+  return {
+    anchors: (rows ?? []).map(a => ({
+      id: a.id,
+      cycle_type: a.cycle_type,
+      cycle_start: a.cycle_start,
+      cycle_end: a.cycle_end,
+      expectation_text: a.expectation_text,
+      observation_text: a.observation_text,
+      did_tune: a.did_tune,
+      body_text: a.body_text,
+      prompt_text: a.prompt_text,
+      created_at: a.created_at,
+    })),
+    total: count ?? 0,
+  }
+}
+
+// Save a single field on an anchor inline (save-on-blur pattern).
+// Free anchors: body_text. Ceremony anchors: expectation_text, observation_text.
+export async function updateAnchorField(
+  id: string,
+  field: 'body_text' | 'expectation_text' | 'observation_text',
+  value: string,
+): Promise<{ error?: string; success?: boolean }> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const { data: row } = await supabase
+    .from('reflections')
+    .select('id, cycle_type')
+    .eq('id', id)
+    .eq('user_id', user.id)
+    .maybeSingle()
+  if (!row?.id) return { error: 'Anchor not found' }
+
+  if (row.cycle_type === 'free' && field !== 'body_text') {
+    return { error: 'Invalid field for free anchor' }
+  }
+  if (row.cycle_type !== 'free' && field === 'body_text') {
+    return { error: 'Invalid field for ceremony anchor' }
+  }
+
+  const trimmed = value.trim() || null
+  if (row.cycle_type === 'free' && field === 'body_text' && !trimmed) {
+    return { error: 'Anchor cannot be empty' }
+  }
+
+  const { error } = await supabase
+    .from('reflections')
+    .update({ [field]: trimmed, updated_at: new Date().toISOString() })
+    .eq('id', id)
+    .eq('user_id', user.id)
+
+  if (error) return { error: error.message }
+
+  revalidatePath('/anchors')
+  revalidatePath('/anchors/journal')
+  return { success: true }
+}
+
+// Weekly archive data for the journal rewrite. Returns chapters with their
+// week list (every Sun-Sat from first event through chapter end / today).
+// Each week carries flags for whether it has logs, anchors, or both.
+export type JournalWeek = {
+  cycleStart: DayKey
+  cycleEnd: DayKey
+  label: string
+  hasLogs: boolean
+  hasAnchors: boolean
+  anchors: AnchorRow[]
+}
+
+export type JournalChapter = {
+  chapterId: string
+  startedAt: string
+  endedAt: string | null
+  weeks: JournalWeek[]
+}
+
+export async function getJournalData(): Promise<JournalChapter[]> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+
+  const todayKey = pacificDayKey(new Date())
+
+  const [{ data: chapters }, { data: anchors }, { data: logs }] = await Promise.all([
+    supabase
+      .from('chapters')
+      .select('id, started_at, ended_at')
+      .eq('user_id', user.id)
+      .order('started_at', { ascending: false }),
+    supabase
+      .from('reflections')
+      .select('id, chapter_id, cycle_type, cycle_start, cycle_end, expectation_text, observation_text, did_tune, body_text, prompt_text, created_at')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false }),
+    supabase
+      .from('logs')
+      .select('logged_at, chapter_id')
+      .eq('user_id', user.id),
+  ])
+
+  if (!chapters?.length) return []
+
+  // Build per-chapter sets of log day keys and anchor day keys
+  const logDaysByChapter = new Map<string, Set<DayKey>>()
+  for (const l of logs ?? []) {
+    const set = logDaysByChapter.get(l.chapter_id) ?? new Set()
+    set.add(pacificDayKey(l.logged_at))
+    logDaysByChapter.set(l.chapter_id, set)
+  }
+
+  // Group anchors by chapter, and also track anchor day keys per chapter
+  const anchorsByChapter = new Map<string, AnchorRow[]>()
+  const anchorDaysByChapter = new Map<string, Set<DayKey>>()
+  for (const a of anchors ?? []) {
+    const list = anchorsByChapter.get(a.chapter_id) ?? []
+    list.push({
+      id: a.id,
+      cycle_type: a.cycle_type,
+      cycle_start: a.cycle_start,
+      cycle_end: a.cycle_end,
+      expectation_text: a.expectation_text,
+      observation_text: a.observation_text,
+      did_tune: a.did_tune,
+      body_text: a.body_text,
+      prompt_text: a.prompt_text,
+      created_at: a.created_at,
+    })
+    anchorsByChapter.set(a.chapter_id, list)
+
+    const daySet = anchorDaysByChapter.get(a.chapter_id) ?? new Set()
+    daySet.add(pacificDayKey(a.created_at))
+    anchorDaysByChapter.set(a.chapter_id, daySet)
+  }
+
+  return chapters.map(ch => {
+    const logDays = logDaysByChapter.get(ch.id) ?? new Set<DayKey>()
+    const anchorDays = anchorDaysByChapter.get(ch.id) ?? new Set<DayKey>()
+    const chapterAnchors = anchorsByChapter.get(ch.id) ?? []
+
+    // Find first event (earliest log or anchor day)
+    const allDays = [...logDays, ...anchorDays].sort()
+    if (allDays.length === 0) {
+      return { chapterId: ch.id, startedAt: ch.started_at, endedAt: ch.ended_at, weeks: [] }
+    }
+    const firstEventDay = allDays[0]
+
+    // Determine the end boundary
+    const endDay = ch.ended_at ? pacificDayKey(ch.ended_at) : todayKey
+
+    // Generate every Sun-Sat from the Sunday containing the first event
+    // through the Sunday containing the end day
+    const firstSunday = sundayOf(firstEventDay)
+    const lastSunday = sundayOf(endDay)
+
+    const weeks: JournalWeek[] = []
+    let current = lastSunday
+
+    // Walk backwards from newest week to oldest
+    while (current >= firstSunday) {
+      const cycleStart = current
+      const cycleEnd = addDays(current, 6)
+      const label = formatWeekLabel({ cycleStart, cycleEnd })
+
+      // Check if any log days fall in this week
+      let hasLogs = false
+      for (let d = 0; d < 7; d++) {
+        if (logDays.has(addDays(cycleStart, d))) { hasLogs = true; break }
+      }
+
+      // Check if any anchor days fall in this week
+      let hasAnchors = false
+      for (let d = 0; d < 7; d++) {
+        if (anchorDays.has(addDays(cycleStart, d))) { hasAnchors = true; break }
+      }
+
+      // Collect anchors whose created_at falls in this week
+      const weekAnchors = chapterAnchors.filter(a => {
+        const day = pacificDayKey(a.created_at)
+        return day >= cycleStart && day <= cycleEnd
+      })
+
+      weeks.push({ cycleStart, cycleEnd, label, hasLogs, hasAnchors, anchors: weekAnchors })
+      current = addDays(current, -7)
+    }
+
+    return { chapterId: ch.id, startedAt: ch.started_at, endedAt: ch.ended_at, weeks }
+  })
 }

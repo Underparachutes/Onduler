@@ -8,12 +8,22 @@ import { formatWeekLabel } from '@/lib/cycles'
 
 const THEMES: AnchorPromptTheme[] = ['notice', 'honor', 'consider', 'release', 'invite']
 
-export function NewAnchorForm({ cycleStart, cycleEnd }: { cycleStart: string; cycleEnd: string }) {
+type Cycle = { cycleStart: string; cycleEnd: string }
+type CycleChoice = 'this' | 'last' | 'none'
+
+type Props = {
+  thisWeek: Cycle
+  lastWeek: Cycle
+  showLastWeek: boolean
+}
+
+export function NewAnchorForm({ thisWeek, lastWeek, showLastWeek }: Props) {
   const router = useRouter()
   const [state, formAction, pending] = useActionState(createFreeAnchor, null)
   const [pickerOpen, setPickerOpen] = useState(false)
   const [expandedTheme, setExpandedTheme] = useState<AnchorPromptTheme | null>(null)
   const [prompt, setPrompt] = useState<string>('')
+  const [choice, setChoice] = useState<CycleChoice>('this')
 
   useEffect(() => {
     if (state && 'success' in state && state.success) {
@@ -21,7 +31,18 @@ export function NewAnchorForm({ cycleStart, cycleEnd }: { cycleStart: string; cy
     }
   }, [state, router])
 
-  const cycleLabel = formatWeekLabel({ cycleStart, cycleEnd })
+  const submittedCycleStart =
+    choice === 'this' ? thisWeek.cycleStart
+    : choice === 'last' ? lastWeek.cycleStart
+    : ''
+  const submittedCycleEnd =
+    choice === 'this' ? thisWeek.cycleEnd
+    : choice === 'last' ? lastWeek.cycleEnd
+    : ''
+
+  const chipBase = 'rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors active:scale-[0.97]'
+  const chipActive = 'border-th-text bg-th-text text-th-bg'
+  const chipIdle = 'border-th-border text-th-muted hover:bg-th-surface'
 
   return (
     <>
@@ -37,11 +58,9 @@ export function NewAnchorForm({ cycleStart, cycleEnd }: { cycleStart: string; cy
       </div>
 
       <form action={formAction} className="flex flex-col gap-4">
-        <input type="hidden" name="cycle_start" value={cycleStart} />
-        <input type="hidden" name="cycle_end" value={cycleEnd} />
+        <input type="hidden" name="cycle_start" value={submittedCycleStart} />
+        <input type="hidden" name="cycle_end" value={submittedCycleEnd} />
         <input type="hidden" name="prompt_text" value={prompt} />
-
-        <p className="text-[10px] uppercase tracking-widest text-th-faint">{cycleLabel}</p>
 
         {prompt && (
           <div className="flex items-start justify-between gap-2 rounded-lg border border-th-border-soft bg-th-surface/40 px-3 py-2">
@@ -64,6 +83,40 @@ export function NewAnchorForm({ cycleStart, cycleEnd }: { cycleStart: string; cy
           rows={6}
           className="resize-none rounded-lg border border-th-border bg-th-surface px-3 py-2.5 text-base text-th-text outline-none focus:border-th-focus"
         />
+
+        <div className="flex flex-col gap-2">
+          <p className="text-[10px] uppercase tracking-widest text-th-muted">Anchored to</p>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setChoice('this')}
+              className={`${chipBase} ${choice === 'this' ? chipActive : chipIdle}`}
+            >
+              This week
+            </button>
+            {showLastWeek && (
+              <button
+                type="button"
+                onClick={() => setChoice('last')}
+                className={`${chipBase} ${choice === 'last' ? chipActive : chipIdle}`}
+              >
+                Last week
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setChoice('none')}
+              className={`${chipBase} ${choice === 'none' ? chipActive : chipIdle}`}
+            >
+              No cycle
+            </button>
+          </div>
+          <p className="text-[10px] text-th-faint">
+            {choice === 'this' && formatWeekLabel(thisWeek)}
+            {choice === 'last' && formatWeekLabel(lastWeek)}
+            {choice === 'none' && 'Untethered'}
+          </p>
+        </div>
 
         {!prompt && (
           <button

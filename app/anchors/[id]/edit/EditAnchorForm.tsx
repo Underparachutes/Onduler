@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { updateFreeAnchor, deleteFreeAnchor } from '@/app/actions/reflections'
+import { updateAnchor, deleteFreeAnchor } from '@/app/actions/reflections'
 import { formatWeekLabel } from '@/lib/cycles'
 
 type Cycle = { cycleStart: string; cycleEnd: string }
@@ -29,7 +29,7 @@ export function EditAnchorForm({
   lastWeek,
 }: Props) {
   const router = useRouter()
-  const boundUpdate = updateFreeAnchor.bind(null, id)
+  const boundUpdate = updateAnchor.bind(null, id)
   const [state, formAction, pending] = useActionState(boundUpdate, null)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [deleting, startDelete] = useTransition()

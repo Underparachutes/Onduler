@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import { pacificDayKey } from '@/lib/periods'
+import { pacificDayKey, sundayOf, addDays } from '@/lib/periods'
 import { cycleContaining } from '@/lib/cycles'
 import { NewAnchorForm } from './NewAnchorForm'
 
@@ -9,16 +10,36 @@ export default async function NewAnchorPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  // Default-anchor the entry to the current week (Sun → Sat). Per spec, the
-  // user can edit this; for the placeholder phase the form just shows the
-  // cycle as a quiet pill so they know what window they're anchoring against.
   const todayKey = pacificDayKey(new Date())
-  const cycle = cycleContaining(todayKey, 'week')
+  const thisWeek = cycleContaining(todayKey, 'week')
+  const lastWeekSunday = addDays(thisWeek.cycleStart, -7)
+  const lastWeek = cycleContaining(lastWeekSunday, 'week')
+
+  const { data: chapter } = await supabase
+    .from('chapters')
+    .select('started_at')
+    .eq('user_id', user.id)
+    .is('ended_at', null)
+    .maybeSingle()
+
+  const chapterStartKey = chapter?.started_at ? pacificDayKey(chapter.started_at) : todayKey
+  const showLastWeek = sundayOf(chapterStartKey) < thisWeek.cycleStart
 
   return (
     <div className="flex min-h-full flex-col items-center px-4 py-12">
       <div className="w-full max-w-[22rem]">
-        <NewAnchorForm cycleStart={cycle.cycleStart} cycleEnd={cycle.cycleEnd} />
+        <NewAnchorForm
+          thisWeek={thisWeek}
+          lastWeek={lastWeek}
+          showLastWeek={showLastWeek}
+        />
+
+        <Link
+          href="/anchors/journal"
+          className="mt-6 block text-center text-xs text-th-secondary transition-colors hover:text-th-text"
+        >
+          Your past anchors
+        </Link>
       </div>
     </div>
   )

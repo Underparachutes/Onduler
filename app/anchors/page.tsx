@@ -24,12 +24,13 @@ import { LockedCadenceTile } from './components/LockedCadenceTile'
 import { WaveField, type WaveLine } from '@/app/components/WaveField'
 import { LockedPage } from './components/LockedPage'
 import { getActiveChapterId } from '@/lib/chapters'
-import { getCeremonyState, getUnlockState, type CeremonyState } from '@/app/actions/reflections'
+import { getCeremonyState, getUnlockState, getAnchorsForPeriod, type CeremonyState } from '@/app/actions/reflections'
 import { formatCycleLabel, type Cadence } from '@/lib/cycles'
 import type { BuildKey } from '@/lib/builds'
 import { HintCard } from '@/app/components/HintCard'
 import { markHintSeen } from '@/app/actions/settings'
 import { PeriodSelector, type PeriodOption } from './components/PeriodSelector'
+import { InlineAnchorLog } from './components/InlineAnchorLog'
 
 type CeremonyResult = { state: CeremonyState; cycleStart: string; cycleEnd: string; chapterId: string | null }
 
@@ -132,22 +133,37 @@ export default async function AnchorsPage({
 
   if (!unlocks[period]) period = 'week'
 
-  // Wave detection: 72+ hours since last log with no wave_checkin after.
-  const { data: lastLogRow } = await supabase
-    .from('logs')
-    .select('logged_at')
-    .eq('chapter_id', chapterId)
-    .order('logged_at', { ascending: false })
-    .limit(1)
+  // Wave detection: 72+ hours since last log OR anchor with no wave_checkin after.
+  const [{ data: lastLogRow }, { data: lastAnchorRow }] = await Promise.all([
+    supabase
+      .from('logs')
+      .select('logged_at')
+      .eq('chapter_id', chapterId)
+      .order('logged_at', { ascending: false })
+      .limit(1),
+    supabase
+      .from('reflections')
+      .select('created_at')
+      .eq('chapter_id', chapterId)
+      .order('created_at', { ascending: false })
+      .limit(1),
+  ])
   let inWave = false
-  if (lastLogRow?.[0]) {
-    const hoursSince = (Date.now() - new Date(lastLogRow[0].logged_at).getTime()) / 3_600_000 // eslint-disable-line react-hooks/purity -- server component
+  const lastLogTs = lastLogRow?.[0]?.logged_at
+  const lastAnchorTs = lastAnchorRow?.[0]?.created_at
+  const lastEngagement = [lastLogTs, lastAnchorTs]
+    .filter(Boolean)
+    .map(t => new Date(t!).getTime())
+    .sort((a, b) => b - a)[0]
+  if (lastEngagement) {
+    const hoursSince = (Date.now() - lastEngagement) / 3_600_000 // eslint-disable-line react-hooks/purity -- server component
     if (hoursSince >= 72) {
+      const lastEngagementIso = new Date(lastEngagement).toISOString()
       const { data: checkin } = await supabase
         .from('wave_checkins')
         .select('id')
         .eq('chapter_id', chapterId)
-        .gt('checked_in_at', lastLogRow[0].logged_at)
+        .gt('checked_in_at', lastEngagementIso)
         .limit(1)
       inWave = !checkin || checkin.length === 0
     }
@@ -313,6 +329,8 @@ export default async function AnchorsPage({
       isCurrentPeriod = true
     }
   }
+
+  const { anchors: periodAnchors, total: periodAnchorTotal } = await getAnchorsForPeriod(periodStart, periodEnd)
 
   const allLogsList = allLogs ?? []
 
@@ -693,68 +711,13 @@ export default async function AnchorsPage({
               </div>
             )}
 
-            <div className="mb-8">
-              <h2 className="mb-3 text-sm font-medium text-th-text">Recent</h2>
-              <div className="flex flex-col gap-2">
-                {periodLogs.slice(0, 10).map((log, i) => {
-                  const motion = readMotion(log)
-                  const logDate = new Date(log.logged_at as string).toLocaleDateString('en-US', {
-                    month: 'short',
-                    day: 'numeric',
-                    timeZone: 'America/Los_Angeles',
-                  })
-                  const entryValue = isHours ? ceilDisplay(Number(log.hours), true) : log.points
-                  const row = (
-                    <div className="flex items-center gap-2">
-                      <span className="h-2 w-2 shrink-0 rounded-full bg-th-border" />
-                      <span className="flex-1 truncate text-xs text-th-muted">{motion?.name ?? '—'}</span>
-                      <span className="text-xs text-th-faint">{logDate}</span>
-                      <span className="w-12 text-right text-xs text-th-faint">+{entryValue}</span>
-                    </div>
-                  )
-                  return log.motion_id ? (
-                    <Link key={`${log.logged_at}-${i}`} href={`/dashboard?detail=${log.motion_id}`} className="transition-opacity active:opacity-60">
-                      {row}
-                    </Link>
-                  ) : (
-                    <div key={`${log.logged_at}-${i}`}>{row}</div>
-                  )
-                })}
-              </div>
-              {periodLogs.length > 10 && (
-                <details className="mt-3">
-                  <summary className="cursor-pointer list-none text-xs text-th-muted hover:text-th-text">
-                    {periodLogs.length - 10} more
-                  </summary>
-                  <div className="mt-2 flex flex-col gap-2">
-                    {periodLogs.slice(10).map((log, i) => {
-                      const motion = readMotion(log)
-                      const logDate = new Date(log.logged_at as string).toLocaleDateString('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                        timeZone: 'America/Los_Angeles',
-                      })
-                      const entryValue = isHours ? ceilDisplay(Number(log.hours), true) : log.points
-                      const row = (
-                        <div className="flex items-center gap-2">
-                          <span className="h-2 w-2 shrink-0 rounded-full bg-th-border" />
-                          <span className="flex-1 truncate text-xs text-th-muted">{motion?.name ?? '—'}</span>
-                          <span className="text-xs text-th-faint">{logDate}</span>
-                          <span className="w-12 text-right text-xs text-th-faint">+{entryValue}</span>
-                        </div>
-                      )
-                      return log.motion_id ? (
-                        <Link key={`${log.logged_at}-${i}-more`} href={`/dashboard?detail=${log.motion_id}`} className="transition-opacity active:opacity-60">
-                          {row}
-                        </Link>
-                      ) : (
-                        <div key={`${log.logged_at}-${i}-more`}>{row}</div>
-                      )
-                    })}
-                  </div>
-                </details>
-              )}
-            </div>
+            <InlineAnchorLog
+              initialAnchors={periodAnchors}
+              initialTotal={periodAnchorTotal}
+              periodStart={periodStart}
+              periodEnd={periodEnd}
+              period={period}
+            />
 
             {waveCheckins.length > 0 && (
               <div>
