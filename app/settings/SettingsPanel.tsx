@@ -16,6 +16,7 @@ import {
 import { unhideMotion } from '@/app/actions/motions'
 import { changePassword } from '@/app/actions/auth'
 import { formatPts, formatHrs } from '@/lib/format'
+import { parseHoursInput } from '@/lib/periods'
 import { getBuildPreset } from '@/lib/builds'
 import { EditGroupForm } from './EditGroupForm'
 
@@ -133,13 +134,13 @@ export function SettingsPanel({
   }
 
   function startEditGoal() {
-    setGoalInput(String(currentMode === 'hours' ? goalHrs : goalPts))
+    setGoalInput(currentMode === 'hours' ? formatHrs(goalHrs) : String(goalPts))
     setEditingGoal(true)
   }
 
   function commitGoal() {
     if (currentMode === 'hours') {
-      const val = parseFloat(goalInput)
+      const val = parseHoursInput(goalInput)
       if (!val || val <= 0) { setEditingGoal(false); return }
       setGoalHrs(val)
       setEditingGoal(false)
@@ -266,9 +267,8 @@ export function SettingsPanel({
                   <div className="flex items-center gap-2">
                     <input
                       autoFocus
-                      type="number"
-                      min={currentMode === 'hours' ? '0.25' : '1'}
-                      step={currentMode === 'hours' ? '0.25' : '1'}
+                      type={currentMode === 'hours' ? 'text' : 'number'}
+                      {...(currentMode === 'hours' ? { inputMode: 'decimal' as const } : { min: '1', step: '1' })}
                       value={goalInput}
                       onChange={e => setGoalInput(e.target.value)}
                       onBlur={commitGoal}
@@ -278,7 +278,7 @@ export function SettingsPanel({
                       }}
                       className="w-16 rounded-lg border border-th-border bg-th-surface px-2 py-1 text-sm text-th-text outline-none focus:border-th-focus text-right"
                     />
-                    <span className="text-xs text-th-muted">{currentMode === 'hours' ? 'hrs' : 'pts'}</span>
+                    {currentMode !== 'hours' && <span className="text-xs text-th-muted">pts</span>}
                   </div>
                 ) : (
                   <button

@@ -22,7 +22,8 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import { quickLogMotion, unlogMotion } from '@/app/actions/logs'
 import { createSubmotion, hideMotion, deleteMotion, duplicateMotion, setMotionSwells, setMotionGroup, setSubmotionMode, updateSubmotionDirect, updateMotionDirect, reorderMotions } from '@/app/actions/motions'
-import { formatPts } from '@/lib/format'
+import { formatPts, formatHrs } from '@/lib/format'
+import { parseHoursInput } from '@/lib/periods'
 import { applyWeightEdit, defaultWeightForNewSwell, totalAllocation } from '@/lib/contributions'
 import { useToast } from '@/app/components/Toast'
 import { CadenceSection } from './CadenceSection'
@@ -270,11 +271,11 @@ export function MotionDetailSheet({
   // Editable header — auto-save on blur
   const [headerName, setHeaderName] = useState(motion.name)
   const [headerPts, setHeaderPts] = useState(String(motion.default_points))
-  const [headerHrs, setHeaderHrs] = useState(String(motion.default_hours))
+  const [headerHrs, setHeaderHrs] = useState(formatHrs(Number(motion.default_hours)))
   const [, startHeaderSave] = useTransition()
   const lastValidName = useRef(motion.name)
   const lastValidPts = useRef(String(motion.default_points))
-  const lastValidHrs = useRef(String(motion.default_hours))
+  const lastValidHrs = useRef(formatHrs(Number(motion.default_hours)))
 
   function blurName() {
     const trimmed = headerName.trim()
@@ -302,10 +303,10 @@ export function MotionDetailSheet({
   }
 
   function blurHrs() {
-    const num = parseFloat(headerHrs)
-    if (isNaN(num) || num < 0.25) { setHeaderHrs(lastValidHrs.current); return }
+    const num = parseHoursInput(headerHrs)
+    if (num === null || num < 0.25) { setHeaderHrs(lastValidHrs.current); return }
     const rounded = Math.round(num * 4) / 4
-    const str = String(rounded)
+    const str = formatHrs(rounded)
     if (str === lastValidHrs.current) return
     lastValidHrs.current = str
     setHeaderHrs(str)
@@ -661,9 +662,8 @@ export function MotionDetailSheet({
             />
             <label className="shrink-0 text-xs text-th-muted">Hrs</label>
             <input
-              type="number"
-              min="0.25"
-              step="0.25"
+              type="text"
+              inputMode="decimal"
               value={headerHrs}
               onChange={e => setHeaderHrs(e.target.value)}
               onBlur={blurHrs}

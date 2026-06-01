@@ -25,7 +25,7 @@ import { quickLogMotion, unlogMotion } from '@/app/actions/logs'
 import { setDailyGoal, setDailyGoalHours } from '@/app/actions/settings'
 import { reassignMotionToGroup, reorderMotions, setMotionSwells, duplicateMotion } from '@/app/actions/motions'
 import { formatPts, formatHrs } from '@/lib/format'
-import { ceilDisplay } from '@/lib/periods'
+import { ceilDisplay, parseHoursInput } from '@/lib/periods'
 import { useToast } from '@/app/components/Toast'
 import dynamic from 'next/dynamic'
 import { type CelebrationState } from './CelebrationOverlay'
@@ -564,9 +564,9 @@ export function DailyChecklist({
   }
 
   function commitGoal() {
-    const val = isHours ? parseFloat(goalInput) : parseInt(goalInput)
+    const val = isHours ? parseHoursInput(goalInput) : parseInt(goalInput)
     const minVal = isHours ? 0.25 : 1
-    if (!val || val < minVal) { setGoalInput(String(localGoal)); setEditingGoal(false); return }
+    if (!val || val < minVal) { setGoalInput(isHours ? formatHrs(localGoal) : String(localGoal)); setEditingGoal(false); return }
     setLocalGoal(val)
     setEditingGoal(false)
     startTransition(async () => {
@@ -634,7 +634,7 @@ export function DailyChecklist({
     <div className="mb-2 flex items-baseline justify-between gap-3">
       <h1 className="min-w-0 text-lg font-semibold text-th-text">{viewsMode ? viewsDateLabel : today}</h1>
       <p className="shrink-0 text-lg font-semibold text-th-text">
-        {isHours ? displayValue.toFixed(displayValue % 1 === 0 ? 0 : 2).replace(/\.?0+$/, '') : displayValue}
+        {isHours ? formatHrs(ceilDisplay(displayValue, true)) : displayValue}
         <span className="ml-1 text-xs font-normal uppercase tracking-widest text-th-muted">{isHours ? 'hrs' : 'pts'}</span>
       </p>
     </div>
@@ -648,19 +648,18 @@ export function DailyChecklist({
         <span className="inline-flex items-center gap-1">
           <input
             autoFocus
-            type="number"
-            min={isHours ? '0.25' : '1'}
-            step={isHours ? '0.25' : '1'}
+            type={isHours ? 'text' : 'number'}
+            {...(isHours ? { inputMode: 'decimal' as const } : { min: '1', step: '1' })}
             value={goalInput}
             onChange={e => setGoalInput(e.target.value)}
             onBlur={commitGoal}
-            onKeyDown={e => { if (e.key === 'Enter') commitGoal(); if (e.key === 'Escape') { setGoalInput(String(localGoal)); setEditingGoal(false) } }}
+            onKeyDown={e => { if (e.key === 'Enter') commitGoal(); if (e.key === 'Escape') { setGoalInput(isHours ? formatHrs(localGoal) : String(localGoal)); setEditingGoal(false) } }}
             className="w-12 rounded border border-th-border bg-th-surface px-1 py-0 text-xs text-th-text outline-none focus:border-th-focus"
           />
         </span>
       ) : (
         <button
-          onClick={() => { setGoalInput(String(localGoal)); setEditingGoal(true) }}
+          onClick={() => { setGoalInput(isHours ? formatHrs(localGoal) : String(localGoal)); setEditingGoal(true) }}
           className="transition-colors hover:text-th-muted"
         >
           {formatValue(localGoal)} target

@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useTransition } from 'react'
 import Link from 'next/link'
 import { ceilDisplay } from '@/lib/periods'
+import { formatHrs } from '@/lib/format'
 import { setSwellHidden } from '@/app/actions/swells'
 import { SwellsList } from './SwellsList'
 import { AddSwellForm } from './AddSwellForm'
@@ -84,6 +85,7 @@ export function SwellsView(props: Props) {
   const menuRef = useRef<HTMLDivElement>(null)
   const filterRef = useRef<HTMLDivElement>(null)
   const [filterOpen, setFilterOpen] = useState(false)
+  const [showValues, setShowValues] = useState(true)
 
   useEffect(() => {
     if (!menuOpen) return
@@ -124,7 +126,7 @@ export function SwellsView(props: Props) {
     return sum + motionContrib + bonus
   }, 0)
 
-  const formatValue = (n: number) => String(ceilDisplay(n, isHours))
+  const formatValue = (n: number) => isHours ? formatHrs(ceilDisplay(n, true)) : String(ceilDisplay(n))
 
   return (
     <div className="flex min-h-full flex-col items-center px-4 pb-12">
@@ -205,7 +207,7 @@ export function SwellsView(props: Props) {
                 <div className="relative shrink-0" ref={filterRef}>
                   <button
                     onClick={() => setFilterOpen(prev => !prev)}
-                    className={`p-1.5 transition-colors active:scale-[0.97] ${hideDone || sortMode !== 'custom' ? 'text-th-text' : 'text-th-faint hover:text-th-muted'}`}
+                    className={`p-1.5 transition-colors active:scale-[0.97] ${hideDone || sortMode !== 'custom' || !showValues ? 'text-th-text' : 'text-th-faint hover:text-th-muted'}`}
                     aria-label="Filter"
                   >
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4.5 w-4.5">
@@ -220,6 +222,10 @@ export function SwellsView(props: Props) {
                         <label className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-xs text-th-text transition-colors hover:bg-th-surface">
                           <input type="checkbox" checked={hideDone} onChange={toggleHideDone} className="accent-th-btn" />
                           Hide completed
+                        </label>
+                        <label className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-xs text-th-text transition-colors hover:bg-th-surface">
+                          <input type="checkbox" checked={showValues} onChange={() => setShowValues(v => !v)} className="accent-th-btn" />
+                          Show {isHours ? 'hrs' : 'pts'}
                         </label>
                         <label className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-xs text-th-text transition-colors hover:bg-th-surface">
                           <input type="checkbox" checked={sortMode === 'earned'} onChange={() => setSortMode(m => m === 'earned' ? 'custom' : 'earned')} className="accent-th-btn" />
@@ -288,6 +294,7 @@ export function SwellsView(props: Props) {
               hideDone={hideDone}
               activeGroup={activeGroup}
               sortMode={sortMode}
+              showValues={showValues}
             />
 
             {props.hiddenSwells.length > 0 && (

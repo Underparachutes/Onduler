@@ -46,10 +46,8 @@ export function AddMotionForm({ groups, groupsEnabled, trackingMode, onClose, sw
       <input
         id="default_hours"
         name="default_hours"
-        type="number"
-        defaultValue="1"
-        min="0.25"
-        step="0.25"
+        type="text"
+        defaultValue="1:00"
         inputMode="decimal"
         className="w-full rounded-lg border border-th-border bg-th-surface px-3 py-2.5 text-sm text-th-text outline-none focus:border-th-focus"
       />

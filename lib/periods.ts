@@ -86,9 +86,8 @@ export function consecutiveZeroDayStreak(
 }
 
 // ceil for display. Negative or non-finite → 0. Points mode rounds up to
-// whole units; hours mode rounds up to 0.25 hr (15-min calendar blocks, the
-// granularity the rest of the app's hour inputs already use). ADR 0005 §6
-// with the hours-mode exception noted in the working agreement.
+// whole units; hours mode rounds up to 0.25 (15-min granularity), then callers
+// format via formatHrs() for HH:MM display. ADR 0005 §6.
 export function ceilDisplay(n: number, isHours: boolean = false): number {
   if (!isFinite(n) || n <= 0) return 0
   return isHours ? Math.ceil(n * 4) / 4 : Math.ceil(n)
@@ -165,6 +164,22 @@ export function quarterEndKey(key: DayKey): DayKey {
   const endMonth = (q + 1) * 3
   const lastDay = new Date(Date.UTC(y, endMonth, 0)).getUTCDate()
   return `${y}-${String(endMonth).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
+}
+
+// Parse hours input accepting both HH:MM ("0:30") and decimal ("0.5") forms.
+// Returns the float value or null if the input is invalid.
+export function parseHoursInput(text: string): number | null {
+  const trimmed = text.trim()
+  if (!trimmed) return null
+  if (trimmed.includes(':')) {
+    const [hStr, mStr] = trimmed.split(':')
+    const h = parseInt(hStr, 10)
+    const m = parseInt(mStr, 10)
+    if (isNaN(h) || isNaN(m) || h < 0 || m < 0 || m >= 60) return null
+    return h + m / 60
+  }
+  const n = parseFloat(trimmed)
+  return isNaN(n) || n < 0 ? null : n
 }
 
 // Pacific calendar day key for a logged_at timestamp. Centralized so the

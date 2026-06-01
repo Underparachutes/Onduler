@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { getActiveChapterId } from '@/lib/chapters'
 import { markHintSeen } from '@/app/actions/settings'
+import { parseHoursInput } from '@/lib/periods'
 
 export async function createSwell(prevState: unknown, formData: FormData) {
   const name = (formData.get('name') as string)?.trim()
@@ -28,8 +29,8 @@ export async function createSwell(prevState: unknown, formData: FormData) {
     .limit(1)
 
   const sort_order = (existing?.[0]?.sort_order ?? -1) + 1
-  const target_points = targetPointsRaw ? parseInt(targetPointsRaw) || null : null
-  const target_hours = targetHoursRaw ? parseFloat(targetHoursRaw) || null : null
+  const target_points = targetPointsRaw ? parseInt(targetPointsRaw) || 100 : 100
+  const target_hours = targetHoursRaw ? parseHoursInput(targetHoursRaw) ?? 5 : 5
 
   const { error } = await supabase
     .from('swells')
@@ -54,7 +55,7 @@ export async function updateSwell(id: string, prevState: unknown, formData: Form
   if (!user) return { error: 'Not authenticated' }
 
   const target_points = targetPointsRaw ? parseInt(targetPointsRaw) || null : null
-  const target_hours = targetHoursRaw ? parseFloat(targetHoursRaw) || null : null
+  const target_hours = targetHoursRaw ? parseHoursInput(targetHoursRaw) : null
 
   await supabase
     .from('swells')

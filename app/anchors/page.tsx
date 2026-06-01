@@ -568,13 +568,13 @@ export default async function AnchorsPage({
 
           <div className="mb-4 grid grid-cols-3 gap-3">
             <div className="text-center">
-              <p className="text-lg font-semibold text-th-text">{ceilDisplay(totalValue, isHours)}</p>
+              <p className="text-lg font-semibold text-th-text">{formatValue(totalValue)}</p>
               <p className="mt-0.5 text-[10px] uppercase tracking-widest text-th-muted">
                 {isHours ? 'hrs total' : 'pts total'}
               </p>
             </div>
             <div className="text-center">
-              <p className="text-lg font-semibold text-th-text">{avgValue}</p>
+              <p className="text-lg font-semibold text-th-text">{formatValue(avgValue)}</p>
               <p className="mt-0.5 text-[10px] uppercase tracking-widest text-th-muted">
                 {isHours ? 'hrs / active day' : 'pts / active day'}
               </p>

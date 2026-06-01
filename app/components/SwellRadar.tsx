@@ -26,6 +26,7 @@ import {
   type DayKey,
 } from '@/lib/periods'
 import { getBuildPreset, type BuildKey } from '@/lib/builds'
+import { formatHrs } from '@/lib/format'
 import { updateSwellTarget } from '@/app/actions/swells'
 import { WaveField, type WaveLine } from '@/app/components/WaveField'
 
@@ -299,22 +300,22 @@ export function SwellRadar({
 
   // Drag pill — weekly source-of-truth on every period; monthly view shows
   // both values so users see the relationship while dragging (ADR 0005 §5).
-  // Hours mode keeps 0.1 precision per the ceil-rule exception.
+  const fmtVal = (n: number) => isHours ? formatHrs(n) : `${n} ${currencyShort}`
   const formatPill = (weekly: number) => {
     const weeklyDisplay = ceilDisplay(weekly, isHours)
     if (period === 'month') {
       const monthlyDisplay = monthlyTargetDisplay(weekly, todayKey, isHours)
-      return `${monthlyDisplay} ${currencyShort}/mo · ${weeklyDisplay} ${currencyShort}/wk`
+      return `${fmtVal(monthlyDisplay)}/mo · ${fmtVal(weeklyDisplay)}/wk`
     }
     if (period === 'quarter') {
       const qtrDisplay = quarterlyTargetDisplay(weekly, todayKey, isHours)
-      return `${qtrDisplay} ${currencyShort}/qtr · ${weeklyDisplay} ${currencyShort}/wk`
+      return `${fmtVal(qtrDisplay)}/qtr · ${fmtVal(weeklyDisplay)}/wk`
     }
     if (period === 'year') {
       const yrDisplay = yearlyTargetDisplay(weekly, todayKey, isHours)
-      return `${yrDisplay} ${currencyShort}/yr · ${weeklyDisplay} ${currencyShort}/wk`
+      return `${fmtVal(yrDisplay)}/yr · ${fmtVal(weeklyDisplay)}/wk`
     }
-    return `${weeklyDisplay} ${currencyShort}/wk`
+    return `${fmtVal(weeklyDisplay)}/wk`
   }
 
   // Subtitle + wave-pill copy are period-aware.
@@ -626,21 +627,22 @@ function ResetDialog({
 
   // Weekly stays the source of truth — even when we display monthly numbers
   // (ADR 0005 §4: monthly diff with weekly in parens).
+  const fmtVal = (n: number) => isHours ? formatHrs(n) : `${n} ${currency}`
   function fmtPair(weekly: number): { primary: string; secondary: string | null } {
     const weeklyDisplay = ceilDisplay(weekly, isHours)
     if (period === 'month') {
       const monthlyDisplay = monthlyTargetDisplay(weekly, todayKey, isHours)
-      return { primary: `${monthlyDisplay} ${currency}/mo`, secondary: `(${weeklyDisplay} ${currency}/wk)` }
+      return { primary: `${fmtVal(monthlyDisplay)}/mo`, secondary: `(${fmtVal(weeklyDisplay)}/wk)` }
     }
     if (period === 'quarter') {
       const qtrDisplay = quarterlyTargetDisplay(weekly, todayKey, isHours)
-      return { primary: `${qtrDisplay} ${currency}/qtr`, secondary: `(${weeklyDisplay} ${currency}/wk)` }
+      return { primary: `${fmtVal(qtrDisplay)}/qtr`, secondary: `(${fmtVal(weeklyDisplay)}/wk)` }
     }
     if (period === 'year') {
       const yrDisplay = yearlyTargetDisplay(weekly, todayKey, isHours)
-      return { primary: `${yrDisplay} ${currency}/yr`, secondary: `(${weeklyDisplay} ${currency}/wk)` }
+      return { primary: `${fmtVal(yrDisplay)}/yr`, secondary: `(${fmtVal(weeklyDisplay)}/wk)` }
     }
-    return { primary: `${weeklyDisplay} ${currency}/wk`, secondary: null }
+    return { primary: `${fmtVal(weeklyDisplay)}/wk`, secondary: null }
   }
 
   function toggle(id: string) {

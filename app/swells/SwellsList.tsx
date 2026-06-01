@@ -121,7 +121,8 @@ export function SwellsList({
   hideDone,
   activeGroup,
   sortMode,
-}: Props & { activeGroup: string | null; sortMode: 'custom' | 'goal' | 'earned' }) {
+  showValues = true,
+}: Props & { activeGroup: string | null; sortMode: 'custom' | 'goal' | 'earned'; showValues?: boolean }) {
   const [openSheetId, setOpenSheetId] = useState<string | null>(null)
   const [localDone, setLocalDone] = useState<Set<string>>(() => new Set(doneMotionIds))
   const [localHiddenIds, setLocalHiddenIds] = useState<Set<string>>(new Set())
@@ -196,6 +197,7 @@ export function SwellsList({
           swellPtsLastWeek={swellPtsLastWeek}
           swellHrsLastWeek={swellHrsLastWeek}
           trackingMode={trackingMode}
+          showValues={showValues}
         />
       </SortableSwellItem>
     )

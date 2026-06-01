@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getActiveChapterId } from '@/lib/chapters'
 import { normalizeEntries } from '@/lib/contributions'
 import { markHintSeen } from '@/app/actions/settings'
+import { parseHoursInput } from '@/lib/periods'
 
 export async function createMotion(prevState: unknown, formData: FormData) {
   const supabase = await createClient()
@@ -13,7 +14,7 @@ export async function createMotion(prevState: unknown, formData: FormData) {
 
   const name = (formData.get('name') as string)?.trim()
   const defaultPoints = parseInt(formData.get('default_points') as string) || 1
-  const defaultHours = parseFloat(formData.get('default_hours') as string) || 1.0
+  const defaultHours = parseHoursInput(formData.get('default_hours') as string) ?? 1.0
   const groupIdRaw = (formData.get('group_id') as string) || ''
   const group_id = groupIdRaw ? groupIdRaw : null
   const swellIdRaw = (formData.get('swell_id') as string) || ''
@@ -53,7 +54,7 @@ export async function updateMotion(id: string, prevState: unknown, formData: For
 
   const name = (formData.get('name') as string)?.trim()
   const defaultPoints = parseInt(formData.get('default_points') as string) || 1
-  const defaultHours = parseFloat(formData.get('default_hours') as string) || 1.0
+  const defaultHours = parseHoursInput(formData.get('default_hours') as string) ?? 1.0
 
   if (!name) return { error: 'Name is required' }
 

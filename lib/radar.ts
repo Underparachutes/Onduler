@@ -11,7 +11,9 @@ export function axisAngleRad(index: number, count: number): number {
   return -Math.PI / 2 + (index * 2 * Math.PI) / count
 }
 
-// Vertex along an axis at a given value. value=0 returns the center.
+// Vertex along an axis at a given value. minR provides a floor so
+// zero-value vertices don't collapse to the center (keeps the polygon
+// visible as a small rounded shape).
 export function vertexAt(
   index: number,
   count: number,
@@ -19,8 +21,10 @@ export function vertexAt(
   chartMax: number,
   radius: number,
   center: Point = { x: 0, y: 0 },
+  minR: number = 0,
 ): Point {
-  const r = chartMax <= 0 ? 0 : (Math.max(0, value) / chartMax) * radius
+  const raw = chartMax <= 0 ? 0 : (Math.max(0, value) / chartMax) * radius
+  const r = Math.max(raw, minR)
   const angle = axisAngleRad(index, count)
   return { x: center.x + Math.cos(angle) * r, y: center.y + Math.sin(angle) * r }
 }
@@ -83,11 +87,13 @@ export function shoulderVertex(
   radius: number,
   center: Point = { x: 0, y: 0 },
   side: number = 1,
+  minR: number = 0,
 ): Point {
   if (count === 0 || chartMax <= 0) return center
   const half = Math.PI / count
   const angle = axisAngleRad(index, count) + side * half
-  const r = (Math.max(0, actualValue) / chartMax) * radius
+  const raw = (Math.max(0, actualValue) / chartMax) * radius
+  const r = Math.max(raw, minR)
   return { x: center.x + Math.cos(angle) * r, y: center.y + Math.sin(angle) * r }
 }
 
@@ -106,12 +112,13 @@ export function actualPolygonPath(
 ): string {
   const n = actuals.length
   if (n === 0) return ''
+  const minR = radius * 0.06
   const parts: string[] = []
   for (let i = 0; i < n; i++) {
-    const peak = vertexAt(i, n, actuals[i], chartMax, radius, center)
-    const sCw = shoulderVertex(i, n, actuals[i], targets, chartMax, radius, center, 1)
+    const peak = vertexAt(i, n, actuals[i], chartMax, radius, center, minR)
+    const sCw = shoulderVertex(i, n, actuals[i], targets, chartMax, radius, center, 1, minR)
     const next = (i + 1) % n
-    const sCcwNext = shoulderVertex(next, n, actuals[next], targets, chartMax, radius, center, -1)
+    const sCcwNext = shoulderVertex(next, n, actuals[next], targets, chartMax, radius, center, -1, minR)
     parts.push(`${i === 0 ? 'M' : 'L'} ${peak.x},${peak.y}`)
     parts.push(`L ${sCw.x},${sCw.y}`)
     parts.push(`L ${sCcwNext.x},${sCcwNext.y}`)

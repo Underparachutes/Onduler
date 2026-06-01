@@ -15,10 +15,11 @@ export function wakePolygonPath(
   const max = actuals.reduce((m, v) => (v > m ? v : m), 0)
   if (max <= 0) return ''
 
+  const minR = radius * 0.12
   const half = Math.PI / n
   const parts: string[] = []
   for (let i = 0; i < n; i++) {
-    const r = (actuals[i] / max) * radius
+    const r = Math.max((actuals[i] / max) * radius, minR)
     const axisAng = axisAngleRad(i, n)
     const ccwAng = axisAng - half
     const cwAng = axisAng + half
@@ -64,10 +65,11 @@ export function interpolatedWakePath(
   if (max <= 0) return circlePath(radius, center)
 
   const clampedT = Math.max(0, Math.min(1, t))
+  const minR = radius * 0.12
   const half = Math.PI / n
   const parts: string[] = []
   for (let i = 0; i < n; i++) {
-    const wakeR = (actuals[i] / max) * radius
+    const wakeR = Math.max((actuals[i] / max) * radius, minR)
     const r = radius + (wakeR - radius) * clampedT
     const axisAng = axisAngleRad(i, n)
     const ccwAng = axisAng - half

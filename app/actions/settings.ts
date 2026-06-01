@@ -30,8 +30,8 @@ export async function completeOnboarding(
     name: s.name,
     color: s.color,
     sort_order: i,
-    target_points: isHours ? null : 100,
-    target_hours: isHours ? 5 : null,
+    target_points: 100,
+    target_hours: 5,
   }))
 
   const { data: insertedSwells, error: swellErr } = await supabase
@@ -124,6 +124,40 @@ export async function setTrackingMode(mode: 'points' | 'hours') {
   if (!user) return { error: 'Not authenticated' }
 
   await supabase.from('user_settings').upsert({ user_id: user.id, tracking_mode: mode })
+
+  // When switching to hours mode, auto-populate target_hours for swells that
+  // only have target_points set, using the daily goal ratio (hrs/pts).
+  if (mode === 'hours') {
+    const { data: settings } = await supabase
+      .from('user_settings')
+      .select('daily_goal, daily_goal_hours')
+      .eq('user_id', user.id)
+      .single()
+    const dailyPts = settings?.daily_goal ?? 20
+    const dailyHrs = Number(settings?.daily_goal_hours ?? 4)
+    const ratio = dailyHrs / dailyPts
+
+    const chapterId = await getActiveChapterId(supabase, user.id)
+    const { data: swells } = await supabase
+      .from('swells')
+      .select('id, target_points, target_hours')
+      .eq('user_id', user.id)
+      .eq('chapter_id', chapterId)
+      .is('target_hours', null)
+      .not('target_points', 'is', null)
+
+    if (swells && swells.length > 0) {
+      for (const s of swells) {
+        const derived = Math.round(s.target_points! * ratio * 4) / 4
+        if (derived > 0) {
+          await supabase
+            .from('swells')
+            .update({ target_hours: derived })
+            .eq('id', s.id)
+        }
+      }
+    }
+  }
 
   revalidatePath('/dashboard')
   revalidatePath('/swells')

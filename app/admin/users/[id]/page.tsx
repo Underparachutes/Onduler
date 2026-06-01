@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { requireAdmin } from '@/lib/admin'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { formatHrs } from '@/lib/format'
 
 export const dynamic = 'force-dynamic'
 
@@ -134,7 +135,7 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
                       <p className="text-[11px] text-th-faint">{formatDateTime(l.logged_at)}</p>
                     </div>
                     <span className="shrink-0 text-sm tabular-nums text-th-muted">
-                      {l.points} pts · {Number(l.hours).toFixed(2)} hrs
+                      {l.points} pts · {formatHrs(Number(l.hours))}
                     </span>
                   </li>
                 )

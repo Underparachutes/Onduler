@@ -6,6 +6,7 @@ import { saveReflection } from '@/app/actions/reflections'
 import { archiveAndStartFreshChapter } from '@/app/actions/chapters'
 import { FrozenRadar } from './FrozenRadar'
 import { ceilDisplay, type DayKey } from '@/lib/periods'
+import { formatHrs } from '@/lib/format'
 import type { Cadence } from '@/lib/cycles'
 
 type Step = 'expectation' | 'reveal' | 'observation' | 'tune' | 'archive_confirm'
@@ -187,7 +188,7 @@ export function CycleCeremony({
               <FrozenRadar swells={swells} actuals={actuals} trackingMode={trackingMode} />
             </div>
             <p className="text-center text-xs text-th-muted">
-              {ceilDisplay(totalActual, isHours)} {isHours ? 'hrs' : 'pts'} across {swells.length} swell{swells.length === 1 ? '' : 's'}.
+              {isHours ? formatHrs(ceilDisplay(totalActual, true)) : ceilDisplay(totalActual)} {isHours ? 'hrs' : 'pts'} across {swells.length} swell{swells.length === 1 ? '' : 's'}.
             </p>
             <div className="flex items-center justify-end gap-3">
               <button

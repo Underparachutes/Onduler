@@ -14,11 +14,12 @@ type Props = {
   swellPtsLastWeek: number
   swellHrsLastWeek: number
   trackingMode: TrackingMode
+  showValues?: boolean
 }
 
 export function SwellRow({
   swell, swellPtsThisWeek, swellHrsThisWeek, swellPtsLastWeek, swellHrsLastWeek,
-  trackingMode,
+  trackingMode, showValues = true,
 }: Props) {
   const isHours = trackingMode === 'hours'
 
@@ -38,9 +39,11 @@ export function SwellRow({
         <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: swell.color }}>
           {swell.name}
         </p>
-        <span className="text-xs text-th-secondary">
-          {formatValue(weekValue)}{target !== null && ` / ${formatValue(target)}`}
-        </span>
+        {showValues && (
+          <span className="text-xs text-th-secondary">
+            {formatValue(weekValue)}{target !== null && ` / ${formatValue(target)}`}
+          </span>
+        )}
         {hitTarget && <span className="text-xs text-th-secondary">&#10003;</span>}
       </Link>
 

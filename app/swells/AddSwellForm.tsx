@@ -64,12 +64,10 @@ export function AddSwellForm({ trackingMode, onClose }: Props) {
             <label htmlFor="target_hours" className="shrink-0 text-xs text-th-muted">Weekly hrs</label>
             <input
               id="target_hours"
-              type="number"
+              type="text"
               name="target_hours"
-              min="0.25"
-              step="0.25"
-              placeholder="5"
-              defaultValue="5"
+              placeholder="5:00"
+              defaultValue="5:00"
               inputMode="decimal"
               className="w-full rounded-lg border border-th-border bg-th-surface px-3 py-2.5 text-sm text-th-text outline-none focus:border-th-focus"
             />

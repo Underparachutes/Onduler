@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { formatPts, formatHrs } from '@/lib/format'
-import { ceilDisplay, monthlyTargetDisplay, lifetimeTargetDisplay, type DayKey } from '@/lib/periods'
+import { ceilDisplay, monthlyTargetDisplay, lifetimeTargetDisplay, parseHoursInput, type DayKey } from '@/lib/periods'
 import { setSwellHidden, updateSwellDirect, setSwellGroup, deleteSwell } from '@/app/actions/swells'
 import { unlogMotion } from '@/app/actions/logs'
 import { hideMotion } from '@/app/actions/motions'
@@ -179,21 +179,19 @@ export function SwellProficiencyView({
   function commitTarget() {
     const raw = draftTarget.trim()
     if (raw === '') {
-      // Empty clears the target.
       setEditingTarget(false)
       persistAll(lastValidName.current, swell.color, null, null)
       return
     }
-    const num = parseFloat(raw)
-    if (isNaN(num) || num <= 0) {
-      setEditingTarget(false)
-      return
-    }
     setEditingTarget(false)
     if (trackingMode === 'hours') {
+      const num = parseHoursInput(raw)
+      if (num === null || num <= 0) return
       const rounded = Math.round(num * 4) / 4
       persistAll(lastValidName.current, swell.color, null, rounded)
     } else {
+      const num = parseFloat(raw)
+      if (isNaN(num) || num <= 0) return
       persistAll(lastValidName.current, swell.color, Math.round(num), null)
     }
   }
@@ -363,8 +361,8 @@ export function SwellProficiencyView({
           fontWeight="600"
         >
           {centerWindow.target !== null
-            ? `${ceilDisplay(centerWindow.value, isHours)}/${ceilDisplay(centerWindow.target, isHours)}`
-            : `${ceilDisplay(centerWindow.value, isHours)}`}
+            ? `${formatValue(centerWindow.value)}/${formatValue(centerWindow.target)}`
+            : formatValue(centerWindow.value)}
         </text>
 
         {constellationMotions.map((m, i) => {
@@ -404,7 +402,7 @@ export function SwellProficiencyView({
                 fontWeight="600"
                 opacity={op}
               >
-                {displayValue > 0 ? displayValue : ''}
+                {displayValue > 0 ? (isHours ? formatHrs(displayValue) : displayValue) : ''}
               </text>
               <text
                 x={x}
@@ -576,10 +574,9 @@ export function SwellProficiencyView({
                     <span className="text-th-faint"> / </span>
                     <input
                       autoFocus
-                      type="number"
-                      inputMode={trackingMode === 'hours' ? 'decimal' : 'numeric'}
-                      min={trackingMode === 'hours' ? '0.25' : '1'}
-                      step={trackingMode === 'hours' ? '0.25' : '1'}
+                      type={isHours ? 'text' : 'number'}
+                      inputMode={isHours ? 'decimal' : 'numeric'}
+                      {...(isHours ? {} : { min: '1', step: '1' })}
                       value={draftTarget}
                       onChange={e => setDraftTarget(e.target.value)}
                       onBlur={commitTarget}
@@ -599,7 +596,7 @@ export function SwellProficiencyView({
                 ) : target !== null ? (
                   <button
                     type="button"
-                    onClick={() => { setDraftTarget(String(target)); setEditingTarget(true) }}
+                    onClick={() => { setDraftTarget(isHours ? formatHrs(Number(target)) : String(target)); setEditingTarget(true) }}
                     className="text-th-faint transition-colors hover:text-th-secondary"
                     aria-label="Edit weekly target"
                   >
