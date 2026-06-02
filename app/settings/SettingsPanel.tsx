@@ -267,11 +267,6 @@ export function SettingsPanel({
                           setHasBackground(true)
                           setBgUrl(result.url ?? null)
                           setBgPosition('50 50')
-                          document.body.style.backgroundImage = `linear-gradient(rgba(0,0,0,0.35), rgba(0,0,0,0.35)), url(${result.url})`
-                          document.body.style.backgroundSize = 'cover'
-                          document.body.style.backgroundPosition = '50% 50%'
-                          document.body.style.backgroundAttachment = 'fixed'
-                          document.body.classList.add('has-bg-image')
                         }
                         e.target.value = ''
                       }}
@@ -302,7 +297,6 @@ export function SettingsPanel({
                   onSave={(x, y) => {
                     const pos = `${Math.round(x)} ${Math.round(y)}`
                     setBgPosition(pos)
-                    document.body.style.backgroundPosition = `${Math.round(x)}% ${Math.round(y)}%`
                     setAdjusting(false)
                     startTransition(() => setBackgroundPosition(pos))
                   }}

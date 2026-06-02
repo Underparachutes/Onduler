@@ -426,6 +426,10 @@ h2 {
   color: var(--th-muted) !important;
 }
 
+body.has-bg-image {
+  background-color: transparent;
+}
+
 body.has-bg-image .sticky.bg-th-bg {
   background-color: transparent;
 }

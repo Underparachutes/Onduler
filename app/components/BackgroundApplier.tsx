@@ -15,19 +15,44 @@ function parsePosition(pos: string): string {
 export function BackgroundApplier({ url, position }: { url: string | null; position: string }) {
   useEffect(() => {
     if (url) {
-      document.body.style.backgroundImage = `linear-gradient(rgba(0,0,0,0.35), rgba(0,0,0,0.35)), url(${url})`
-      document.body.style.backgroundSize = 'cover'
-      document.body.style.backgroundPosition = parsePosition(position)
-      document.body.style.backgroundAttachment = 'fixed'
       document.body.classList.add('has-bg-image')
     } else {
-      document.body.style.backgroundImage = ''
-      document.body.style.backgroundSize = ''
-      document.body.style.backgroundPosition = ''
-      document.body.style.backgroundAttachment = ''
       document.body.classList.remove('has-bg-image')
     }
     return () => { document.body.classList.remove('has-bg-image') }
-  }, [url, position])
-  return null
+  }, [url])
+
+  if (!url) return null
+
+  const pos = parsePosition(position)
+
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: -1,
+        pointerEvents: 'none',
+        overflow: 'hidden',
+      }}
+    >
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          backgroundImage: `url(${url})`,
+          backgroundSize: 'cover',
+          backgroundPosition: pos,
+          backgroundRepeat: 'no-repeat',
+        }}
+      />
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          background: 'rgba(0,0,0,0.35)',
+        }}
+      />
+    </div>
+  )
 }
