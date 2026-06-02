@@ -1,15 +1,16 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 
-function parsePosition(pos: string): string {
+function parsePosition(pos: string): { position: string; scale: number } {
   const parts = pos.trim().split(/\s+/)
-  if (parts.length === 2) {
+  if (parts.length >= 2) {
     const x = parseFloat(parts[0])
     const y = parseFloat(parts[1])
-    if (!isNaN(x) && !isNaN(y)) return `${x}% ${y}%`
+    const s = parts[2] ? parseFloat(parts[2]) : 1
+    if (!isNaN(x) && !isNaN(y)) return { position: `${x}% ${y}%`, scale: isNaN(s) ? 1 : s }
   }
-  return pos
+  return { position: pos, scale: 1 }
 }
 
 export function BackgroundApplier({ url, position }: { url: string | null; position: string }) {
@@ -24,7 +25,7 @@ export function BackgroundApplier({ url, position }: { url: string | null; posit
 
   if (!url) return null
 
-  const pos = parsePosition(position)
+  const { position: pos, scale } = parsePosition(position)
 
   return (
     <div
@@ -40,17 +41,7 @@ export function BackgroundApplier({ url, position }: { url: string | null; posit
         overflow: 'hidden',
       }}
     >
-      <div
-        id="bg-image-layer"
-        style={{
-          position: 'absolute',
-          inset: 0,
-          backgroundImage: `url(${url})`,
-          backgroundSize: 'cover',
-          backgroundPosition: pos,
-          backgroundRepeat: 'no-repeat',
-        }}
-      />
+      <ScaledBackground url={url} position={pos} scale={scale} />
       <div
         style={{
           position: 'absolute',
@@ -59,5 +50,36 @@ export function BackgroundApplier({ url, position }: { url: string | null; posit
         }}
       />
     </div>
+  )
+}
+
+function ScaledBackground({ url, position, scale }: { url: string; position: string; scale: number }) {
+  const [bgSize, setBgSize] = useState<string>('cover')
+
+  useEffect(() => {
+    if (scale <= 1) { setBgSize('cover'); return }
+    const img = new Image()
+    img.onload = () => {
+      const vw = window.innerWidth
+      const vh = window.innerHeight
+      const imgR = img.naturalWidth / img.naturalHeight
+      const vpR = vw / vh
+      setBgSize(imgR > vpR ? `auto ${vh * scale}px` : `${vw * scale}px auto`)
+    }
+    img.src = url
+  }, [url, scale])
+
+  return (
+    <div
+      id="bg-image-layer"
+      style={{
+        position: 'absolute',
+        inset: 0,
+        backgroundImage: `url(${url})`,
+        backgroundSize: bgSize,
+        backgroundPosition: position,
+        backgroundRepeat: 'no-repeat',
+      }}
+    />
   )
 }

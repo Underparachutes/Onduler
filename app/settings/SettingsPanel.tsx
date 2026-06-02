@@ -286,11 +286,12 @@ export function SettingsPanel({
                         if (result && 'url' in result) {
                           setHasBackground(true)
                           setBgUrl(result.url ?? null)
-                          setBgPosition('50 50')
+                          setBgPosition('50 50 1')
                           const layer = document.getElementById('bg-image-layer')
                           if (layer) {
                             layer.style.backgroundImage = `url(${result.url})`
                             layer.style.backgroundPosition = '50% 50%'
+                            layer.style.backgroundSize = 'cover'
                           }
                           document.body.classList.add('has-bg-image')
                         }
@@ -320,12 +321,28 @@ export function SettingsPanel({
                   url={bgUrl}
                   initialX={(() => { const p = bgPosition.split(/\s+/); return parseFloat(p[0]) || 50 })()}
                   initialY={(() => { const p = bgPosition.split(/\s+/); return parseFloat(p[1] ?? p[0]) || 50 })()}
-                  onSave={(x, y) => {
-                    const pos = `${Math.round(x)} ${Math.round(y)}`
+                  initialScale={(() => { const p = bgPosition.split(/\s+/); return parseFloat(p[2]) || 1 })()}
+                  onSave={(x, y, s) => {
+                    const pos = `${Math.round(x)} ${Math.round(y)} ${Math.round(s * 100) / 100}`
                     setBgPosition(pos)
                     setAdjusting(false)
                     const layer = document.getElementById('bg-image-layer')
-                    if (layer) layer.style.backgroundPosition = `${Math.round(x)}% ${Math.round(y)}%`
+                    if (layer) {
+                      layer.style.backgroundPosition = `${Math.round(x)}% ${Math.round(y)}%`
+                      if (s > 1) {
+                        const vw = window.innerWidth
+                        const vh = window.innerHeight
+                        const img = new Image()
+                        img.onload = () => {
+                          const imgR = img.naturalWidth / img.naturalHeight
+                          const vpR = vw / vh
+                          layer.style.backgroundSize = imgR > vpR ? `auto ${vh * s}px` : `${vw * s}px auto`
+                        }
+                        img.src = bgUrl
+                      } else {
+                        layer.style.backgroundSize = 'cover'
+                      }
+                    }
                     startTransition(() => setBackgroundPosition(pos))
                   }}
                   onCancel={() => setAdjusting(false)}
