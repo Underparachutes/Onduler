@@ -267,6 +267,12 @@ export function SettingsPanel({
                           setHasBackground(true)
                           setBgUrl(result.url ?? null)
                           setBgPosition('50 50')
+                          const layer = document.getElementById('bg-image-layer')
+                          if (layer) {
+                            layer.style.backgroundImage = `url(${result.url})`
+                            layer.style.backgroundPosition = '50% 50%'
+                          }
+                          document.body.classList.add('has-bg-image')
                         }
                         e.target.value = ''
                       }}
@@ -298,6 +304,8 @@ export function SettingsPanel({
                     const pos = `${Math.round(x)} ${Math.round(y)}`
                     setBgPosition(pos)
                     setAdjusting(false)
+                    const layer = document.getElementById('bg-image-layer')
+                    if (layer) layer.style.backgroundPosition = `${Math.round(x)}% ${Math.round(y)}%`
                     startTransition(() => setBackgroundPosition(pos))
                   }}
                   onCancel={() => setAdjusting(false)}

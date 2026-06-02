@@ -28,15 +28,20 @@ export function BackgroundApplier({ url, position }: { url: string | null; posit
 
   return (
     <div
+      id="bg-image"
       style={{
         position: 'fixed',
-        inset: 0,
+        top: 0,
+        left: 0,
+        width: '100vw',
+        height: '100dvh',
         zIndex: -1,
         pointerEvents: 'none',
         overflow: 'hidden',
       }}
     >
       <div
+        id="bg-image-layer"
         style={{
           position: 'absolute',
           inset: 0,
