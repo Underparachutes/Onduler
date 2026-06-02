@@ -241,7 +241,7 @@ export default async function AnchorsPage({
       .order('sort_order'),
     supabase
       .from('user_settings')
-      .select('tracking_mode, primary_build, secondary_build, welcome_back_mode, welcome_back_started_at, hints_seen')
+      .select('tracking_mode, primary_build, secondary_build, welcome_back_mode, welcome_back_started_at, hints_seen, progress_bar_color')
       .eq('user_id', user.id)
       .single(),
     supabase
@@ -268,6 +268,7 @@ export default async function AnchorsPage({
   const primaryBuild = (settings?.primary_build as BuildKey | null) ?? null
   const secondaryBuild = (settings?.secondary_build as BuildKey | null) ?? null
   const hintsSeen = (settings?.hints_seen as Record<string, boolean>) ?? {}
+  const progressBarColor = (settings?.progress_bar_color as string) ?? null
   if (!hintsSeen.anchors_locked) markHintSeen('anchors_locked')
   const welcomeBackMode = (settings?.welcome_back_mode as WelcomeBackMode | null) ?? null
   const welcomeBackStartedKey = settings?.welcome_back_started_at
@@ -697,7 +698,7 @@ export default async function AnchorsPage({
                           {val > 0 && (
                             <div
                               className="h-full rounded-full"
-                              style={{ width: `${(val / maxDayValue) * 100}%`, background: 'linear-gradient(to right, color-mix(in oklch, var(--th-accent) 35%, var(--th-surface)), var(--th-accent))', backgroundSize: `${(maxDayValue / val) * 100}% 100%` }}
+                              style={{ width: `${(val / maxDayValue) * 100}%`, background: `linear-gradient(to right, color-mix(in oklch, ${progressBarColor ?? 'var(--th-accent)'} 35%, var(--th-surface)), ${progressBarColor ?? 'var(--th-accent)'})`, backgroundSize: `${(maxDayValue / val) * 100}% 100%` }}
                             />
                           )}
                         </div>

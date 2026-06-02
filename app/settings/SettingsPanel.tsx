@@ -14,10 +14,14 @@ import {
   setEmailCycleCloseEnabled,
 } from '@/app/actions/settings'
 import { unhideMotion } from '@/app/actions/motions'
+import { createQuickGroup } from '@/app/actions/groups'
+import { uploadBackground, removeBackground, setProgressBarColor, setBackgroundPosition } from '@/app/actions/settings'
 import { changePassword } from '@/app/actions/auth'
 import { formatPts, formatHrs } from '@/lib/format'
 import { parseHoursInput } from '@/lib/periods'
 import { getBuildPreset } from '@/lib/builds'
+import { detectMode, getRandomThemeAccent } from '@/lib/theme-colors'
+import { ImageAdjustOverlay } from '@/app/components/ImageAdjustOverlay'
 import { EditGroupForm } from './EditGroupForm'
 
 const THEMES = [
@@ -56,6 +60,9 @@ type Props = {
   isAdmin: boolean
   subscriptionStatus: string
   emailCycleCloseEnabled: boolean
+  backgroundUrl: string | null
+  backgroundPosition: string
+  progressBarColor: string | null
 }
 
 export function SettingsPanel({
@@ -77,6 +84,9 @@ export function SettingsPanel({
   isAdmin,
   subscriptionStatus,
   emailCycleCloseEnabled,
+  backgroundUrl,
+  backgroundPosition: initialBackgroundPosition,
+  progressBarColor: initialProgressBarColor,
 }: Props) {
   const [currentTheme, setCurrentTheme] = useState(theme)
   const [currentMode, setCurrentMode] = useState<TrackingMode>(trackingMode)
@@ -95,6 +105,12 @@ export function SettingsPanel({
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null)
   const [localHiddenIds, setLocalHiddenIds] = useState<Set<string>>(new Set())
   const [openSection, setOpenSection] = useState<string | null>(null)
+  const [hasBackground, setHasBackground] = useState(!!backgroundUrl)
+  const [bgUrl, setBgUrl] = useState(backgroundUrl)
+  const [bgPosition, setBgPosition] = useState(initialBackgroundPosition)
+  const [adjusting, setAdjusting] = useState(false)
+  const [barColor, setBarColor] = useState(initialProgressBarColor)
+  const [uploading, setUploading] = useState(false)
   const [, startTransition] = useTransition()
 
   function handleTheme(t: string) {
@@ -202,17 +218,126 @@ export function SettingsPanel({
             </div>
           </button>
           {openSection === 'appearance' && (
-            <div className="pb-4">
-              {THEMES.map(t => (
-                <button
-                  key={t.id}
-                  onClick={() => handleTheme(t.id)}
-                  className={`flex w-full items-center justify-between py-2.5 text-left text-sm transition-colors ${currentTheme === t.id ? 'text-th-text font-medium' : 'text-th-muted'}`}
-                >
-                  <span>{t.label}</span>
-                  {currentTheme === t.id && <span className="text-xs">&#10003;</span>}
-                </button>
-              ))}
+            <div className="flex flex-col divide-y divide-th-border pb-4">
+              <div className="pb-3">
+                {THEMES.map(t => (
+                  <button
+                    key={t.id}
+                    onClick={() => handleTheme(t.id)}
+                    className={`flex w-full items-center justify-between py-2.5 text-left text-sm transition-colors ${currentTheme === t.id ? 'text-th-text font-medium' : 'text-th-muted'}`}
+                  >
+                    <span>{t.label}</span>
+                    {currentTheme === t.id && <span className="text-xs">&#10003;</span>}
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex items-center justify-between py-3">
+                <div>
+                  <p className="text-sm font-medium text-th-text">Background photo</p>
+                  <p className="text-xs text-th-muted">{hasBackground ? 'Custom photo set' : 'Use theme default'}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  {hasBackground && (
+                    <button
+                      onClick={() => {
+                        setHasBackground(false)
+                        startTransition(async () => { await removeBackground() })
+                      }}
+                      className="text-xs text-th-faint transition-colors hover:text-th-muted"
+                    >
+                      Remove
+                    </button>
+                  )}
+                  <label className="cursor-pointer text-sm text-th-secondary hover:underline">
+                    {uploading ? 'Uploading...' : 'Upload'}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0]
+                        if (!file) return
+                        setUploading(true)
+                        const fd = new FormData()
+                        fd.append('file', file)
+                        const result = await uploadBackground(fd)
+                        setUploading(false)
+                        if (result && 'url' in result) {
+                          setHasBackground(true)
+                          setBgUrl(result.url ?? null)
+                          setBgPosition('50 50')
+                          document.body.style.backgroundImage = `linear-gradient(rgba(0,0,0,0.35), rgba(0,0,0,0.35)), url(${result.url})`
+                          document.body.style.backgroundSize = 'cover'
+                          document.body.style.backgroundPosition = '50% 50%'
+                          document.body.style.backgroundAttachment = 'fixed'
+                          document.body.classList.add('has-bg-image')
+                        }
+                        e.target.value = ''
+                      }}
+                    />
+                  </label>
+                </div>
+              </div>
+
+              {hasBackground && bgUrl && (
+                <div className="flex items-center justify-between py-3">
+                  <div>
+                    <p className="text-sm font-medium text-th-text">Image position</p>
+                    <p className="text-xs text-th-muted">Drag to reposition</p>
+                  </div>
+                  <button
+                    onClick={() => setAdjusting(true)}
+                    className="text-sm text-th-secondary hover:underline"
+                  >
+                    Adjust
+                  </button>
+                </div>
+              )}
+              {adjusting && bgUrl && (
+                <ImageAdjustOverlay
+                  url={bgUrl.replace(/\?v=\d+$/, '')}
+                  initialX={(() => { const p = bgPosition.split(/\s+/); return parseFloat(p[0]) || 50 })()}
+                  initialY={(() => { const p = bgPosition.split(/\s+/); return parseFloat(p[1] ?? p[0]) || 50 })()}
+                  onSave={(x, y) => {
+                    const pos = `${Math.round(x)} ${Math.round(y)}`
+                    setBgPosition(pos)
+                    document.body.style.backgroundPosition = `${Math.round(x)}% ${Math.round(y)}%`
+                    setAdjusting(false)
+                    startTransition(() => setBackgroundPosition(pos))
+                  }}
+                  onCancel={() => setAdjusting(false)}
+                />
+              )}
+
+              <div className="flex items-center justify-between py-3">
+                <div>
+                  <p className="text-sm font-medium text-th-text">Progress bar color</p>
+                  <p className="text-xs text-th-muted">{barColor ? 'Custom' : 'Theme default'}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  {barColor && (
+                    <button
+                      onClick={() => {
+                        setBarColor(null)
+                        startTransition(async () => { await setProgressBarColor(null) })
+                      }}
+                      className="text-xs text-th-faint transition-colors hover:text-th-muted"
+                    >
+                      Reset
+                    </button>
+                  )}
+                  <input
+                    type="color"
+                    value={barColor || '#6366f1'}
+                    onChange={(e) => {
+                      setBarColor(e.target.value)
+                      startTransition(async () => { await setProgressBarColor(e.target.value) })
+                    }}
+                    className="h-8 w-8 cursor-pointer rounded-lg border border-th-border bg-th-surface p-0.5"
+                  />
+                </div>
+              </div>
             </div>
           )}
         </div>
@@ -309,7 +434,7 @@ export function SettingsPanel({
               <div className="flex items-center justify-between py-3">
                 <div>
                   <p className="text-sm font-medium text-th-text">Buckets</p>
-                  <p className="text-xs text-th-muted">Organize motions and swells</p>
+                  <p className="text-xs text-th-muted">Cluster motions by when they happen</p>
                 </div>
                 <button
                   role="switch"
@@ -336,6 +461,31 @@ export function SettingsPanel({
                   <span className="flex-1 text-sm text-th-text">{g.name}</span>
                 </button>
               ))}
+
+              {groupsOn && groups.length === 0 && (
+                <div className="py-3">
+                  <p className="text-xs text-th-muted">
+                    Group motions by when they happen. Morning, Evening, At work. The cluster is the cue.
+                  </p>
+                  <div className="mt-2 flex gap-2">
+                    {['Morning rituals', 'Wind down'].map(name => (
+                      <button
+                        key={name}
+                        onClick={() => {
+                          const color = getRandomThemeAccent(
+                            document.documentElement.dataset.theme ?? 'biarritz',
+                            detectMode()
+                          )
+                          startTransition(async () => { await createQuickGroup(name, color) })
+                        }}
+                        className="rounded-full border border-th-border px-3 py-1 text-xs text-th-muted transition-colors hover:border-th-focus hover:text-th-text"
+                      >
+                        + {name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div className="flex items-center justify-between py-3">
                 <div>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useRef, useCallback, useTransition } from 'react'
 import {
   DndContext,
   closestCenter,
@@ -21,11 +21,56 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import { reorderMotions } from '@/app/actions/motions'
 import { formatPts, formatHrs } from '@/lib/format'
+import { INTENSITY_MULTIPLIER, type Intensity } from '@/lib/intensity'
 
 type Swell = { id: string; name: string; color: string; weight: number }
 type Motion = { id: string; name: string; default_points: number; default_hours: number; swells: Swell[]; groupId: string | null; submotionMode: 'distribute' | 'rollup' | null }
 type Submotion = { id: string; name: string; default_points: number; default_hours: number }
 type TrackingMode = 'points' | 'hours'
+
+const INTENSITIES: { key: Intensity; label: string }[] = [
+  { key: 'light', label: 'Light' },
+  { key: 'medium', label: 'Medium' },
+  { key: 'deep', label: 'Deep' },
+]
+
+function IntensityPicker({ motion, trackingMode, onPick, onDismiss }: {
+  motion: Motion
+  trackingMode: TrackingMode
+  onPick: (intensity: Intensity) => void
+  onDismiss: () => void
+}) {
+  const isHours = trackingMode === 'hours'
+  return (
+    <div className="absolute left-0 top-full z-50 mt-1 flex gap-1 rounded-lg border border-th-border bg-th-surface px-1.5 py-1 shadow-lg">
+      {INTENSITIES.map(({ key, label }) => {
+        const mult = INTENSITY_MULTIPLIER[key]
+        const value = isHours
+          ? formatHrs(Math.round(Number(motion.default_hours) * mult * 4) / 4)
+          : formatPts(Math.round(Number(motion.default_points) * mult))
+        return (
+          <button
+            key={key}
+            onClick={(e) => { e.stopPropagation(); onPick(key) }}
+            className={`flex flex-col items-center rounded-md px-2.5 py-1.5 text-xs transition-colors hover:bg-th-bg ${key === 'medium' ? 'text-th-text font-medium' : 'text-th-muted'}`}
+          >
+            <span>{label}</span>
+            <span className="text-[10px] text-th-faint">{value}</span>
+          </button>
+        )
+      })}
+      <button
+        onClick={(e) => { e.stopPropagation(); onDismiss() }}
+        className="ml-0.5 flex items-center px-1 text-th-faint transition-colors hover:text-th-muted"
+        aria-label="Dismiss"
+      >
+        <svg viewBox="0 0 10 10" className="h-2.5 w-2.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+          <path d="M2 2l6 6M8 2l-6 6" />
+        </svg>
+      </button>
+    </div>
+  )
+}
 
 type RowProps = {
   motion: Motion
@@ -34,17 +79,56 @@ type RowProps = {
   trackingMode: TrackingMode
   hidePtsHrs?: boolean
   sortableId?: string
-  onLog: (e: React.MouseEvent, rowBottom?: number) => void
+  onLog: (e: React.MouseEvent, rowBottom?: number, intensity?: Intensity) => void
   onOpenSheet: () => void
 }
 
 export function SortableMotionRow({ motion, done, diving, trackingMode, hidePtsHrs, sortableId, onLog, onOpenSheet }: RowProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: sortableId ?? motion.id })
+  const [showPicker, setShowPicker] = useState(false)
+  const pressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const didLongPressRef = useRef(false)
+  const rowRef = useRef<HTMLDivElement>(null)
+
+  const startPress = useCallback(() => {
+    didLongPressRef.current = false
+    pressTimerRef.current = setTimeout(() => {
+      didLongPressRef.current = true
+      setShowPicker(true)
+    }, 400)
+  }, [])
+
+  const cancelPress = useCallback(() => {
+    if (pressTimerRef.current) {
+      clearTimeout(pressTimerRef.current)
+      pressTimerRef.current = null
+    }
+  }, [])
+
+  function handleClick(e: React.MouseEvent) {
+    cancelPress()
+    if (didLongPressRef.current) {
+      didLongPressRef.current = false
+      return
+    }
+    const rect = e.currentTarget.closest('[data-motion-row]')!.getBoundingClientRect()
+    onLog(e, rect.bottom)
+  }
+
+  function handlePick(intensity: Intensity) {
+    setShowPicker(false)
+    const rect = rowRef.current?.getBoundingClientRect()
+    onLog(
+      { clientX: rect?.left ?? 0, clientY: rect?.top ?? 0 } as React.MouseEvent,
+      rect?.bottom,
+      intensity,
+    )
+  }
 
   return (
     <div
-      ref={setNodeRef}
+      ref={(node) => { setNodeRef(node); (rowRef as React.MutableRefObject<HTMLDivElement | null>).current = node }}
       {...attributes}
       suppressHydrationWarning
       style={{
@@ -56,17 +140,33 @@ export function SortableMotionRow({ motion, done, diving, trackingMode, hidePtsH
       data-motion-row
       className="flex items-center gap-1 select-none outline-none"
     >
-      {/* Checkbox — tap to log */}
-      <button
-        onClick={(e) => { const rect = e.currentTarget.closest('[data-motion-row]')!.getBoundingClientRect(); onLog(e, rect.bottom); }}
-        className={`flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center rounded border-2 transition-all ml-3 ${done || diving ? 'border-th-btn text-th-btn' : 'border-th-border'}`}
-      >
-        {(done || diving) && (
-          <svg viewBox="0 0 12 10" fill="none" className="h-3 w-3">
-            <path d="M1 5l3.5 3.5L11 1" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+      {/* Checkbox — tap to log, long-press for intensity */}
+      <div className="relative ml-3">
+        <button
+          onPointerDown={startPress}
+          onPointerUp={cancelPress}
+          onPointerLeave={cancelPress}
+          onClick={handleClick}
+          className={`flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center rounded border-2 transition-all ${done || diving ? 'border-th-btn text-th-btn' : 'border-th-border'}`}
+        >
+          {(done || diving) && (
+            <svg viewBox="0 0 12 10" fill="none" className="h-3 w-3">
+              <path d="M1 5l3.5 3.5L11 1" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          )}
+        </button>
+        {showPicker && !done && (
+          <>
+            <div className="fixed inset-0 z-40" onClick={() => setShowPicker(false)} />
+            <IntensityPicker
+              motion={motion}
+              trackingMode={trackingMode}
+              onPick={handlePick}
+              onDismiss={() => setShowPicker(false)}
+            />
+          </>
         )}
-      </button>
+      </div>
 
       {/* Row body */}
       <div
@@ -116,7 +216,7 @@ type ListProps = {
   trackingMode: TrackingMode
   hidePtsHrs?: boolean
   divingId?: string | null
-  onLog: (motion: Motion, x: number, y: number, rowBottom?: number) => void
+  onLog: (motion: Motion, x: number, y: number, rowBottom?: number, intensity?: Intensity) => void
   onOpenSheet: (id: string) => void
 }
 
@@ -179,7 +279,7 @@ export function SortableMotionList({
               diving={motion.id === divingId}
               trackingMode={trackingMode}
               hidePtsHrs={hidePtsHrs}
-              onLog={(e, rb) => onLog(motion, e.clientX, e.clientY, rb)}
+              onLog={(e, rb, intensity) => onLog(motion, e.clientX, e.clientY, rb, intensity)}
               onOpenSheet={() => onOpenSheet(motion.id)}
             />
           ))}

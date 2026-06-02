@@ -17,7 +17,7 @@ export default async function SettingsPage() {
     getActiveChapterId(supabase, user.id),
     supabase
       .from('user_settings')
-      .select('theme, groups_enabled, submotions_enabled, daily_goal, daily_goal_hours, tracking_mode, celebration_enabled, haptic_enabled, primary_build, is_admin, subscription_status, hints_seen, email_cycle_close_enabled')
+      .select('theme, groups_enabled, submotions_enabled, daily_goal, daily_goal_hours, tracking_mode, celebration_enabled, haptic_enabled, primary_build, is_admin, subscription_status, hints_seen, email_cycle_close_enabled, background_url, background_position, progress_bar_color')
       .eq('user_id', user.id)
       .single(),
   ])
@@ -95,14 +95,17 @@ export default async function SettingsPage() {
           isAdmin={settings?.is_admin ?? false}
           subscriptionStatus={settings?.subscription_status ?? 'none'}
           emailCycleCloseEnabled={settings?.email_cycle_close_enabled ?? true}
+          backgroundUrl={(settings?.background_url as string) ?? null}
+          backgroundPosition={(settings?.background_position as string) ?? 'center'}
+          progressBarColor={(settings?.progress_bar_color as string) ?? null}
         />
       </div>
 
       <div className="h-24" />
 
       <div className="fixed bottom-[calc(3.5rem+env(safe-area-inset-bottom))] md:bottom-0 left-0 right-0 md:left-60 z-10 bg-th-bg">
-        <div className="mx-auto max-w-lg px-4 md:mx-0 md:ml-12 md:mr-auto lg:max-w-4xl">
-          <div className="border-t border-th-border pt-3 pb-3 flex flex-col gap-2 max-w-[22rem] lg:max-w-none">
+        <div className="mx-auto flex max-w-lg justify-center px-4 md:mx-0 md:ml-12 md:mr-auto md:justify-start lg:max-w-4xl">
+          <div className="border-t border-th-border pt-3 pb-3 flex flex-col gap-2 w-full max-w-[22rem] lg:max-w-none">
           <a
             href="mailto:ondulertest@gmail.com?subject=Onduler feedback"
             className="text-sm font-medium text-th-secondary transition-colors hover:text-th-text active:scale-[0.97]"

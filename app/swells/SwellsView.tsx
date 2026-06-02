@@ -57,6 +57,7 @@ type Props = {
   hiddenSwells: Swell[]
   weekLabel: string
   hintSwellsSeen: boolean
+  progressBarColor: string | null
 }
 
 function usePersistedHideDone(key: string): [boolean, () => void] {
@@ -200,7 +201,7 @@ export function SwellsView(props: Props) {
                   {combinedTarget > 0 && (
                     <div
                       className="h-full rounded-full transition-all duration-500"
-                      style={{ width: `${Math.min((weeklyTotal / combinedTarget) * 100, 100)}%`, background: 'linear-gradient(to right, color-mix(in oklch, var(--th-accent) 35%, var(--th-surface)), var(--th-accent))', backgroundSize: `${10000 / Math.min((weeklyTotal / combinedTarget) * 100, 100)}% 100%` }}
+                      style={{ width: `${Math.min((weeklyTotal / combinedTarget) * 100, 100)}%`, background: `linear-gradient(to right, color-mix(in oklch, ${props.progressBarColor ?? 'var(--th-accent)'} 35%, var(--th-surface)), ${props.progressBarColor ?? 'var(--th-accent)'})`, backgroundSize: `${10000 / Math.min((weeklyTotal / combinedTarget) * 100, 100)}% 100%` }}
                     />
                   )}
                 </div>

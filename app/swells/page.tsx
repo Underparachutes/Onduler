@@ -20,7 +20,7 @@ export default async function SwellsPage() {
     getActiveChapterId(supabase, user.id),
     supabase
       .from('user_settings')
-      .select('groups_enabled, submotions_enabled, tracking_mode, hints_seen')
+      .select('groups_enabled, submotions_enabled, tracking_mode, hints_seen, progress_bar_color')
       .eq('user_id', user.id)
       .single(),
     getTodayStart(),
@@ -235,6 +235,7 @@ export default async function SwellsPage() {
       hasAnyMotions={motions.length > 0}
       weekLabel={weekLabel}
       hintSwellsSeen={!!hintsSeen.swells}
+      progressBarColor={(settings?.progress_bar_color as string) ?? null}
     />
   )
 }

@@ -67,7 +67,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const [{ data: settings }, todayStart, weekStart, lastWeekStart, chapterId] = await Promise.all([
     supabase
       .from('user_settings')
-      .select('groups_enabled, submotions_enabled, onboarding_complete, daily_goal, daily_goal_hours, tracking_mode, celebration_enabled, haptic_enabled, welcome_back_mode, welcome_back_started_at, hints_seen')
+      .select('groups_enabled, submotions_enabled, onboarding_complete, daily_goal, daily_goal_hours, tracking_mode, celebration_enabled, haptic_enabled, welcome_back_mode, welcome_back_started_at, hints_seen, progress_bar_color')
       .eq('user_id', user.id)
       .single(),
     getTodayStart(),
@@ -337,6 +337,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       hintMotionsSeen={!!hintsSeen.motions}
       initialDetailId={initialDetailId ?? null}
       initialViews={initialViews === 'true'}
+      progressBarColor={(settings?.progress_bar_color as string) ?? null}
     />
   )
 }

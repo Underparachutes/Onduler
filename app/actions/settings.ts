@@ -239,3 +239,74 @@ export async function setEmailCycleCloseEnabled(enabled: boolean) {
   revalidatePath('/settings')
   return { success: true }
 }
+
+export async function setProgressBarColor(color: string | null) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  await supabase
+    .from('user_settings')
+    .upsert({ user_id: user.id, progress_bar_color: color })
+
+  revalidatePath('/dashboard')
+  revalidatePath('/settings')
+  return { success: true }
+}
+
+export async function uploadBackground(formData: FormData) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const file = formData.get('file') as File | null
+  if (!file) return { error: 'No file provided' }
+
+  const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg'
+  const path = `${user.id}/background.${ext}`
+
+  const { error: uploadError } = await supabase.storage
+    .from('backgrounds')
+    .upload(path, file, { upsert: true, contentType: file.type })
+  if (uploadError) return { error: uploadError.message }
+
+  const { data: urlData } = supabase.storage.from('backgrounds').getPublicUrl(path)
+
+  const url = `${urlData.publicUrl}?v=${Date.now()}`
+  await supabase
+    .from('user_settings')
+    .upsert({ user_id: user.id, background_url: url })
+
+  revalidatePath('/', 'layout')
+  return { success: true, url }
+}
+
+export async function removeBackground() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const { data: files } = await supabase.storage.from('backgrounds').list(user.id)
+  if (files && files.length > 0) {
+    await supabase.storage.from('backgrounds').remove(files.map(f => `${user.id}/${f.name}`))
+  }
+
+  await supabase
+    .from('user_settings')
+    .upsert({ user_id: user.id, background_url: null })
+
+  revalidatePath('/', 'layout')
+  return { success: true }
+}
+
+export async function setBackgroundPosition(position: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return
+
+  await supabase
+    .from('user_settings')
+    .upsert({ user_id: user.id, background_position: position })
+
+  revalidatePath('/', 'layout')
+}

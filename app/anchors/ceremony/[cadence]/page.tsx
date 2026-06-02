@@ -46,6 +46,7 @@ export default async function CeremonyPage({
     { data: swells },
     { data: rawLogs },
     { data: settings },
+    { data: priorReflection },
   ] = await Promise.all([
     supabase
       .from('swells')
@@ -66,6 +67,15 @@ export default async function CeremonyPage({
       .select('tracking_mode')
       .eq('user_id', user.id)
       .single(),
+    supabase
+      .from('reflections')
+      .select('intention_text')
+      .eq('user_id', user.id)
+      .eq('chapter_id', chapterId)
+      .eq('cycle_type', cadence)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
   ])
 
   const trackingMode: 'points' | 'hours' = (settings?.tracking_mode as 'points' | 'hours') ?? 'points'
@@ -118,6 +128,7 @@ export default async function CeremonyPage({
       swells={radarSwells}
       actuals={radarActuals}
       trackingMode={trackingMode}
+      priorIntention={priorReflection?.intention_text ?? null}
     />
   )
 }

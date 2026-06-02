@@ -41,6 +41,9 @@ export function AddGroupForm({ onClose }: Props) {
           autoFocus
           className="rounded-lg border border-th-border bg-th-surface px-3 py-2.5 text-base text-th-text outline-none focus:border-th-focus"
         />
+        <p className="text-xs text-th-muted">
+          Buckets are how your motions cluster in your day. Name them by context (Morning, Evening, At work, Saturday) or however works best for you.
+        </p>
 
         <div className="flex items-center gap-2">
           <label htmlFor="color" className="shrink-0 text-xs text-th-muted">Color</label>

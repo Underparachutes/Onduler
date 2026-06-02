@@ -46,6 +46,7 @@ type Props = {
   hintMotionsSeen: boolean
   initialDetailId: string | null
   initialViews: boolean
+  progressBarColor: string | null
 }
 
 export function DashboardView(props: Props) {
@@ -176,6 +177,7 @@ export function DashboardView(props: Props) {
                 onViewsModeChange={setIsViewsMode}
                 initialDetailId={props.initialDetailId}
                 initialViews={props.initialViews}
+                progressBarColor={props.progressBarColor}
               />
             ) : (
               <>

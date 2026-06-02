@@ -48,7 +48,7 @@ export async function GET() {
 
     supabase
       .from('logs')
-      .select('id, motion_id, points, hours, logged_at, motions(name)')
+      .select('id, motion_id, points, hours, intensity, logged_at, motions(name)')
       .eq('user_id', user.id)
       .eq('chapter_id', chapterId)
       .order('logged_at'),

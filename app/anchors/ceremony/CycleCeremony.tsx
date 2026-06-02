@@ -21,31 +21,36 @@ type Props = {
   swells: Swell[]
   actuals: number[]
   trackingMode: 'points' | 'hours'
+  priorIntention: string | null
 }
 
 // Cadence-specific copy. One shape across all four cadences (ADR 0007) —
 // the cadence is the depth knob; the questions stay the same in structure
 // but reference the cycle the user just lived through.
-const COPY: Record<Cadence, { expectation: string; reveal: string; observation: string }> = {
+const COPY: Record<Cadence, { expectation: string; reveal: string; observation: string; intention: string }> = {
   week: {
     expectation: 'What did you expect to see this week?',
     reveal: "Here's what last week looked like.",
     observation: 'What did you see?',
+    intention: 'What do you want to see next week?',
   },
   month: {
     expectation: 'What did you expect to see this month?',
     reveal: "Here's what last month looked like.",
     observation: 'What did you see?',
+    intention: 'What do you want to see next month?',
   },
   quarter: {
     expectation: 'What did you expect to see this quarter?',
     reveal: "Here's what last quarter looked like.",
     observation: 'What did you see?',
+    intention: 'What do you want to see next quarter?',
   },
   year: {
     expectation: 'What did you expect to see this year?',
     reveal: "Here's what last year looked like.",
     observation: 'What did you see?',
+    intention: 'What do you want to see next year?',
   },
 }
 
@@ -64,11 +69,13 @@ export function CycleCeremony({
   swells,
   actuals,
   trackingMode,
+  priorIntention,
 }: Props) {
   const router = useRouter()
   const [step, setStep] = useState<Step>('expectation')
   const [expectation, setExpectation] = useState('')
   const [observation, setObservation] = useState('')
+  const [intention, setIntention] = useState('')
   const [chapterExpanded, setChapterExpanded] = useState(false)
   const [isPending, startTransition] = useTransition()
 
@@ -77,14 +84,19 @@ export function CycleCeremony({
   const copy = COPY[cadence]
   const noun = CYCLE_NOUN[cadence]
 
+  function resolvedExpectation() {
+    return expectation || priorIntention || null
+  }
+
   function persist(didTune: boolean) {
     startTransition(async () => {
       await saveReflection({
         cadence,
         cycleStart,
         cycleEnd,
-        expectationText: expectation || null,
+        expectationText: resolvedExpectation(),
         observationText: observation || null,
+        intentionText: intention || null,
         didTune,
       })
       router.push('/anchors')
@@ -98,8 +110,9 @@ export function CycleCeremony({
         cadence,
         cycleStart,
         cycleEnd,
-        expectationText: expectation || null,
+        expectationText: resolvedExpectation(),
         observationText: observation || null,
+        intentionText: intention || null,
         didTune: true,
       })
       router.push('/swells')
@@ -112,8 +125,9 @@ export function CycleCeremony({
         cadence,
         cycleStart,
         cycleEnd,
-        expectationText: expectation || null,
+        expectationText: resolvedExpectation(),
         observationText: observation || null,
+        intentionText: intention || null,
         didTune: true,
       })
       router.push('/dashboard')
@@ -126,8 +140,9 @@ export function CycleCeremony({
         cadence,
         cycleStart,
         cycleEnd,
-        expectationText: expectation || null,
+        expectationText: resolvedExpectation(),
         observationText: observation || null,
+        intentionText: intention || null,
         didTune: true,
       })
       const result = await archiveAndStartFreshChapter()
@@ -158,7 +173,7 @@ export function CycleCeremony({
               value={expectation}
               onChange={e => setExpectation(e.target.value)}
               rows={5}
-              placeholder="Optional. Write as little or as much as you want."
+              placeholder={priorIntention || 'Optional. Write as little or as much as you want.'}
               className="w-full resize-none rounded-lg border border-th-border bg-th-bg px-3 py-2 text-sm text-th-text placeholder:text-th-faint focus:border-th-focus focus:outline-none"
               autoFocus
             />
@@ -211,10 +226,21 @@ export function CycleCeremony({
             <textarea
               value={observation}
               onChange={e => setObservation(e.target.value)}
-              rows={5}
+              rows={4}
               placeholder="Optional. Write as little or as much as you want."
               className="w-full resize-none rounded-lg border border-th-border bg-th-bg px-3 py-2 text-sm text-th-text placeholder:text-th-faint focus:border-th-focus focus:outline-none"
               autoFocus
+            />
+            <h2 className="text-lg font-semibold text-th-text">{copy.intention}</h2>
+            <p className="text-sm leading-relaxed text-th-secondary">
+              Not a promise. Just a direction you want to face.
+            </p>
+            <textarea
+              value={intention}
+              onChange={e => setIntention(e.target.value)}
+              rows={4}
+              placeholder="Optional. Write as little or as much as you want."
+              className="w-full resize-none rounded-lg border border-th-border bg-th-bg px-3 py-2 text-sm text-th-text placeholder:text-th-faint focus:border-th-focus focus:outline-none"
             />
             <div className="flex items-center justify-between gap-3">
               <button

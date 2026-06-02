@@ -85,6 +85,7 @@ CREATE TABLE logs (
   motion_id  uuid         REFERENCES motions(id) ON DELETE CASCADE,
   points     int          NOT NULL DEFAULT 0,
   hours      numeric(5,2) NOT NULL DEFAULT 0,
+  intensity  text         DEFAULT 'medium' CHECK (intensity IN ('light', 'medium', 'deep')),
   logged_at  timestamptz  NOT NULL DEFAULT now()
 );
 
@@ -149,7 +150,10 @@ CREATE TABLE user_settings (
   hints_seen              jsonb       NOT NULL DEFAULT '{}'::jsonb,
   email_cycle_close_enabled boolean   NOT NULL DEFAULT true,
   email_unsubscribe_token   uuid      NOT NULL DEFAULT gen_random_uuid(),
-  last_cycle_email_cycle_start date
+  last_cycle_email_cycle_start date,
+  background_url            text,
+  background_position       text NOT NULL DEFAULT 'center',
+  progress_bar_color        text
 );
 
 CREATE INDEX IF NOT EXISTS user_settings_stripe_customer_idx
@@ -170,6 +174,7 @@ CREATE TABLE reflections (
   cycle_end        date,
   expectation_text text,
   observation_text text,
+  intention_text   text,
   did_tune         boolean,
   body_text        text,
   prompt_text      text,

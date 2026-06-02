@@ -103,6 +103,7 @@ export async function saveReflection(input: {
   cycleEnd: DayKey
   expectationText: string | null
   observationText: string | null
+  intentionText: string | null
   didTune: boolean
 }) {
   const supabase = await createClient()
@@ -120,6 +121,7 @@ export async function saveReflection(input: {
 
   const trimmedExpectation = input.expectationText?.trim() || null
   const trimmedObservation = input.observationText?.trim() || null
+  const trimmedIntention = input.intentionText?.trim() || null
 
   const { error } = await supabase.from('reflections').insert({
     user_id: user.id,
@@ -129,6 +131,7 @@ export async function saveReflection(input: {
     cycle_end: input.cycleEnd,
     expectation_text: trimmedExpectation,
     observation_text: trimmedObservation,
+    intention_text: trimmedIntention,
     did_tune: input.didTune,
   })
 

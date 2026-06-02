@@ -22,6 +22,7 @@ import {
 } from '@dnd-kit/sortable'
 import { useRouter } from 'next/navigation'
 import { quickLogMotion, unlogMotion } from '@/app/actions/logs'
+import { INTENSITY_MULTIPLIER, type Intensity } from '@/lib/intensity'
 import { setDailyGoal, setDailyGoalHours } from '@/app/actions/settings'
 import { reassignMotionToGroup, reorderMotions, setMotionSwells, duplicateMotion } from '@/app/actions/motions'
 import { formatPts, formatHrs } from '@/lib/format'
@@ -70,6 +71,7 @@ type Props = {
   onViewsModeChange?: (isViews: boolean) => void
   initialDetailId?: string | null
   initialViews?: boolean
+  progressBarColor?: string | null
 }
 
 function DroppableGroup({
@@ -88,7 +90,7 @@ function DroppableGroup({
   trackingMode: TrackingMode
   hidePtsHrs?: boolean
   divingId: string | null
-  onLog: (motion: Motion, x: number, y: number, rowBottom?: number) => void
+  onLog: (motion: Motion, x: number, y: number, rowBottom?: number, intensity?: Intensity) => void
   onOpenSheet: (id: string) => void
 }) {
   const { setNodeRef, isOver } = useDroppable({ id })
@@ -116,7 +118,7 @@ function DroppableGroup({
               diving={motion.id === divingId}
               trackingMode={trackingMode}
               hidePtsHrs={hidePtsHrs}
-              onLog={(e, rb) => onLog(motion, e.clientX, e.clientY, rb)}
+              onLog={(e, rb, intensity) => onLog(motion, e.clientX, e.clientY, rb, intensity)}
               onOpenSheet={() => onOpenSheet(motion.id)}
             />
           ))}
@@ -148,7 +150,7 @@ function DroppableSwellSection({
   trackingMode: TrackingMode
   hidePtsHrs?: boolean
   divingId: string | null
-  onLog: (motion: Motion, x: number, y: number, rowBottom?: number) => void
+  onLog: (motion: Motion, x: number, y: number, rowBottom?: number, intensity?: Intensity) => void
   onOpenSheet: (id: string) => void
 }) {
   const { setNodeRef, isOver } = useDroppable({ id })
@@ -183,7 +185,7 @@ function DroppableSwellSection({
               diving={motion.id === divingId}
               trackingMode={trackingMode}
               hidePtsHrs={hidePtsHrs}
-              onLog={(e, rb) => onLog(motion, e.clientX, e.clientY, rb)}
+              onLog={(e, rb, intensity) => onLog(motion, e.clientX, e.clientY, rb, intensity)}
               onOpenSheet={() => onOpenSheet(motion.id)}
             />
           ))}
@@ -258,6 +260,7 @@ export function DailyChecklist({
   onViewsModeChange,
   initialDetailId,
   initialViews,
+  progressBarColor,
 }: Props) {
   const isHours = trackingMode === 'hours'
   const todayValue = isHours ? todayHours : todayPoints
@@ -505,19 +508,23 @@ export function DailyChecklist({
   const formatValue = (n: number) => isHours ? formatHrs(ceilDisplay(n, true)) : formatPts(ceilDisplay(n))
   const motionDelta = (motion: Motion) => isHours ? Number(motion.default_hours) : motion.default_points
 
-  function updateSwellProgress(motion: Motion, sign: 1 | -1) {
+  function updateSwellProgress(motion: Motion, sign: 1 | -1, mult = 1) {
     for (const ms of motion.swells) {
-      const contribution = isHours ? Number(motion.default_hours) * ms.weight : motion.default_points * ms.weight
+      const base = isHours ? Number(motion.default_hours) : motion.default_points
+      const contribution = base * ms.weight * mult
       swellProgressRef.current[ms.id] = (swellProgressRef.current[ms.id] ?? 0) + contribution * sign
     }
   }
 
-  function handleLog(motion: Motion, clientX = 0, clientY = 0, rowBottom?: number) {
+  function handleLog(motion: Motion, clientX = 0, clientY = 0, rowBottom?: number, intensity: Intensity = 'medium') {
     const done = localDone.has(motion.id)
-    const delta = motionDelta(motion)
+    const mult = INTENSITY_MULTIPLIER[intensity]
+    const delta = isHours
+      ? Math.round(Number(motion.default_hours) * mult * 4) / 4
+      : Math.round(motion.default_points * mult)
     if (done) {
       setLocalDone(prev => { const next = new Set(prev); next.delete(motion.id); return next })
-      setLocalValue(prev => Math.max(0, prev - delta))
+      setLocalValue(prev => Math.max(0, prev - motionDelta(motion)))
       updateSwellProgress(motion, -1)
       startTransition(async () => { await unlogMotion(motion.id) })
     } else {
@@ -535,17 +542,17 @@ export function DailyChecklist({
         setLocalDone(prev => new Set([...prev, motion.id]))
       }
       setLocalValue(prev => prev + delta)
-      updateSwellProgress(motion, 1)
+      updateSwellProgress(motion, 1, mult)
       window.dispatchEvent(new CustomEvent('onduler:log-committed', {
         detail: {
           motion_id: motion.id,
           swell_ids: motion.swells.map(s => s.id),
           weights: Object.fromEntries(motion.swells.map(s => [s.id, s.weight])),
-          points: motion.default_points,
-          hours: Number(motion.default_hours),
+          points: Math.round(motion.default_points * mult),
+          hours: Math.round(Number(motion.default_hours) * mult * 4) / 4,
         },
       }))
-      startTransition(async () => { await quickLogMotion(motion.id) })
+      startTransition(async () => { await quickLogMotion(motion.id, intensity) })
       if (undoTimeoutRef.current) clearTimeout(undoTimeoutRef.current)
       undoTimeoutRef.current = setTimeout(() => setUndoToast(null), 3500)
       setUndoToast({ motion })
@@ -719,7 +726,7 @@ export function DailyChecklist({
       <div className="flex-1 h-[5px] overflow-hidden rounded-full bg-th-surface">
         <div
           className="h-full rounded-full transition-all"
-          style={{ width: `${progress}%`, background: 'linear-gradient(to right, color-mix(in oklch, var(--th-accent) 35%, var(--th-surface)), var(--th-accent))', backgroundSize: `${100 / (progress / 100)}% 100%` }}
+          style={{ width: `${progress}%`, background: progressBarColor ? `linear-gradient(to right, color-mix(in oklch, ${progressBarColor} 35%, var(--th-surface)), ${progressBarColor})` : 'linear-gradient(to right, color-mix(in oklch, var(--th-accent) 35%, var(--th-surface)), var(--th-accent))', backgroundSize: `${100 / (progress / 100)}% 100%` }}
         />
       </div>
       <div className="relative shrink-0" ref={filterRef}>

@@ -7,7 +7,9 @@ import { getTodayStart, getWeekStart } from '@/lib/timezone'
 import { pacificDayKey } from '@/lib/periods'
 import { cycleStartKey, type Cadence } from '@/lib/cadence'
 
-export async function quickLogMotion(motionId: string) {
+import { INTENSITY_MULTIPLIER, type Intensity } from '@/lib/intensity'
+
+export async function quickLogMotion(motionId: string, intensity: Intensity = 'medium') {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
@@ -34,14 +36,16 @@ export async function quickLogMotion(motionId: string) {
 
   if ((count ?? 0) > 0) return { success: true }
 
+  const mult = INTENSITY_MULTIPLIER[intensity]
   const { error } = await supabase
     .from('logs')
     .insert({
       user_id: user.id,
       chapter_id: chapterId,
       motion_id: motionId,
-      points: motion.default_points,
-      hours: motion.default_hours,
+      points: Math.round(motion.default_points * mult),
+      hours: Math.round(motion.default_hours * mult * 4) / 4,
+      intensity,
     })
 
   if (error) return { error: error.message }

@@ -72,6 +72,27 @@ export async function updateGroup(id: string, prevState: unknown, formData: Form
   return { error: undefined, success: true }
 }
 
+export async function createQuickGroup(name: string, color: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return
+
+  const chapterId = await getActiveChapterId(supabase, user.id)
+
+  const { count } = await supabase
+    .from('groups')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', user.id)
+    .eq('chapter_id', chapterId)
+
+  await supabase
+    .from('groups')
+    .insert({ user_id: user.id, chapter_id: chapterId, name, color, sort_order: count ?? 0 })
+
+  revalidatePath('/dashboard')
+  revalidatePath('/settings')
+}
+
 export async function deleteGroup(id: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
