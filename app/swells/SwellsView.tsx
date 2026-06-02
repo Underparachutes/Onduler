@@ -133,16 +133,16 @@ export function SwellsView(props: Props) {
     <div className="flex min-h-full flex-col items-center px-5 pb-12">
       <div className="w-full max-w-[22rem] lg:max-w-none">
         {openForm === 'swell' ? (
-          <div style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 2rem)' }}>
+          <div style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.5rem)' }}>
             <AddSwellForm trackingMode={props.trackingMode} onClose={() => setOpenForm(null)} />
           </div>
         ) : openForm === 'group' ? (
-          <div style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 2rem)' }}>
+          <div style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.5rem)' }}>
             <AddGroupForm onClose={() => setOpenForm(null)} />
           </div>
         ) : (
           <>
-            <div className="sticky top-0 z-10 bg-th-bg pb-3" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 2rem)' }}>
+            <div className="sticky top-0 z-10 bg-th-bg pb-3" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.5rem)' }}>
               <div className="mb-2 flex items-center justify-between">
                 <p className="text-xs uppercase tracking-widest text-th-muted">Onduler</p>
                 <div className="flex items-center gap-3">
@@ -267,6 +267,7 @@ export function SwellsView(props: Props) {
               )}
             </div>
 
+            <div className="pt-4">
             <HintCard hintKey="swells" title="Your swells." seen={props.hintSwellsSeen}>
               <p className="mb-1.5">A swell is a noun-shaped area of your life. A person, a place, a thing you want to feed. Movement, Home, your dog, the band you&apos;re starting. Pick a color that feels like it. Set a weekly target.</p>
               <p>Your motions flow into your swells. Each motion can feed more than one.</p>
@@ -301,6 +302,7 @@ export function SwellsView(props: Props) {
             {props.hiddenSwells.length > 0 && (
               <HiddenSwellsSection hiddenSwells={props.hiddenSwells} />
             )}
+            </div>
           </>
         )}
       </div>

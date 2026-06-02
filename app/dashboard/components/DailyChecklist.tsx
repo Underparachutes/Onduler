@@ -794,7 +794,7 @@ export function DailyChecklist({
     return (
       <>
         <div>
-          <div className="sticky top-0 z-10 bg-th-bg pb-3" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 2rem)' }}>
+          <div className="sticky top-0 z-10 bg-th-bg pb-3" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.5rem)' }}>
             {topBar}
             {dateHeader}
             {headerToolbar}
@@ -831,6 +831,7 @@ export function DailyChecklist({
               </div>
             </div>
           </div>
+          <div className="h-4" />
           {belowHeader}
           <WeekEditView
             motions={activeGroup ? motions.filter(m => m.groupId === activeGroup) : motions}
@@ -864,13 +865,14 @@ export function DailyChecklist({
     return (
       <>
         <div>
-          <div className="sticky top-0 z-10 bg-th-bg pb-3" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 2rem)' }}>
+          <div className="sticky top-0 z-10 bg-th-bg pb-3" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.5rem)' }}>
             {topBar}
             {dateHeader}
             {headerToolbar}
             {progressStats}
             {groupChipsRow}
           </div>
+          <div className="h-4" />
           {belowHeader}
           <DndContext
             sensors={sensors}
@@ -928,12 +930,13 @@ export function DailyChecklist({
     return (
       <>
         <div>
-          <div className="sticky top-0 z-10 bg-th-bg pb-3" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 2rem)' }}>
+          <div className="sticky top-0 z-10 bg-th-bg pb-3" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.5rem)' }}>
             {topBar}
             {dateHeader}
             {headerToolbar}
             {progressStats}
           </div>
+          <div className="h-4" />
           {belowHeader}
           <SortableMotionList
             motions={motions}
@@ -970,7 +973,7 @@ export function DailyChecklist({
   return (
     <>
       <div>
-        <div className="sticky top-0 z-10 bg-th-bg pb-3" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 2rem)' }}>
+        <div className="sticky top-0 z-10 bg-th-bg pb-3" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.5rem)' }}>
           {topBar}
           {dateHeader}
           {progressStats}
@@ -978,6 +981,7 @@ export function DailyChecklist({
           {headerToolbar}
           {groupChipsRow}
         </div>
+        <div className="h-4" />
         {belowHeader}
 
         <DndContext

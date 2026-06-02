@@ -65,14 +65,14 @@ export default async function SettingsPage() {
 
   return (
     <div className="flex min-h-full flex-col items-center px-5 lg:items-start">
-      <div className="sticky top-0 z-10 w-full max-w-[22rem] bg-th-bg pb-3 lg:max-w-none" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 2rem)' }}>
+      <div className="sticky top-0 z-10 w-full max-w-[22rem] bg-th-bg pb-3 lg:max-w-none" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.5rem)' }}>
         <div className="mb-2 flex items-center justify-between lg:max-w-[22rem]">
           <p className="text-xs uppercase tracking-widest text-th-muted">Onduler</p>
         </div>
         <h1 className="text-2xl font-semibold text-th-text lg:max-w-[22rem]">Settings</h1>
       </div>
 
-      <div className="w-full max-w-[22rem] pb-12 lg:max-w-none">
+      <div className="w-full max-w-[22rem] pt-4 pb-12 lg:max-w-none">
         <HintCard hintKey="settings" seen={!!((settings?.hints_seen as Record<string, boolean>)?.settings)}>
           <p>Everything&apos;s tunable here. Themes, tracking mode, your starter set. Nothing locked in.</p>
         </HintCard>

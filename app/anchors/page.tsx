@@ -545,7 +545,7 @@ export default async function AnchorsPage({
     <div className="flex min-h-full flex-col items-center px-5 pb-12">
       <div className="w-full max-w-[22rem] lg:max-w-none">
         {/* Sticky header: onduler + date + toolbar */}
-        <div className="sticky top-0 z-10 bg-th-bg pb-4" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 2rem)' }}>
+        <div className="sticky top-0 z-10 bg-th-bg pb-4" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.5rem)' }}>
           <div className="mb-1 flex items-center justify-between">
             <p className="text-xs uppercase tracking-widest text-th-muted">Onduler</p>
             <Link
@@ -579,6 +579,7 @@ export default async function AnchorsPage({
             sort={swellSort !== 'earned' ? swellSort : undefined}
           />
         </div>
+        <div className="h-4" />
 
         {pendingCadences.length > 0 && (
           <div className="mb-8 flex flex-col gap-3">
