@@ -35,6 +35,25 @@ const TRACKING_MODES = [
   { id: 'hours', label: 'Hours', desc: 'Clocking real time toward mastery' },
 ] as const
 
+function resizeImage(file: File, maxDim: number): Promise<File> {
+  return new Promise((resolve) => {
+    const img = new Image()
+    img.onload = () => {
+      if (img.width <= maxDim && img.height <= maxDim) { resolve(file); return }
+      const scale = maxDim / Math.max(img.width, img.height)
+      const canvas = document.createElement('canvas')
+      canvas.width = Math.round(img.width * scale)
+      canvas.height = Math.round(img.height * scale)
+      const ctx = canvas.getContext('2d')!
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+      canvas.toBlob((blob) => {
+        resolve(new File([blob!], file.name.replace(/\.\w+$/, '.jpg'), { type: 'image/jpeg' }))
+      }, 'image/jpeg', 0.85)
+    }
+    img.src = URL.createObjectURL(file)
+  })
+}
+
 type Group = { id: string; name: string; color: string }
 type HiddenMotion = { id: string; name: string }
 type AssignableMotion = { id: string; name: string; group_id: string | null }
@@ -259,8 +278,9 @@ export function SettingsPanel({
                         const file = e.target.files?.[0]
                         if (!file) return
                         setUploading(true)
+                        const resized = await resizeImage(file, 1920)
                         const fd = new FormData()
-                        fd.append('file', file)
+                        fd.append('file', resized)
                         const result = await uploadBackground(fd)
                         setUploading(false)
                         if (result && 'url' in result) {
@@ -297,7 +317,7 @@ export function SettingsPanel({
               )}
               {adjusting && bgUrl && (
                 <ImageAdjustOverlay
-                  url={bgUrl.replace(/\?v=\d+$/, '')}
+                  url={bgUrl}
                   initialX={(() => { const p = bgPosition.split(/\s+/); return parseFloat(p[0]) || 50 })()}
                   initialY={(() => { const p = bgPosition.split(/\s+/); return parseFloat(p[1] ?? p[0]) || 50 })()}
                   onSave={(x, y) => {
