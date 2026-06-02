@@ -495,7 +495,7 @@ export function SwellProficiencyView({
 
   if (addOpen) {
     return (
-      <div className="flex min-h-full flex-col items-center px-4 pb-12">
+      <div className="flex min-h-full flex-col items-center px-5 pb-12">
         <div className="w-full max-w-[22rem]" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.5rem)' }}>
           <AddMotionForm
             groups={[]}
@@ -514,7 +514,7 @@ export function SwellProficiencyView({
   }
 
   return (
-    <div className="flex flex-col items-center px-4 lg:items-start">
+    <div className="flex flex-col items-center px-5 lg:items-start">
       <div className="w-full max-w-[22rem] lg:max-w-none lg:grid lg:grid-cols-[22rem_1fr] lg:gap-10">
         {/* Left column: header + constellation */}
         <div className="contents lg:block lg:sticky lg:top-0 lg:self-start">

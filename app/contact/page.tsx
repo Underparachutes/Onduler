@@ -8,7 +8,7 @@ export default function ContactPage() {
   const [state, action, pending] = useActionState(submitContact, undefined)
 
   return (
-    <div className="flex min-h-full flex-col items-center px-4 py-12 pb-24">
+    <div className="flex min-h-full flex-col items-center px-5 py-12 pb-24">
       <div className="w-full max-w-[22rem]">
         <Link
           href="/"

@@ -25,7 +25,7 @@ export default async function PastChaptersPage() {
   const chapters = await listArchivedChapters()
 
   return (
-    <div className="flex min-h-full flex-col items-center px-4 py-12">
+    <div className="flex min-h-full flex-col items-center px-5 py-12">
       <div className="w-full max-w-[22rem]">
         <h1 className="mb-2 text-2xl font-semibold text-th-text">Past chapters</h1>
         <p className="mb-8 text-xs text-th-muted">

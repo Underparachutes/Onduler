@@ -64,8 +64,8 @@ export default async function SettingsPage() {
   ])
 
   return (
-    <div className="flex min-h-full flex-col items-center px-4 lg:items-start">
-      <div className="sticky top-0 z-10 w-full max-w-[22rem] bg-th-bg pb-3 lg:max-w-none" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.5rem)' }}>
+    <div className="flex min-h-full flex-col items-center px-5 lg:items-start">
+      <div className="sticky top-0 z-10 w-full max-w-[22rem] bg-th-bg pb-3 lg:max-w-none" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 2rem)' }}>
         <div className="mb-2 flex items-center justify-between lg:max-w-[22rem]">
           <p className="text-xs uppercase tracking-widest text-th-muted">Onduler</p>
         </div>
@@ -98,6 +98,7 @@ export default async function SettingsPage() {
           backgroundUrl={(settings?.background_url as string) ?? null}
           backgroundPosition={(settings?.background_position as string) ?? 'center'}
           progressBarColor={(settings?.progress_bar_color as string) ?? null}
+
         />
       </div>
 

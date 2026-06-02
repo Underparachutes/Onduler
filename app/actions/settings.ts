@@ -250,7 +250,7 @@ export async function setProgressBarColor(color: string | null) {
     .upsert({ user_id: user.id, progress_bar_color: color })
 
   revalidatePath('/dashboard')
-  revalidatePath('/settings')
+  revalidatePath('/anchors')
   return { success: true }
 }
 
@@ -309,4 +309,19 @@ export async function setBackgroundPosition(position: string) {
     .upsert({ user_id: user.id, background_position: position })
 
   revalidatePath('/', 'layout')
+}
+
+export async function setAnchorTarget(target: number) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const clamped = Math.max(0, Math.min(7, Math.round(target)))
+  await supabase
+    .from('user_settings')
+    .upsert({ user_id: user.id, anchor_target_per_week: clamped })
+
+  revalidatePath('/anchors')
+  revalidatePath('/settings')
+  return { success: true }
 }

@@ -26,7 +26,7 @@ export default async function NewAnchorPage() {
   const showLastWeek = sundayOf(chapterStartKey) < thisWeek.cycleStart
 
   return (
-    <div className="flex min-h-full flex-col items-center px-4 py-12">
+    <div className="flex min-h-full flex-col items-center px-5 py-12">
       <div className="w-full max-w-[22rem]">
         <NewAnchorForm
           thisWeek={thisWeek}

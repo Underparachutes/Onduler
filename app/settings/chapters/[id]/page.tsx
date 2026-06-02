@@ -73,7 +73,7 @@ export default async function ChapterDetailPage({
   }))
 
   return (
-    <div className="flex min-h-full flex-col items-center px-4 py-12">
+    <div className="flex min-h-full flex-col items-center px-5 py-12">
       <div className="w-full max-w-[22rem]">
         <div className="mb-6 flex items-center justify-between">
           <p className="text-xs uppercase tracking-widest text-th-muted">Onduler</p>

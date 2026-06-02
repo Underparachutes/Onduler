@@ -8,6 +8,9 @@ import {
   ceilDisplay,
   consecutiveZeroDayStreak,
   dayKeyRange,
+  daysInMonth,
+  daysInQuarter,
+  daysInYear,
   monthEndKey,
   monthStartKey,
   pacificDayKey,
@@ -30,6 +33,7 @@ import type { BuildKey } from '@/lib/builds'
 import { HintCard } from '@/app/components/HintCard'
 import { markHintSeen } from '@/app/actions/settings'
 import { PeriodSelector, type PeriodOption } from './components/PeriodSelector'
+import { AnchorsToolbar } from './components/AnchorsToolbar'
 import { InlineAnchorLog } from './components/InlineAnchorLog'
 
 type CeremonyResult = { state: CeremonyState; cycleStart: string; cycleEnd: string; chapterId: string | null }
@@ -70,13 +74,6 @@ const CADENCE_LABEL: Record<Cadence, string> = {
 }
 
 type Period = 'week' | 'month' | 'quarter' | 'year'
-
-const PERIOD_OPTIONS: { value: Period; label: string }[] = [
-  { value: 'week', label: 'Week' },
-  { value: 'month', label: 'Month' },
-  { value: 'quarter', label: 'Quarter' },
-  { value: 'year', label: 'Year' },
-]
 
 function parsePeriod(raw: string | undefined): Period {
   return raw === 'week' || raw === 'month' || raw === 'quarter' || raw === 'year' ? raw : 'week'
@@ -241,7 +238,7 @@ export default async function AnchorsPage({
       .order('sort_order'),
     supabase
       .from('user_settings')
-      .select('tracking_mode, primary_build, secondary_build, welcome_back_mode, welcome_back_started_at, hints_seen, progress_bar_color')
+      .select('tracking_mode, primary_build, secondary_build, welcome_back_mode, welcome_back_started_at, hints_seen, progress_bar_color, anchor_target_per_week')
       .eq('user_id', user.id)
       .single(),
     supabase
@@ -269,6 +266,11 @@ export default async function AnchorsPage({
   const secondaryBuild = (settings?.secondary_build as BuildKey | null) ?? null
   const hintsSeen = (settings?.hints_seen as Record<string, boolean>) ?? {}
   const progressBarColor = (settings?.progress_bar_color as string) ?? null
+  const anchorTargetPerWeek: number = (settings?.anchor_target_per_week as number) ?? 1
+  let anchorTargetForPeriod = anchorTargetPerWeek
+  if (period === 'month') anchorTargetForPeriod = Math.ceil(anchorTargetPerWeek * daysInMonth(todayKey) / 7)
+  if (period === 'quarter') anchorTargetForPeriod = Math.ceil(anchorTargetPerWeek * daysInQuarter(todayKey) / 7)
+  if (period === 'year') anchorTargetForPeriod = Math.ceil(anchorTargetPerWeek * daysInYear(todayKey) / 7)
   if (!hintsSeen.anchors_locked) markHintSeen('anchors_locked')
   const welcomeBackMode = (settings?.welcome_back_mode as WelcomeBackMode | null) ?? null
   const welcomeBackStartedKey = settings?.welcome_back_started_at
@@ -460,11 +462,6 @@ export default async function AnchorsPage({
     .sort((a, b) => swellSort === 'goal' ? b.target - a.target : b.value - a.value)
   const maxSwellValue = swellBreakdown[0]?.value ?? 1
 
-  const activeDaySet = new Set<DayKey>()
-  periodLogs.forEach(l => activeDaySet.add(pacificDayKey(l.logged_at)))
-  const activeDays = activeDaySet.size
-  const avgValue = activeDays > 0 ? ceilDisplay(totalValue / activeDays, isHours) : 0
-
   // Daily chart: anchor to the selected period window (week/month only).
   const dayMap = new Map<DayKey, number>()
   if (period === 'week' || period === 'month') {
@@ -545,10 +542,10 @@ export default async function AnchorsPage({
   }
 
   return (
-    <div className="flex min-h-full flex-col items-center px-4 pb-12">
+    <div className="flex min-h-full flex-col items-center px-5 pb-12">
       <div className="w-full max-w-[22rem] lg:max-w-none">
-        {/* Sticky header: onduler + date + stats + filters */}
-        <div className="sticky top-0 z-10 bg-th-bg pb-4 pt-8">
+        {/* Sticky header: onduler + date + toolbar */}
+        <div className="sticky top-0 z-10 bg-th-bg pb-4" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 2rem)' }}>
           <div className="mb-1 flex items-center justify-between">
             <p className="text-xs uppercase tracking-widest text-th-muted">Onduler</p>
             <Link
@@ -560,49 +557,27 @@ export default async function AnchorsPage({
             </Link>
           </div>
 
-          <PeriodSelector
+          <div className="mb-3 flex items-baseline justify-between">
+            <PeriodSelector
+              period={period}
+              currentLabel={headerDate}
+              options={periodOptions}
+              sort={swellSort !== 'earned' ? swellSort : undefined}
+            />
+            <p className="shrink-0 text-sm text-th-muted">
+              {periodAnchorTotal} {periodAnchorTotal === 1 ? 'anchor' : 'anchors'}
+            </p>
+          </div>
+
+          <AnchorsToolbar
             period={period}
-            currentLabel={headerDate}
-            options={periodOptions}
+            unlocks={unlocks}
+            anchorCount={periodAnchorTotal}
+            anchorTarget={anchorTargetForPeriod}
+            anchorTargetPerWeek={anchorTargetPerWeek}
+            progressBarColor={progressBarColor}
             sort={swellSort !== 'earned' ? swellSort : undefined}
           />
-
-          <div className="mb-4 grid grid-cols-3 gap-3">
-            <div className="text-center">
-              <p className="text-lg font-semibold text-th-text">{formatValue(totalValue)}</p>
-              <p className="mt-0.5 text-[10px] uppercase tracking-widest text-th-muted">
-                {isHours ? 'hrs total' : 'pts total'}
-              </p>
-            </div>
-            <div className="text-center">
-              <p className="text-lg font-semibold text-th-text">{formatValue(avgValue)}</p>
-              <p className="mt-0.5 text-[10px] uppercase tracking-widest text-th-muted">
-                {isHours ? 'hrs / active day' : 'pts / active day'}
-              </p>
-            </div>
-            <div className="text-center">
-              <p className="text-lg font-semibold text-th-text">{activeDays}</p>
-              <p className="mt-0.5 text-[10px] uppercase tracking-widest text-th-muted">
-                active days
-              </p>
-            </div>
-          </div>
-
-          <div className="flex gap-2">
-            {PERIOD_OPTIONS.filter(o => unlocks[o.value]).map(({ value, label }) => (
-              <Link
-                key={value}
-                href={`/anchors?period=${value}`}
-                className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
-                  period === value
-                    ? 'border-th-text bg-th-text text-th-bg'
-                    : 'border-th-border text-th-muted hover:bg-th-surface'
-                }`}
-              >
-                {label}
-              </Link>
-            ))}
-          </div>
         </div>
 
         {pendingCadences.length > 0 && (

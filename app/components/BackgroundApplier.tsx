@@ -49,6 +49,28 @@ export function BackgroundApplier({ url, position }: { url: string | null; posit
           background: 'rgba(0,0,0,0.35)',
         }}
       />
+      <div
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: '32px',
+          background: 'linear-gradient(to bottom, var(--th-bg) 0%, transparent 100%)',
+          zIndex: 1,
+        }}
+      />
+      <div
+        style={{
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: '32px',
+          background: 'linear-gradient(to top, var(--th-bg) 0%, transparent 100%)',
+          zIndex: 1,
+        }}
+      />
     </div>
   )
 }

@@ -62,7 +62,7 @@ export function ShapePicker({ primary, existingSwellNames, mvsPool, resolvedMvsI
   }
 
   return (
-    <div className="flex min-h-full flex-col items-center px-4 py-12">
+    <div className="flex min-h-full flex-col items-center px-5 py-12">
       <div className="w-full max-w-[22rem]">
         <h1 className="mb-2 text-2xl font-semibold text-th-text">Starter sets</h1>
         <p className="mb-8 text-sm text-th-muted">
@@ -326,7 +326,7 @@ function PreviewScreen({
   const isActive = primarySlot === presetKey
 
   return (
-    <div className="flex min-h-full flex-col items-center px-4 py-12">
+    <div className="flex min-h-full flex-col items-center px-5 py-12">
       <div className="w-full max-w-[22rem]">
         <div className="mb-6 flex items-center justify-between">
           <button

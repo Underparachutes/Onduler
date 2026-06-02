@@ -84,10 +84,10 @@ export function DashboardView(props: Props) {
   }
 
   const hasMotions = props.motions.length > 0
-  const safeTop = 'calc(env(safe-area-inset-top, 0px) + 0.5rem)'
+  const safeTop = 'calc(env(safe-area-inset-top, 0px) + 2rem)'
 
   return (
-    <div className={`flex min-h-full flex-col items-center px-4 ${!hideShape && shapeSwells.length >= 3 ? 'pb-44' : 'pb-12'}`}>
+    <div className={`flex min-h-full flex-col items-center px-5 ${!hideShape && shapeSwells.length >= 3 ? 'pb-44' : 'pb-12'}`}>
       <div className="w-full max-w-[22rem] lg:max-w-none">
         {openForm === 'motion' && (
           <div style={{ paddingTop: safeTop }}>

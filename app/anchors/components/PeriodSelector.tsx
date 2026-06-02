@@ -30,11 +30,11 @@ export function PeriodSelector({ period, currentLabel, options, sort }: Props) {
   }, [open])
 
   if (options.length <= 1) {
-    return <h1 className="mb-4 text-lg font-semibold text-th-text">{currentLabel}</h1>
+    return <h1 className="text-lg font-semibold text-th-text">{currentLabel}</h1>
   }
 
   return (
-    <div ref={ref} className="relative mb-4">
+    <div ref={ref} className="relative">
       <button
         onClick={() => setOpen(prev => !prev)}
         className="flex items-center gap-2 text-lg font-semibold text-th-text"

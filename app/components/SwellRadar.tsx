@@ -419,6 +419,16 @@ export function SwellRadar({
             })}
           </defs>
 
+          {/* Radar backing — subtle bg-tinted rect behind polygon and labels for photo legibility */}
+          <rect
+            x={VB_ORIGIN + 4}
+            y={VB_ORIGIN + 4}
+            width={VB_SIZE - 8}
+            height={VB_SIZE - 8}
+            rx={16}
+            style={{ fill: 'color-mix(in srgb, var(--th-bg) 35%, transparent)' }}
+          />
+
           {/* Wedge fills (target ring tiling) — frosted glass effect */}
           {swells.map((s, i) => (
             <g key={`wedge-${s.id}`}>
@@ -518,7 +528,7 @@ export function SwellRadar({
                 textAnchor={pos.anchor}
                 dominantBaseline="central"
                 fontSize="13"
-                fontWeight="500"
+                fontWeight="600"
                 fill="var(--color-th-text, currentColor)"
                 fillOpacity="0.85"
                 transform={`rotate(${pos.rotation}, ${pos.x}, ${pos.y})`}

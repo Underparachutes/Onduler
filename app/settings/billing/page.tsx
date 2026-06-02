@@ -16,7 +16,7 @@ export default async function BillingPage() {
   if (!settings?.is_admin) redirect('/settings')
 
   return (
-    <div className="flex min-h-full flex-col items-center px-4 py-12 lg:items-start">
+    <div className="flex min-h-full flex-col items-center px-5 py-12 lg:items-start">
       <div className="w-full max-w-[22rem] lg:max-w-none">
         <p className="mb-6 text-xs uppercase tracking-widest text-th-muted">Settings</p>
         <h1 className="mb-2 text-2xl font-semibold text-th-text">Crew</h1>

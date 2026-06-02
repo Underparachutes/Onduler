@@ -12,6 +12,7 @@ import {
   setHapticEnabled,
   setTrackingMode,
   setEmailCycleCloseEnabled,
+
 } from '@/app/actions/settings'
 import { unhideMotion } from '@/app/actions/motions'
 import { createQuickGroup } from '@/app/actions/groups'
@@ -106,6 +107,7 @@ export function SettingsPanel({
   backgroundUrl,
   backgroundPosition: initialBackgroundPosition,
   progressBarColor: initialProgressBarColor,
+
 }: Props) {
   const [currentTheme, setCurrentTheme] = useState(theme)
   const [currentMode, setCurrentMode] = useState<TrackingMode>(trackingMode)
@@ -129,6 +131,7 @@ export function SettingsPanel({
   const [bgPosition, setBgPosition] = useState(initialBackgroundPosition)
   const [adjusting, setAdjusting] = useState(false)
   const [barColor, setBarColor] = useState(initialProgressBarColor)
+
   const [uploading, setUploading] = useState(false)
   const [, startTransition] = useTransition()
 
@@ -542,6 +545,7 @@ export function SettingsPanel({
                   />
                 </button>
               </div>
+
             </div>
           )}
         </div>

@@ -2,7 +2,7 @@ export default function Loading() {
   return (
     <div className="flex flex-1 items-center justify-center">
       <div className="relative select-none">
-        <p className="font-display text-2xl font-light tracking-wide text-th-faint">
+        <p className="font-display text-2xl font-light tracking-wide text-th-faint" style={{ textShadow: 'none' }}>
           onduler
         </p>
         <p
