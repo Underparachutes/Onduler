@@ -105,13 +105,6 @@ export function InlineAnchorLog({ initialAnchors, initialTotal, periodStart, per
           {loading ? 'Loading...' : `${total - anchors.length} more`}
         </button>
       )}
-
-      <Link
-        href="/anchors/journal"
-        className="mt-4 block text-xs text-th-muted transition-colors hover:text-th-text"
-      >
-        See all in your journal
-      </Link>
     </div>
   )
 }
@@ -128,7 +121,8 @@ function AnchorEntry({
   onDelete: (id: string) => void
 }) {
   const isCeremony = anchor.cycle_type !== 'free'
-  const label = isCeremony ? `${anchor.cycle_type} ceremony` : 'Anchor'
+  const rawLabel = isCeremony ? `${anchor.cycle_type} ceremony` : 'Anchor'
+  const label = rawLabel.charAt(0).toUpperCase() + rawLabel.slice(1)
   const cycle = cycleLabel(anchor)
 
   return (
@@ -138,8 +132,8 @@ function AnchorEntry({
         onClick={onToggle}
         className="flex w-full items-baseline justify-between gap-2 text-left active:scale-[0.985]"
       >
-        <p className="text-[10px] uppercase tracking-widest text-th-muted">{label}</p>
-        <p className="text-[10px] text-th-faint">{entryDate(anchor.created_at)}</p>
+        <p className="text-sm font-medium text-th-text">{label}</p>
+        <p className="text-xs text-th-faint">{entryDate(anchor.created_at)}</p>
       </button>
 
       {isExpanded && (

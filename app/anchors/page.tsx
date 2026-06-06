@@ -619,6 +619,13 @@ export default async function AnchorsPage({
           />
         )}
 
+        <InlineAnchorLog
+          initialAnchors={periodAnchors}
+          initialTotal={periodAnchorTotal}
+          periodStart={periodStart}
+          periodEnd={periodEnd}
+          period={period}
+        />
 
         {totalValue === 0 ? (
           <p className="text-sm text-th-muted">No motions logged for this period.</p>
@@ -687,14 +694,6 @@ export default async function AnchorsPage({
                 </div>
               </div>
             )}
-
-            <InlineAnchorLog
-              initialAnchors={periodAnchors}
-              initialTotal={periodAnchorTotal}
-              periodStart={periodStart}
-              periodEnd={periodEnd}
-              period={period}
-            />
 
             {waveCheckins.length > 0 && (
               <div>

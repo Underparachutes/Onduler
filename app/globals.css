@@ -431,20 +431,10 @@ body.has-bg-image {
 }
 
 body.has-bg-image .sticky.bg-th-bg {
-  background-color: transparent;
-}
-
-body.has-bg-image .sticky.bg-th-bg::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  left: -100vw;
-  right: -100vw;
   background-color: color-mix(in srgb, var(--th-bg) 80%, transparent);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  z-index: -1;
-  pointer-events: none;
+  border-radius: 1rem;
 }
 
 @layer base {
