@@ -435,6 +435,8 @@ body.has-bg-image .sticky.bg-th-bg {
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border-radius: 1rem;
+  padding-left: 1rem;
+  padding-right: 1rem;
 }
 
 @layer base {
