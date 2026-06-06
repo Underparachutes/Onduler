@@ -13,13 +13,13 @@ export function BottomNav({ pendingAnchor = false }: { pendingAnchor?: boolean }
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-40 border-t border-th-border bg-th-bg md:hidden"
+      className="pointer-events-none fixed inset-x-0 z-40 px-4 md:hidden"
       style={{
-        paddingBottom: 'max(env(safe-area-inset-bottom), 0px)',
+        bottom: 'calc(env(safe-area-inset-bottom, 0px) + 1rem)',
         transform: 'translate3d(0,0,0)',
       }}
     >
-      <div className="mx-auto flex h-14 max-w-sm items-center justify-around px-2">
+      <div className="floating-pill-nav pointer-events-auto mx-auto flex h-14 max-w-sm items-center justify-around rounded-full border border-th-border bg-th-surface px-2 shadow-lg">
         {NAV_ITEMS.map(({ href, label, icon }) => {
           const active = isActiveRoute(href, pathname)
           const isAnchors = href === '/anchors'

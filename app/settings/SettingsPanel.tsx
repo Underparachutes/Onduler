@@ -23,6 +23,7 @@ import { parseHoursInput } from '@/lib/periods'
 import { getBuildPreset } from '@/lib/builds'
 import { detectMode, getRandomThemeAccent } from '@/lib/theme-colors'
 import { ImageAdjustOverlay } from '@/app/components/ImageAdjustOverlay'
+import { readPinTopUnpinned, writePinTopUnpinned } from '@/app/components/PinTopApplier'
 import { EditGroupForm } from './EditGroupForm'
 
 const THEMES = [
@@ -129,6 +130,7 @@ export function SettingsPanel({
   const [hasBackground, setHasBackground] = useState(!!backgroundUrl)
   const [bgUrl, setBgUrl] = useState(backgroundUrl)
   const [bgPosition, setBgPosition] = useState(initialBackgroundPosition)
+  const [topUnpinned, setTopUnpinned] = useState(() => readPinTopUnpinned())
   const [adjusting, setAdjusting] = useState(false)
   const [barColor, setBarColor] = useState(initialProgressBarColor)
 
@@ -351,6 +353,23 @@ export function SettingsPanel({
                   onCancel={() => setAdjusting(false)}
                 />
               )}
+
+              <div className="flex items-center justify-between py-3">
+                <div>
+                  <p className="text-sm font-medium text-th-text">Floating top bar</p>
+                  <p className="text-xs text-th-muted">{topUnpinned ? 'Scrolls away with the page' : 'Stays pinned at the top'}</p>
+                </div>
+                <button
+                  onClick={() => {
+                    const next = !topUnpinned
+                    setTopUnpinned(next)
+                    writePinTopUnpinned(next)
+                  }}
+                  className="text-sm text-th-secondary hover:underline"
+                >
+                  {topUnpinned ? 'Pin' : 'Unpin'}
+                </button>
+              </div>
 
               <div className="flex items-center justify-between py-3">
                 <div>

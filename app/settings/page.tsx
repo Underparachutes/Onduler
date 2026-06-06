@@ -65,11 +65,27 @@ export default async function SettingsPage() {
 
   return (
     <div className="flex min-h-full flex-col items-center px-5 lg:items-start">
-      <div className="sticky top-0 z-10 w-full max-w-[22rem] bg-th-bg pb-3 lg:max-w-none" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.5rem)' }}>
+      <div className="sticky top-0 z-10 w-full max-w-[22rem] bg-th-bg pb-3 lg:max-w-none">
         <div className="mb-2 flex items-center justify-between lg:max-w-[22rem]">
           <p className="text-xs uppercase tracking-widest text-th-muted">Onduler</p>
         </div>
         <h1 className="text-2xl font-semibold text-th-text lg:max-w-[22rem]">Settings</h1>
+        <div className="mt-3 flex items-center justify-between border-t border-th-border pt-3 lg:max-w-[22rem]">
+          <form action={signOut}>
+            <button
+              type="submit"
+              className="text-base font-medium text-th-faint transition-colors hover:text-red-500 active:scale-[0.97]"
+            >
+              Sign out
+            </button>
+          </form>
+          <a
+            href="mailto:ondulertest@gmail.com?subject=Onduler feedback"
+            className="text-base font-medium text-th-secondary transition-colors hover:text-th-text active:scale-[0.97]"
+          >
+            Send feedback
+          </a>
+        </div>
       </div>
 
       <div className="w-full max-w-[22rem] pt-4 pb-12 lg:max-w-none">
@@ -102,28 +118,6 @@ export default async function SettingsPage() {
         />
       </div>
 
-      <div className="h-24" />
-
-      <div className="fixed bottom-[calc(3.5rem+env(safe-area-inset-bottom))] md:bottom-0 left-0 right-0 md:left-60 z-10 bg-th-bg">
-        <div className="mx-auto flex max-w-lg justify-center px-4 md:mx-0 md:ml-12 md:mr-auto md:justify-start lg:max-w-4xl">
-          <div className="border-t border-th-border pt-3 pb-3 flex flex-col gap-2 w-full max-w-[22rem] lg:max-w-none">
-          <a
-            href="mailto:ondulertest@gmail.com?subject=Onduler feedback"
-            className="text-sm font-medium text-th-secondary transition-colors hover:text-th-text active:scale-[0.97]"
-          >
-            Send feedback
-          </a>
-          <form action={signOut}>
-            <button
-              type="submit"
-              className="text-sm text-th-faint transition-colors hover:text-red-500 active:scale-[0.97]"
-            >
-              Sign out
-            </button>
-          </form>
-          </div>
-        </div>
-      </div>
     </div>
   )
 }

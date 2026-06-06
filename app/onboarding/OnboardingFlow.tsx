@@ -682,7 +682,7 @@ function ScreenShell({
   return (
     <div className="flex min-h-full flex-col items-center">
       <div className="flex w-full max-w-[22rem] flex-col px-4">
-        <div className="sticky top-0 z-10 -mx-4 bg-th-bg px-4 pb-4 pt-12">
+        <div className="sticky z-10 -mx-4 bg-th-bg px-4 pb-4 pt-12" style={{ top: 0 }}>
           {onBack ? (
             <button
               onClick={onBack}

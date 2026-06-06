@@ -496,7 +496,7 @@ export function DailyChecklist({
   const viewsDateLabel = (() => {
     const [vy, vm, vd] = viewsDayKeys[0].split('-').map(Number)
     const d = new Date(vy, vm - 1, vd)
-    return `Week of ${d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}`
+    return `Week of ${d.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}`
   })()
 
   // eslint-disable-next-line react-hooks/set-state-in-effect -- reset optimistic delta when source data changes
@@ -701,7 +701,7 @@ export function DailyChecklist({
   )
 
   const undoToastEl = undoToast && (
-    <div className="fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-lg border border-th-border bg-th-surface px-4 py-2.5 shadow-lg">
+    <div className="fixed left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-lg border border-th-border bg-th-surface px-4 py-2.5 shadow-lg" style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 5.5rem)' }}>
       <span className="truncate text-sm text-th-muted">Logged {undoToast.motion.name}</span>
       <button onClick={handleUndo} className="shrink-0 text-sm font-semibold text-th-btn">Undo</button>
     </div>
@@ -794,7 +794,7 @@ export function DailyChecklist({
     return (
       <>
         <div>
-          <div className="sticky top-0 z-10 bg-th-bg pb-3" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.5rem)' }}>
+          <div className="sticky top-0 z-10 bg-th-bg pb-3">
             {topBar}
             {dateHeader}
             {headerToolbar}
@@ -865,7 +865,7 @@ export function DailyChecklist({
     return (
       <>
         <div>
-          <div className="sticky top-0 z-10 bg-th-bg pb-3" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.5rem)' }}>
+          <div className="sticky top-0 z-10 bg-th-bg pb-3">
             {topBar}
             {dateHeader}
             {headerToolbar}
@@ -930,7 +930,7 @@ export function DailyChecklist({
     return (
       <>
         <div>
-          <div className="sticky top-0 z-10 bg-th-bg pb-3" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.5rem)' }}>
+          <div className="sticky top-0 z-10 bg-th-bg pb-3">
             {topBar}
             {dateHeader}
             {headerToolbar}
@@ -973,7 +973,7 @@ export function DailyChecklist({
   return (
     <>
       <div>
-        <div className="sticky top-0 z-10 bg-th-bg pb-3" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.5rem)' }}>
+        <div className="sticky top-0 z-10 bg-th-bg pb-3">
           {topBar}
           {dateHeader}
           {progressStats}

@@ -83,7 +83,7 @@ function periodDateLabel(startKey: DayKey, period: Period): string {
   const [y, m, d] = startKey.split('-').map(Number)
   if (period === 'week') {
     const dt = new Date(Date.UTC(y, m - 1, d))
-    return `Week of ${dt.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'UTC' })}`
+    return `Week of ${dt.toLocaleDateString('en-US', { month: 'long', day: 'numeric', timeZone: 'UTC' })}`
   }
   if (period === 'month') {
     return new Date(Date.UTC(y, m - 1, 1)).toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' })
@@ -545,7 +545,7 @@ export default async function AnchorsPage({
     <div className="flex min-h-full flex-col items-center px-5 pb-12">
       <div className="w-full max-w-[22rem] lg:max-w-none">
         {/* Sticky header: onduler + date + toolbar */}
-        <div className="sticky top-0 z-10 bg-th-bg pb-4" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.5rem)' }}>
+        <div className="sticky top-0 z-10 bg-th-bg pb-4">
           <div className="mb-1 flex items-center justify-between">
             <p className="text-xs uppercase tracking-widest text-th-muted">Onduler</p>
             <Link

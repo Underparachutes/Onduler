@@ -67,7 +67,7 @@ export function DashboardShape({ swells, actuals: initialActuals, trackingMode, 
 
   return (
     <div
-      className="pointer-events-none fixed bottom-[calc(2.75rem+env(safe-area-inset-bottom,0px))] left-0 right-0 z-10 flex flex-col items-center pb-1 md:bottom-0"
+      className="pointer-events-none fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] left-0 right-0 z-10 flex flex-col items-center pb-1 md:bottom-0"
     >
       <div
         className="pointer-events-auto relative cursor-pointer"

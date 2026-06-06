@@ -212,7 +212,7 @@ export default async function SwellsPage() {
   const hintsSeen = (settings?.hints_seen as Record<string, boolean>) ?? {}
   const allGroups = groups ?? []
 
-  const weekLabel = `Week of ${weekStart.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'America/Los_Angeles' })}`
+  const weekLabel = `Week of ${weekStart.toLocaleDateString('en-US', { month: 'long', day: 'numeric', timeZone: 'America/Los_Angeles' })}`
 
   return (
     <SwellsView

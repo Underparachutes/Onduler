@@ -142,7 +142,7 @@ export function SwellsView(props: Props) {
           </div>
         ) : (
           <>
-            <div className="sticky top-0 z-10 bg-th-bg pb-3" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.5rem)' }}>
+            <div className="sticky top-0 z-10 bg-th-bg pb-3">
               <div className="mb-2 flex items-center justify-between">
                 <p className="text-xs uppercase tracking-widest text-th-muted">Onduler</p>
                 <div className="flex items-center gap-3">

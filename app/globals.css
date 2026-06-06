@@ -430,6 +430,22 @@ body.has-bg-image {
   background-color: transparent;
 }
 
+/* Floating sticky-top pill (mobile only). Matches the floating bottom-nav pill.
+ * Scoped to .top-0 so it doesn't catch the proficiency-view bottom-sticky.
+ * SideNav also uses `sticky top-0 bg-th-bg` at md+, so this is mobile-only. */
+@media (max-width: 767px) {
+  .sticky.top-0.bg-th-bg {
+    top: calc(env(safe-area-inset-top, 0px) + 1rem);
+    margin-top: calc(env(safe-area-inset-top, 0px) + 1rem);
+    background-color: var(--th-surface);
+    border-radius: 1rem;
+    padding-top: 0.5rem;
+    padding-left: 1rem;
+    padding-right: 1rem;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+  }
+}
+
 body.has-bg-image .sticky.bg-th-bg {
   background-color: color-mix(in srgb, var(--th-bg) 80%, transparent);
   backdrop-filter: blur(16px);
@@ -437,6 +453,19 @@ body.has-bg-image .sticky.bg-th-bg {
   border-radius: 1rem;
   padding-left: 1rem;
   padding-right: 1rem;
+}
+
+/* Photo-frost the floating bottom-nav pill (matches the top sticky pill). */
+body.has-bg-image .floating-pill-nav {
+  background-color: color-mix(in srgb, var(--th-bg) 80%, transparent);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+/* Unpin toggle: makes the floating top scroll away with content. */
+body.unpinned-top .sticky.top-0.bg-th-bg {
+  position: static !important;
+  box-shadow: none;
 }
 
 @layer base {

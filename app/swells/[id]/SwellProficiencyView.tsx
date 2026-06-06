@@ -518,7 +518,7 @@ export function SwellProficiencyView({
       <div className="w-full max-w-[22rem] lg:max-w-none lg:grid lg:grid-cols-[22rem_1fr] lg:gap-10">
         {/* Left column: header + constellation */}
         <div className="contents lg:block lg:sticky lg:top-0 lg:self-start">
-          <div className="sticky top-0 z-10 bg-th-bg pb-3" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.5rem)' }}>
+          <div className="sticky top-0 z-10 bg-th-bg pb-3">
             <div className="mb-2 flex items-center gap-2">
               <label className="relative inline-block h-3 w-3 shrink-0 cursor-pointer">
                 <span
