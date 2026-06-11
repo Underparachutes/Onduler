@@ -726,7 +726,7 @@ export function DailyChecklist({
       <div className="flex-1 h-[5px] overflow-hidden rounded-full bg-th-surface">
         <div
           className="h-full rounded-full transition-all"
-          style={{ width: `${progress}%`, background: progressBarColor ? `linear-gradient(to right, color-mix(in oklch, ${progressBarColor} 35%, var(--th-surface)), ${progressBarColor})` : 'linear-gradient(to right, color-mix(in oklch, var(--th-accent) 35%, var(--th-surface)), var(--th-accent))', backgroundSize: `${100 / (progress / 100)}% 100%` }}
+          style={{ width: `${progress}%`, background: progressBarColor ? `linear-gradient(to right, color-mix(in oklch, ${progressBarColor} 35%, var(--th-surface)), ${progressBarColor})` : 'linear-gradient(to right, color-mix(in oklch, var(--brand) 35%, var(--th-surface)), var(--brand))', backgroundSize: `${100 / (progress / 100)}% 100%` }}
         />
       </div>
       <div className="relative shrink-0" ref={filterRef}>

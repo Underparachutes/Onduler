@@ -30,20 +30,23 @@ export function SideNav({ pendingAnchor = false }: { pendingAnchor?: boolean }) 
             href={href}
             className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors active:scale-[0.98] ${
               active
-                ? 'bg-th-surface text-th-text'
+                ? 'bg-th-surface'
                 : 'text-th-muted hover:bg-th-surface hover:text-th-text'
             } ${dimForPending ? 'opacity-55' : ''}`}
           >
             <span
               className="relative shrink-0"
-              style={pendingAnchor && isAnchors ? { animation: 'nav-tide-pulse 2.4s ease-in-out infinite' } : undefined}
+              style={{
+                ...(active ? { color: 'var(--brand)' } : null),
+                ...(pendingAnchor && isAnchors ? { animation: 'nav-tide-pulse 2.4s ease-in-out infinite' } : null),
+              }}
             >
               {icon}
               {pendingAnchor && isAnchors && !active && (
                 <span className="pointer-events-none absolute -right-1 -top-1 h-1.5 w-1.5 rounded-full bg-th-text" />
               )}
             </span>
-            <span className="font-medium">{label}</span>
+            <span className={`font-medium ${active ? 'brand-text' : ''}`}>{label}</span>
           </Link>
         )
       })}

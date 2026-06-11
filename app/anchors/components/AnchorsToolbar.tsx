@@ -37,7 +37,7 @@ export function AnchorsToolbar({ period, unlocks, anchorCount, anchorTarget, anc
   }, [eyeOpen])
 
   const progress = anchorTarget > 0 ? Math.min(100, (anchorCount / anchorTarget) * 100) : 0
-  const color = progressBarColor ?? 'var(--th-accent)'
+  const color = progressBarColor ?? 'var(--brand)'
 
   function adjust(delta: number) {
     const next = Math.max(0, Math.min(7, weeklyTarget + delta))

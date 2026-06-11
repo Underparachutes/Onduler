@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { axisAngleRad } from '@/lib/radar'
 import { wakePolygonPath, circlePath } from '@/lib/wakes'
 
@@ -21,10 +20,10 @@ type Props = {
   actuals: number[]
   trackingMode: 'points' | 'hours'
   isInWave: boolean
+  progressBarColor?: string | null
 }
 
-export function DashboardShape({ swells, actuals: initialActuals, trackingMode, isInWave }: Props) {
-  const router = useRouter()
+export function DashboardShape({ swells, actuals: initialActuals, trackingMode, isInWave, progressBarColor }: Props) {
   const [actuals, setActuals] = useState(initialActuals)
   const count = swells.length
 
@@ -70,9 +69,8 @@ export function DashboardShape({ swells, actuals: initialActuals, trackingMode, 
       className="pointer-events-none fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] left-0 right-0 z-10 flex flex-col items-center pb-1 md:bottom-0"
     >
       <div
-        className="pointer-events-auto relative cursor-pointer"
+        className="relative"
         style={{ width: SIZE, height: SIZE }}
-        onClick={() => router.push('/anchors')}
       >
         {hasData ? (
           <svg
@@ -128,12 +126,22 @@ export function DashboardShape({ swells, actuals: initialActuals, trackingMode, 
             height={SIZE}
             style={{ animation: 'slow-breathe 4s ease-in-out infinite', transformOrigin: 'center' }}
           >
+            <defs>
+              <linearGradient id="ds-empty-ombre" x1="0" y1="0" x2="0" y2="1">
+                <stop
+                  offset="0"
+                  stopColor={`color-mix(in oklch, ${progressBarColor ?? 'var(--brand)'} 35%, var(--th-surface))`}
+                />
+                <stop
+                  offset="1"
+                  stopColor={progressBarColor ?? 'var(--brand)'}
+                />
+              </linearGradient>
+            </defs>
             <path
               d={path}
-              fill="none"
-              stroke="var(--color-th-text, currentColor)"
-              strokeWidth="1"
-              opacity="0.25"
+              fill="url(#ds-empty-ombre)"
+              fillOpacity="0.75"
             />
           </svg>
         )}

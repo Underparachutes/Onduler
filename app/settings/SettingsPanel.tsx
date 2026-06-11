@@ -133,6 +133,11 @@ export function SettingsPanel({
   const [topUnpinned, setTopUnpinned] = useState(() => readPinTopUnpinned())
   const [adjusting, setAdjusting] = useState(false)
   const [barColor, setBarColor] = useState(initialProgressBarColor)
+  const [themeBrand, setThemeBrand] = useState<string>('#6366f1')
+  useEffect(() => {
+    const resolved = getComputedStyle(document.documentElement).getPropertyValue('--brand').trim()
+    if (/^#[0-9a-f]{6}$/i.test(resolved)) setThemeBrand(resolved)
+  }, [currentTheme])
 
   const [uploading, setUploading] = useState(false)
   const [, startTransition] = useTransition()
@@ -373,7 +378,7 @@ export function SettingsPanel({
 
               <div className="flex items-center justify-between py-3">
                 <div>
-                  <p className="text-sm font-medium text-th-text">Progress bar color</p>
+                  <p className="text-sm font-medium text-th-text">Accent color</p>
                   <p className="text-xs text-th-muted">{barColor ? 'Custom' : 'Theme default'}</p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -390,7 +395,7 @@ export function SettingsPanel({
                   )}
                   <input
                     type="color"
-                    value={barColor || '#6366f1'}
+                    value={barColor || themeBrand}
                     onChange={(e) => {
                       setBarColor(e.target.value)
                       startTransition(async () => { await setProgressBarColor(e.target.value) })

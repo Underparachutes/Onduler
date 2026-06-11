@@ -38,43 +38,49 @@ type Props = {
 
 export function LockedPage({ actuals = [], inWave = false, hintSeen = true }: Props) {
   return (
-    <div className="relative flex min-h-[420px] flex-1 flex-col items-center justify-center overflow-hidden px-6 py-14 text-center">
-      <WaveField lines={WAVE_LINES} />
-
-      <Link
-        href="/anchors/new"
-        aria-label="Drop an anchor"
-        className="absolute right-5 top-8 flex items-center justify-center text-3xl font-light leading-none text-th-muted transition-colors hover:text-th-text"
-        style={{ zIndex: 2 }}
-      >
-        +
-      </Link>
-
-      <div className="relative w-full max-w-[22rem]" style={{ zIndex: 1 }}>
-        <HintCard hintKey="anchors_locked" title="The page unlocks after your first week. You can drop an anchor anytime." seen={hintSeen} translucent>
-          <p>This is where you&apos;ll see your wake, the shape of how you&apos;ve been showing up.</p>
-        </HintCard>
+    <div className="fixed inset-0 z-0 flex flex-col overflow-hidden bg-th-bg">
+      <div className="sticky top-0 z-10 mx-5 bg-th-bg pb-4">
+        <div className="mb-1 flex items-center justify-between">
+          <p className="brand-text text-xs uppercase tracking-widest text-th-muted">Onduler</p>
+          <Link
+            href="/anchors/new"
+            aria-label="Drop an anchor"
+            className="brand-text flex items-center justify-center text-3xl font-light leading-none text-th-muted transition-colors hover:text-th-text"
+          >
+            +
+          </Link>
+        </div>
       </div>
 
-      {!inWave && (
-        <div className="relative mb-6">
-          <Wake actuals={actuals} />
-        </div>
-      )}
-      {inWave && <div className="mb-6" />}
+      <div className="relative flex flex-1 flex-col items-center justify-center overflow-hidden pb-28 text-center">
+        <WaveField lines={WAVE_LINES} />
 
-      <p
-        className="display relative max-w-[280px] text-pretty"
-        style={{
-          zIndex: 1,
-          fontSize: 20,
-          lineHeight: 1.55,
-          letterSpacing: '0.04em',
-          color: 'var(--th-secondary)',
-        }}
-      >
-        Every motion leaves a wake.
-      </p>
+        <div className="relative w-full max-w-[22rem] px-5" style={{ zIndex: 1 }}>
+          <HintCard hintKey="anchors_locked" title="The page unlocks after your first week. You can drop an anchor anytime." seen={hintSeen} translucent>
+            <p>This is where you&apos;ll see your wake, the shape of how you&apos;ve been showing up.</p>
+          </HintCard>
+        </div>
+
+        {!inWave && (
+          <div className="relative mb-6" style={{ zIndex: 2, isolation: 'isolate' }}>
+            <Wake actuals={actuals} />
+          </div>
+        )}
+        {inWave && <div className="mb-6" />}
+
+        <p
+          className="display relative max-w-[280px] text-pretty"
+          style={{
+            zIndex: 1,
+            fontSize: 20,
+            lineHeight: 1.55,
+            letterSpacing: '0.04em',
+            color: 'var(--th-secondary)',
+          }}
+        >
+          Every motion leaves a wake.
+        </p>
+      </div>
     </div>
   )
 }

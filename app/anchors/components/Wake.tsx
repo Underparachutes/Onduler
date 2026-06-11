@@ -51,7 +51,7 @@ export function Wake({ actuals, mini }: Props) {
         width={size}
         height={size}
         className="absolute inset-0"
-        style={{ filter: 'blur(7px)', opacity: 0.7 }}
+        style={{ filter: 'blur(7px)', opacity: 0.7, animation: 'slow-breathe 4s ease-in-out infinite', transformOrigin: 'center' }}
       >
         <path
           d={path}
@@ -73,8 +73,8 @@ export function Wake({ actuals, mini }: Props) {
           d={path}
           fill="none"
           stroke="var(--th-text)"
-          strokeWidth="0.6"
-          opacity="0.55"
+          strokeWidth="0.9"
+          opacity="0.7"
         />
       </svg>
     </div>

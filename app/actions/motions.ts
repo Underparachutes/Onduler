@@ -20,6 +20,24 @@ export async function createMotion(prevState: unknown, formData: FormData) {
   const swellIdRaw = (formData.get('swell_id') as string) || ''
   const swell_id = swellIdRaw ? swellIdRaw : null
 
+  // Multi-select swell entries from the dashboard add form. JSON array of
+  // { swellId, weight }. Takes precedence over the single swell_id field
+  // (which the swell-context flow still uses).
+  const swellEntriesRaw = (formData.get('swell_entries') as string) || ''
+  let swellEntries: { swellId: string; weight: number }[] = []
+  if (swellEntriesRaw) {
+    try {
+      const parsed = JSON.parse(swellEntriesRaw)
+      if (Array.isArray(parsed)) {
+        swellEntries = parsed
+          .filter(e => e && typeof e.swellId === 'string')
+          .map(e => ({ swellId: e.swellId, weight: typeof e.weight === 'number' ? e.weight : 1 }))
+      }
+    } catch {
+      // ignore malformed payload; fall back to single swell_id path
+    }
+  }
+
   if (!name) return { error: 'Name is required' }
 
   const chapterId = await getActiveChapterId(supabase, user.id)
@@ -32,13 +50,24 @@ export async function createMotion(prevState: unknown, formData: FormData) {
 
   if (error) return { error: error.message }
 
-  if (swell_id && inserted) {
-    await supabase.from('motion_swells').insert({
-      motion_id: inserted.id,
-      swell_id,
-      contribution_weight: 1,
-    })
-    revalidatePath(`/swells/${swell_id}`)
+  if (inserted) {
+    if (swellEntries.length > 0) {
+      await supabase.from('motion_swells').insert(
+        swellEntries.map(e => ({
+          motion_id: inserted.id,
+          swell_id: e.swellId,
+          contribution_weight: e.weight,
+        })),
+      )
+      for (const e of swellEntries) revalidatePath(`/swells/${e.swellId}`)
+    } else if (swell_id) {
+      await supabase.from('motion_swells').insert({
+        motion_id: inserted.id,
+        swell_id,
+        contribution_weight: 1,
+      })
+      revalidatePath(`/swells/${swell_id}`)
+    }
   }
 
   revalidatePath('/dashboard')

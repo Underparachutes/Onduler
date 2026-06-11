@@ -49,7 +49,7 @@ export function SwellRow({
 
       {progress !== null && target !== null && (
         <div className="mb-1">
-          <div className="rounded-full bg-th-surface" style={{ height: '4px' }}>
+          <div className="rounded-full bg-th-surface/40" style={{ height: '4px' }}>
             <div
               className="h-full rounded-full transition-all"
               style={{ width: `${progress}%`, background: `linear-gradient(to right, color-mix(in oklch, ${swell.color} 35%, var(--th-surface)), ${swell.color})`, backgroundSize: `${100 / (progress / 100)}% 100%` }}

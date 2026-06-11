@@ -144,13 +144,13 @@ export function SwellsView(props: Props) {
           <>
             <div className="sticky top-0 z-10 bg-th-bg pb-3">
               <div className="mb-2 flex items-center justify-between">
-                <p className="text-xs uppercase tracking-widest text-th-muted">Onduler</p>
+                <p className="brand-text text-xs uppercase tracking-widest text-th-muted">Onduler</p>
                 <div className="flex items-center gap-3">
                   <div ref={menuRef} className="relative">
                     <button
                       onClick={handlePlus}
                       aria-label="Add"
-                      className="flex items-center justify-center text-3xl font-light leading-none text-th-muted transition-colors hover:text-th-text"
+                      className="brand-text flex items-center justify-center text-3xl font-light leading-none text-th-muted transition-colors hover:text-th-text"
                     >
                       +
                     </button>
@@ -201,7 +201,7 @@ export function SwellsView(props: Props) {
                   {combinedTarget > 0 && (
                     <div
                       className="h-full rounded-full transition-all duration-500"
-                      style={{ width: `${Math.min((weeklyTotal / combinedTarget) * 100, 100)}%`, background: `linear-gradient(to right, color-mix(in oklch, ${props.progressBarColor ?? 'var(--th-accent)'} 35%, var(--th-surface)), ${props.progressBarColor ?? 'var(--th-accent)'})`, backgroundSize: `${10000 / Math.min((weeklyTotal / combinedTarget) * 100, 100)}% 100%` }}
+                      style={{ width: `${Math.min((weeklyTotal / combinedTarget) * 100, 100)}%`, background: `linear-gradient(to right, color-mix(in oklch, ${props.progressBarColor ?? 'var(--brand)'} 35%, var(--th-surface)), ${props.progressBarColor ?? 'var(--brand)'})`, backgroundSize: `${10000 / Math.min((weeklyTotal / combinedTarget) * 100, 100)}% 100%` }}
                     />
                   )}
                 </div>

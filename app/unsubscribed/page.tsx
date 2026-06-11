@@ -45,7 +45,7 @@ export default async function UnsubscribedPage({
   return (
     <div className="flex min-h-full flex-col items-center px-4 py-16">
       <div className="w-full max-w-[22rem]">
-        <p className="mb-2 text-xs uppercase tracking-widest text-th-muted">Onduler</p>
+        <p className="brand-text mb-2 text-xs uppercase tracking-widest text-th-muted">Onduler</p>
         <h1 className="mb-3 text-2xl font-semibold text-th-text">{entry.title}</h1>
         <p className="mb-10 text-sm leading-relaxed text-th-muted">{entry.body}</p>
 

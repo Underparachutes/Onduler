@@ -616,7 +616,7 @@ export function SwellProficiencyView({
             </div>
 
             {progress !== null && target !== null && (
-              <div className="mb-2 rounded-full bg-th-surface" style={{ height: '5px' }}>
+              <div className="mb-2 rounded-full bg-th-surface/40" style={{ height: '5px' }}>
                 <div
                   className="h-full rounded-full transition-all duration-500"
                   style={{ width: `${progress}%`, background: `linear-gradient(to right, color-mix(in oklch, ${swell.color} 35%, var(--th-surface)), ${swell.color})`, backgroundSize: `${100 / (progress / 100)}% 100%` }}

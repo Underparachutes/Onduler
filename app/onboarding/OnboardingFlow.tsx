@@ -691,7 +691,7 @@ function ScreenShell({
               ← Back
             </button>
           ) : (
-            <p className="mb-2 text-xs uppercase tracking-widest text-th-muted">Onduler</p>
+            <p className="brand-text mb-2 text-xs uppercase tracking-widest text-th-muted">Onduler</p>
           )}
           <h1 className="mb-2 text-2xl font-semibold text-th-text">{title}</h1>
           <p className="text-sm text-th-muted">{description}</p>

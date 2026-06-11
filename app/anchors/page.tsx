@@ -102,10 +102,11 @@ function periodDateLabel(startKey: DayKey, period: Period): string {
 export default async function AnchorsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ period?: string; sort?: string; start?: string }>
+  searchParams: Promise<{ period?: string; sort?: string; start?: string; lock?: string }>
 }) {
-  const { period: rawPeriod, sort: rawSort, start: rawStart } = await searchParams
+  const { period: rawPeriod, sort: rawSort, start: rawStart, lock: rawLock } = await searchParams
   const swellSort: 'earned' | 'goal' = rawSort === 'goal' ? 'goal' : 'earned'
+  const forceLocked = rawLock === '1' || rawLock === 'true'
   let period = parsePeriod(rawPeriod)
 
   const supabase = await createClient()
@@ -169,7 +170,8 @@ export default async function AnchorsPage({
   // Weekly is the gate. Until the user has lived through a full Sun-Sat
   // with the engagement floor met, /anchors is vibe-only mystery.
   // Even locked, fetch this week's swell actuals so the Wake renders live data.
-  if (!unlocks.week) {
+  // ?lock=1 forces the locked layout for visual preview without changing state.
+  if (!unlocks.week || forceLocked) {
     const [{ data: lockSwells }, { data: lockLogs }] = await Promise.all([
       supabase
         .from('swells')
@@ -547,11 +549,11 @@ export default async function AnchorsPage({
         {/* Sticky header: onduler + date + toolbar */}
         <div className="sticky top-0 z-10 bg-th-bg pb-4">
           <div className="mb-1 flex items-center justify-between">
-            <p className="text-xs uppercase tracking-widest text-th-muted">Onduler</p>
+            <p className="brand-text text-xs uppercase tracking-widest text-th-muted">Onduler</p>
             <Link
               href="/anchors/new"
               aria-label="Drop an anchor"
-              className="flex items-center justify-center text-3xl font-light leading-none text-th-muted transition-colors hover:text-th-text"
+              className="brand-text flex items-center justify-center text-3xl font-light leading-none text-th-muted transition-colors hover:text-th-text"
             >
               +
             </Link>
@@ -647,7 +649,7 @@ export default async function AnchorsPage({
                     <Link key={s.id} href={`/swells/${s.id}`} className="flex items-center gap-3 transition-opacity active:opacity-60">
                       <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: s.color }} />
                       <span className="w-20 shrink-0 truncate text-xs text-th-secondary">{s.name}</span>
-                      <div className="flex-1 overflow-hidden rounded-full bg-th-surface" style={{ height: '6px' }}>
+                      <div className="flex-1 overflow-hidden rounded-full bg-th-surface/40" style={{ height: '6px' }}>
                         <div
                           className="h-full rounded-full transition-all"
                           style={{
@@ -677,11 +679,11 @@ export default async function AnchorsPage({
                     return (
                       <div key={date} className="flex items-center gap-3">
                         <span className="w-20 shrink-0 text-xs text-th-muted">{label}</span>
-                        <div className="flex-1 rounded-full bg-th-surface" style={{ height: '6px' }}>
+                        <div className="flex-1 rounded-full bg-th-surface/40" style={{ height: '6px' }}>
                           {val > 0 && (
                             <div
                               className="h-full rounded-full"
-                              style={{ width: `${(val / maxDayValue) * 100}%`, background: `linear-gradient(to right, color-mix(in oklch, ${progressBarColor ?? 'var(--th-accent)'} 35%, var(--th-surface)), ${progressBarColor ?? 'var(--th-accent)'})`, backgroundSize: `${(maxDayValue / val) * 100}% 100%` }}
+                              style={{ width: `${(val / maxDayValue) * 100}%`, background: `linear-gradient(to right, color-mix(in oklch, ${progressBarColor ?? 'var(--brand)'} 35%, var(--th-surface)), ${progressBarColor ?? 'var(--brand)'})`, backgroundSize: `${(maxDayValue / val) * 100}% 100%` }}
                             />
                           )}
                         </div>
@@ -749,7 +751,17 @@ export default async function AnchorsPage({
           return (
             <div className="mt-8 pb-6">
               <p className="mb-3 text-[10px] uppercase tracking-widest text-th-muted">Coming together</p>
-              <div className="relative overflow-hidden rounded-xl bg-th-surface/60">
+              <div
+                className="relative overflow-hidden rounded-xl"
+                style={{
+                  backgroundColor: '#0e1c2e',
+                  ['--th-bg' as string]: '#0e1c2e',
+                  ['--th-text' as string]: '#f4f7fa',
+                  ['--th-secondary' as string]: '#c0cdd8',
+                  ['--th-muted' as string]: '#7e90a3',
+                  ['--th-faint' as string]: '#3e5068',
+                }}
+              >
                 <WaveField lines={COMING_TOGETHER_WAVES} />
                 <div className="relative" style={{ zIndex: 1 }}>
                   {locked.map(c => (

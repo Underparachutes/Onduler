@@ -67,7 +67,7 @@ export default async function SettingsPage() {
     <div className="flex min-h-full flex-col items-center px-5 lg:items-start">
       <div className="sticky top-0 z-10 w-full max-w-[22rem] bg-th-bg pb-3 lg:max-w-none">
         <div className="mb-2 flex items-center justify-between lg:max-w-[22rem]">
-          <p className="text-xs uppercase tracking-widest text-th-muted">Onduler</p>
+          <p className="brand-text text-xs uppercase tracking-widest text-th-muted">Onduler</p>
         </div>
         <h1 className="text-2xl font-semibold text-th-text lg:max-w-[22rem]">Settings</h1>
         <div className="mt-3 flex items-center justify-between border-t border-th-border pt-3 lg:max-w-[22rem]">

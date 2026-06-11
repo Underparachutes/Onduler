@@ -95,6 +95,7 @@ export function DashboardView(props: Props) {
               groups={props.allGroups}
               groupsEnabled={props.groupsEnabled}
               trackingMode={props.trackingMode}
+              allSwells={props.allSwells}
               onClose={() => setOpenForm(null)}
             />
           </div>
@@ -118,12 +119,12 @@ export function DashboardView(props: Props) {
                 key={`${props.motions.length}-${props.trackingMode}`}
                 topBar={
                   <div className="mb-2 flex items-center justify-between">
-                    <p className="text-xs uppercase tracking-widest text-th-muted">Onduler</p>
+                    <p className="brand-text text-xs uppercase tracking-widest text-th-muted">Onduler</p>
                     <div ref={menuRef} className="relative">
                       <button
                         onClick={handlePlus}
                         aria-label="Add"
-                        className="flex items-center justify-center text-3xl font-light leading-none text-th-muted transition-colors hover:text-th-text"
+                        className="brand-text flex items-center justify-center text-3xl font-light leading-none text-th-muted transition-colors hover:text-th-text"
                       >
                         +
                       </button>
@@ -182,12 +183,12 @@ export function DashboardView(props: Props) {
             ) : (
               <>
                 <div className="mb-6 flex items-center justify-between" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.5rem)' }}>
-                  <p className="text-xs uppercase tracking-widest text-th-muted">Onduler</p>
+                  <p className="brand-text text-xs uppercase tracking-widest text-th-muted">Onduler</p>
                   <div ref={menuRef} className="relative">
                     <button
                       onClick={handlePlus}
                       aria-label="Add"
-                      className="flex items-center justify-center text-3xl font-light leading-none text-th-muted transition-colors hover:text-th-text"
+                      className="brand-text flex items-center justify-center text-3xl font-light leading-none text-th-muted transition-colors hover:text-th-text"
                     >
                       +
                     </button>
@@ -208,6 +209,7 @@ export function DashboardView(props: Props) {
                 actuals={shapeActuals}
                 trackingMode={props.trackingMode}
                 isInWave={props.showWavePrompt}
+                progressBarColor={props.progressBarColor}
               />
             )}
           </>

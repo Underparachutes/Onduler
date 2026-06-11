@@ -68,10 +68,25 @@ html {
   --th-swell-8:  #96e5de;
   --th-swell-9:  #b8ede8;
   --th-swell-10: #d6f4f2;
+
+  /* Brand color — single knob. This is Tjornuvik's brand (also the fallback
+   * for any theme that doesn't override). Each theme can override with one
+   * line: `--brand: #hex;`. Tjornuvik has separate light/dark values — the
+   * lighter green is unreadable on light surfaces. Dark mode override lives
+   * in the prefers-color-scheme:dark :root block below. */
+  --brand: #0bc85b;
+  /* Brand gradient — used by .brand-text on the wordmark, the floating-pill
+   * "Onduler" label, and the floating-pill `+` glyph. Derived from --brand
+   * so changing the brand color updates all three surfaces. Bold at the
+   * start, fading into the surface at the end (so the silent trailing
+   * letter is what dissolves, not the leading one). */
+  --brand-gradient: linear-gradient(90deg, var(--brand), color-mix(in oklch, var(--brand) 40%, var(--th-surface)));
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
+    --brand: #72f189;
+
     --th-bg: #04080d;
     --th-surface: #0e1c2e;
     --th-surface-2: #162940;
@@ -106,6 +121,8 @@ html {
 
 /* Bolinas — northern California fog */
 [data-theme="bolinas"] {
+  --brand: #87ae73;
+
   --th-bg: #ebede7;
   --th-surface: #dfe1da;
   --th-surface-2: #d2d4cc;
@@ -139,6 +156,8 @@ html {
 
 @media (prefers-color-scheme: dark) {
   [data-theme="bolinas"] {
+    --brand: #f2c421;
+
     --th-bg: #15120f;
     --th-surface: #1e1a16;
     --th-surface-2: #282420;
@@ -173,6 +192,8 @@ html {
 
 /* Biarritz — Atlantic surf town */
 [data-theme="biarritz"] {
+  --brand: #14225d;
+
   --th-bg: #f5efe5;
   --th-surface: #ebe3d4;
   --th-surface-2: #dfd5c1;
@@ -206,6 +227,8 @@ html {
 
 @media (prefers-color-scheme: dark) {
   [data-theme="biarritz"] {
+    --brand: #f67e4e;
+
     --th-bg: #0e2329;
     --th-surface: #15303a;
     --th-surface-2: #1e404c;
@@ -468,23 +491,110 @@ body.unpinned-top .sticky.top-0.bg-th-bg {
   box-shadow: none;
 }
 
+/* Day-box column in WeekEditView: shift inward by 1rem to match the pill's
+ * horizontal inset, so the day-box right edges line up with the day-label
+ * right edges inside the floating pill. Only applies when the pill itself
+ * has the extra padding (mobile width, or any width with a bg image). */
+@media (max-width: 767px) {
+  .pill-day-col {
+    margin-right: 1rem;
+  }
+}
+body.has-bg-image .pill-day-col {
+  margin-right: 1rem;
+}
+
+/* Photo-bg readability (item 10):
+ *   - Body text outside the floating pills: force Tjornuvik-dark text tokens
+ *     so light copy reads well over any photo.
+ *   - Floating pills (sticky top + bottom nav): restored to their theme's
+ *     text tokens so pills still feel like the user's theme.
+ *   - Body shadow mix: white in OS light mode, black in OS dark mode.
+ *   - Pills: shadow-free.
+ */
+body.has-bg-image {
+  --th-text: #f4f7fa !important;
+  --th-secondary: #c0cdd8 !important;
+  --th-muted: #7e90a3 !important;
+  --th-faint: #3e5068 !important;
+}
+
+/* Pill color restoration per theme. !important so pill specificity beats
+ * the body !important override above. */
+:root:not([data-theme]) body.has-bg-image .sticky.bg-th-bg,
+:root:not([data-theme]) body.has-bg-image .floating-pill-nav,
+[data-theme="tjornuvik"] body.has-bg-image .sticky.bg-th-bg,
+[data-theme="tjornuvik"] body.has-bg-image .floating-pill-nav {
+  --th-text: #0a2540 !important;
+  --th-secondary: #2d4a63 !important;
+  --th-muted: #5e7386 !important;
+  --th-faint: #9aacba !important;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) body.has-bg-image .sticky.bg-th-bg,
+  :root:not([data-theme]) body.has-bg-image .floating-pill-nav,
+  [data-theme="tjornuvik"] body.has-bg-image .sticky.bg-th-bg,
+  [data-theme="tjornuvik"] body.has-bg-image .floating-pill-nav {
+    --th-text: #f4f7fa !important;
+    --th-secondary: #c0cdd8 !important;
+    --th-muted: #7e90a3 !important;
+    --th-faint: #3e5068 !important;
+  }
+}
+[data-theme="biarritz"] body.has-bg-image .sticky.bg-th-bg,
+[data-theme="biarritz"] body.has-bg-image .floating-pill-nav {
+  --th-text: #14334e !important;
+  --th-secondary: #2c5560 !important;
+  --th-muted: #6b8088 !important;
+  --th-faint: #a8b4b9 !important;
+}
+@media (prefers-color-scheme: dark) {
+  [data-theme="biarritz"] body.has-bg-image .sticky.bg-th-bg,
+  [data-theme="biarritz"] body.has-bg-image .floating-pill-nav {
+    --th-text: #ede5d4 !important;
+    --th-secondary: #c4b8a0 !important;
+    --th-muted: #8a8576 !important;
+    --th-faint: #4e5552 !important;
+  }
+}
+[data-theme="bolinas"] body.has-bg-image .sticky.bg-th-bg,
+[data-theme="bolinas"] body.has-bg-image .floating-pill-nav {
+  --th-text: #1f2520 !important;
+  --th-secondary: #475048 !important;
+  --th-muted: #758078 !important;
+  --th-faint: #a7b1aa !important;
+}
+@media (prefers-color-scheme: dark) {
+  [data-theme="bolinas"] body.has-bg-image .sticky.bg-th-bg,
+  [data-theme="bolinas"] body.has-bg-image .floating-pill-nav {
+    --th-text: #e0e3da !important;
+    --th-secondary: #b3ada3 !important;
+    --th-muted: #897f74 !important;
+    --th-faint: #504a42 !important;
+  }
+}
+
+/* Body shadow — always dark, regardless of OS light/dark. Body text is
+ * already forced to Tjornuvik-dark (light copy) above, so a dark drop is
+ * what gives it contrast on any photo. */
 @layer base {
   body.has-bg-image [class*="text-th-muted"],
   body.has-bg-image [class*="text-th-secondary"],
   body.has-bg-image [class*="text-th-faint"] {
-    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.7);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
     font-weight: 500;
   }
 }
 
-@media (prefers-color-scheme: dark) {
-  @layer base {
-    body.has-bg-image [class*="text-th-muted"],
-    body.has-bg-image [class*="text-th-secondary"],
-    body.has-bg-image [class*="text-th-faint"] {
-      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
-    }
-  }
+/* Pills opt out of the body shadow. */
+body.has-bg-image .sticky.bg-th-bg [class*="text-th-muted"],
+body.has-bg-image .sticky.bg-th-bg [class*="text-th-secondary"],
+body.has-bg-image .sticky.bg-th-bg [class*="text-th-faint"],
+body.has-bg-image .floating-pill-nav [class*="text-th-muted"],
+body.has-bg-image .floating-pill-nav [class*="text-th-secondary"],
+body.has-bg-image .floating-pill-nav [class*="text-th-faint"] {
+  text-shadow: none;
+  font-weight: inherit;
 }
 
 @keyframes onduler-fill {
@@ -492,4 +602,16 @@ body.unpinned-top .sticky.top-0.bg-th-bg {
   40%  { clip-path: inset(0 0 0 0); }
   60%  { clip-path: inset(0 0 0 0); }
   100% { clip-path: inset(0 0 0 100%); }
+}
+
+/* Brand text utility — paints text with --brand-gradient via background-clip.
+ * Use anywhere you want the wordmark, the `+` glyph, or the pill "Onduler"
+ * label to share a single themeable accent. Falls back to the element's own
+ * color in browsers without background-clip:text support. */
+.brand-text {
+  background-image: var(--brand-gradient);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
 }

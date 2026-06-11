@@ -32,19 +32,22 @@ export function BottomNav({ pendingAnchor = false }: { pendingAnchor?: boolean }
               key={href}
               href={href}
               className={`flex h-full flex-col items-center justify-center gap-1 rounded-lg px-4 transition-colors active:scale-95 active:bg-th-surface ${
-                active ? 'text-th-text' : 'text-th-faint hover:text-th-muted'
+                active ? '' : 'text-th-faint hover:text-th-muted'
               } ${dimForPending ? 'opacity-55' : ''}`}
             >
               <span
                 className="relative"
-                style={pendingAnchor && isAnchors ? { animation: 'nav-tide-pulse 2.4s ease-in-out infinite' } : undefined}
+                style={{
+                  ...(active ? { color: 'var(--brand)' } : null),
+                  ...(pendingAnchor && isAnchors ? { animation: 'nav-tide-pulse 2.4s ease-in-out infinite' } : null),
+                }}
               >
                 {icon}
                 {pendingAnchor && isAnchors && !active && (
                   <span className="pointer-events-none absolute -right-1 -top-1 h-1.5 w-1.5 rounded-full bg-th-text" />
                 )}
               </span>
-              <span className="text-[10px] font-medium">{label}</span>
+              <span className={`text-[10px] font-medium ${active ? 'brand-text' : ''}`}>{label}</span>
             </Link>
           )
         })}

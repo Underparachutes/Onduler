@@ -190,21 +190,24 @@ export default async function AnchorJournalPage() {
   const totalWeeks = renderChapters.reduce((sum, ch) => sum + ch.weeks.length, 0)
 
   return (
-    <div className="flex min-h-full flex-col items-center px-4 py-12">
+    <div className="flex min-h-full flex-col items-center px-5 pb-12">
       <div className="w-full max-w-[22rem]">
-        <div className="mb-2 flex items-center justify-between">
-          <h1 className="text-2xl font-semibold text-th-text">Your anchors</h1>
-          <Link
-            href="/anchors/new"
-            aria-label="Drop an anchor"
-            className="flex items-center justify-center text-3xl font-light leading-none text-th-muted transition-colors hover:text-th-text"
-          >
-            +
-          </Link>
+        <div className="sticky top-0 z-10 bg-th-bg pb-3">
+          <div className="mb-2 flex items-center justify-between">
+            <h1 className="text-2xl font-semibold text-th-text">Your anchors</h1>
+            <Link
+              href="/anchors/new"
+              aria-label="Drop an anchor"
+              className="brand-text flex items-center justify-center text-3xl font-light leading-none text-th-muted transition-colors hover:text-th-text"
+            >
+              +
+            </Link>
+          </div>
+          <p className="text-xs text-th-muted">
+            Every week of your life in Onduler, oldest chapters at the bottom.
+          </p>
         </div>
-        <p className="mb-8 text-xs text-th-muted">
-          Every week of your life in Onduler, oldest chapters at the bottom.
-        </p>
+        <div className="h-4" />
 
         {totalWeeks === 0 ? (
           <p className="text-sm text-th-muted">

@@ -97,7 +97,7 @@ function MotionWeekRow({
           {trackingMode === 'hours' ? `${motion.default_hours}h` : `${motion.default_points}`}
         </span>
       )}
-      <div className="flex shrink-0 gap-1">
+      <div className="pill-day-col flex shrink-0 gap-1">
         {dayKeys.map((dk, i) => {
           const isFuture = dk > todayKey
           const ids = logMap[dk] ?? []

@@ -22,7 +22,7 @@ export function AddGroupForm({ onClose }: Props) {
   return (
     <>
       <div className="mb-6 flex items-center justify-between">
-        <p className="text-xs uppercase tracking-widest text-th-muted">Onduler</p>
+        <p className="brand-text text-xs uppercase tracking-widest text-th-muted">Onduler</p>
         <button
           type="button"
           onClick={onClose}
