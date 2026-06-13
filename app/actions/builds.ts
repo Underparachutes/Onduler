@@ -84,7 +84,7 @@ export async function adoptBuild(
         name,
         color: palette[i % palette.length],
         sort_order: baseSortOrder + i,
-        target_points: isHours ? null : 12,
+        target_points: isHours ? null : 4,
         target_hours: isHours ? 3 : null,
       }))
 

@@ -18,7 +18,7 @@ export default async function WelcomePage() {
           <ol className="flex flex-col gap-3 text-sm text-th-text">
             <li className="flex gap-3">
               <span className="shrink-0 text-th-faint">1.</span>
-              <span>Open <strong>onduler.app</strong> in Safari</span>
+              <span>Open <strong>onduler.app</strong> in Safari, Chrome, or Firefox</span>
             </li>
             <li className="flex gap-3">
               <span className="shrink-0 text-th-faint">2.</span>
@@ -33,7 +33,7 @@ export default async function WelcomePage() {
               <span>Tap <strong>Add</strong> in the top right</span>
             </li>
           </ol>
-          <p className="mt-3 text-xs text-th-faint">Must use Safari. Chrome and Firefox on iOS don&apos;t support home-screen apps.</p>
+          <p className="mt-3 text-xs text-th-faint">Safari, Chrome, and Firefox all work. In Chrome or Firefox, the Share button is in the address bar or the three-dot menu.</p>
         </section>
 
         <section className="mb-10">

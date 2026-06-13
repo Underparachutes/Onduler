@@ -142,7 +142,7 @@ export async function confirmImport(preview: ImportPreview, clearMode: ImportCle
         name: s.name,
         color: palette[i % palette.length],
         sort_order: swellSortBase + i,
-        target_points: s.target ?? (pts > 0 ? Math.ceil(4 * pts) : 12),
+        target_points: s.target ?? (pts > 0 ? Math.ceil(4 * pts) : 4),
         target_hours: hrs > 0 ? Math.ceil(4 * 3 * hrs) / 4 : 3,
       }
     })

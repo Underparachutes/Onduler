@@ -42,7 +42,10 @@ export async function completeOnboarding(
     name: s.name,
     color: s.color,
     sort_order: i,
-    target_points: ptsBySwell[i] > 0 ? Math.ceil(4 * ptsBySwell[i]) : 12,
+    // Floor (4 pts / 3 hrs) equals what one default motion yields, so a
+    // motionless swell never outranks a lightly-fed one (the inversion bug:
+    // empty swells were getting 12 while a 1-motion swell got 4).
+    target_points: ptsBySwell[i] > 0 ? Math.ceil(4 * ptsBySwell[i]) : 4,
     target_hours: hrsBySwell[i] > 0 ? Math.ceil(4 * 3 * hrsBySwell[i]) / 4 : 3,
   }))
 

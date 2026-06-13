@@ -31,8 +31,10 @@ export async function createSwell(prevState: unknown, formData: FormData) {
   const sort_order = (existing?.[0]?.sort_order ?? -1) + 1
   // Humble placeholder targets — a swell created bare has no motions yet to
   // derive a real target from (motion-derived targets: 4 logs/wk of each
-  // feeding motion in points mode, 3 in hours mode). The user grows into it.
-  const target_points = targetPointsRaw ? parseInt(targetPointsRaw) || 12 : 12
+  // feeding motion in points mode, 3 in hours mode). The floor matches one
+  // default motion (4 pts / 3 hrs) so it stays reachable and consistent with
+  // motionless swells created in onboarding. The user grows into it.
+  const target_points = targetPointsRaw ? parseInt(targetPointsRaw) || 4 : 4
   const target_hours = targetHoursRaw ? parseHoursInput(targetHoursRaw) ?? 3 : 3
 
   const { error } = await supabase
