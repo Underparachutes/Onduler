@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState, useTransition } from 'react'
+import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import { completeOnboarding, uploadBackground, removeBackground, setBackgroundPosition } from '@/app/actions/settings'
 import { resizeImage } from '@/lib/image'
 import { ImageAdjustOverlay } from '@/app/components/ImageAdjustOverlay'
@@ -58,6 +58,58 @@ const THEMES = [
   { id: 'bolinas', label: 'Bolinas', desc: 'Fog, driftwood, coastal sage' },
 ]
 
+// Draft persistence: onboarding state lives only in React, so a page refresh
+// mid-flow used to throw away everything the user had entered. The draft
+// mirrors the durable inputs (picks, motions, personalize choices) to
+// localStorage on every change and restores them on mount. Transient edit
+// state (open forms, half-typed motion names, the AI paste box) is not
+// persisted. Cleared on successful completion; device-scoped like the
+// install-flow state.
+const DRAFT_KEY = 'onduler-onboarding-draft'
+
+type Draft = {
+  v: 1
+  step: 'swells' | 'motions' | 'personalize'
+  swellEntries: SwellEntry[]
+  nextSwellId: number
+  motions: MotionEntry[]
+  nextMotionId: number
+  theme: string
+  trackingMode: TrackingMode
+  hapticEnabled: boolean
+  celebrationEnabled: boolean
+}
+
+function readDraft(): Draft | null {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY)
+    if (!raw) return null
+    const d = JSON.parse(raw)
+    if (d?.v !== 1 || !Array.isArray(d.swellEntries) || d.swellEntries.length === 0) return null
+    if (!['swells', 'motions', 'personalize'].includes(d.step)) d.step = 'swells'
+    if (!Array.isArray(d.motions)) d.motions = []
+    return d as Draft
+  } catch {
+    return null
+  }
+}
+
+function writeDraft(draft: Draft) {
+  try {
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(draft))
+  } catch {
+    // Storage full or unavailable; drafts are best-effort.
+  }
+}
+
+function clearDraft() {
+  try {
+    localStorage.removeItem(DRAFT_KEY)
+  } catch {
+    // Same: best-effort.
+  }
+}
+
 export function OnboardingFlow() {
   const [step, setStep] = useState<Step>('swells')
 
@@ -87,21 +139,60 @@ export function OnboardingFlow() {
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
 
+  // Tracks whether the mount hydration (seed or draft restore) has run, so
+  // the save effect below doesn't overwrite a stored draft with empty state.
+  const draftLoaded = useRef(false)
+
   useEffect(() => {
-    const t = document.documentElement.dataset.theme ?? 'biarritz'
-    const palette = getShuffledThemePalette(t, detectMode())
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- DOM read for theme palette on mount
-    setSwellEntries(
-      SEEDED_SWELLS.map((s, i) => ({
-        id: i,
-        name: s.name,
-        description: s.description,
-        color: palette[i % palette.length],
-        picked: false,
-        custom: false,
-      }))
-    )
+    /* eslint-disable react-hooks/set-state-in-effect -- one-time mount hydration: draft restore or theme-palette seed */
+    const draft = readDraft()
+    if (draft) {
+      setSwellEntries(draft.swellEntries)
+      setNextSwellId(draft.nextSwellId)
+      setMotions(draft.motions)
+      setNextMotionId(draft.nextMotionId)
+      setTheme(draft.theme)
+      document.documentElement.dataset.theme = draft.theme
+      setTrackingMode(draft.trackingMode)
+      setHapticEnabled(draft.hapticEnabled)
+      setCelebrationEnabled(draft.celebrationEnabled)
+      setStep(draft.step)
+    } else {
+      const t = document.documentElement.dataset.theme ?? 'biarritz'
+      const palette = getShuffledThemePalette(t, detectMode())
+      setSwellEntries(
+        SEEDED_SWELLS.map((s, i) => ({
+          id: i,
+          name: s.name,
+          description: s.description,
+          color: palette[i % palette.length],
+          picked: false,
+          custom: false,
+        }))
+      )
+    }
+    /* eslint-enable react-hooks/set-state-in-effect */
+    draftLoaded.current = true
   }, [])
+
+  // Mirror durable inputs to the draft on every change. The install step is
+  // skipped: it carries no new input, and completion clears the draft anyway.
+  useEffect(() => {
+    if (!draftLoaded.current) return
+    if (step === 'install') return
+    writeDraft({
+      v: 1,
+      step,
+      swellEntries,
+      nextSwellId,
+      motions,
+      nextMotionId,
+      theme,
+      trackingMode,
+      hapticEnabled,
+      celebrationEnabled,
+    })
+  }, [step, swellEntries, nextSwellId, motions, nextMotionId, theme, trackingMode, hapticEnabled, celebrationEnabled])
 
   const pickedSwells = swellEntries.filter(s => s.picked)
 
@@ -363,8 +454,33 @@ export function OnboardingFlow() {
       }))
 
     startTransition(async () => {
-      const result = await completeOnboarding(finalSwells, finalMotions, prefs)
-      if (result?.error) setError(result.error)
+      // On success the action redirects and this code may never resume, so
+      // the draft is cleared up front and restored if completion fails.
+      clearDraft()
+      let result: Awaited<ReturnType<typeof completeOnboarding>>
+      try {
+        result = await completeOnboarding(finalSwells, finalMotions, prefs)
+      } catch (e) {
+        // Server-action redirects surface as a thrown control-flow error that
+        // Next handles; anything else here is a real transport failure.
+        if (e && typeof e === 'object' && 'digest' in e && String(e.digest).startsWith('NEXT_REDIRECT')) throw e
+        result = { error: 'Could not reach the server. Check your connection and try again.' }
+      }
+      if (result?.error) {
+        setError(result.error)
+        writeDraft({
+          v: 1,
+          step: 'personalize',
+          swellEntries,
+          nextSwellId,
+          motions,
+          nextMotionId,
+          theme,
+          trackingMode,
+          hapticEnabled,
+          celebrationEnabled,
+        })
+      }
     })
   }
 
