@@ -52,9 +52,10 @@ export function DashboardShape({ swells, actuals: initialActuals, trackingMode, 
   }, [swells, trackingMode])
 
   if (isInWave) return null
-  if (count < 3) return null
 
-  const hasData = actuals.some(v => v > 0)
+  // The wake polygon needs 3 vertices; below 3 swells the breathing circle
+  // stays on screen instead of the shape disappearing entirely.
+  const hasData = count >= 3 && actuals.some(v => v > 0)
   const max = actuals.reduce((m, v) => (v > m ? v : m), 0)
 
   let path: string

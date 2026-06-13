@@ -87,7 +87,7 @@ export function DashboardView(props: Props) {
   const safeTop = 'calc(env(safe-area-inset-top, 0px) + 0.5rem)'
 
   return (
-    <div className={`flex min-h-full flex-col items-center px-5 ${!hideShape && shapeSwells.length >= 3 ? 'pb-44' : 'pb-12'}`}>
+    <div className={`flex min-h-full flex-col items-center px-5 ${!hideShape ? 'pb-44' : 'pb-12'}`}>
       <div className="w-full max-w-[22rem] lg:max-w-none">
         {openForm === 'motion' && (
           <div style={{ paddingTop: safeTop }}>
@@ -203,7 +203,7 @@ export function DashboardView(props: Props) {
 
             <InstallTile />
 
-            {!hideShape && !isViewsMode && shapeSwells.length >= 3 && (
+            {!hideShape && !isViewsMode && (
               <DashboardShape
                 swells={shapeSwells}
                 actuals={shapeActuals}
