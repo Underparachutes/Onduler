@@ -197,20 +197,20 @@ ALTER TABLE user_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE chapters     ENABLE ROW LEVEL SECURITY;
 ALTER TABLE reflections  ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "own motions"        ON motions        FOR ALL USING (auth.uid() = user_id);
-CREATE POLICY "own swells"         ON swells         FOR ALL USING (auth.uid() = user_id);
-CREATE POLICY "own groups"         ON groups         FOR ALL USING (auth.uid() = user_id);
-CREATE POLICY "own logs"           ON logs           FOR ALL USING (auth.uid() = user_id);
-CREATE POLICY "own milestones"     ON milestones     FOR ALL USING (auth.uid() = user_id);
-CREATE POLICY "own milestone_hits" ON milestone_hits FOR ALL USING (auth.uid() = user_id);
-CREATE POLICY "own wave_checkins"  ON wave_checkins  FOR ALL USING (auth.uid() = user_id);
-CREATE POLICY "own user_settings"  ON user_settings  FOR ALL USING (auth.uid() = user_id);
-CREATE POLICY "own chapters"       ON chapters       FOR ALL USING (auth.uid() = user_id);
-CREATE POLICY "own reflections"    ON reflections    FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "own motions"        ON motions        FOR ALL USING ((select auth.uid()) = user_id);
+CREATE POLICY "own swells"         ON swells         FOR ALL USING ((select auth.uid()) = user_id);
+CREATE POLICY "own groups"         ON groups         FOR ALL USING ((select auth.uid()) = user_id);
+CREATE POLICY "own logs"           ON logs           FOR ALL USING ((select auth.uid()) = user_id);
+CREATE POLICY "own milestones"     ON milestones     FOR ALL USING ((select auth.uid()) = user_id);
+CREATE POLICY "own milestone_hits" ON milestone_hits FOR ALL USING ((select auth.uid()) = user_id);
+CREATE POLICY "own wave_checkins"  ON wave_checkins  FOR ALL USING ((select auth.uid()) = user_id);
+CREATE POLICY "own user_settings"  ON user_settings  FOR ALL USING ((select auth.uid()) = user_id);
+CREATE POLICY "own chapters"       ON chapters       FOR ALL USING ((select auth.uid()) = user_id);
+CREATE POLICY "own reflections"    ON reflections    FOR ALL USING ((select auth.uid()) = user_id);
 
 -- motion_swells: ownership via the motion
 CREATE POLICY "own motion_swells" ON motion_swells FOR ALL USING (
-  EXISTS (SELECT 1 FROM motions WHERE motions.id = motion_swells.motion_id AND motions.user_id = auth.uid())
+  EXISTS (SELECT 1 FROM motions WHERE motions.id = motion_swells.motion_id AND motions.user_id = (select auth.uid()))
 );
 
 
@@ -221,16 +221,20 @@ CREATE INDEX ON motions (parent_id);
 CREATE INDEX ON motions (group_id);
 CREATE INDEX ON motions (user_id, group_id);
 CREATE INDEX motions_user_chapter_idx ON motions (user_id, chapter_id);
+CREATE INDEX motions_chapter_id_idx ON motions (chapter_id); -- covers chapter_id FK cascade
 CREATE INDEX ON swells (user_id);
 CREATE INDEX ON swells (group_id);
 CREATE INDEX swells_hidden_idx ON swells (user_id, hidden);
 CREATE INDEX swells_user_chapter_idx ON swells (user_id, chapter_id);
+CREATE INDEX swells_chapter_id_idx ON swells (chapter_id); -- covers chapter_id FK cascade
 CREATE INDEX ON groups (user_id);
 CREATE INDEX groups_user_chapter_idx ON groups (user_id, chapter_id);
+CREATE INDEX groups_chapter_id_idx ON groups (chapter_id); -- covers chapter_id FK cascade
 CREATE INDEX ON motion_swells (swell_id);
 CREATE INDEX ON logs (user_id, logged_at DESC);
 CREATE INDEX ON logs (motion_id);
 CREATE INDEX logs_user_chapter_idx ON logs (user_id, chapter_id, logged_at DESC);
+CREATE INDEX logs_chapter_id_idx ON logs (chapter_id); -- covers chapter_id FK cascade
 CREATE INDEX milestones_swell_id_idx ON milestones (swell_id);
 CREATE INDEX milestones_user_id_idx  ON milestones (user_id);
 CREATE INDEX milestones_motion_id_idx ON milestones (motion_id);
@@ -239,9 +243,11 @@ CREATE INDEX milestone_hits_user_id_idx ON milestone_hits (user_id);
 CREATE INDEX milestone_hits_hit_at_idx ON milestone_hits (hit_at);
 CREATE INDEX ON wave_checkins (user_id);
 CREATE INDEX wave_checkins_user_chapter_idx ON wave_checkins (user_id, chapter_id);
+CREATE INDEX wave_checkins_chapter_id_idx ON wave_checkins (chapter_id); -- covers chapter_id FK cascade
 CREATE UNIQUE INDEX chapters_one_active_per_user ON chapters (user_id) WHERE ended_at IS NULL;
 CREATE INDEX chapters_user_sort ON chapters (user_id, sort_order);
 CREATE INDEX reflections_user_chapter ON reflections (user_id, chapter_id, created_at DESC);
+CREATE INDEX reflections_chapter_id_idx ON reflections (chapter_id); -- covers chapter_id FK cascade
 CREATE INDEX reflections_user_cycle ON reflections (user_id, cycle_type, cycle_start);
 
 -- Waitlist (public, anon-insert)
