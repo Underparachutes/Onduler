@@ -28,9 +28,16 @@ type ActionResult = { error?: string } | void | null
 //   })
 //
 // On failure: shows a quiet toast and refreshes the route so server truth
-// replaces any stale optimistic state. Resolves false on failure, true
-// otherwise, for callers that gate follow-up work:
+// replaces any stale optimistic state. While OFFLINE the refresh is deferred
+// until the connection returns — refreshing with no network can't succeed and
+// Next swaps the page for its "couldn't load" shell, which is worse than
+// briefly-stale optimistic state. Resolves false on failure, true otherwise,
+// for callers that gate follow-up work:
 //   if (await guard(action(...))) { router.push(...) }
+
+// Module-level so several failed taps while offline queue exactly one resync.
+let resyncQueued = false
+
 export function useSaveGuard() {
   const toast = useToast()
   const router = useRouter()
@@ -39,7 +46,21 @@ export function useSaveGuard() {
     async (input: Promise<ActionResult> | ActionResult): Promise<boolean> => {
       const fail = () => {
         toast.show({ message: "That didn't save. Check your connection and try again." })
-        router.refresh()
+        if (typeof navigator !== 'undefined' && !navigator.onLine) {
+          if (!resyncQueued) {
+            resyncQueued = true
+            window.addEventListener(
+              'online',
+              () => {
+                resyncQueued = false
+                router.refresh()
+              },
+              { once: true }
+            )
+          }
+        } else {
+          router.refresh()
+        }
         return false
       }
       let result: ActionResult
