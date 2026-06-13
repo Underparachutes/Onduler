@@ -14,7 +14,10 @@ export function resizeImage(file: File, maxDim: number): Promise<File> {
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
       canvas.toBlob((blob) => {
         resolve(new File([blob!], file.name.replace(/\.\w+$/, '.jpg'), { type: 'image/jpeg' }))
-      }, 'image/jpeg', 0.85)
+        // 0.72: backgrounds always sit under a 0.35 dark overlay (and often
+        // behind blurred pills), so they're never seen at full fidelity —
+        // harder compression is invisible and roughly halves the bytes.
+      }, 'image/jpeg', 0.72)
     }
     img.src = URL.createObjectURL(file)
   })

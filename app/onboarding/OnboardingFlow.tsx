@@ -964,7 +964,7 @@ export function OnboardingFlow() {
                 const file = e.target.files?.[0]
                 if (!file) return
                 setUploading(true)
-                const resized = await resizeImage(file, 1920)
+                const resized = await resizeImage(file, 1600)
                 const fd = new FormData()
                 fd.append('file', resized)
                 const result = await uploadBackground(fd)
