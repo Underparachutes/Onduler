@@ -1,0 +1,321 @@
+/* ------------------------------------------------------------------
+   Onduler — token surfaces
+   3 themes × 2 modes. Each surface declared on [data-theme][data-mode]
+   wrappers so any island can be themed independently of the page.
+   Semantic tokens:
+     --bg, --surface, --surface-2
+     --text, --text-secondary, --text-muted, --text-faint
+     --border, --border-soft
+     --accent, --accent-text, --success
+     --wave-wash (rgba — used as overlay; never a solid)
+     --btn, --btn-text, --btn-hover  (legacy parity with the codebase)
+   Each theme also declares --swell-1 … --swell-10.
+   ------------------------------------------------------------------ */
+
+/* =============== DEFAULT — deep ocean =============== */
+[data-theme="default"][data-mode="light"] {
+  --bg: #f4f7fa;             /* luminous off-white, cool tint */
+  --surface: #e9eef3;        /* foam shadow */
+  --surface-2: #dee5ec;
+  --text: #0e2238;           /* deep slate-blue */
+  --text-secondary: #355068;
+  --text-muted: #6b7f93;
+  --text-faint: #a4b1bd;
+  --border: #d4dde5;
+  --border-soft: #e3eaf0;
+  --accent: #2772bd;         /* cresting wave */
+  --accent-text: #ffffff;
+  --success: #2f7d6b;        /* kelp */
+  --wave-wash: rgba(39, 114, 189, 0.08);
+  --btn: #0e2238;
+  --btn-text: #f4f7fa;
+  --btn-hover: #355068;
+
+  --swell-1:  #2A6FDB;
+  --swell-2:  #1FA38C;
+  --swell-3:  #E2785A;
+  --swell-4:  #D9A93E;
+  --swell-5:  #5B9B6D;
+  --swell-6:  #C45577;
+  --swell-7:  #6BACE0;
+  --swell-8:  #6FCDB7;
+  --swell-9:  #8E6CB7;
+  --swell-10: #6E879F;
+}
+[data-theme="default"][data-mode="dark"] {
+  --bg: #0b1a2c;             /* deep slate-blue, looking down through water */
+  --surface: #14263b;
+  --surface-2: #1c324a;
+  --text: #e8eef5;           /* foam */
+  --text-secondary: #b8c5d3;
+  --text-muted: #7d8fa3;
+  --text-faint: #4d5e72;
+  --border: #213c58;
+  --border-soft: #182b41;
+  --accent: #4d97e0;
+  --accent-text: #0b1a2c;
+  --success: #4eb09a;
+  --wave-wash: rgba(77, 151, 224, 0.12);
+  --btn: #e8eef5;
+  --btn-text: #0b1a2c;
+  --btn-hover: #b8c5d3;
+
+  --swell-1:  #5A95E8;
+  --swell-2:  #34BFA8;
+  --swell-3:  #ED8F73;
+  --swell-4:  #E3BB5C;
+  --swell-5:  #7BB78A;
+  --swell-6:  #D87693;
+  --swell-7:  #91C5EE;
+  --swell-8:  #8DDDC7;
+  --swell-9:  #AB8AD0;
+  --swell-10: #93A6BB;
+}
+
+/* =============== BOLINAS — northern california fog =============== */
+[data-theme="bolinas"][data-mode="light"] {
+  --bg: #ebede7;             /* eucalyptus fog */
+  --surface: #dfe1da;
+  --surface-2: #d2d4cc;
+  --text: #1f2520;           /* damp stone */
+  --text-secondary: #475048;
+  --text-muted: #758078;
+  --text-faint: #a7b1aa;
+  --border: #cdd1ca;
+  --border-soft: #dde0d8;
+  --accent: #5b7359;         /* deep eucalyptus */
+  --accent-text: #ffffff;
+  --success: #6d8a64;
+  --wave-wash: rgba(91, 115, 89, 0.08);
+  --btn: #1f2520;
+  --btn-text: #ebede7;
+  --btn-hover: #475048;
+
+  --swell-1:  #6F8A6E;
+  --swell-2:  #8FA8AF;
+  --swell-3:  #B89E7E;
+  --swell-4:  #9CAB8E;
+  --swell-5:  #B58F8A;
+  --swell-6:  #5C7886;
+  --swell-7:  #A89F95;
+  --swell-8:  #7C9088;
+  --swell-9:  #C0AE93;
+  --swell-10: #607566;
+}
+[data-theme="bolinas"][data-mode="dark"] {
+  --bg: #161a17;             /* rain-wet stone */
+  --surface: #1f2420;
+  --surface-2: #2a302a;
+  --text: #e0e3da;           /* oat fog */
+  --text-secondary: #b4bdb1;
+  --text-muted: #818c81;
+  --text-faint: #4c544e;
+  --border: #2c3530;
+  --border-soft: #222824;
+  --accent: #93b18b;         /* pale eucalyptus */
+  --accent-text: #161a17;
+  --success: #93b18b;
+  --wave-wash: rgba(147, 177, 139, 0.10);
+  --btn: #e0e3da;
+  --btn-text: #161a17;
+  --btn-hover: #b4bdb1;
+
+  --swell-1:  #97AC92;
+  --swell-2:  #A5C0C6;
+  --swell-3:  #C9AE92;
+  --swell-4:  #B5C29F;
+  --swell-5:  #C6A29D;
+  --swell-6:  #87A1AE;
+  --swell-7:  #B5ACA2;
+  --swell-8:  #94A89F;
+  --swell-9:  #D0BEA4;
+  --swell-10: #84997F;
+}
+
+/* =============== BIARRITZ — atlantic surf town =============== */
+[data-theme="biarritz"][data-mode="light"] {
+  --bg: #f5efe5;             /* sun-bleached sand */
+  --surface: #ebe3d4;
+  --surface-2: #dfd5c1;
+  --text: #112730;           /* dark teal ink */
+  --text-secondary: #2c5560;
+  --text-muted: #6b8088;
+  --text-faint: #a8b4b9;
+  --border: #d6c9b3;
+  --border-soft: #e4dac6;
+  --accent: #c9521e;         /* terracotta */
+  --accent-text: #ffffff;
+  --success: #2a6f7a;
+  --wave-wash: rgba(42, 111, 122, 0.08);
+  --btn: #112730;
+  --btn-text: #f5efe5;
+  --btn-hover: #2c5560;
+
+  --swell-1:  #C9621E;
+  --swell-2:  #2A6F7A;
+  --swell-3:  #D6A968;
+  --swell-4:  #B04E3C;
+  --swell-5:  #6B98B5;
+  --swell-6:  #D89066;
+  --swell-7:  #8AA570;
+  --swell-8:  #9C5B3B;
+  --swell-9:  #4D8489;
+  --swell-10: #C28C5C;
+}
+[data-theme="biarritz"][data-mode="dark"] {
+  --bg: #0e2329;             /* warm atlantic deep */
+  --surface: #15303a;
+  --surface-2: #1e404c;
+  --text: #ede5d4;           /* bone */
+  --text-secondary: #c4b8a0;
+  --text-muted: #8a8576;
+  --text-faint: #4e5552;
+  --border: #244a56;
+  --border-soft: #1a3742;
+  --accent: #de7140;         /* terracotta brightened */
+  --accent-text: #0e2329;
+  --success: #7ec5cd;
+  --wave-wash: rgba(222, 113, 64, 0.12);
+  --btn: #ede5d4;
+  --btn-text: #0e2329;
+  --btn-hover: #c4b8a0;
+
+  --swell-1:  #DE7B47;
+  --swell-2:  #4FA6B3;
+  --swell-3:  #E2BC85;
+  --swell-4:  #D26C5C;
+  --swell-5:  #8ABACF;
+  --swell-6:  #E5A582;
+  --swell-7:  #A8BE91;
+  --swell-8:  #C07A5B;
+  --swell-9:  #72ADB3;
+  --swell-10: #D7A879;
+}
+
+/* ------------------------------------------------------------------
+   Doc-shell tokens — the design-system page itself.
+   Cool, paper-white with deep slate-blue ink. Tuned to be quiet
+   enough that themed component cards still read as the loud thing.
+   ------------------------------------------------------------------ */
+:root {
+  --doc-bg: #f7f9fb;
+  --doc-surface: #ffffff;
+  --doc-ink: #0e2238;
+  --doc-secondary: #355068;
+  --doc-muted: #6b7f93;
+  --doc-faint: #a4b1bd;
+  --doc-line: #e3eaf0;
+  --doc-rule: #d4dde5;
+  --doc-accent: #2772bd;
+  --font-display: 'Courier Prime', 'Courier New', 'Courier', monospace;
+  --font-body: 'Manrope', 'Helvetica Neue', 'Arial', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', monospace;
+}
+
+/* ------------------------------------------------------------------
+   Global resets + typography
+   ------------------------------------------------------------------ */
+* { box-sizing: border-box; }
+html { font-size: 16px; }
+body {
+  margin: 0;
+  background: var(--doc-bg);
+  color: var(--doc-ink);
+  font-family: var(--font-body);
+  font-feature-settings: 'ss01', 'cv01', 'tnum';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+::selection { background: rgba(39, 114, 189, 0.2); }
+
+/* Tabular numerals everywhere in the system. */
+.tnum, tt, code, .num { font-variant-numeric: tabular-nums; }
+
+/* Display family — typewriter, breathing space between letters */
+.display { font-family: var(--font-display); font-weight: 400; letter-spacing: 0.05em; }
+.serif { font-family: var(--font-display); letter-spacing: 0.05em; }
+
+/* Sans italic — used everywhere an italicized phrase appears inside the
+   typewriter display family. Manrope has a proper italic with character;
+   Courier Prime Italic is just slanted upright. */
+.sans-italic {
+  font-family: var(--font-body);
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: -0.005em;
+  font-feature-settings: 'ss01';
+}
+em {
+  font-family: var(--font-body);
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: -0.005em;
+}
+
+/* Themed islands inherit their tokens to base styles */
+.themed {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-feature-settings: 'ss01', 'tnum';
+}
+.themed .display, .themed .serif { font-family: var(--font-display); font-weight: 400; letter-spacing: 0.05em; }
+
+/* ------------------------------------------------------------------
+   Animations
+   ------------------------------------------------------------------ */
+@keyframes tide-rise { from { width: 0; } to { width: var(--w, 100%); } }
+
+@keyframes celebration-wave {
+  0%   { transform: translate(-50%, -50%) scale(0); opacity: 0.55; }
+  60%  { opacity: 0.4; }
+  100% { transform: translate(-50%, -50%) scale(8); opacity: 0; }
+}
+
+@keyframes celebration-foam {
+  0%   { transform: translate(-50%, -50%) scale(0.4); opacity: 0; }
+  30%  { opacity: 0.85; }
+  100% { transform: translate(-50%, -50%) scale(2.6); opacity: 0; }
+}
+
+@keyframes celebration-droplet {
+  from {
+    transform: translate(-50%, -50%) translate(0, 0) scale(1);
+    opacity: 0.9;
+  }
+  to {
+    transform: translate(-50%, -50%) translate(var(--dx), var(--dy)) scale(0.2);
+    opacity: 0;
+  }
+}
+
+@keyframes tide-drift {
+  0%   { transform: translateX(-12%); }
+  50%  { transform: translateX(12%); }
+  100% { transform: translateX(-12%); }
+}
+
+@keyframes nav-tide-pulse {
+  0%, 100% { opacity: 0.7; transform: translateY(0); }
+  50%      { opacity: 1.0; transform: translateY(-1.5px); }
+}
+
+@keyframes slow-breathe {
+  0%, 100% { opacity: 0.85; }
+  50%      { opacity: 1; }
+}
+
+@keyframes wash-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes press-down {
+  to { transform: scale(0.96); }
+}
+
+@keyframes check-in {
+  from { transform: scale(0.3); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}

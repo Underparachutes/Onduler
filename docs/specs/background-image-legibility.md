@@ -26,25 +26,25 @@ In order of severity:
 - Bold colored swell name labels (CREATIVITY green, MIND yellow, MOVEMENT orange). Saturation beats luminance.
 - Ombré progress bars. Gradient gives them edge contrast.
 - Loading screen showing the full photo with the soft `onduler` wordmark centered. This is the gift moment of the photo upload feature.
-- Solid dark bottom nav.
+- Solid dark bottom nav. *(Amended 2026-06-05: the nav becomes a detached floating pill per `bottom-nav-floating-pill-2026-06-05.md`. It stays a solid surface, so contrast is preserved; it just floats off the edge.)*
 
 ## Changes
 
 ### 1. Text-shadow on secondary text
 
+> **Amended 2026-06-05** (see `anchors-refinement-2026-06-05.md` §3). The mirrored
+> white-shadow rule below was tested in light mode and produced a blurry sticker outline on
+> colored text over bright photos. Superseded by a single dark shadow in both modes:
+> `text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);`. Drop the light-theme white branch. The rest of
+> this section (scope, utility-class strategy) still applies.
+
 Add a one-pixel text-shadow to every text element using `--th-muted` or `--th-secondary` as its color token, gated to surfaces where a background image is active.
 
 ```css
-text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 ```
 
-For light themes (where the photo will more often be lighter and text is darker), mirror with:
-
-```css
-text-shadow: 0 1px 2px rgba(255, 255, 255, 0.7);
-```
-
-The shadow is invisible against solid surface tokens. It only does work when the contrast is genuinely fighting it. This is the same trick newspaper editorial layouts have used for a century.
+A dark shadow only ever adds edge contrast, never a glow, so it behaves on light and dark photos alike. The shadow is invisible against solid surface tokens. It only does work when the contrast is genuinely fighting it. This is the same trick newspaper editorial layouts have used for a century.
 
 Apply via a single utility class (e.g. `.on-photo-text`) added to body where image background is active, scoped down to muted text via `.on-photo-text [class*="text-th-muted"], .on-photo-text [class*="text-th-secondary"]`. The exact selector strategy is implementer's call. The point is one global rule, not per-component edits.
 
@@ -100,13 +100,13 @@ Compare each screenshot to the same surface with no background image (the existi
 - Per-page or per-swell background images (today's scope is the single global image).
 - User control over scrim strength, fade height, or photo opacity. Picking a photo is the only knob the user gets.
 - AI-assisted photo recommendations or curation.
-- Reverting any of these changes per-theme. The fixes apply uniformly across Default, Bolinas, and Biarritz; light themes get the mirrored white shadow rule.
+- Reverting any of these changes per-theme. The fixes apply uniformly across Default, Bolinas, and Biarritz, and across light and dark mode (single dark shadow per the 2026-06-05 amendment).
 
 ## Risk notes
 
 The text-shadow approach is durable but only against single-pixel luminance noise. If a user uploads a photo with high-frequency text-like patterns (a page of newsprint, a chart, dense foliage at certain crops), legibility may still degrade. Acceptable: that user uploaded a hostile photo. The app does not try to outguess them.
 
-Light themes will need the mirrored white-shadow rule and a tested combination of weight + shadow opacity. The dark-theme values above are the starting point; expect to dial light-theme values down (0.5 instead of 0.7 opacity) so the white halo does not turn into a sticker outline.
+~~Light themes will need the mirrored white-shadow rule.~~ **Amended 2026-06-05:** light and dark both use the single dark shadow at `0.5` opacity. The earlier white-halo approach turned into a sticker outline on bright photos in light mode; a dark shadow adds edge contrast without a glow in either mode.
 
 ---
 
@@ -132,11 +132,17 @@ Drop the three stat blocks (pts total / pts per active day / active days). Drop 
 
 ### Calendar icon
 
-Tapping the calendar navigates to `/motions` in week view. Same affordance as the calendar icon already on the Swells sticky bar. Reuse the existing handler.
+> **Amended 2026-06-05** (see `anchors-refinement-2026-06-05.md` §1). On Anchors the calendar
+> now navigates to `/anchors/journal`, not Motions week-view. The "correct your record" rationale
+> below still governs the calendar on Motions and Swells; Anchors is the exception because the
+> journal is the record of the reflective surface. The standalone "See all in your journal" link
+> is retired in the same change (calendar is the single journal affordance).
 
-The calendar icon's job across the app is **"go correct your record."** Motions, Swells, and Anchors are all places a user might notice "that's not what actually happened." A consistent affordance from each of those moments teaches one verb: this icon takes you to the editable week-view log so you can fix it. The consistency is functional, not cosmetic.
+Tapping the calendar on Anchors navigates to `/anchors/journal`.
 
-Posture note: this matters extra on Anchors because the ceremony is more honest when it reflects truth. Letting users tap through and backfill a forgotten log from a review surface is the witness-not-coach posture in action. The reflection is truer, not less reverent.
+The calendar icon's job on Motions and Swells is **"go correct your record."** Those are places a user might notice "that's not what actually happened," and a consistent affordance teaches one verb: this icon takes you to the editable week-view log so you can fix it. On Anchors that verb becomes "go to your journal," because the journal is where the reflective record lives.
+
+Posture note: backfilling a forgotten log is still the witness-not-coach posture in action; on Anchors that happens through the inline anchor log and the period chevron rather than the calendar.
 
 ### Eye icon
 
