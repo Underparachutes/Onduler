@@ -23,15 +23,27 @@ export async function completeOnboarding(
 
   const chapterId = await getActiveChapterId(supabase, user.id)
 
-  const isHours = prefs.tracking_mode === 'hours'
+  // Motion-derived weekly targets: "a week of showing up" for this swell.
+  // Points = 4 logs/wk of each feeding motion; hours = 3 logs/wk (gentler,
+  // since hour-denominated motions cost more per log). Swells left without
+  // motions fall back to humble placeholders (12 pts / 3 hrs).
+  const ptsBySwell = new Array<number>(swells.length).fill(0)
+  const hrsBySwell = new Array<number>(swells.length).fill(0)
+  motions.forEach(m => {
+    m.swellIndices.forEach(idx => {
+      ptsBySwell[idx] += m.points ?? 1
+      hrsBySwell[idx] += m.hours ?? 1.0
+    })
+  })
+
   const swellRows = swells.map((s, i) => ({
     user_id: user.id,
     chapter_id: chapterId,
     name: s.name,
     color: s.color,
     sort_order: i,
-    target_points: 100,
-    target_hours: 5,
+    target_points: ptsBySwell[i] > 0 ? Math.ceil(4 * ptsBySwell[i]) : 12,
+    target_hours: hrsBySwell[i] > 0 ? Math.ceil(4 * 3 * hrsBySwell[i]) / 4 : 3,
   }))
 
   const { data: insertedSwells, error: swellErr } = await supabase

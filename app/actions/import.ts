@@ -45,7 +45,6 @@ export async function confirmImport(preview: ImportPreview, clearMode: ImportCle
     supabase.from('groups').select('name, sort_order').eq('user_id', user.id).eq('chapter_id', chapterId),
   ])
 
-  const isHours = (settings?.tracking_mode ?? 'points') === 'hours'
   const palette = getShuffledThemePalette(settings?.theme ?? 'biarritz', 'light')
 
   const existingSwellNames = new Set((existingSwells ?? []).map(s => s.name.trim().toLowerCase()))
@@ -110,15 +109,43 @@ export async function confirmImport(preview: ImportPreview, clearMode: ImportCle
   const nameToSwellId = new Map<string, string>()
 
   if (newSwells.length > 0) {
-    const swellRows = newSwells.map((s, i) => ({
-      user_id: user.id,
-      chapter_id: chapterId,
-      name: s.name,
-      color: palette[i % palette.length],
-      sort_order: swellSortBase + i,
-      target_points: isHours ? null : s.target,
-      target_hours: isHours ? s.target : null,
-    }))
+    // Motion-derived target fallback: 4 logs/wk of each feeding motion in
+    // points, 3 in hours (split by assignment count, mirroring the junction
+    // weights below). The AI's own [target: N] is points-denominated per the
+    // prompt, so it only fills target_points; hours always derive. Swells
+    // with no feeding motions get the humble placeholders (12 pts / 3 hrs).
+    const motionByKey = new Map(preview.motions.map(m => [m.name.trim().toLowerCase(), m]))
+    const assignmentCounts = new Map<string, number>()
+    for (const a of preview.swellAssignments) {
+      const k = a.motionName.trim().toLowerCase()
+      assignmentCounts.set(k, (assignmentCounts.get(k) ?? 0) + 1)
+    }
+    const ptsBySwellKey = new Map<string, number>()
+    const hrsBySwellKey = new Map<string, number>()
+    for (const a of preview.swellAssignments) {
+      const mk = a.motionName.trim().toLowerCase()
+      const m = motionByKey.get(mk)
+      if (!m) continue
+      const w = 1 / (assignmentCounts.get(mk) ?? 1)
+      const sk = a.swellName.trim().toLowerCase()
+      ptsBySwellKey.set(sk, (ptsBySwellKey.get(sk) ?? 0) + m.points * w)
+      hrsBySwellKey.set(sk, (hrsBySwellKey.get(sk) ?? 0) + m.hours * w)
+    }
+
+    const swellRows = newSwells.map((s, i) => {
+      const k = s.name.trim().toLowerCase()
+      const pts = ptsBySwellKey.get(k) ?? 0
+      const hrs = hrsBySwellKey.get(k) ?? 0
+      return {
+        user_id: user.id,
+        chapter_id: chapterId,
+        name: s.name,
+        color: palette[i % palette.length],
+        sort_order: swellSortBase + i,
+        target_points: s.target ?? (pts > 0 ? Math.ceil(4 * pts) : 12),
+        target_hours: hrs > 0 ? Math.ceil(4 * 3 * hrs) / 4 : 3,
+      }
+    })
     const { data: inserted, error: swellErr } = await supabase.from('swells').insert(swellRows).select('id, name')
     if (swellErr) return { error: swellErr.message }
     for (const row of inserted ?? []) {

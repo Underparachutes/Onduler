@@ -29,8 +29,11 @@ export async function createSwell(prevState: unknown, formData: FormData) {
     .limit(1)
 
   const sort_order = (existing?.[0]?.sort_order ?? -1) + 1
-  const target_points = targetPointsRaw ? parseInt(targetPointsRaw) || 100 : 100
-  const target_hours = targetHoursRaw ? parseHoursInput(targetHoursRaw) ?? 5 : 5
+  // Humble placeholder targets — a swell created bare has no motions yet to
+  // derive a real target from (motion-derived targets: 4 logs/wk of each
+  // feeding motion in points mode, 3 in hours mode). The user grows into it.
+  const target_points = targetPointsRaw ? parseInt(targetPointsRaw) || 12 : 12
+  const target_hours = targetHoursRaw ? parseHoursInput(targetHoursRaw) ?? 3 : 3
 
   const { error } = await supabase
     .from('swells')

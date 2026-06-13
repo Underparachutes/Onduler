@@ -83,8 +83,8 @@ export async function adoptBuild(
         name,
         color: palette[i % palette.length],
         sort_order: baseSortOrder + i,
-        target_points: isHours ? null : 100,
-        target_hours: isHours ? 5 : null,
+        target_points: isHours ? null : 12,
+        target_hours: isHours ? 3 : null,
       }))
 
       const { error: insertErr } = await supabase.from('swells').insert(rows)
