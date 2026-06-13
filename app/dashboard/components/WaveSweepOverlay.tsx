@@ -149,8 +149,8 @@ export function WaveSweepOverlay({ color, onDone }: { color: string; onDone: () 
     // top, so the wave dissolves upward instead of flooding the screen.
     function topFade(cy: number, H: number): number {
       const yf = cy / H // 0 top .. 1 bottom
-      const s = clamp01((yf - 0.10) / 0.48)
-      return s * s * (3 - 2 * s) // smoothstep: clear up top, full below ~0.6H
+      const s = clamp01((yf - 0.30) / 0.48)
+      return s * s * (3 - 2 * s) // smoothstep: clear top third, full toward the bottom
     }
 
     function render(p: number, W: number, H: number) {
