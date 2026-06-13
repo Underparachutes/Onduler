@@ -150,8 +150,12 @@ export function DashboardView(props: Props) {
                 }
                 belowHeader={
                   <HintCard hintKey="motions" title="This is your list." seen={props.hintMotionsSeen}>
-                    <p className="mb-1.5">Motions are the verbs of your week, the things you do. Tap a row to log it. The kebab on each row opens everything else: points, swells, hide.</p>
-                    <p>You decide what counts and how much. A 5-minute walk can be worth 1 point or 10. It&apos;s yours to weight.</p>
+                    <p className="mb-1.5">Motions are the verbs of your week, the things you do. Tap the checkbox to log one. Tap the row to open its details: {props.trackingMode === 'hours' ? 'hours' : 'points'}, swells, hide. The grip on the right moves it.</p>
+                    {props.trackingMode === 'hours' ? (
+                      <p>You decide what counts. A morning walk might be 0:15 or 0:45. Log the time you actually spent.</p>
+                    ) : (
+                      <p>You decide what counts and how much. A 5-minute walk can be worth 1 point or 10. It&apos;s yours to weight.</p>
+                    )}
                   </HintCard>
                 }
                 groupsEnabled={props.groupsEnabled}
