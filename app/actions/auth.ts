@@ -14,9 +14,11 @@ export async function signUp(state: unknown, formData: FormData) {
     return { error: error.message }
   }
 
-  // Email confirmation is required — user needs to verify before logging in
+  // Email confirmation is required — user needs to verify before logging in.
+  // Return the address so the page can show a clear "check your email" state
+  // instead of leaving the form live.
   if (!data.session) {
-    return { message: 'Check your email to confirm your account.' }
+    return { emailSent: true as const, email }
   }
 
   redirect('/onboarding')

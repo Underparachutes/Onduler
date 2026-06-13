@@ -7,6 +7,29 @@ import { signUp } from '@/app/actions/auth'
 export default function SignupPage() {
   const [state, action, pending] = useActionState(signUp, undefined)
 
+  if (state && 'emailSent' in state && state.emailSent) {
+    return (
+      <div className="flex min-h-full flex-col items-center justify-center px-4 py-24">
+        <div className="w-full max-w-[22rem]">
+          <h1 className="mb-2 text-2xl font-semibold text-th-text">Check your email</h1>
+          <p className="mb-8 text-sm text-th-muted">
+            We sent a confirmation link to <span className="text-th-text">{state.email}</span>. Open it to finish setting up your account, then sign in.
+          </p>
+          <Link
+            href="/login"
+            className="block w-full rounded-lg bg-th-btn px-4 py-2 text-center text-sm font-medium text-th-btn-text transition-colors hover:bg-th-btn-hover active:scale-[0.97]"
+          >
+            Back to sign in
+          </Link>
+          <p className="mt-6 text-center text-xs text-th-faint">
+            Didn&apos;t get it? Check your spam folder, or{' '}
+            <a href="/signup" className="underline underline-offset-4 hover:text-th-muted">try a different email</a>.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="flex min-h-full flex-col items-center justify-center px-4 py-24">
       <div className="w-full max-w-[22rem]">
@@ -44,11 +67,8 @@ export default function SignupPage() {
             />
           </div>
 
-          {state?.error && (
+          {state && 'error' in state && state.error && (
             <p className="text-sm text-red-500">{state.error}</p>
-          )}
-          {state?.message && (
-            <p className="text-sm text-th-muted">{state.message}</p>
           )}
 
           <button
