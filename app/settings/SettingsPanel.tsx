@@ -482,7 +482,7 @@ export function SettingsPanel({
               </div>
 
               <div className="flex items-center justify-between py-3">
-                <div>
+                <div className="pr-4">
                   <p className="text-sm font-medium text-th-text">Buckets</p>
                   <p className="text-xs text-th-muted">Cluster motions by when they happen</p>
                 </div>
@@ -490,7 +490,7 @@ export function SettingsPanel({
                   role="switch"
                   aria-checked={groupsOn}
                   onClick={() => handleGroups(!groupsOn)}
-                  className={`relative h-6 w-11 rounded-full transition-colors ${groupsOn ? 'bg-th-btn' : 'bg-th-border'}`}
+                  className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${groupsOn ? 'bg-th-btn' : 'bg-th-border'}`}
                 >
                   <span
                     className={`absolute top-1 left-1 h-4 w-4 rounded-full bg-white shadow transition-transform ${groupsOn ? 'translate-x-5' : 'translate-x-0'}`}
@@ -538,7 +538,7 @@ export function SettingsPanel({
               )}
 
               <div className="flex items-center justify-between py-3">
-                <div>
+                <div className="pr-4">
                   <p className="text-sm font-medium text-th-text">Submotions</p>
                   <p className="text-xs text-th-muted">Break a motion into smaller parts</p>
                 </div>
@@ -546,7 +546,7 @@ export function SettingsPanel({
                   role="switch"
                   aria-checked={submotionsOn}
                   onClick={() => handleSubmotions(!submotionsOn)}
-                  className={`relative h-6 w-11 rounded-full transition-colors ${submotionsOn ? 'bg-th-btn' : 'bg-th-border'}`}
+                  className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${submotionsOn ? 'bg-th-btn' : 'bg-th-border'}`}
                 >
                   <span
                     className={`absolute top-1 left-1 h-4 w-4 rounded-full bg-white shadow transition-transform ${submotionsOn ? 'translate-x-5' : 'translate-x-0'}`}
@@ -574,7 +574,7 @@ export function SettingsPanel({
           {openSection === 'celebration' && (
             <div className="flex flex-col divide-y divide-th-border pb-4">
               <div className="flex items-center justify-between py-3">
-                <div>
+                <div className="pr-4">
                   <p className="text-sm font-medium text-th-text">Visual</p>
                   <p className="text-xs text-th-muted">Wave animation when you cross a weekly swell target</p>
                 </div>
@@ -582,13 +582,13 @@ export function SettingsPanel({
                   role="switch"
                   aria-checked={celebration}
                   onClick={() => handleCelebration(!celebration)}
-                  className={`relative h-6 w-11 rounded-full transition-colors ${celebration ? 'bg-th-btn' : 'bg-th-border'}`}
+                  className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${celebration ? 'bg-th-btn' : 'bg-th-border'}`}
                 >
                   <span className={`absolute top-1 left-1 h-4 w-4 rounded-full bg-white shadow transition-transform ${celebration ? 'translate-x-5' : 'translate-x-0'}`} />
                 </button>
               </div>
               <div className="flex items-center justify-between py-3">
-                <div>
+                <div className="pr-4">
                   <p className="text-sm font-medium text-th-text">Haptic</p>
                   <p className="text-xs text-th-muted">Subtle taps when you log and unlog</p>
                   {!vibrateSupported && <p className="text-xs text-th-faint">Not supported on this device</p>}
@@ -597,7 +597,7 @@ export function SettingsPanel({
                   role="switch"
                   aria-checked={haptic}
                   onClick={() => handleHaptic(!haptic)}
-                  className={`relative h-6 w-11 rounded-full transition-colors ${haptic ? 'bg-th-btn' : 'bg-th-border'}`}
+                  className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${haptic ? 'bg-th-btn' : 'bg-th-border'}`}
                 >
                   <span className={`absolute top-1 left-1 h-4 w-4 rounded-full bg-white shadow transition-transform ${haptic ? 'translate-x-5' : 'translate-x-0'}`} />
                 </button>
