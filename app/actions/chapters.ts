@@ -222,7 +222,7 @@ export async function archiveAndStartFreshChapter() {
   // 3. Reset onboarding + build slots so the user lands clean and re-picks
   //    a shape. Tracking mode, theme, daily goals, haptics, celebration
   //    stay — those are user-level preferences, not chapter-scoped.
-  await supabase
+  const { error: resetErr } = await supabase
     .from('user_settings')
     .update({
       onboarding_complete: false,
@@ -233,6 +233,7 @@ export async function archiveAndStartFreshChapter() {
       welcome_back_started_at: null,
     })
     .eq('user_id', user.id)
+  if (resetErr) return { error: resetErr.message }
 
   // 4. Wipe every chapter-scoped surface from cache so the new (empty)
   //    chapter renders correctly.
@@ -254,7 +255,7 @@ export async function archiveChapterForImport() {
   const rolloverErr = await rolloverChapter(supabase, user.id)
   if (rolloverErr) return { error: rolloverErr }
 
-  await supabase
+  const { error: importResetErr } = await supabase
     .from('user_settings')
     .update({
       primary_build: null,
@@ -264,6 +265,7 @@ export async function archiveChapterForImport() {
       welcome_back_started_at: null,
     })
     .eq('user_id', user.id)
+  if (importResetErr) return { error: importResetErr.message }
 
   revalidatePath('/', 'layout')
 
@@ -317,11 +319,12 @@ async function rolloverChapter(
 
   let nextSortOrder = 0
   if (active?.id) {
-    await supabase
+    const { error: endErr } = await supabase
       .from('chapters')
       .update({ ended_at: now })
       .eq('id', active.id)
       .eq('user_id', userId)
+    if (endErr) return endErr.message
     nextSortOrder = (active.sort_order ?? 0) + 1
   }
 

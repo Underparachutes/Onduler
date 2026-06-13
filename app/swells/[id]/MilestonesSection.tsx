@@ -33,6 +33,7 @@ import {
 } from '@/app/actions/milestones'
 import { cycleProgress } from '@/lib/cadence'
 import { CelebrationOverlay, type CelebrationState } from '@/app/dashboard/components/CelebrationOverlay'
+import { useSaveGuard } from '@/app/components/useSaveGuard'
 
 type Cadence = 'weekly' | 'monthly'
 
@@ -119,6 +120,7 @@ export function MilestonesSection({ swellId, swellColor, milestones, swellMotion
 
   const [, startReorder] = useTransition()
   const [dragging, setDragging] = useState(false)
+  const guard = useSaveGuard()
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { delay: 250, tolerance: 8 } }),
@@ -183,9 +185,9 @@ export function MilestonesSection({ swellId, swellColor, milestones, swellMotion
       const wasRecurring = recurring.some(m => m.id === activeId)
       const nowRecurring = recurringRef.current.some(m => m.id === activeId)
       if (wasRecurring && !nowRecurring) {
-        startReorder(async () => { await updateMilestone(activeId, swellId, { kind: 'one_shot' }) })
+        startReorder(async () => { guard(await updateMilestone(activeId, swellId, { kind: 'one_shot' })) })
       } else if (!wasRecurring && nowRecurring) {
-        startReorder(async () => { await updateMilestone(activeId, swellId, { kind: 'recurring' }) })
+        startReorder(async () => { guard(await updateMilestone(activeId, swellId, { kind: 'recurring' })) })
       }
       return
     }
@@ -196,21 +198,21 @@ export function MilestonesSection({ swellId, swellColor, milestones, swellMotion
       const next = arrayMove(arr, arr.findIndex(m => m.id === activeId), arr.findIndex(m => m.id === overId))
       recurringRef.current = next
       setOrderedRecurring(next)
-      startReorder(async () => { await reorderMilestones(next.map(m => m.id), swellId) })
+      startReorder(async () => { guard(await reorderMilestones(next.map(m => m.id), swellId)) })
     } else if (container === 'oneShot' && oneShotRef.current.some(m => m.id === overId)) {
       const arr = oneShotRef.current
       const next = arrayMove(arr, arr.findIndex(m => m.id === activeId), arr.findIndex(m => m.id === overId))
       oneShotRef.current = next
       setOrderedOneShotsActive(next)
-      startReorder(async () => { await reorderMilestones(next.map(m => m.id), swellId) })
+      startReorder(async () => { guard(await reorderMilestones(next.map(m => m.id), swellId)) })
     }
 
     const wasRecurring = recurring.some(m => m.id === activeId)
     const nowRecurring = recurringRef.current.some(m => m.id === activeId)
     if (wasRecurring && !nowRecurring) {
-      startReorder(async () => { await updateMilestone(activeId, swellId, { kind: 'one_shot' }) })
+      startReorder(async () => { guard(await updateMilestone(activeId, swellId, { kind: 'one_shot' })) })
     } else if (!wasRecurring && nowRecurring) {
-      startReorder(async () => { await updateMilestone(activeId, swellId, { kind: 'recurring' }) })
+      startReorder(async () => { guard(await updateMilestone(activeId, swellId, { kind: 'recurring' })) })
     }
   }
 
@@ -492,12 +494,13 @@ function MilestoneRowName({
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(milestone.name)
   const [, startSave] = useTransition()
+  const guard = useSaveGuard()
 
   function commit() {
     setEditing(false)
     const trimmed = draft.trim()
     if (!trimmed || trimmed === milestone.name) { setDraft(milestone.name); return }
-    startSave(async () => { await renameMilestone(milestone.id, trimmed, swellId) })
+    startSave(async () => { guard(await renameMilestone(milestone.id, trimmed, swellId)) })
   }
 
   if (editing) {
@@ -599,6 +602,7 @@ function SortableRecurringRow({
   const [, startDelete] = useTransition()
   const deleteTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [, startFlip] = useTransition()
+  const guard = useSaveGuard()
 
   useEffect(() => {
     if (!editing) return
@@ -616,16 +620,16 @@ function SortableRecurringRow({
     }
     startHit(async () => {
       if (milestone.cycleHit) {
-        await resetCycleHits(milestone.id, swellId)
+        guard(await resetCycleHits(milestone.id, swellId))
       } else {
-        await markRecurringHit(milestone.id, swellId)
+        guard(await markRecurringHit(milestone.id, swellId))
       }
     })
   }
 
   function persist(patch: { cadence?: 'weekly' | 'monthly'; targetCount?: number; bonusPoints?: number }) {
     startSave(async () => {
-      await updateMilestone(milestone.id, swellId, patch)
+      guard(await updateMilestone(milestone.id, swellId, patch))
     })
   }
 
@@ -656,12 +660,12 @@ function SortableRecurringRow({
       return
     }
     if (deleteTimer.current) clearTimeout(deleteTimer.current)
-    startDelete(async () => { await deleteMilestone(milestone.id, swellId) })
+    startDelete(async () => { guard(await deleteMilestone(milestone.id, swellId)) })
   }
 
   function handleFlipKind() {
     startFlip(async () => {
-      await updateMilestone(milestone.id, swellId, { kind: 'one_shot' })
+      guard(await updateMilestone(milestone.id, swellId, { kind: 'one_shot' }))
     })
   }
 
@@ -698,7 +702,7 @@ function SortableRecurringRow({
               value={milestone.motionId ?? ''}
               onChange={e => {
                 const val = e.target.value || null
-                startSave(async () => { await updateMilestone(milestone.id, swellId, { motionId: val }) })
+                startSave(async () => { guard(await updateMilestone(milestone.id, swellId, { motionId: val })) })
               }}
               className="flex-1 rounded-lg border border-th-border bg-th-surface px-2 py-1.5 text-sm text-th-text outline-none focus:border-th-focus"
             >
@@ -874,6 +878,7 @@ function SortableOneShotRow({
   const [, startDelete] = useTransition()
   const deleteTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [, startFlip] = useTransition()
+  const guard = useSaveGuard()
 
   useEffect(() => {
     if (!editing) return
@@ -890,7 +895,7 @@ function SortableOneShotRow({
       onCelebrate(rect.bottom)
     }
     startToggle(async () => {
-      await setOneShotComplete(milestone.id, !completed, swellId)
+      guard(await setOneShotComplete(milestone.id, !completed, swellId))
     })
   }
 
@@ -901,18 +906,18 @@ function SortableOneShotRow({
       return
     }
     if (deleteTimer.current) clearTimeout(deleteTimer.current)
-    startDelete(async () => { await deleteMilestone(milestone.id, swellId) })
+    startDelete(async () => { guard(await deleteMilestone(milestone.id, swellId)) })
   }
 
   function commitBonus() {
     const bonus = parseInt(bonusDraft)
     const val = !isNaN(bonus) && bonus >= 0 ? bonus : 0
-    if (val !== milestone.bonusPoints) startSave(async () => { await updateMilestone(milestone.id, swellId, { bonusPoints: val }) })
+    if (val !== milestone.bonusPoints) startSave(async () => { guard(await updateMilestone(milestone.id, swellId, { bonusPoints: val })) })
   }
 
   function handleFlipKind() {
     startFlip(async () => {
-      await updateMilestone(milestone.id, swellId, { kind: 'recurring' })
+      guard(await updateMilestone(milestone.id, swellId, { kind: 'recurring' }))
     })
   }
 

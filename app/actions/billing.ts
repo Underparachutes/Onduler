@@ -27,9 +27,10 @@ export async function ensureStripeCustomer(): Promise<
     metadata: { supabase_user_id: user.id },
   })
 
-  await supabase
+  const { error: custErr } = await supabase
     .from('user_settings')
     .upsert({ user_id: user.id, stripe_customer_id: customer.id })
+  if (custErr) return { error: custErr.message }
 
   return { customerId: customer.id }
 }

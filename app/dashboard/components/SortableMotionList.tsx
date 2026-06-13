@@ -20,6 +20,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { reorderMotions } from '@/app/actions/motions'
+import { useSaveGuard } from '@/app/components/useSaveGuard'
 import { formatPts, formatHrs } from '@/lib/format'
 import { INTENSITY_MULTIPLIER, type Intensity } from '@/lib/intensity'
 
@@ -237,6 +238,7 @@ export function SortableMotionList({
   const [ordered, setOrdered] = useState(motions)
   const [dragging, setDragging] = useState(false)
   const [, startTransition] = useTransition()
+  const guard = useSaveGuard()
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { delay: 250, tolerance: 8 } }),
@@ -254,7 +256,7 @@ export function SortableMotionList({
       ordered.findIndex(m => m.id === over.id)
     )
     setOrdered(next)
-    startTransition(async () => { await reorderMotions(next.map(m => m.id)) })
+    startTransition(async () => { guard(await reorderMotions(next.map(m => m.id))) })
   }
 
   const q = searchQuery.toLowerCase().trim()

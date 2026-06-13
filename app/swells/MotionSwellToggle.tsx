@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { setMotionSwells } from '@/app/actions/motions'
+import { useSaveGuard } from '@/app/components/useSaveGuard'
 
 type Swell = { id: string; name: string; color: string }
 
@@ -16,13 +17,14 @@ export function MotionSwellToggle({
 }) {
   const [active, setActive] = useState(new Set(currentSwellIds))
   const [isPending, startTransition] = useTransition()
+  const guard = useSaveGuard()
 
   function toggle(swellId: string) {
     const next = new Set(active)
     if (next.has(swellId)) next.delete(swellId); else next.add(swellId)
     setActive(next)
     startTransition(async () => {
-      await setMotionSwells(motionId, Array.from(next).map(id => ({ swellId: id, weight: 1 })))
+      guard(await setMotionSwells(motionId, Array.from(next).map(id => ({ swellId: id, weight: 1 }))))
     })
   }
 

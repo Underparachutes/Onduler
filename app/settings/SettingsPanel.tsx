@@ -25,6 +25,7 @@ import { detectMode, getRandomThemeAccent } from '@/lib/theme-colors'
 import { ImageAdjustOverlay } from '@/app/components/ImageAdjustOverlay'
 import { resizeImage } from '@/lib/image'
 import { readPinTopUnpinned, writePinTopUnpinned } from '@/app/components/PinTopApplier'
+import { useSaveGuard } from '@/app/components/useSaveGuard'
 import { EditGroupForm } from './EditGroupForm'
 
 const THEMES = [
@@ -123,41 +124,42 @@ export function SettingsPanel({
 
   const [uploading, setUploading] = useState(false)
   const [, startTransition] = useTransition()
+  const guard = useSaveGuard()
 
   function handleTheme(t: string) {
     setCurrentTheme(t)
     document.documentElement.dataset.theme = t // eslint-disable-line react-hooks/immutability -- intentional DOM mutation
-    startTransition(async () => { await setTheme(t) })
+    startTransition(async () => { guard(await setTheme(t)) })
   }
 
   function handleMode(m: TrackingMode) {
     setCurrentMode(m)
-    startTransition(async () => { await setTrackingMode(m) })
+    startTransition(async () => { guard(await setTrackingMode(m)) })
   }
 
   function handleGroups(enabled: boolean) {
     setGroupsOn(enabled)
-    startTransition(async () => { await setGroupsEnabled(enabled) })
+    startTransition(async () => { guard(await setGroupsEnabled(enabled)) })
   }
 
   function handleSubmotions(enabled: boolean) {
     setSubmotionsOn(enabled)
-    startTransition(async () => { await setSubmotionsEnabled(enabled) })
+    startTransition(async () => { guard(await setSubmotionsEnabled(enabled)) })
   }
 
   function handleCelebration(enabled: boolean) {
     setCelebration(enabled)
-    startTransition(async () => { await setCelebrationEnabled(enabled) })
+    startTransition(async () => { guard(await setCelebrationEnabled(enabled)) })
   }
 
   function handleHaptic(enabled: boolean) {
     setHaptic(enabled)
-    startTransition(async () => { await setHapticEnabled(enabled) })
+    startTransition(async () => { guard(await setHapticEnabled(enabled)) })
   }
 
   function handleCycleEmail(enabled: boolean) {
     setCycleEmail(enabled)
-    startTransition(async () => { await setEmailCycleCloseEnabled(enabled) })
+    startTransition(async () => { guard(await setEmailCycleCloseEnabled(enabled)) })
   }
 
   function startEditGoal() {
@@ -171,19 +173,19 @@ export function SettingsPanel({
       if (!val || val <= 0) { setEditingGoal(false); return }
       setGoalHrs(val)
       setEditingGoal(false)
-      startTransition(async () => { await setDailyGoalHours(val) })
+      startTransition(async () => { guard(await setDailyGoalHours(val)) })
     } else {
       const val = parseInt(goalInput)
       if (!val || val < 1) { setEditingGoal(false); return }
       setGoalPts(val)
       setEditingGoal(false)
-      startTransition(async () => { await setDailyGoal(val) })
+      startTransition(async () => { guard(await setDailyGoal(val)) })
     }
   }
 
   function handleUnhide(id: string) {
     setLocalHiddenIds(prev => new Set([...prev, id]))
-    startTransition(async () => { await unhideMotion(id) })
+    startTransition(async () => { guard(await unhideMotion(id)) })
   }
 
   const editingGroup = editingGroupId ? groups.find(g => g.id === editingGroupId) ?? null : null
@@ -253,7 +255,7 @@ export function SettingsPanel({
                     <button
                       onClick={() => {
                         setHasBackground(false)
-                        startTransition(async () => { await removeBackground() })
+                        startTransition(async () => { guard(await removeBackground()) })
                       }}
                       className="text-xs text-th-faint transition-colors hover:text-th-muted"
                     >
@@ -335,7 +337,7 @@ export function SettingsPanel({
                         layer.style.backgroundSize = 'cover'
                       }
                     }
-                    startTransition(() => setBackgroundPosition(pos))
+                    startTransition(async () => { guard(await setBackgroundPosition(pos)) })
                   }}
                   onCancel={() => setAdjusting(false)}
                 />
@@ -368,7 +370,7 @@ export function SettingsPanel({
                     <button
                       onClick={() => {
                         setBarColor(null)
-                        startTransition(async () => { await setProgressBarColor(null) })
+                        startTransition(async () => { guard(await setProgressBarColor(null)) })
                       }}
                       className="text-xs text-th-faint transition-colors hover:text-th-muted"
                     >
@@ -380,7 +382,7 @@ export function SettingsPanel({
                     value={barColor || themeBrand}
                     onChange={(e) => {
                       setBarColor(e.target.value)
-                      startTransition(async () => { await setProgressBarColor(e.target.value) })
+                      startTransition(async () => { guard(await setProgressBarColor(e.target.value)) })
                     }}
                     className="h-8 w-8 cursor-pointer rounded-lg border border-th-border bg-th-surface p-0.5"
                   />
@@ -524,7 +526,7 @@ export function SettingsPanel({
                             document.documentElement.dataset.theme ?? 'biarritz',
                             detectMode()
                           )
-                          startTransition(async () => { await createQuickGroup(name, color) })
+                          startTransition(async () => { guard(await createQuickGroup(name, color)) })
                         }}
                         className="rounded-full border border-th-border px-3 py-1 text-xs text-th-muted transition-colors hover:border-th-focus hover:text-th-text"
                       >

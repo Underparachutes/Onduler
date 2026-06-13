@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useTransition } from 'react'
 import Link from 'next/link'
 import { setAnchorTarget } from '@/app/actions/settings'
+import { useSaveGuard } from '@/app/components/useSaveGuard'
 
 type Props = {
   period: string
@@ -26,6 +27,7 @@ export function AnchorsToolbar({ period, unlocks, anchorCount, anchorTarget, anc
   const eyeRef = useRef<HTMLDivElement>(null)
   const [weeklyTarget, setWeeklyTarget] = useState(anchorTargetPerWeek)
   const [, startTransition] = useTransition()
+  const guard = useSaveGuard()
 
   useEffect(() => {
     if (!eyeOpen) return
@@ -42,7 +44,7 @@ export function AnchorsToolbar({ period, unlocks, anchorCount, anchorTarget, anc
   function adjust(delta: number) {
     const next = Math.max(0, Math.min(7, weeklyTarget + delta))
     setWeeklyTarget(next)
-    startTransition(async () => { await setAnchorTarget(next) })
+    startTransition(async () => { guard(await setAnchorTarget(next)) })
   }
 
   return (

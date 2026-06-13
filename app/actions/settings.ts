@@ -117,7 +117,8 @@ export async function setDailyGoal(goal: number) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
-  await supabase.from('user_settings').upsert({ user_id: user.id, daily_goal: goal })
+  const { error: goalErr } = await supabase.from('user_settings').upsert({ user_id: user.id, daily_goal: goal })
+  if (goalErr) return { error: goalErr.message }
 
   revalidatePath('/dashboard')
   return { success: true }
@@ -128,7 +129,8 @@ export async function setDailyGoalHours(hours: number) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
-  await supabase.from('user_settings').upsert({ user_id: user.id, daily_goal_hours: hours })
+  const { error: hoursErr } = await supabase.from('user_settings').upsert({ user_id: user.id, daily_goal_hours: hours })
+  if (hoursErr) return { error: hoursErr.message }
 
   revalidatePath('/dashboard')
   return { success: true }
@@ -139,7 +141,8 @@ export async function setTrackingMode(mode: 'points' | 'hours') {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
-  await supabase.from('user_settings').upsert({ user_id: user.id, tracking_mode: mode })
+  const { error: modeErr } = await supabase.from('user_settings').upsert({ user_id: user.id, tracking_mode: mode })
+  if (modeErr) return { error: modeErr.message }
 
   // When switching to hours mode, auto-populate target_hours for swells that
   // only have target_points set, using the daily goal ratio (hrs/pts).
@@ -166,10 +169,11 @@ export async function setTrackingMode(mode: 'points' | 'hours') {
       for (const s of swells) {
         const derived = Math.round(s.target_points! * ratio * 4) / 4
         if (derived > 0) {
-          await supabase
+          const { error: swellUpdateErr } = await supabase
             .from('swells')
             .update({ target_hours: derived })
             .eq('id', s.id)
+          if (swellUpdateErr) return { error: swellUpdateErr.message }
         }
       }
     }
@@ -187,7 +191,8 @@ export async function setCelebrationEnabled(enabled: boolean) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
-  await supabase.from('user_settings').upsert({ user_id: user.id, celebration_enabled: enabled })
+  const { error: celebErr } = await supabase.from('user_settings').upsert({ user_id: user.id, celebration_enabled: enabled })
+  if (celebErr) return { error: celebErr.message }
   return { success: true }
 }
 
@@ -195,7 +200,8 @@ export async function setHapticEnabled(enabled: boolean) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
-  await supabase.from('user_settings').upsert({ user_id: user.id, haptic_enabled: enabled })
+  const { error: hapticErr } = await supabase.from('user_settings').upsert({ user_id: user.id, haptic_enabled: enabled })
+  if (hapticErr) return { error: hapticErr.message }
   return { success: true }
 }
 
@@ -204,7 +210,8 @@ export async function setGroupsEnabled(enabled: boolean) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
-  await supabase.from('user_settings').upsert({ user_id: user.id, groups_enabled: enabled })
+  const { error: groupsErr } = await supabase.from('user_settings').upsert({ user_id: user.id, groups_enabled: enabled })
+  if (groupsErr) return { error: groupsErr.message }
 
   revalidatePath('/dashboard')
   revalidatePath('/anchors')
@@ -226,7 +233,8 @@ export async function markHintSeen(key: 'motions' | 'swells' | 'anchors_locked' 
   const hints = (current?.hints_seen as Record<string, boolean>) ?? {}
   hints[key] = true
 
-  await supabase.from('user_settings').upsert({ user_id: user.id, hints_seen: hints })
+  const { error: hintErr } = await supabase.from('user_settings').upsert({ user_id: user.id, hints_seen: hints })
+  if (hintErr) return { error: hintErr.message }
 
   return { success: true }
 }
@@ -236,7 +244,8 @@ export async function setSubmotionsEnabled(enabled: boolean) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
-  await supabase.from('user_settings').upsert({ user_id: user.id, submotions_enabled: enabled })
+  const { error: subErr } = await supabase.from('user_settings').upsert({ user_id: user.id, submotions_enabled: enabled })
+  if (subErr) return { error: subErr.message }
 
   revalidatePath('/dashboard')
   revalidatePath('/settings')
@@ -248,9 +257,10 @@ export async function setEmailCycleCloseEnabled(enabled: boolean) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
-  await supabase
+  const { error: emailErr } = await supabase
     .from('user_settings')
     .upsert({ user_id: user.id, email_cycle_close_enabled: enabled })
+  if (emailErr) return { error: emailErr.message }
 
   revalidatePath('/settings')
   return { success: true }
@@ -261,9 +271,10 @@ export async function setProgressBarColor(color: string | null) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
-  await supabase
+  const { error: colorErr } = await supabase
     .from('user_settings')
     .upsert({ user_id: user.id, progress_bar_color: color })
+  if (colorErr) return { error: colorErr.message }
 
   revalidatePath('/dashboard')
   revalidatePath('/anchors')
@@ -289,9 +300,10 @@ export async function uploadBackground(formData: FormData) {
   const { data: urlData } = supabase.storage.from('backgrounds').getPublicUrl(path)
 
   const url = `${urlData.publicUrl}?v=${Date.now()}`
-  await supabase
+  const { error: bgErr } = await supabase
     .from('user_settings')
     .upsert({ user_id: user.id, background_url: url })
+  if (bgErr) return { error: bgErr.message }
 
   revalidatePath('/', 'layout')
   return { success: true, url }
@@ -307,9 +319,10 @@ export async function removeBackground() {
     await supabase.storage.from('backgrounds').remove(files.map(f => `${user.id}/${f.name}`))
   }
 
-  await supabase
+  const { error: removeErr } = await supabase
     .from('user_settings')
     .upsert({ user_id: user.id, background_url: null })
+  if (removeErr) return { error: removeErr.message }
 
   revalidatePath('/', 'layout')
   return { success: true }
@@ -318,13 +331,15 @@ export async function removeBackground() {
 export async function setBackgroundPosition(position: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return
+  if (!user) return { error: 'Not authenticated' }
 
-  await supabase
+  const { error: posErr } = await supabase
     .from('user_settings')
     .upsert({ user_id: user.id, background_position: position })
+  if (posErr) return { error: posErr.message }
 
   revalidatePath('/', 'layout')
+  return { success: true }
 }
 
 export async function setAnchorTarget(target: number) {
@@ -333,9 +348,10 @@ export async function setAnchorTarget(target: number) {
   if (!user) return { error: 'Not authenticated' }
 
   const clamped = Math.max(0, Math.min(7, Math.round(target)))
-  await supabase
+  const { error: anchorErr } = await supabase
     .from('user_settings')
     .upsert({ user_id: user.id, anchor_target_per_week: clamped })
+  if (anchorErr) return { error: anchorErr.message }
 
   revalidatePath('/anchors')
   revalidatePath('/settings')

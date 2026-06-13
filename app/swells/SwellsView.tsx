@@ -9,6 +9,7 @@ import { SwellsList } from './SwellsList'
 import { AddSwellForm } from './AddSwellForm'
 import { AddGroupForm } from '@/app/dashboard/components/AddGroupForm'
 import { HintCard } from '@/app/components/HintCard'
+import { useSaveGuard } from '@/app/components/useSaveGuard'
 
 type Swell = { id: string; name: string; color: string }
 type MotionSwell = { id: string; name: string; color: string; weight: number }
@@ -313,11 +314,12 @@ export function SwellsView(props: Props) {
 function HiddenSwellsSection({ hiddenSwells }: { hiddenSwells: Swell[] }) {
   const [open, setOpen] = useState(false)
   const [pending, startRestore] = useTransition()
+  const guard = useSaveGuard()
 
   if (hiddenSwells.length === 0) return null
 
   function restore(id: string) {
-    startRestore(async () => { await setSwellHidden(id, false) })
+    startRestore(async () => { guard(await setSwellHidden(id, false)) })
   }
 
   const count = hiddenSwells.length

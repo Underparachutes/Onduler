@@ -126,7 +126,9 @@ async function maybeRecordWaypointHits(
   }
 
   if (newHits.length > 0) {
-    await supabase.from('milestone_hits').insert(newHits)
+    const { error: hitErr } = await supabase.from('milestone_hits').insert(newHits)
+    // Don't fail the action — the log itself succeeded; the hit can re-fire next log.
+    if (hitErr) console.error('milestone_hits insert failed:', hitErr.message)
   }
 }
 
@@ -175,7 +177,8 @@ export async function removeLogById(logId: string) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
-  await supabase.from('logs').delete().eq('id', logId).eq('user_id', user.id)
+  const { error: delErr } = await supabase.from('logs').delete().eq('id', logId).eq('user_id', user.id)
+  if (delErr) return { error: delErr.message }
 
   revalidatePath('/dashboard')
   revalidatePath('/anchors')
@@ -202,7 +205,8 @@ export async function unlogMotion(motionId: string) {
   const log = logs?.[0]
   if (!log) return { error: 'No log found' }
 
-  await supabase.from('logs').delete().eq('id', log.id)
+  const { error: unlogErr } = await supabase.from('logs').delete().eq('id', log.id)
+  if (unlogErr) return { error: unlogErr.message }
 
   revalidatePath('/dashboard')
   revalidatePath('/anchors')

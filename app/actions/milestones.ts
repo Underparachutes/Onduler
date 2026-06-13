@@ -132,11 +132,13 @@ export async function reorderMilestones(orderedIds: string[], swellId: string) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
-  await Promise.all(
+  const results = await Promise.all(
     orderedIds.map((id, index) =>
       supabase.from('milestones').update({ sort_order: index }).eq('id', id).eq('user_id', user.id)
     )
   )
+  const failed = results.find(r => r.error)
+  if (failed?.error) return { error: failed.error.message }
 
   revalidatePath(`/swells/${swellId}`)
   return { success: true }

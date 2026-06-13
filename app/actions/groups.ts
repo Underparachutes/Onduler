@@ -38,11 +38,13 @@ export async function reorderGroups(ids: string[]) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
-  await Promise.all(
+  const results = await Promise.all(
     ids.map((id, i) =>
       supabase.from('groups').update({ sort_order: i }).eq('id', id).eq('user_id', user.id)
     )
   )
+  const failed = results.find(r => r.error)
+  if (failed?.error) return { error: failed.error.message }
 
   revalidatePath('/dashboard')
   revalidatePath('/settings')
@@ -85,12 +87,14 @@ export async function createQuickGroup(name: string, color: string) {
     .eq('user_id', user.id)
     .eq('chapter_id', chapterId)
 
-  await supabase
+  const { error: insErr } = await supabase
     .from('groups')
     .insert({ user_id: user.id, chapter_id: chapterId, name, color, sort_order: count ?? 0 })
+  if (insErr) return { error: insErr.message }
 
   revalidatePath('/dashboard')
   revalidatePath('/settings')
+  return { success: true }
 }
 
 export async function deleteGroup(id: string) {
@@ -98,7 +102,9 @@ export async function deleteGroup(id: string) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return
 
-  await supabase.from('groups').delete().eq('id', id).eq('user_id', user.id)
+  const { error: delErr } = await supabase.from('groups').delete().eq('id', id).eq('user_id', user.id)
+  if (delErr) return { error: delErr.message }
   revalidatePath('/dashboard')
   revalidatePath('/settings')
+  return { success: true }
 }

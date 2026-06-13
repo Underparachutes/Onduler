@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { saveReflection } from '@/app/actions/reflections'
 import { archiveAndStartFreshChapter } from '@/app/actions/chapters'
+import { useSaveGuard } from '@/app/components/useSaveGuard'
 import { FrozenRadar } from './FrozenRadar'
 import { ceilDisplay, type DayKey } from '@/lib/periods'
 import { formatHrs } from '@/lib/format'
@@ -78,6 +79,7 @@ export function CycleCeremony({
   const [intention, setIntention] = useState('')
   const [chapterExpanded, setChapterExpanded] = useState(false)
   const [isPending, startTransition] = useTransition()
+  const guard = useSaveGuard()
 
   const isHours = trackingMode === 'hours'
   const totalActual = actuals.reduce((s, v) => s + v, 0)
@@ -90,7 +92,7 @@ export function CycleCeremony({
 
   function persist(didTune: boolean) {
     startTransition(async () => {
-      await saveReflection({
+      if (guard(await saveReflection({
         cadence,
         cycleStart,
         cycleEnd,
@@ -98,15 +100,16 @@ export function CycleCeremony({
         observationText: observation || null,
         intentionText: intention || null,
         didTune,
-      })
-      router.push('/anchors')
-      router.refresh()
+      }))) {
+        router.push('/anchors')
+        router.refresh()
+      }
     })
   }
 
   function goToSwells() {
     startTransition(async () => {
-      await saveReflection({
+      if (guard(await saveReflection({
         cadence,
         cycleStart,
         cycleEnd,
@@ -114,14 +117,15 @@ export function CycleCeremony({
         observationText: observation || null,
         intentionText: intention || null,
         didTune: true,
-      })
-      router.push('/swells')
+      }))) {
+        router.push('/swells')
+      }
     })
   }
 
   function goToMotions() {
     startTransition(async () => {
-      await saveReflection({
+      if (guard(await saveReflection({
         cadence,
         cycleStart,
         cycleEnd,
@@ -129,14 +133,15 @@ export function CycleCeremony({
         observationText: observation || null,
         intentionText: intention || null,
         didTune: true,
-      })
-      router.push('/dashboard')
+      }))) {
+        router.push('/dashboard')
+      }
     })
   }
 
   function confirmArchive() {
     startTransition(async () => {
-      await saveReflection({
+      if (!guard(await saveReflection({
         cadence,
         cycleStart,
         cycleEnd,
@@ -144,7 +149,7 @@ export function CycleCeremony({
         observationText: observation || null,
         intentionText: intention || null,
         didTune: true,
-      })
+      }))) return
       const result = await archiveAndStartFreshChapter()
       if (result && 'error' in result && result.error) {
         // Surface failure but stay on the page so the user can retry.

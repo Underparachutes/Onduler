@@ -22,7 +22,8 @@ export async function setBuildSlot(slot: BuildSlot, key: string | null) {
   if (key !== null && !isValidBuildKey(key)) return { error: 'Invalid build key' }
 
   const column = slot === 'primary' ? 'primary_build' : 'secondary_build'
-  await supabase.from('user_settings').upsert({ user_id: user.id, [column]: key })
+  const { error: slotErr } = await supabase.from('user_settings').upsert({ user_id: user.id, [column]: key })
+  if (slotErr) return { error: slotErr.message }
 
   revalidatePath('/settings')
   revalidatePath('/settings/shape')

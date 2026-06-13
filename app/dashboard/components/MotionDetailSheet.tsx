@@ -26,6 +26,7 @@ import { formatPts, formatHrs } from '@/lib/format'
 import { parseHoursInput } from '@/lib/periods'
 import { applyWeightEdit, defaultWeightForNewSwell, totalAllocation } from '@/lib/contributions'
 import { useToast } from '@/app/components/Toast'
+import { useSaveGuard } from '@/app/components/useSaveGuard'
 import { CadenceSection } from './CadenceSection'
 
 type Swell = { id: string; name: string; color: string }
@@ -265,6 +266,7 @@ export function MotionDetailSheet({
   const subDelta = (s: Submotion) => trackingMode === 'hours' ? Number(s.default_hours) : s.default_points
   const router = useRouter()
   const toast = useToast()
+  const guard = useSaveGuard()
   const [localDone, setLocalDone] = useState(() => new Set(doneMotionIds))
   const [, startTransition] = useTransition()
 
@@ -284,8 +286,7 @@ export function MotionDetailSheet({
     lastValidName.current = trimmed
     setHeaderName(trimmed)
     startHeaderSave(async () => {
-      await updateMotionDirect(motion.id, trimmed, parseInt(lastValidPts.current), parseFloat(lastValidHrs.current))
-      router.refresh()
+      if (guard(await updateMotionDirect(motion.id, trimmed, parseInt(lastValidPts.current), parseFloat(lastValidHrs.current)))) router.refresh()
     })
   }
 
@@ -297,8 +298,7 @@ export function MotionDetailSheet({
     lastValidPts.current = str
     setHeaderPts(str)
     startHeaderSave(async () => {
-      await updateMotionDirect(motion.id, lastValidName.current, num, parseFloat(lastValidHrs.current))
-      router.refresh()
+      if (guard(await updateMotionDirect(motion.id, lastValidName.current, num, parseFloat(lastValidHrs.current)))) router.refresh()
     })
   }
 
@@ -311,8 +311,7 @@ export function MotionDetailSheet({
     lastValidHrs.current = str
     setHeaderHrs(str)
     startHeaderSave(async () => {
-      await updateMotionDirect(motion.id, lastValidName.current, parseInt(lastValidPts.current), rounded)
-      router.refresh()
+      if (guard(await updateMotionDirect(motion.id, lastValidName.current, parseInt(lastValidPts.current), rounded))) router.refresh()
     })
   }
 
@@ -345,7 +344,7 @@ export function MotionDetailSheet({
       orderedSubs.findIndex(s => s.id === over.id)
     )
     setOrderedSubs(next)
-    startReorderSub(async () => { await reorderMotions(next.map(s => s.id)) })
+    startReorderSub(async () => { guard(await reorderMotions(next.map(s => s.id))) })
   }
 
   // Add submotion — expandable from + button
@@ -372,8 +371,7 @@ export function MotionDetailSheet({
     const next = mode === 'rollup' ? 'distribute' : 'rollup'
     setMode(next)
     startMode(async () => {
-      await setSubmotionMode(motion.id, next)
-      router.refresh()
+      if (guard(await setSubmotionMode(motion.id, next))) router.refresh()
     })
   }
 
@@ -430,7 +428,7 @@ export function MotionDetailSheet({
     }
     setEditSubSwellWeights(next)
     setEditSubSwellPctDraft(syncPctDraft(next))
-    startTransition(async () => { await setMotionSwells(editingSubId, swellEntriesToArray(next)) })
+    startTransition(async () => { guard(await setMotionSwells(editingSubId, swellEntriesToArray(next))) })
   }
 
   function editSubSwellPctChange(swellId: string, value: string) {
@@ -448,7 +446,7 @@ export function MotionDetailSheet({
     const next = applyWeightEdit(editSubSwellWeights, swellId, num / 100)
     setEditSubSwellWeights(next)
     setEditSubSwellPctDraft(syncPctDraft(next))
-    startTransition(async () => { await setMotionSwells(editingSubId!, swellEntriesToArray(next)) })
+    startTransition(async () => { guard(await setMotionSwells(editingSubId!, swellEntriesToArray(next))) })
   }
 
   function saveEditSub(sub: Submotion) {
@@ -456,7 +454,7 @@ export function MotionDetailSheet({
     const pts = parseInt(editSubPts)
     if (!name || isNaN(pts) || pts < 1) return
     startSavingSub(async () => {
-      await updateSubmotionDirect(sub.id, name, pts)
+      if (!guard(await updateSubmotionDirect(sub.id, name, pts))) return
       setEditingSubId(null)
       router.refresh()
     })
@@ -469,7 +467,7 @@ export function MotionDetailSheet({
     } else {
       if (subDelTimer.current) clearTimeout(subDelTimer.current)
       startDeletingSub(async () => {
-        await deleteMotion(subId)
+        if (!guard(await deleteMotion(subId))) return
         setEditingSubId(null)
         setConfirmingSubDel(null)
         router.refresh()
@@ -504,7 +502,7 @@ export function MotionDetailSheet({
     if (done) {
       setLocalDone(prev => { const n = new Set(prev); n.delete(sub.id); return n })
       onPointsDelta(-delta)
-      startTransition(async () => { await unlogMotion(sub.id) })
+      startTransition(async () => { guard(await unlogMotion(sub.id)) })
     } else {
       setLocalDone(prev => new Set([...prev, sub.id]))
       onPointsDelta(delta)
@@ -517,12 +515,12 @@ export function MotionDetailSheet({
           hours: Number(sub.default_hours),
         },
       }))
-      startTransition(async () => { await quickLogMotion(sub.id) })
+      startTransition(async () => { guard(await quickLogMotion(sub.id)) })
     }
   }
 
   function handleHide() {
-    startTransition(async () => { await hideMotion(motion.id); onHide(motion.id); onClose() })
+    startTransition(async () => { if (!guard(await hideMotion(motion.id))) return; onHide(motion.id); onClose() })
   }
 
   function handleAdd() {
@@ -534,8 +532,9 @@ export function MotionDetailSheet({
     const stampMode = orderedSubs.length === 0 ? mode : undefined
     startAdding(async () => {
       const result = await createSubmotion(motion.id, name, stampMode)
+      if (!guard(result)) return
       if (result?.id && swellsToAssign.length > 0) {
-        await setMotionSwells(result.id, swellsToAssign)
+        guard(await setMotionSwells(result.id, swellsToAssign))
       }
       setAddName('')
       setAddSwellWeights(new Map())
@@ -597,7 +596,7 @@ export function MotionDetailSheet({
       confirmTimer.current = setTimeout(() => setConfirming(false), 3000)
     } else {
       if (confirmTimer.current) clearTimeout(confirmTimer.current)
-      startDelete(async () => { await deleteMotion(motion.id); onClose() })
+      startDelete(async () => { if (guard(await deleteMotion(motion.id))) onClose() })
     }
   }
 
@@ -614,20 +613,20 @@ export function MotionDetailSheet({
     }
     setLocalSwellWeights(next)
     setSwellPctDraft(syncPctDraft(next))
-    startSwells(async () => { await setMotionSwells(motion.id, swellEntries(next)) })
+    startSwells(async () => { guard(await setMotionSwells(motion.id, swellEntries(next))) })
   }
 
   function updateSwellWeight(swellId: string, pct: number) {
     const next = applyWeightEdit(localSwellWeights, swellId, pct / 100)
     setLocalSwellWeights(next)
     setSwellPctDraft(syncPctDraft(next))
-    startSwells(async () => { await setMotionSwells(motion.id, swellEntries(next)) })
+    startSwells(async () => { guard(await setMotionSwells(motion.id, swellEntries(next))) })
   }
 
   function toggleGroup(groupId: string) {
     const next = localGroupId === groupId ? null : groupId
     setLocalGroupId(next)
-    startGroups(async () => { await setMotionGroup(motion.id, next) })
+    startGroups(async () => { guard(await setMotionGroup(motion.id, next)) })
   }
 
   return (

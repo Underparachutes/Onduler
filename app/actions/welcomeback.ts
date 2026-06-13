@@ -10,11 +10,12 @@ export async function setWelcomeBackMode(mode: WelcomeBackMode) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
-  await supabase.from('user_settings').upsert({
+  const { error: modeErr } = await supabase.from('user_settings').upsert({
     user_id: user.id,
     welcome_back_mode: mode,
     welcome_back_started_at: new Date().toISOString(),
   })
+  if (modeErr) return { error: modeErr.message }
 
   revalidatePath('/dashboard')
   revalidatePath('/anchors')
@@ -26,11 +27,12 @@ export async function clearWelcomeBack() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
-  await supabase.from('user_settings').upsert({
+  const { error: clearErr } = await supabase.from('user_settings').upsert({
     user_id: user.id,
     welcome_back_mode: null,
     welcome_back_started_at: null,
   })
+  if (clearErr) return { error: clearErr.message }
 
   revalidatePath('/dashboard')
   revalidatePath('/anchors')
@@ -61,10 +63,11 @@ export async function setMvsMotions(shapeKey: string, motionIds: string[]) {
   }
   const persisted = Object.keys(next).length === 0 ? null : next
 
-  await supabase.from('user_settings').upsert({
+  const { error: mvsErr } = await supabase.from('user_settings').upsert({
     user_id: user.id,
     mvs_motions: persisted,
   })
+  if (mvsErr) return { error: mvsErr.message }
 
   revalidatePath('/settings/shape')
   revalidatePath('/wave/return/welcome')

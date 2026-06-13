@@ -104,7 +104,8 @@ export async function updateMotion(id: string, prevState: unknown, formData: For
     .eq('user_id', user.id)
 
   if (count && count > 0) {
-    await rebalanceSubmotionBudget(supabase, id, user.id)
+    const rebalanceErr = await rebalanceSubmotionBudget(supabase, id, user.id)
+    if (rebalanceErr) return { error: rebalanceErr }
   }
 
   revalidatePath('/dashboard')
@@ -126,15 +127,18 @@ export async function deleteMotion(id: string) {
     .eq('user_id', user.id)
     .single()
 
-  await supabase.from('motions').delete().eq('id', id).eq('user_id', user.id)
+  const { error: delErr } = await supabase.from('motions').delete().eq('id', id).eq('user_id', user.id)
+  if (delErr) return { error: delErr.message }
 
   if (motion?.parent_id) {
-    await rebalanceSubmotionBudget(supabase, motion.parent_id, user.id)
+    const rebalanceErr = await rebalanceSubmotionBudget(supabase, motion.parent_id, user.id)
+    if (rebalanceErr) return { error: rebalanceErr }
   }
 
   revalidatePath('/dashboard')
   revalidatePath('/swells')
   revalidatePath('/settings')
+  return { success: true }
 }
 
 export async function setMotionSwells(
@@ -145,17 +149,19 @@ export async function setMotionSwells(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
-  await supabase.from('motion_swells').delete().eq('motion_id', motionId)
+  const { error: clearErr } = await supabase.from('motion_swells').delete().eq('motion_id', motionId)
+  if (clearErr) return { error: clearErr.message }
 
   if (entries.length > 0) {
     const normalized = normalizeEntries(entries)
-    await supabase.from('motion_swells').insert(
+    const { error: insErr } = await supabase.from('motion_swells').insert(
       normalized.map(({ swellId, weight }) => ({
         motion_id: motionId,
         swell_id: swellId,
         contribution_weight: weight,
       }))
     )
+    if (insErr) return { error: insErr.message }
   }
 
   revalidatePath('/swells')
@@ -193,7 +199,8 @@ export async function updateMotionDirect(
     .eq('user_id', user.id)
 
   if (count && count > 0) {
-    await rebalanceSubmotionBudget(supabase, id, user.id)
+    const rebalanceErr = await rebalanceSubmotionBudget(supabase, id, user.id)
+    if (rebalanceErr) return { error: rebalanceErr }
   }
 
   revalidatePath('/dashboard')
@@ -246,11 +253,12 @@ export async function createSubmotion(
       .eq('user_id', user.id)
       .single()
     if (parent && parent.submotion_mode == null) {
-      await supabase
+      const { error: modeErr } = await supabase
         .from('motions')
         .update({ submotion_mode: mode })
         .eq('id', parentId)
         .eq('user_id', user.id)
+      if (modeErr) return { error: modeErr.message }
     }
   }
 
@@ -265,7 +273,8 @@ export async function createSubmotion(
 
   if (error) return { error: error.message }
 
-  await rebalanceSubmotionBudget(supabase, parentId, user.id)
+  const rebalanceErr = await rebalanceSubmotionBudget(supabase, parentId, user.id)
+  if (rebalanceErr) return { error: rebalanceErr }
 
   revalidatePath('/dashboard')
   revalidatePath('/swells')
@@ -277,13 +286,15 @@ export async function setSubmotionMode(parentId: string, mode: 'distribute' | 'r
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
-  await supabase
+  const { error: modeErr } = await supabase
     .from('motions')
     .update({ submotion_mode: mode })
     .eq('id', parentId)
     .eq('user_id', user.id)
+  if (modeErr) return { error: modeErr.message }
 
-  await rebalanceSubmotionBudget(supabase, parentId, user.id)
+  const rebalanceErr = await rebalanceSubmotionBudget(supabase, parentId, user.id)
+  if (rebalanceErr) return { error: rebalanceErr }
 
   revalidatePath('/dashboard')
   revalidatePath('/swells')
@@ -295,11 +306,13 @@ export async function hideMotion(id: string) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return
 
-  await supabase.from('motions').update({ hidden: true }).eq('id', id).eq('user_id', user.id)
+  const { error: hideErr } = await supabase.from('motions').update({ hidden: true }).eq('id', id).eq('user_id', user.id)
+  if (hideErr) return { error: hideErr.message }
 
   revalidatePath('/dashboard')
   revalidatePath('/swells')
   revalidatePath('/settings')
+  return { success: true }
 }
 
 export async function reorderMotions(orderedIds: string[]) {
@@ -307,13 +320,16 @@ export async function reorderMotions(orderedIds: string[]) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return
 
-  await Promise.all(
+  const results = await Promise.all(
     orderedIds.map((id, index) =>
       supabase.from('motions').update({ sort_order: index }).eq('id', id).eq('user_id', user.id)
     )
   )
+  const failed = results.find(r => r.error)
+  if (failed?.error) return { error: failed.error.message }
 
   revalidatePath('/dashboard')
+  return { success: true }
 }
 
 export async function unhideMotion(id: string) {
@@ -321,11 +337,13 @@ export async function unhideMotion(id: string) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return
 
-  await supabase.from('motions').update({ hidden: false }).eq('id', id).eq('user_id', user.id)
+  const { error: unhideErr } = await supabase.from('motions').update({ hidden: false }).eq('id', id).eq('user_id', user.id)
+  if (unhideErr) return { error: unhideErr.message }
 
   revalidatePath('/dashboard')
   revalidatePath('/swells')
   revalidatePath('/settings')
+  return { success: true }
 }
 
 export async function reassignMotionToGroup(
@@ -338,13 +356,14 @@ export async function reassignMotionToGroup(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
-  await supabase
+  const { error: moveErr } = await supabase
     .from('motions')
     .update({ group_id: toGroupId })
     .eq('id', motionId)
     .eq('user_id', user.id)
+  if (moveErr) return { error: moveErr.message }
 
-  await Promise.all([
+  const results = await Promise.all([
     ...sourceOrderedIds.map((id, index) =>
       supabase.from('motions').update({ sort_order: index }).eq('id', id).eq('user_id', user.id)
     ),
@@ -352,6 +371,8 @@ export async function reassignMotionToGroup(
       supabase.from('motions').update({ sort_order: index }).eq('id', id).eq('user_id', user.id)
     ),
   ])
+  const failed = results.find(r => r.error)
+  if (failed?.error) return { error: failed.error.message }
 
   revalidatePath('/dashboard')
   return { success: true }
@@ -361,7 +382,7 @@ async function rebalanceSubmotionBudget(
   supabase: Awaited<ReturnType<typeof createClient>>,
   parentId: string,
   userId: string
-) {
+): Promise<string | null> {
   const { data: parent } = await supabase
     .from('motions')
     .select('default_points, default_hours, submotion_mode')
@@ -369,7 +390,7 @@ async function rebalanceSubmotionBudget(
     .eq('user_id', userId)
     .single()
 
-  if (!parent) return
+  if (!parent) return null
 
   const { data: subs } = await supabase
     .from('motions')
@@ -378,7 +399,7 @@ async function rebalanceSubmotionBudget(
     .eq('user_id', userId)
     .order('created_at', { ascending: true })
 
-  if (!subs || subs.length === 0) return
+  if (!subs || subs.length === 0) return null
 
   // Rollup: every child carries the parent's full pts/hrs.
   // Distribute (or NULL = default): divide pts/hrs evenly across children.
@@ -390,7 +411,7 @@ async function rebalanceSubmotionBudget(
     ? parseFloat(Number(parent.default_hours).toFixed(2))
     : parseFloat((Number(parent.default_hours) / count).toFixed(2))
 
-  await Promise.all(
+  const results = await Promise.all(
     subs.map((sub, i) =>
       supabase
         .from('motions')
@@ -401,6 +422,9 @@ async function rebalanceSubmotionBudget(
         .eq('id', sub.id)
     )
   )
+  const failed = results.find(r => r.error)
+  if (failed?.error) return failed.error.message
+  return null
 }
 
 export async function duplicateMotion(
@@ -439,11 +463,12 @@ export async function duplicateMotion(
   if (error) return { error: error.message }
 
   if (opts?.swellId && inserted) {
-    await supabase.from('motion_swells').insert({
+    const { error: linkErr } = await supabase.from('motion_swells').insert({
       motion_id: inserted.id,
       swell_id: opts.swellId,
       contribution_weight: opts.weight ?? 1,
     })
+    if (linkErr) return { error: linkErr.message }
   }
 
   revalidatePath('/dashboard')
@@ -456,11 +481,12 @@ export async function setMotionGroup(motionId: string, groupId: string | null) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
-  await supabase
+  const { error: grpErr } = await supabase
     .from('motions')
     .update({ group_id: groupId })
     .eq('id', motionId)
     .eq('user_id', user.id)
+  if (grpErr) return { error: grpErr.message }
 
   revalidatePath('/dashboard')
   revalidatePath('/swells')

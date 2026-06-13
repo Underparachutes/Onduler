@@ -4,6 +4,7 @@ import { useEffect, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { logMotionOnDay, removeLogById } from '@/app/actions/logs'
 import { formatHrs } from '@/lib/format'
+import { useSaveGuard } from '@/app/components/useSaveGuard'
 
 type MotionSwell = { id: string; name: string; color: string; weight: number }
 type Motion = { id: string; name: string; default_points: number; default_hours: number; swells: MotionSwell[]; groupId: string | null; submotionMode: 'distribute' | 'rollup' | null }
@@ -153,6 +154,7 @@ export function WeekEditView({
 }: Props) {
   const [, startTransition] = useTransition()
   const router = useRouter()
+  const guard = useSaveGuard()
   const dayKeys = getWeekDayKeys(weekOffset)
 
   const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }))
@@ -181,8 +183,7 @@ export function WeekEditView({
       })
       onLogDelta?.(delta)
       startTransition(async () => {
-        await logMotionOnDay(motionId, dayKey)
-        router.refresh()
+        if (guard(await logMotionOnDay(motionId, dayKey))) router.refresh()
       })
     } else {
       const removeId = logIds[0]
@@ -196,8 +197,7 @@ export function WeekEditView({
       })
       onLogDelta?.(-delta)
       startTransition(async () => {
-        await removeLogById(removeId)
-        router.refresh()
+        if (guard(await removeLogById(removeId))) router.refresh()
       })
     }
   }

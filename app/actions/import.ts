@@ -230,7 +230,9 @@ export async function confirmImport(preview: ImportPreview, clearMode: ImportCle
   // otherwise the imported organization is invisible until the user finds
   // the Settings toggle. (User-facing word is "buckets" per ADR 0012.)
   if (preview.groups.length > 0) {
-    await supabase.from('user_settings').upsert({ user_id: user.id, groups_enabled: true })
+    const { error: gErr } = await supabase.from('user_settings').upsert({ user_id: user.id, groups_enabled: true })
+    // Don't fail the whole import over this — the entities were already created successfully.
+    if (gErr) console.error('Import succeeded but enabling buckets failed:', gErr.message)
   }
 
   revalidatePath('/dashboard')

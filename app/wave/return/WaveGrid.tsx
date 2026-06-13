@@ -3,12 +3,14 @@
 import { useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { recordWaveCheckin } from '@/app/actions/wave'
+import { useSaveGuard } from '@/app/components/useSaveGuard'
 
 export function WaveGrid({ durationSeconds }: { durationSeconds: number | null }) {
   const [point, setPoint] = useState<{ x: number; y: number } | null>(null)
   const [isPending, startTransition] = useTransition()
   const gridRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
+  const guard = useSaveGuard()
 
   function handleInteraction(clientX: number, clientY: number) {
     const rect = gridRef.current?.getBoundingClientRect()
@@ -31,8 +33,9 @@ export function WaveGrid({ durationSeconds }: { durationSeconds: number | null }
   function submit() {
     if (!point) return
     startTransition(async () => {
-      await recordWaveCheckin(point.x, point.y, durationSeconds)
-      router.push('/wave/return/welcome')
+      if (guard(await recordWaveCheckin(point.x, point.y, durationSeconds))) {
+        router.push('/wave/return/welcome')
+      }
     })
   }
 

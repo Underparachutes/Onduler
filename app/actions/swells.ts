@@ -60,11 +60,12 @@ export async function updateSwell(id: string, prevState: unknown, formData: Form
   const target_points = targetPointsRaw ? parseInt(targetPointsRaw) || null : null
   const target_hours = targetHoursRaw ? parseHoursInput(targetHoursRaw) : null
 
-  await supabase
+  const { error: updErr } = await supabase
     .from('swells')
     .update({ name, color, target_points, target_hours })
     .eq('id', id)
     .eq('user_id', user.id)
+  if (updErr) return { error: updErr.message }
 
   revalidatePath('/swells')
   return { success: true }
@@ -75,8 +76,10 @@ export async function deleteSwell(id: string) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return
 
-  await supabase.from('swells').delete().eq('id', id).eq('user_id', user.id)
+  const { error: delErr } = await supabase.from('swells').delete().eq('id', id).eq('user_id', user.id)
+  if (delErr) return { error: delErr.message }
   revalidatePath('/swells')
+  return { success: true }
 }
 
 // Hide / restore a swell. Hidden swells stay in the database with all their
@@ -107,11 +110,12 @@ export async function setSwellGroup(swellId: string, groupId: string | null) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
-  await supabase
+  const { error: grpErr } = await supabase
     .from('swells')
     .update({ group_id: groupId })
     .eq('id', swellId)
     .eq('user_id', user.id)
+  if (grpErr) return { error: grpErr.message }
 
   revalidatePath('/swells')
   revalidatePath('/dashboard')
@@ -123,13 +127,16 @@ export async function reorderSwells(orderedIds: string[]) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return
 
-  await Promise.all(
+  const results = await Promise.all(
     orderedIds.map((id, index) =>
       supabase.from('swells').update({ sort_order: index }).eq('id', id).eq('user_id', user.id)
     )
   )
+  const failed = results.find(r => r.error)
+  if (failed?.error) return { error: failed.error.message }
 
   revalidatePath('/swells')
+  return { success: true }
 }
 
 // Single-target edit used by the Logs radar drag. Caller passes the

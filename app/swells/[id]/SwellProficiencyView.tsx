@@ -10,6 +10,7 @@ import { hideMotion } from '@/app/actions/motions'
 import { AddMotionForm } from '@/app/dashboard/components/AddMotionForm'
 import { MotionDetailSheet } from '@/app/dashboard/components/MotionDetailSheet'
 import { MilestonesSection, type Milestone } from './MilestonesSection'
+import { useSaveGuard } from '@/app/components/useSaveGuard'
 
 type Swell = {
   id: string
@@ -124,6 +125,7 @@ export function SwellProficiencyView({
   submotionsEnabled,
 }: Props) {
   const router = useRouter()
+  const guard = useSaveGuard()
   const [timeView, setTimeView] = useState<TimeView>('week')
   const [viewMode, setViewMode] = useState<ViewMode>('constellation')
   const [addOpen, setAddOpen] = useState(false)
@@ -140,8 +142,9 @@ export function SwellProficiencyView({
 
   function persistAll(name: string, color: string, targetPts: number | null, targetHrs: number | null) {
     startSave(async () => {
-      await updateSwellDirect(swell.id, name, color, targetPts, targetHrs)
-      router.refresh()
+      if (guard(await updateSwellDirect(swell.id, name, color, targetPts, targetHrs))) {
+        router.refresh()
+      }
     })
   }
 
@@ -202,7 +205,7 @@ export function SwellProficiencyView({
   function toggleGroup(groupId: string) {
     const next = localGroupId === groupId ? null : groupId
     setLocalGroupId(next)
-    startGroup(async () => { await setSwellGroup(swell.id, next) })
+    startGroup(async () => { guard(await setSwellGroup(swell.id, next)) })
   }
 
   // Delete — two-tap confirm pattern, matches MotionDetailSheet.
@@ -217,8 +220,9 @@ export function SwellProficiencyView({
     }
     if (deleteTimer.current) clearTimeout(deleteTimer.current)
     startDelete(async () => {
-      await deleteSwell(swell.id)
-      router.push('/swells')
+      if (guard(await deleteSwell(swell.id))) {
+        router.push('/swells')
+      }
     })
   }
 
@@ -299,7 +303,7 @@ export function SwellProficiencyView({
   function toggleHidden() {
     const next = !swell.hidden
     startHide(async () => {
-      await setSwellHidden(swell.id, next)
+      if (!guard(await setSwellHidden(swell.id, next))) return
       // Hiding moves the swell out of the main list; bouncing back to the
       // swells page makes the action feel resolved. Restoring keeps the user
       // on the proficiency view since the swell is now visible again.
@@ -768,11 +772,11 @@ export function SwellProficiencyView({
             onPointsDelta={() => router.refresh()}
             onHide={(id) => {
               setSelectedMotionId(null)
-              hideMotion(id).then(() => router.refresh())
+              hideMotion(id).then(result => { if (guard(result)) router.refresh() })
             }}
             isLogged={isLogged}
             onUnlog={() => {
-              unlogMotion(selectedMotionId).then(() => router.refresh())
+              unlogMotion(selectedMotionId).then(result => { if (guard(result)) router.refresh() })
             }}
             allSwells={allSwells}
             allGroups={allGroups}

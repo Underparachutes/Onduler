@@ -5,6 +5,7 @@ import { BUILD_PRESETS, getBuildPreset, type BuildKey } from '@/lib/builds'
 import { adoptBuild, setBuildSlot } from '@/app/actions/builds'
 import { detectMode } from '@/lib/theme-colors'
 import { setMvsMotions } from '@/app/actions/welcomeback'
+import { useSaveGuard } from '@/app/components/useSaveGuard'
 
 type SlotKey = 'primary' | 'secondary'
 type MvsMotion = { id: string; name: string; logCount: number }
@@ -23,6 +24,7 @@ export function ShapePicker({ primary, existingSwellNames, mvsPool, resolvedMvsI
   const [primarySlot, setPrimarySlot] = useState<string | null>(primary)
   const [previewKey, setPreviewKey] = useState<BuildKey | null>(null)
   const [isPending, startTransition] = useTransition()
+  const guard = useSaveGuard()
 
   const existingLowered = useMemo(
     () => new Set(existingSwellNames.map(n => n.trim().toLowerCase())),
@@ -39,7 +41,7 @@ export function ShapePicker({ primary, existingSwellNames, mvsPool, resolvedMvsI
 
   function clearSlot(slot: SlotKey) {
     setPrimarySlot(null)
-    startTransition(async () => { await setBuildSlot(slot, null) })
+    startTransition(async () => { guard(await setBuildSlot(slot, null)) })
   }
 
   if (previewKey) {
@@ -51,7 +53,7 @@ export function ShapePicker({ primary, existingSwellNames, mvsPool, resolvedMvsI
         onConfirm={(names) => {
           setPrimarySlot(previewKey)
           startTransition(async () => {
-            await adoptBuild('primary', previewKey, names, detectMode())
+            guard(await adoptBuild('primary', previewKey, names, detectMode()))
           })
           setPreviewKey(null)
         }}
@@ -159,6 +161,7 @@ function StillShowingUpEditor({
   const [ids, setIds] = useState<string[]>(initialIds)
   const [adding, setAdding] = useState(false)
   const [, startSave] = useTransition()
+  const guard = useSaveGuard()
 
   const byId = useMemo(() => new Map(pool.map(m => [m.id, m])), [pool])
   const available = pool.filter(m => !ids.includes(m.id))
@@ -166,7 +169,7 @@ function StillShowingUpEditor({
 
   function persist(next: string[]) {
     setIds(next)
-    startSave(async () => { await setMvsMotions(shapeKey, next) })
+    startSave(async () => { guard(await setMvsMotions(shapeKey, next)) })
   }
 
   function removeAt(motionId: string) {
@@ -182,7 +185,7 @@ function StillShowingUpEditor({
   function resetToDefaults() {
     // Passing [] clears the override; the page recomputes defaults on next read.
     setIds([])
-    startSave(async () => { await setMvsMotions(shapeKey, []) })
+    startSave(async () => { guard(await setMvsMotions(shapeKey, [])) })
   }
 
   return (

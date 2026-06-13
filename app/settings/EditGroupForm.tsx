@@ -4,6 +4,7 @@ import { useActionState, useEffect, useMemo, useRef, useState, useTransition } f
 import { updateGroup, deleteGroup } from '@/app/actions/groups'
 import { setMotionGroup } from '@/app/actions/motions'
 import { setSwellGroup } from '@/app/actions/swells'
+import { useSaveGuard } from '@/app/components/useSaveGuard'
 
 type Group = { id: string; name: string; color: string }
 type Motion = { id: string; name: string; group_id: string | null }
@@ -32,6 +33,7 @@ export function EditGroupForm({ group, allGroups, motions, swells, onClose }: Pr
     () => new Map(swells.map(s => [s.id, s.group_id]))
   )
   const [, startAssign] = useTransition()
+  const guard = useSaveGuard()
 
   const groupNameById = useMemo(
     () => new Map(allGroups.map(g => [g.id, g.name])),
@@ -54,8 +56,7 @@ export function EditGroupForm({ group, allGroups, motions, swells, onClose }: Pr
     }
     if (confirmTimer.current) clearTimeout(confirmTimer.current)
     startDelete(async () => {
-      await deleteGroup(group.id)
-      onClose()
+      if (guard(await deleteGroup(group.id))) onClose()
     })
   }
 
@@ -63,14 +64,14 @@ export function EditGroupForm({ group, allGroups, motions, swells, onClose }: Pr
     const current = motionGroupById.get(motionId) ?? null
     const next = current === group.id ? null : group.id
     setMotionGroupById(prev => new Map(prev).set(motionId, next))
-    startAssign(async () => { await setMotionGroup(motionId, next) })
+    startAssign(async () => { guard(await setMotionGroup(motionId, next)) })
   }
 
   function toggleSwell(swellId: string) {
     const current = swellGroupById.get(swellId) ?? null
     const next = current === group.id ? null : group.id
     setSwellGroupById(prev => new Map(prev).set(swellId, next))
-    startAssign(async () => { await setSwellGroup(swellId, next) })
+    startAssign(async () => { guard(await setSwellGroup(swellId, next)) })
   }
 
   return (

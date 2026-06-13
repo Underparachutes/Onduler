@@ -16,14 +16,16 @@ export async function recordWaveCheckin(
 
   const chapterId = await getActiveChapterId(supabase, user.id)
 
-  await supabase.from('wave_checkins').insert({
+  const { error: checkinErr } = await supabase.from('wave_checkins').insert({
     user_id: user.id,
     chapter_id: chapterId,
     energy,
     alignment,
     duration_seconds: durationSeconds,
   })
+  if (checkinErr) return { error: checkinErr.message }
 
   revalidatePath('/dashboard')
   revalidatePath('/anchors')
+  return { success: true }
 }
