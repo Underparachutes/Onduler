@@ -306,7 +306,15 @@ export function DailyChecklist({
   const [openSheetId, setOpenSheetId] = useState<string | null>(initialDetailId ?? null)
   const [localHiddenIds, setLocalHiddenIds] = useState<Set<string>>(new Set())
   const [celebration, setCelebration] = useState<CelebrationState | null>(null)
-  const [targetSweep, setTargetSweep] = useState<{ color: string } | null>(null)
+  const [targetSweep, setTargetSweep] = useState<{ color: string; id: number } | null>(null)
+  const sweepIdRef = useRef(0)
+  // Bumping a fresh id (used as the overlay's key) restarts the animation even
+  // when the color repeats, so the preview button below replays on every tap.
+  const fireSweep = (color: string) => setTargetSweep({ color, id: ++sweepIdRef.current })
+  // Hidden preview: add ?wavetest to the dashboard URL to show a button that
+  // fires the target celebration on demand, no motions or target cross needed.
+  const [showWaveTest] = useState(() => typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('wavetest'))
+  const waveTestIdx = useRef(0)
   const swellProgressRef = useRef({ ...swellWeeklyProgress })
   // Re-seed the running progress baseline whenever the server value changes
   // (e.g. after the weekly calendar refreshes the page). Daily-checkbox logs
@@ -547,7 +555,7 @@ export function DailyChecklist({
           const base = isHours ? Number(motion.default_hours) : motion.default_points
           const after = before + base * ms.weight * mult
           if (before < target && after >= target) {
-            setTargetSweep({ color: ms.color })
+            fireSweep(ms.color)
             break
           }
         }
@@ -696,10 +704,22 @@ export function DailyChecklist({
     </div>
   )
 
-  const celebrationOverlay = (celebration || targetSweep) && (
+  const celebrationOverlay = (celebration || targetSweep || showWaveTest) && (
     <>
       {celebration && <CelebrationOverlay celebration={celebration} onDone={() => setCelebration(null)} />}
-      {targetSweep && <WaveSweepOverlay color={targetSweep.color} onDone={() => setTargetSweep(null)} />}
+      {targetSweep && <WaveSweepOverlay key={targetSweep.id} color={targetSweep.color} onDone={() => setTargetSweep(null)} />}
+      {showWaveTest && (
+        <button
+          onClick={() => {
+            const colors = allSwells.map(s => s.color).filter(Boolean)
+            const color = colors.length ? colors[waveTestIdx.current++ % colors.length] : 'var(--brand)'
+            fireSweep(color)
+          }}
+          className="pointer-events-auto fixed bottom-28 left-3 z-[60] rounded-full bg-th-surface px-3 py-1.5 text-xs font-medium text-th-text shadow-lg active:scale-[0.97]"
+        >
+          Wave
+        </button>
+      )}
     </>
   )
 
@@ -872,7 +892,7 @@ export function DailyChecklist({
             hideNav
             swellWeeklyProgress={swellWeeklyProgress}
             swellTargets={swellTargets}
-            onTargetCross={celebrationEnabled ? (color) => setTargetSweep({ color }) : undefined}
+            onTargetCross={celebrationEnabled ? fireSweep : undefined}
           />
         </div>
         {detailSheet}
