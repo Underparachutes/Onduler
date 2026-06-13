@@ -11,7 +11,7 @@ import { InstallInstructions } from '@/app/components/InstallInstructions'
 import { parseImportMarkdown } from '@/lib/import-parser'
 import { IMPORT_PROMPT_TEMPLATE } from '@/lib/import-prompt'
 
-type Step = 'swells' | 'motions' | 'personalize' | 'install'
+type Step = 'swells' | 'motions' | 'personalize' | 'firstlog' | 'install'
 type TrackingMode = 'points' | 'hours'
 
 type SwellEntry = {
@@ -136,6 +136,11 @@ export function OnboardingFlow() {
   const [uploading, setUploading] = useState(false)
   const [adjusting, setAdjusting] = useState(false)
 
+  // First-log practice (the 'firstlog' step). Purely client-side — these taps
+  // are never written to the database, so the user's real tracking starts
+  // genuinely empty. No fake data in their wake.
+  const [demoLogged, setDemoLogged] = useState<Set<number>>(new Set())
+
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
 
@@ -179,7 +184,7 @@ export function OnboardingFlow() {
   // skipped: it carries no new input, and completion clears the draft anyway.
   useEffect(() => {
     if (!draftLoaded.current) return
-    if (step === 'install') return
+    if (step === 'install' || step === 'firstlog') return
     writeDraft({
       v: 1,
       step,
@@ -415,6 +420,16 @@ export function OnboardingFlow() {
   useEffect(() => { setShowInstall(shouldShowOnboardingInstall()) }, [])
 
   function proceedFromPersonalize(useDefaults = false) {
+    // Show the first-log practice when they have motions to try it on, unless
+    // they chose to skip with defaults.
+    if (!useDefaults && motions.some(m => swellEntries.some(s => s.id === m.swellId && s.picked))) {
+      setStep('firstlog')
+      return
+    }
+    goToInstallOrFinish(useDefaults)
+  }
+
+  function goToInstallOrFinish(useDefaults = false) {
     if (!useDefaults && showInstall) {
       markOnboardingSeen()
       setStep('install')
@@ -797,6 +812,64 @@ export function OnboardingFlow() {
           className="w-full rounded-lg bg-th-btn py-3 text-sm font-medium text-th-btn-text transition-all hover:bg-th-btn-hover active:scale-[0.97]"
         >
           Next →
+        </button>
+      </ScreenShell>
+    )
+  }
+
+  if (step === 'firstlog') {
+    const demoMotions = motions.filter(m => swellEntries.some(s => s.id === m.swellId && s.picked))
+    const anyLogged = demoMotions.some(m => demoLogged.has(m.id))
+    return (
+      <ScreenShell
+        onBack={() => setStep('personalize')}
+        title="Try logging one."
+        description="Tap a motion to log it. This is just practice, nothing is saved. Your tracking starts fresh on the next screen."
+      >
+        <div className="flex flex-col">
+          {demoMotions.map(m => {
+            const done = demoLogged.has(m.id)
+            return (
+              <button
+                key={m.id}
+                onClick={() =>
+                  setDemoLogged(prev => {
+                    const n = new Set(prev)
+                    if (n.has(m.id)) n.delete(m.id); else n.add(m.id)
+                    return n
+                  })
+                }
+                className="flex items-center gap-3 border-b border-th-border-soft py-3 text-left transition-transform active:scale-[0.985]"
+              >
+                <span
+                  className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border transition-colors ${
+                    done ? 'border-th-btn bg-th-btn text-th-btn-text' : 'border-th-border'
+                  }`}
+                >
+                  {done && (
+                    <svg viewBox="0 0 12 10" fill="none" className="h-3 w-3">
+                      <path d="M1 5l3.5 3.5L11 1" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  )}
+                </span>
+                <span className={`text-sm ${done ? 'text-th-muted line-through' : 'text-th-text'}`}>{m.name}</span>
+              </button>
+            )
+          })}
+        </div>
+
+        {anyLogged && (
+          <p className="text-sm text-th-secondary">That&apos;s it. Every motion you log shapes your wake.</p>
+        )}
+
+        {error && <p className="text-xs text-red-500">{error}</p>}
+
+        <button
+          onClick={() => goToInstallOrFinish(false)}
+          disabled={isPending}
+          className="w-full rounded-lg bg-th-btn py-3 text-sm font-medium text-th-btn-text transition-all hover:bg-th-btn-hover active:scale-[0.97] disabled:opacity-50"
+        >
+          {isPending ? 'Setting up…' : anyLogged ? 'Start fresh →' : 'Got it →'}
         </button>
       </ScreenShell>
     )
