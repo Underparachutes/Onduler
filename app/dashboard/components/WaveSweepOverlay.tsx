@@ -20,7 +20,8 @@ import { useEffect, useRef } from 'react'
 
 const DURATION = 1900 // ms
 const PSTEP = 4 // px between sampled points along each ripple path
-const RISE = 1.3 // how far the field travels up, in screen heights
+const RISE = 1.6 // how far the field travels up, in screen heights
+const TINT = 0.13 // peak opacity of the translucent water body
 
 type Line = { yBase: number; amp: number; freq: number; phase: number; width: number; op: number }
 
@@ -38,7 +39,7 @@ function buildLines(): Line[] {
     const t = i / (N - 1) // 0 (back/top) .. 1 (front/bottom)
     out.push({
       // Start low and partly below the bottom edge so they rise up into view.
-      yBase: 0.52 + t * 0.62, // 0.52 .. 1.14 of viewport height
+      yBase: 0.65 + t * 0.60, // 0.65 .. 1.25 of viewport height
       amp: 0.012 + jit(i, 2) * 0.026,
       freq: 0.018 + jit(i, 3) * 0.022, // several humps across the width = water texture
       phase: jit(i, 4) * Math.PI * 2,
@@ -99,33 +100,39 @@ export function WaveSweepOverlay({ color, onDone }: { color: string; onDone: () 
     let raf = 0
     let timer: ReturnType<typeof setTimeout> | null = null
 
-    // Draw one line at vertical offset `rise` (px). Erases everything below its
-    // ripple first (so the lines behind it disappear under it = depth), then
-    // strokes the ripple on top at the given alpha.
-    function drawLine(line: Line, W: number, H: number, rise: number, drift: number, alpha: number) {
-      if (!ctx || alpha <= 0.01) return
+    // Build a line's surface path and a fill path closed down to the bottom.
+    function paths(line: Line, W: number, H: number, rise: number, drift: number) {
       const amp = line.amp * H
       const baseY = line.yBase * H - rise
-      const y = (x: number) => {
-        const a = x * line.freq + line.phase + drift
-        return baseY + Math.sin(a) * amp + Math.sin(a * 2 + 1.3) * amp * 0.18
-      }
       const linePath = new Path2D()
       const fillPath = new Path2D()
       for (let x = 0; x <= W; x += PSTEP) {
-        const yy = y(x)
+        const a = x * line.freq + line.phase + drift
+        const yy = baseY + Math.sin(a) * amp + Math.sin(a * 2 + 1.3) * amp * 0.18
         if (x === 0) { linePath.moveTo(x, yy); fillPath.moveTo(x, yy) }
         else { linePath.lineTo(x, yy); fillPath.lineTo(x, yy) }
       }
       fillPath.lineTo(W, H + 2)
       fillPath.lineTo(0, H + 2)
       fillPath.closePath()
+      return { linePath, fillPath }
+    }
 
-      // Erase the lines behind, below this ripple.
+    // Draw one ripple: erase everything behind it below its line (depth), lay a
+    // single translucent layer of water body below it (the erase first means
+    // bands never stack into mud), then stroke the surface ripple on top.
+    function drawLine(line: Line, W: number, H: number, rise: number, drift: number, alpha: number, tint: number) {
+      if (!ctx || (alpha <= 0.01 && tint <= 0.01)) return
+      const { linePath, fillPath } = paths(line, W, H, rise, drift)
       ctx.globalCompositeOperation = 'destination-out'
       ctx.globalAlpha = 1
       ctx.fill(fillPath)
-      // Stroke this ripple on top.
+      if (tint > 0.01) {
+        ctx.globalCompositeOperation = 'source-over'
+        ctx.globalAlpha = tint
+        ctx.fillStyle = `rgb(${rgb})`
+        ctx.fill(fillPath)
+      }
       ctx.globalCompositeOperation = 'source-over'
       ctx.globalAlpha = alpha
       ctx.lineWidth = line.width
@@ -148,8 +155,14 @@ export function WaveSweepOverlay({ color, onDone }: { color: string; onDone: () 
         // the wave dissipates as it rises.
         const cy = line.yBase * H - rise
         const vFade = clamp01(cy / (H * 0.7))
-        drawLine(line, W, H, rise, drift, line.op * vFade * timeFade)
+        drawLine(line, W, H, rise, drift, line.op * vFade * timeFade, TINT * vFade * timeFade)
       }
+      // Clear below the front (lowest) ripple so the water has a trailing edge
+      // and the wave rises through rather than flooding to the bottom forever.
+      const front = ORDERED[ORDERED.length - 1]
+      ctx.globalCompositeOperation = 'destination-out'
+      ctx.globalAlpha = 1
+      ctx.fill(paths(front, W, H, rise, drift).fillPath)
       ctx.globalCompositeOperation = 'source-over'
       ctx.globalAlpha = 1
     }
