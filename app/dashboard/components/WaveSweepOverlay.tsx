@@ -14,22 +14,19 @@ import { useEffect, useRef } from 'react'
 // clears this canvas's own pixels (the back wave), never the live screen
 // behind it. Same layered look, no opaque fill.
 //
-// Two bands sweep at once: one wave front enters from the left and travels
-// right, the other from the right travels left, crossing in the middle. Each
-// line is an ombre wake (full at the crest, fading to transparent behind),
-// tinted with the color of the swell that triggered the celebration. Runs
-// once over ~1.35s, then calls onDone.
+// Two halves sweep at once: one wave front enters from the left and travels
+// right, the other from the right travels left, crossing in the middle. Many
+// densely-stacked lines with wide height variance overlap into a continuous
+// water surface. Each line is an ombre wake (full at the crest, fading to
+// transparent behind), tinted with the color of the swell that triggered the
+// celebration. Runs once, then calls onDone.
 //
 // prefers-reduced-motion gets a brief static translucent wash instead.
 
-const DURATION = 1350 // ms, within the 1.1-1.4s target
-const SEG = 7 // px per drawn segment (alpha varies along the wake)
+const DURATION = 2000 // ms
+const PSTEP = 4 // px between sampled points along each wave path
 const HALO = 5 // px the erase pass adds, so a front wave cuts a clean gap
 
-// dir 1 sweeps left→right, dir -1 right→left. Lines vary in thickness for the
-// depth read; amplitudes are fractions of viewport height, frequencies are low
-// so the waves are long and graceful. Many densely-stacked lines overlap into
-// a continuous water surface rather than reading as individual snakes.
 type Line = { dir: 1 | -1; yBase: number; amp: number; freq: number; phase: number; width: number; op: number }
 
 // Deterministic per-index jitter (a stable hash, so every celebration looks
@@ -40,18 +37,19 @@ function jit(i: number, salt: number): number {
 }
 
 function buildLines(): Line[] {
-  const N = 22
+  const N = 38
   const out: Line[] = []
   for (let i = 0; i < N; i++) {
     const t = i / (N - 1) // 0 (top) .. 1 (bottom)
     out.push({
       dir: i % 2 === 0 ? 1 : -1, // alternate directions so halves cross
-      yBase: 0.04 + t * 0.92 + (jit(i, 1) - 0.5) * 0.025,
-      amp: 0.030 + jit(i, 2) * 0.030,
-      freq: 0.006 + jit(i, 3) * 0.006,
+      yBase: 0.03 + t * 0.94 + (jit(i, 1) - 0.5) * 0.02,
+      // Wide height variance: some lines nearly flat, some big swells.
+      amp: 0.012 + jit(i, 2) * 0.100,
+      freq: 0.005 + jit(i, 3) * 0.007,
       phase: jit(i, 4) * Math.PI * 2,
-      width: 2 + t * 4 + jit(i, 5) * 1.6, // thicker toward the bottom/front
-      op: 0.30 + jit(i, 6) * 0.18,
+      width: 1.5 + t * 4 + jit(i, 5) * 2, // thicker toward the bottom/front
+      op: 0.28 + jit(i, 6) * 0.20,
     })
   }
   return out
@@ -72,11 +70,24 @@ export function WaveSweepOverlay({ color, onDone }: { color: string; onDone: () 
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
-    // Resolve a CSS var() color (e.g. the brand fallback) the way WaveField's
-    // resolve() helper reads vars; concrete colors pass through unchanged.
-    const ink = color.includes('var(')
+    // Resolve a CSS var() color (e.g. the brand fallback), then normalize any
+    // CSS color to "r,g,b" via the canvas so gradient stops can share the same
+    // RGB at alpha 0 and 1 (avoids the dark fringe 'transparent' would add).
+    const raw = color.includes('var(')
       ? getComputedStyle(document.documentElement).getPropertyValue(color.slice(4, -1).trim()).trim() || '#888'
       : color
+    ctx.fillStyle = raw
+    const norm = ctx.fillStyle
+    let rgb = '136,136,136'
+    if (typeof norm === 'string') {
+      if (norm[0] === '#') {
+        const n = parseInt(norm.slice(1), 16)
+        rgb = `${(n >> 16) & 255},${(n >> 8) & 255},${n & 255}`
+      } else {
+        const m = norm.match(/\d+/g)
+        if (m && m.length >= 3) rgb = `${m[0]},${m[1]},${m[2]}`
+      }
+    }
 
     const dpr = Math.max(1, window.devicePixelRatio || 1)
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -94,6 +105,7 @@ export function WaveSweepOverlay({ color, onDone }: { color: string; onDone: () 
 
     let raf = 0
     let timer: ReturnType<typeof setTimeout> | null = null
+    const clamp01 = (v: number) => Math.max(0, Math.min(1, v))
 
     function yAt(line: Line, x: number, H: number, drift: number) {
       const angle = x * line.freq + line.phase + drift
@@ -104,52 +116,60 @@ export function WaveSweepOverlay({ color, onDone }: { color: string; onDone: () 
       return H * line.yBase + Math.sin(angle) * amp + second
     }
 
-    // Draw one line's visible stroke (or, with erase=true, its wider erase
-    // pass) across the wake window, alpha following the ombre envelope.
-    function drawLine(line: Line, W: number, H: number, lead: number, wakeLen: number, fade: number, drift: number, erase: boolean) {
-      if (!ctx) return
-      ctx.globalCompositeOperation = erase ? 'destination-out' : 'source-over'
-      ctx.lineWidth = erase ? line.width + HALO : line.width
-      for (let x = 0; x <= W; x += SEG) {
-        const d = line.dir === 1 ? lead - x : x - lead // distance behind the crest
-        if (d < 0 || d > wakeLen) continue // ahead of the crest, or past the tail
-        const env = 1 - d / wakeLen // 1 at crest, 0 at tail
-        const a = erase ? Math.min(1, env * 1.6) * fade : env * line.op * fade
-        if (a <= 0.004) continue
-        ctx.globalAlpha = a
-        ctx.beginPath()
-        ctx.moveTo(x, yAt(line, x, H, drift))
-        ctx.lineTo(x + SEG, yAt(line, x + SEG, H, drift))
-        ctx.stroke()
+    function buildPath(line: Line, W: number, H: number, drift: number) {
+      const path = new Path2D()
+      for (let x = 0; x <= W; x += PSTEP) {
+        const y = yAt(line, x, H, drift)
+        if (x === 0) path.moveTo(x, y); else path.lineTo(x, y)
       }
+      return path
+    }
+
+    // Ombre wake gradient: transparent at the tail, opaque at the crest,
+    // transparent just ahead of the crest. `body` is "r,g,b" (or "0,0,0" for
+    // the erase pass, where only alpha matters).
+    function wakeGradient(W: number, lead: number, wakeLen: number, dir: 1 | -1, body: string) {
+      const g = ctx!.createLinearGradient(0, 0, W, 0)
+      if (dir === 1) {
+        const tail = (lead - wakeLen) / W
+        const crest = lead / W
+        g.addColorStop(clamp01(tail), `rgba(${body},0)`)
+        g.addColorStop(clamp01(crest), `rgba(${body},1)`)
+        g.addColorStop(clamp01(crest + 0.001), `rgba(${body},0)`)
+      } else {
+        const crest = lead / W
+        const tail = (lead + wakeLen) / W
+        g.addColorStop(clamp01(crest - 0.001), `rgba(${body},0)`)
+        g.addColorStop(clamp01(crest), `rgba(${body},1)`)
+        g.addColorStop(clamp01(tail), `rgba(${body},0)`)
+      }
+      return g
     }
 
     if (reduce) {
-      // Static translucent wash with the same depth ordering, then clear + done.
+      // Static translucent wash with depth ordering, then clear + done.
       const rect = canvas.getBoundingClientRect()
       const W = rect.width
       const H = rect.height
       ctx.clearRect(0, 0, W, H)
       ctx.lineCap = 'round'
       ctx.lineJoin = 'round'
-      ctx.strokeStyle = ink
       for (const line of ORDERED) {
-        // Erase the back lines along this path, then draw the full line on top.
-        for (const erase of [true, false]) {
-          ctx.globalCompositeOperation = erase ? 'destination-out' : 'source-over'
-          ctx.lineWidth = erase ? line.width + HALO : line.width
-          ctx.globalAlpha = erase ? 0.9 : line.op * 0.7
-          ctx.beginPath()
-          for (let x = 0; x <= W; x += SEG) {
-            const y = yAt(line, x, H, 0)
-            if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y)
-          }
-          ctx.stroke()
-        }
+        const path = buildPath(line, W, H, 0)
+        ctx.globalCompositeOperation = 'destination-out'
+        ctx.lineWidth = line.width + HALO
+        ctx.globalAlpha = 0.9
+        ctx.strokeStyle = '#000'
+        ctx.stroke(path)
+        ctx.globalCompositeOperation = 'source-over'
+        ctx.lineWidth = line.width
+        ctx.globalAlpha = line.op * 0.7
+        ctx.strokeStyle = `rgb(${rgb})`
+        ctx.stroke(path)
       }
       ctx.globalCompositeOperation = 'source-over'
       ctx.globalAlpha = 1
-      timer = setTimeout(() => doneRef.current(), 650)
+      timer = setTimeout(() => doneRef.current(), 700)
       return () => { if (timer) clearTimeout(timer); ro.disconnect() }
     }
 
@@ -165,19 +185,26 @@ export function WaveSweepOverlay({ color, onDone }: { color: string; onDone: () 
       ctx.clearRect(0, 0, W, H) // transparent — never fill a background
       ctx.lineCap = 'round'
       ctx.lineJoin = 'round'
-      ctx.strokeStyle = ink
 
-      const fade = p < 0.8 ? 1 : 1 - (p - 0.8) / 0.2 // ease out so the wave clears
+      const fade = p < 0.82 ? 1 : 1 - (p - 0.82) / 0.18 // ease out so the wave clears
       const drift = p * 5 // gentle shimmer as the wave drifts past
-      const wakeLen = W * 0.6
+      const wakeLen = W * 0.85 // long wake so much of the field shows at once
 
       for (const line of ORDERED) {
         const lead = line.dir === 1 ? p * (W + wakeLen) : W - p * (W + wakeLen)
-        // Erase the already-drawn back lines along this line's path first
-        // (so this line cuts a clean gap through them), then draw it on top.
-        // Both passes run fully before moving on so a line never erases itself.
-        drawLine(line, W, H, lead, wakeLen, fade, drift, true)
-        drawLine(line, W, H, lead, wakeLen, fade, drift, false)
+        const path = buildPath(line, W, H, drift)
+        // Erase the already-drawn back lines along this path first (so this
+        // line cuts a clean gap through them), then draw it on top.
+        ctx.globalCompositeOperation = 'destination-out'
+        ctx.lineWidth = line.width + HALO
+        ctx.globalAlpha = fade
+        ctx.strokeStyle = wakeGradient(W, lead, wakeLen, line.dir, '0,0,0')
+        ctx.stroke(path)
+        ctx.globalCompositeOperation = 'source-over'
+        ctx.lineWidth = line.width
+        ctx.globalAlpha = line.op * fade
+        ctx.strokeStyle = wakeGradient(W, lead, wakeLen, line.dir, rgb)
+        ctx.stroke(path)
       }
 
       ctx.globalCompositeOperation = 'source-over'
