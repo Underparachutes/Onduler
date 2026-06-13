@@ -87,6 +87,12 @@ export function WaveSweepOverlay({ color, onDone }: { color: string; onDone: () 
     }
     const swellRgb = toRGB(color)
     const brandRgb = toRGB('var(--brand)')
+    // Translucent ripples wash out on a light background; give them a modest
+    // boost in light themes so the celebration stays legible without losing
+    // its calm. Dark themes (where it's tuned) stay at 1.
+    const bg = toRGB('var(--th-bg)').split(',').map(Number)
+    const bgLum = (0.299 * bg[0] + 0.587 * bg[1] + 0.114 * bg[2]) / 255
+    const boost = bgLum > 0.5 ? 1.5 : 1
 
     const dpr = Math.max(1, window.devicePixelRatio || 1)
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -171,7 +177,7 @@ export function WaveSweepOverlay({ color, onDone }: { color: string; onDone: () 
       paint.addColorStop(1, `rgb(${brandRgb})`)
       for (const line of ORDERED) {
         const cy = line.yBase * H - rise
-        const f = topFade(cy, H) * timeFade
+        const f = topFade(cy, H) * timeFade * boost
         drawLine(line, W, H, rise, drift, line.op * f, TINT * f, paint)
       }
       // Clear below the front (lowest) ripple so the water has a trailing edge
