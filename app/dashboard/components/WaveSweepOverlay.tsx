@@ -23,27 +23,42 @@ import { useEffect, useRef } from 'react'
 // prefers-reduced-motion gets a brief static translucent wash instead.
 
 const DURATION = 1350 // ms, within the 1.1-1.4s target
-const SEG = 6 // px per drawn segment (alpha varies along the wake)
+const SEG = 7 // px per drawn segment (alpha varies along the wake)
 const HALO = 5 // px the erase pass adds, so a front wave cuts a clean gap
 
 // dir 1 sweeps left→right, dir -1 right→left. Lines vary in thickness for the
 // depth read; amplitudes are fractions of viewport height, frequencies are low
-// so the waves are long and graceful (not wormy). All lines are flattened and
-// sorted by yBase each frame so the bottom-most draws last (in front).
+// so the waves are long and graceful. Many densely-stacked lines overlap into
+// a continuous water surface rather than reading as individual snakes.
 type Line = { dir: 1 | -1; yBase: number; amp: number; freq: number; phase: number; width: number; op: number }
 
-const LINES: Line[] = [
-  { dir: 1, yBase: 0.16, amp: 0.050, freq: 0.008, phase: 0.0, width: 4.5, op: 0.40 },
-  { dir: -1, yBase: 0.26, amp: 0.055, freq: 0.009, phase: 0.8, width: 3.5, op: 0.40 },
-  { dir: 1, yBase: 0.40, amp: 0.060, freq: 0.010, phase: 1.6, width: 2.8, op: 0.38 },
-  { dir: -1, yBase: 0.50, amp: 0.050, freq: 0.011, phase: 2.4, width: 5.0, op: 0.42 },
-  { dir: 1, yBase: 0.64, amp: 0.050, freq: 0.007, phase: 3.3, width: 6.0, op: 0.44 },
-  { dir: -1, yBase: 0.74, amp: 0.060, freq: 0.008, phase: 3.9, width: 2.5, op: 0.46 },
-  { dir: 1, yBase: 0.86, amp: 0.045, freq: 0.009, phase: 4.8, width: 7.0, op: 0.48 },
-  { dir: -1, yBase: 0.94, amp: 0.040, freq: 0.010, phase: 5.2, width: 6.5, op: 0.48 },
-]
+// Deterministic per-index jitter (a stable hash, so every celebration looks
+// the same) — keeps the field varied without Math.random.
+function jit(i: number, salt: number): number {
+  const v = Math.sin(i * 12.9898 + salt * 78.233) * 43758.5453
+  return v - Math.floor(v)
+}
 
-const ORDERED = [...LINES].sort((a, b) => a.yBase - b.yBase) // top (back) first, bottom (front) last
+function buildLines(): Line[] {
+  const N = 22
+  const out: Line[] = []
+  for (let i = 0; i < N; i++) {
+    const t = i / (N - 1) // 0 (top) .. 1 (bottom)
+    out.push({
+      dir: i % 2 === 0 ? 1 : -1, // alternate directions so halves cross
+      yBase: 0.04 + t * 0.92 + (jit(i, 1) - 0.5) * 0.025,
+      amp: 0.030 + jit(i, 2) * 0.030,
+      freq: 0.006 + jit(i, 3) * 0.006,
+      phase: jit(i, 4) * Math.PI * 2,
+      width: 2 + t * 4 + jit(i, 5) * 1.6, // thicker toward the bottom/front
+      op: 0.30 + jit(i, 6) * 0.18,
+    })
+  }
+  return out
+}
+
+// Sorted top (back) → bottom (front) so the bottom-most draws last, in front.
+const ORDERED = buildLines().sort((a, b) => a.yBase - b.yBase)
 
 export function WaveSweepOverlay({ color, onDone }: { color: string; onDone: () => void }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
@@ -81,7 +96,12 @@ export function WaveSweepOverlay({ color, onDone }: { color: string; onDone: () 
     let timer: ReturnType<typeof setTimeout> | null = null
 
     function yAt(line: Line, x: number, H: number, drift: number) {
-      return H * line.yBase + Math.sin(x * line.freq + line.phase + drift) * (line.amp * H)
+      const angle = x * line.freq + line.phase + drift
+      const amp = line.amp * H
+      // Secondary harmonic (as in WaveField) breaks the clean sine so the line
+      // reads as a water ripple, not a snake.
+      const second = Math.sin(angle * 2 + 1.3) * amp * 0.18
+      return H * line.yBase + Math.sin(angle) * amp + second
     }
 
     // Draw one line's visible stroke (or, with erase=true, its wider erase
