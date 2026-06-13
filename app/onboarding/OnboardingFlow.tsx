@@ -383,7 +383,52 @@ export function OnboardingFlow() {
         }
       >
         <div className="flex flex-col gap-2">
-          <p className="text-xs font-medium uppercase tracking-widest text-th-faint">Example swells</p>
+          <p className="text-xs font-medium uppercase tracking-widest text-th-faint">Ask your AI</p>
+          {aiOpen ? (
+            <div className="flex flex-col gap-2">
+              <p className="text-xs text-th-muted">
+                Copy the prompt, paste it into your AI with some context about your life, then paste its reply below.
+              </p>
+              <button
+                onClick={handleCopyAiPrompt}
+                className="self-start rounded-lg border border-th-border px-3 py-1.5 text-sm text-th-text transition-colors hover:bg-th-surface active:scale-[0.97]"
+              >
+                {aiCopied ? 'Copied' : 'Copy prompt'}
+              </button>
+              <textarea
+                value={aiText}
+                onChange={e => setAiText(e.target.value)}
+                placeholder="Paste your AI's reply here..."
+                rows={6}
+                className="w-full rounded-lg border border-th-border bg-th-surface px-3 py-2 text-base text-th-text outline-none placeholder:text-th-faint focus:border-th-focus"
+              />
+              {aiError && <p className="text-xs text-red-500">{aiError}</p>}
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={applyAiImport}
+                  disabled={!aiText.trim()}
+                  className="rounded-lg bg-th-btn px-4 py-2 text-sm font-medium text-th-btn-text active:scale-[0.97] disabled:opacity-40"
+                >
+                  Add them
+                </button>
+                <button
+                  onClick={() => { setAiOpen(false); setAiError(null) }}
+                  className="text-sm text-th-faint transition-colors hover:text-th-muted"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={() => setAiOpen(true)}
+              className="rounded-lg border border-dashed border-th-border px-4 py-3 text-left text-sm text-th-muted transition-colors hover:bg-th-surface active:scale-[0.99]"
+            >
+              Have your AI draft your swells and motions
+            </button>
+          )}
+
+          <p className="mt-4 text-xs font-medium uppercase tracking-widest text-th-faint">Example swells</p>
           {displayedSwells.map(s =>
             editingSwellId === s.id ? (
               <div
@@ -490,50 +535,6 @@ export function OnboardingFlow() {
             })}
           </div>
 
-          <p className="mt-4 text-xs font-medium uppercase tracking-widest text-th-faint">Or ask your AI</p>
-          {aiOpen ? (
-            <div className="flex flex-col gap-2">
-              <p className="text-xs text-th-muted">
-                Copy the prompt, paste it into your AI with some context about your life, then paste its reply below.
-              </p>
-              <button
-                onClick={handleCopyAiPrompt}
-                className="self-start rounded-lg border border-th-border px-3 py-1.5 text-sm text-th-text transition-colors hover:bg-th-surface active:scale-[0.97]"
-              >
-                {aiCopied ? 'Copied' : 'Copy prompt'}
-              </button>
-              <textarea
-                value={aiText}
-                onChange={e => setAiText(e.target.value)}
-                placeholder="Paste your AI's reply here..."
-                rows={6}
-                className="w-full rounded-lg border border-th-border bg-th-surface px-3 py-2 text-base text-th-text outline-none placeholder:text-th-faint focus:border-th-focus"
-              />
-              {aiError && <p className="text-xs text-red-500">{aiError}</p>}
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={applyAiImport}
-                  disabled={!aiText.trim()}
-                  className="rounded-lg bg-th-btn px-4 py-2 text-sm font-medium text-th-btn-text active:scale-[0.97] disabled:opacity-40"
-                >
-                  Add them
-                </button>
-                <button
-                  onClick={() => { setAiOpen(false); setAiError(null) }}
-                  className="text-sm text-th-faint transition-colors hover:text-th-muted"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          ) : (
-            <button
-              onClick={() => setAiOpen(true)}
-              className="rounded-lg border border-dashed border-th-border px-4 py-3 text-left text-sm text-th-muted transition-colors hover:bg-th-surface active:scale-[0.99]"
-            >
-              Have your AI draft your swells and motions
-            </button>
-          )}
         </div>
 
         <button
