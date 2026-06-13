@@ -576,7 +576,7 @@ export function SettingsPanel({
               <div className="flex items-center justify-between py-3">
                 <div className="pr-4">
                   <p className="text-sm font-medium text-th-text">Visual</p>
-                  <p className="text-xs text-th-muted">Wave animation when you cross a weekly swell target</p>
+                  <p className="text-xs text-th-muted">A ripple each time you log, a wave when you cross a weekly swell target</p>
                 </div>
                 <button
                   role="switch"

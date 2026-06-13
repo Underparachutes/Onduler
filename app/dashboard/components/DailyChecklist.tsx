@@ -308,13 +308,9 @@ export function DailyChecklist({
   const [celebration, setCelebration] = useState<CelebrationState | null>(null)
   const [targetSweep, setTargetSweep] = useState<{ color: string; id: number } | null>(null)
   const sweepIdRef = useRef(0)
-  // Bumping a fresh id (used as the overlay's key) restarts the animation even
-  // when the color repeats, so the preview button below replays on every tap.
+  // A fresh id (used as the overlay's key) restarts the animation even when the
+  // triggering swell color repeats.
   const fireSweep = (color: string) => setTargetSweep({ color, id: ++sweepIdRef.current })
-  // Hidden preview: add ?wavetest to the dashboard URL to show a button that
-  // fires the target celebration on demand, no motions or target cross needed.
-  const [showWaveTest] = useState(() => typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('wavetest'))
-  const waveTestIdx = useRef(0)
   const swellProgressRef = useRef({ ...swellWeeklyProgress })
   // Re-seed the running progress baseline whenever the server value changes
   // (e.g. after the weekly calendar refreshes the page). Daily-checkbox logs
@@ -704,22 +700,10 @@ export function DailyChecklist({
     </div>
   )
 
-  const celebrationOverlay = (celebration || targetSweep || showWaveTest) && (
+  const celebrationOverlay = (celebration || targetSweep) && (
     <>
       {celebration && <CelebrationOverlay celebration={celebration} onDone={() => setCelebration(null)} />}
       {targetSweep && <WaveSweepOverlay key={targetSweep.id} color={targetSweep.color} onDone={() => setTargetSweep(null)} />}
-      {showWaveTest && (
-        <button
-          onClick={() => {
-            const colors = allSwells.map(s => s.color).filter(Boolean)
-            const color = colors.length ? colors[waveTestIdx.current++ % colors.length] : 'var(--brand)'
-            fireSweep(color)
-          }}
-          className="pointer-events-auto fixed bottom-28 left-3 z-[60] rounded-full bg-th-surface px-3 py-1.5 text-xs font-medium text-th-text shadow-lg active:scale-[0.97]"
-        >
-          Wave
-        </button>
-      )}
     </>
   )
 
