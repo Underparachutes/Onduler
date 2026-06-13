@@ -27,6 +27,9 @@ type Props = {
   allSwells?: Swell[]
   hideDone?: boolean
   hideNav?: boolean
+  swellWeeklyProgress?: Record<string, number>
+  swellTargets?: Record<string, number>
+  onTargetCross?: (color: string) => void
 }
 
 import { getWeekDayKeys } from './weekDayKeys'
@@ -151,6 +154,9 @@ export function WeekEditView({
   allSwells,
   hideDone,
   hideNav,
+  swellWeeklyProgress,
+  swellTargets,
+  onTargetCross,
 }: Props) {
   const [, startTransition] = useTransition()
   const router = useRouter()
@@ -182,6 +188,23 @@ export function WeekEditView({
         return { ...prev, [motionId]: motionMap }
       })
       onLogDelta?.(delta)
+      // Weekly-target cross detection for the current week. The calendar
+      // refreshes the page after every log, so swellWeeklyProgress is fresh
+      // at tap time and reflects everything except this log.
+      if (weekOffset === 0 && motion && onTargetCross && swellWeeklyProgress && swellTargets) {
+        const isHrs = trackingMode === 'hours'
+        for (const ms of motion.swells) {
+          const target = swellTargets[ms.id]
+          if (target == null) continue
+          const before = swellWeeklyProgress[ms.id] ?? 0
+          const base = isHrs ? Number(motion.default_hours) : motion.default_points
+          const after = before + base * ms.weight
+          if (before < target && after >= target) {
+            onTargetCross(ms.color)
+            break
+          }
+        }
+      }
       startTransition(async () => {
         if (await guard(logMotionOnDay(motionId, dayKey))) router.refresh()
       })

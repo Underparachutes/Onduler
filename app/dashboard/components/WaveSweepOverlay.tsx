@@ -16,7 +16,8 @@ import { useEffect, useRef } from 'react'
 // prefers-reduced-motion gets a brief static translucent wash instead of the
 // moving sweep.
 
-const DURATION = 1250 // ms, within the 1.1-1.4s target
+const DURATION = 1350 // ms, within the 1.1-1.4s target
+
 const SEG = 5 // px per drawn segment (alpha varies along the wake)
 
 type Band = { dir: 1 | -1; lines: { yBase: number; amp: number; freq: number; phase: number; width: number; op: number }[] }
@@ -27,19 +28,19 @@ const BANDS: Band[] = [
   {
     dir: 1,
     lines: [
-      { yBase: 0.16, amp: 0.030, freq: 0.013, phase: 0.0, width: 2.0, op: 0.26 },
-      { yBase: 0.38, amp: 0.045, freq: 0.018, phase: 1.7, width: 2.4, op: 0.20 },
-      { yBase: 0.60, amp: 0.035, freq: 0.011, phase: 3.1, width: 1.8, op: 0.28 },
-      { yBase: 0.82, amp: 0.050, freq: 0.016, phase: 4.6, width: 2.2, op: 0.16 },
+      { yBase: 0.16, amp: 0.030, freq: 0.013, phase: 0.0, width: 3.0, op: 0.42 },
+      { yBase: 0.38, amp: 0.045, freq: 0.018, phase: 1.7, width: 3.4, op: 0.34 },
+      { yBase: 0.60, amp: 0.035, freq: 0.011, phase: 3.1, width: 2.6, op: 0.46 },
+      { yBase: 0.82, amp: 0.050, freq: 0.016, phase: 4.6, width: 3.2, op: 0.30 },
     ],
   },
   {
     dir: -1,
     lines: [
-      { yBase: 0.24, amp: 0.042, freq: 0.015, phase: 0.8, width: 2.2, op: 0.22 },
-      { yBase: 0.46, amp: 0.032, freq: 0.012, phase: 2.4, width: 1.8, op: 0.28 },
-      { yBase: 0.70, amp: 0.048, freq: 0.017, phase: 3.9, width: 2.4, op: 0.18 },
-      { yBase: 0.90, amp: 0.034, freq: 0.013, phase: 5.2, width: 2.0, op: 0.24 },
+      { yBase: 0.24, amp: 0.042, freq: 0.015, phase: 0.8, width: 3.2, op: 0.38 },
+      { yBase: 0.46, amp: 0.032, freq: 0.012, phase: 2.4, width: 2.6, op: 0.46 },
+      { yBase: 0.70, amp: 0.048, freq: 0.017, phase: 3.9, width: 3.4, op: 0.32 },
+      { yBase: 0.90, amp: 0.034, freq: 0.013, phase: 5.2, width: 3.0, op: 0.40 },
     ],
   },
 ]

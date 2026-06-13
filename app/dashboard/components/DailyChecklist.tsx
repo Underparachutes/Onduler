@@ -308,6 +308,10 @@ export function DailyChecklist({
   const [celebration, setCelebration] = useState<CelebrationState | null>(null)
   const [targetSweep, setTargetSweep] = useState<{ color: string } | null>(null)
   const swellProgressRef = useRef({ ...swellWeeklyProgress })
+  // Re-seed the running progress baseline whenever the server value changes
+  // (e.g. after the weekly calendar refreshes the page). Daily-checkbox logs
+  // don't refresh, so this leaves their in-session optimistic deltas intact.
+  useEffect(() => { swellProgressRef.current = { ...swellWeeklyProgress } }, [swellWeeklyProgress])
   const [localGoal, setLocalGoal] = useState(goalValue)
   const [editingGoal, setEditingGoal] = useState(false)
   const [goalInput, setGoalInput] = useState(String(goalValue))
@@ -866,6 +870,9 @@ export function DailyChecklist({
             allSwells={allSwells}
             hideDone={hideDone}
             hideNav
+            swellWeeklyProgress={swellWeeklyProgress}
+            swellTargets={swellTargets}
+            onTargetCross={celebrationEnabled ? (color) => setTargetSweep({ color }) : undefined}
           />
         </div>
         {detailSheet}
