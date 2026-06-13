@@ -40,7 +40,9 @@ function buildLines(): Line[] {
     out.push({
       // Start low and partly below the bottom edge so they rise up into view.
       yBase: 0.65 + t * 0.60, // 0.65 .. 1.25 of viewport height
-      amp: 0.012 + jit(i, 2) * 0.026,
+      // Amplitude grows toward the front so the bottom edge is carried by a
+      // jagged ripple, not a flat line.
+      amp: 0.014 + t * 0.030 + jit(i, 2) * 0.016,
       freq: 0.018 + jit(i, 3) * 0.022, // several humps across the width = water texture
       phase: jit(i, 4) * Math.PI * 2,
       width: 1.5 + t * 3 + jit(i, 5) * 1, // thicker toward the front/bottom
