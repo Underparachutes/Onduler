@@ -513,7 +513,7 @@ export function SettingsPanel({
               {groupsOn && groups.length === 0 && (
                 <div className="py-3">
                   <p className="text-xs text-th-muted">
-                    Group motions by when they happen. Morning, Evening, At work. The cluster is the cue.
+                    Cluster motions by when they happen. Morning, Evening, At work. The cluster is the cue.
                   </p>
                   <div className="mt-2 flex gap-2">
                     {['Morning rituals', 'Wind down'].map(name => (
@@ -574,7 +574,7 @@ export function SettingsPanel({
               <div className="flex items-center justify-between py-3">
                 <div>
                   <p className="text-sm font-medium text-th-text">Visual</p>
-                  <p className="text-xs text-th-muted">Animation on check-off</p>
+                  <p className="text-xs text-th-muted">Wave animation when you cross a weekly swell target</p>
                 </div>
                 <button
                   role="switch"
@@ -588,7 +588,7 @@ export function SettingsPanel({
               <div className="flex items-center justify-between py-3">
                 <div>
                   <p className="text-sm font-medium text-th-text">Haptic</p>
-                  <p className="text-xs text-th-muted">Vibration on check-off</p>
+                  <p className="text-xs text-th-muted">Subtle taps when you log and unlog</p>
                   {!vibrateSupported && <p className="text-xs text-th-faint">Not supported on this device</p>}
                 </div>
                 <button

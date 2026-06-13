@@ -274,7 +274,7 @@ export function SwellsView(props: Props) {
             </HintCard>
 
             {props.swells.length === 0 && !props.hasAnyMotions && (
-              <p className="mb-8 text-sm text-th-muted">No motions yet. Add some from Today first.</p>
+              <p className="mb-8 text-sm text-th-muted">No motions yet. Add them on the Motions page.</p>
             )}
 
             <SwellsList

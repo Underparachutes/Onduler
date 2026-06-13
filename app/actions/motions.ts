@@ -52,20 +52,22 @@ export async function createMotion(prevState: unknown, formData: FormData) {
 
   if (inserted) {
     if (swellEntries.length > 0) {
-      await supabase.from('motion_swells').insert(
+      const { error: linkErr } = await supabase.from('motion_swells').insert(
         swellEntries.map(e => ({
           motion_id: inserted.id,
           swell_id: e.swellId,
           contribution_weight: e.weight,
         })),
       )
+      if (linkErr) return { error: `Motion created, but linking swells failed: ${linkErr.message}` }
       for (const e of swellEntries) revalidatePath(`/swells/${e.swellId}`)
     } else if (swell_id) {
-      await supabase.from('motion_swells').insert({
+      const { error: linkErr } = await supabase.from('motion_swells').insert({
         motion_id: inserted.id,
         swell_id,
         contribution_weight: 1,
       })
+      if (linkErr) return { error: `Motion created, but linking the swell failed: ${linkErr.message}` }
       revalidatePath(`/swells/${swell_id}`)
     }
   }

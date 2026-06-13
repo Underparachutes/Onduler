@@ -3,6 +3,7 @@
 import { useEffect, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { logMotionOnDay, removeLogById } from '@/app/actions/logs'
+import { formatHrs } from '@/lib/format'
 
 type MotionSwell = { id: string; name: string; color: string; weight: number }
 type Motion = { id: string; name: string; default_points: number; default_hours: number; swells: MotionSwell[]; groupId: string | null; submotionMode: 'distribute' | 'rollup' | null }
@@ -94,7 +95,7 @@ function MotionWeekRow({
       </div>
       {!hidePtsHrs && (
         <span className="shrink-0 text-xs text-th-faint">
-          {trackingMode === 'hours' ? `${motion.default_hours}h` : `${motion.default_points}`}
+          {trackingMode === 'hours' ? formatHrs(Number(motion.default_hours)) : `${motion.default_points}`}
         </span>
       )}
       <div className="pill-day-col flex shrink-0 gap-1">

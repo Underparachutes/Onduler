@@ -135,7 +135,7 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
                       <p className="text-[11px] text-th-faint">{formatDateTime(l.logged_at)}</p>
                     </div>
                     <span className="shrink-0 text-sm tabular-nums text-th-muted">
-                      {l.points} pts · {formatHrs(Number(l.hours))}
+                      {Math.ceil(l.points)} pts · {formatHrs(Number(l.hours))}
                     </span>
                   </li>
                 )

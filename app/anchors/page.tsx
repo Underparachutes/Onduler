@@ -641,7 +641,7 @@ export default async function AnchorsPage({
                     href={`/anchors?period=${period}&sort=${swellSort === 'earned' ? 'goal' : 'earned'}`}
                     className="text-xs text-th-faint transition-colors hover:text-th-muted"
                   >
-                    {swellSort === 'earned' ? 'By earned' : 'By goal'}
+                    {swellSort === 'earned' ? 'By earned' : 'By target'}
                   </Link>
                 </div>
                 <div className="flex flex-col gap-3">

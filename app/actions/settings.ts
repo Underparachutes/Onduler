@@ -93,7 +93,10 @@ export async function completeOnboarding(
     }
   }
 
-  await supabase.from('user_settings').upsert({
+  // If this upsert fails and we redirect anyway, onboarding_complete stays
+  // false and the dashboard bounces the user straight back here in a loop.
+  // Surface the error instead.
+  const { error: settingsErr } = await supabase.from('user_settings').upsert({
     user_id: user.id,
     onboarding_complete: true,
     theme: prefs.theme,
@@ -102,6 +105,7 @@ export async function completeOnboarding(
     celebration_enabled: prefs.celebration_enabled,
     groups_enabled: false,
   })
+  if (settingsErr) return { error: settingsErr.message }
 
   revalidatePath('/dashboard')
   revalidatePath('/swells')

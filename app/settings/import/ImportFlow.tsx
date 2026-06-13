@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import { parseImportMarkdown, type ImportPreview } from '@/lib/import-parser'
+import { formatPts, formatHrs } from '@/lib/format'
 import { IMPORT_PROMPT_TEMPLATE } from '@/lib/import-prompt'
 import { confirmImport, type ImportClearMode } from '@/app/actions/import'
 
@@ -105,7 +106,7 @@ export function ImportFlow({ trackingMode, hasExistingData }: { trackingMode: 'p
             <div className="flex flex-wrap gap-1.5">
               {preview.motions.map(m => (
                 <span key={m.name} className="rounded-full border border-th-border px-2.5 py-0.5 text-xs text-th-text">
-                  {m.name} ({trackingMode === 'hours' ? `${m.hours} hr` : `${m.points} pt`})
+                  {m.name} ({trackingMode === 'hours' ? formatHrs(m.hours) : formatPts(m.points)})
                 </span>
               ))}
             </div>
@@ -189,7 +190,7 @@ export function ImportFlow({ trackingMode, hasExistingData }: { trackingMode: 'p
     <div className="flex flex-col gap-4">
       <div>
         <p className="mb-2 text-sm text-th-secondary">
-          Copy this prompt, paste it into your AI along with any context about your life and goals, then paste the result below.
+          Copy this prompt, paste it into your AI along with any context about your life, then paste the result below.
         </p>
         <button
           onClick={handleCopyPrompt}
