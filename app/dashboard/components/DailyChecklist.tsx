@@ -35,6 +35,7 @@ import { SortableMotionList, SortableMotionRow } from './SortableMotionList'
 import { getWeekDayKeys } from './weekDayKeys'
 
 const CelebrationOverlay = dynamic(() => import('./CelebrationOverlay').then(m => m.CelebrationOverlay))
+const WaveSweepOverlay = dynamic(() => import('./WaveSweepOverlay').then(m => m.WaveSweepOverlay))
 const MotionDetailSheet = dynamic(() => import('./MotionDetailSheet').then(m => m.MotionDetailSheet))
 const WeekEditView = dynamic(() => import('./WeekEditView').then(m => m.WeekEditView))
 
@@ -254,7 +255,7 @@ export function DailyChecklist({
   allSwells,
   allGroups,
   swellWeeklyProgress,
-  swellTargets: _swellTargets,
+  swellTargets,
   weeklyLogMap,
   hideShape,
   onToggleShape,
@@ -305,6 +306,7 @@ export function DailyChecklist({
   const [openSheetId, setOpenSheetId] = useState<string | null>(initialDetailId ?? null)
   const [localHiddenIds, setLocalHiddenIds] = useState<Set<string>>(new Set())
   const [celebration, setCelebration] = useState<CelebrationState | null>(null)
+  const [targetSweep, setTargetSweep] = useState<{ color: string } | null>(null)
   const swellProgressRef = useRef({ ...swellWeeklyProgress })
   const [localGoal, setLocalGoal] = useState(goalValue)
   const [editingGoal, setEditingGoal] = useState(false)
@@ -531,6 +533,20 @@ export function DailyChecklist({
       if (hapticEnabled && 'vibrate' in navigator) navigator.vibrate([15, 30, 15, 30, 15])
       if (celebrationEnabled) {
         setCelebration({ x: clientX, y: clientY, colors: motion.swells.map(s => s.color), rowBottom })
+        // Detect a weekly-target cross from this log, before the progress ref
+        // is mutated below. The first swell this log pushes over its target
+        // fires the full-screen wave sweep, tinted with that swell's color.
+        for (const ms of motion.swells) {
+          const target = swellTargets[ms.id]
+          if (target == null) continue
+          const before = swellProgressRef.current[ms.id] ?? 0
+          const base = isHours ? Number(motion.default_hours) : motion.default_points
+          const after = before + base * ms.weight * mult
+          if (before < target && after >= target) {
+            setTargetSweep({ color: ms.color })
+            break
+          }
+        }
       }
       if (celebrationEnabled) {
         setDivingId(motion.id)
@@ -676,8 +692,11 @@ export function DailyChecklist({
     </div>
   )
 
-  const celebrationOverlay = celebration && (
-    <CelebrationOverlay celebration={celebration} onDone={() => setCelebration(null)} />
+  const celebrationOverlay = (celebration || targetSweep) && (
+    <>
+      {celebration && <CelebrationOverlay celebration={celebration} onDone={() => setCelebration(null)} />}
+      {targetSweep && <WaveSweepOverlay color={targetSweep.color} onDone={() => setTargetSweep(null)} />}
+    </>
   )
 
   const openSheetMotion = openSheetId ? motions.find(m => m.id === openSheetId) ?? null : null
