@@ -3,31 +3,26 @@
 import { useEffect, useRef } from 'react'
 
 // Full-screen, transparent, pointer-events-none celebration for crossing a
-// swell's weekly target. Echoes the Anchors locked screen's stacked sine
-// lines, with the same sense of depth: a wave closer to the bottom of the
-// screen sits IN FRONT of the wave behind it, cutting a clean gap through it
-// at crossings.
+// swell's weekly target. A wave of stacked water ripples rises up from the
+// bottom of the screen and fades as it goes, echoing the Anchors locked
+// screen's layered look.
 //
-// WaveField gets that depth by painting an opaque background to occlude back
-// waves. This overlay must stay transparent (it sits over the live screen),
-// so instead of painting bg it ERASES with destination-out — which only
-// clears this canvas's own pixels (the back wave), never the live screen
-// behind it. Same layered look, no opaque fill.
+// Depth comes from "fill below", the same technique WaveField uses: each
+// ripple hides everything beneath it, so the lines stack into water layers
+// instead of crossing like tangled ribbons. WaveField fills below with an
+// opaque background to occlude; this overlay must stay transparent (it sits
+// over the live screen), so it ERASES below each line with destination-out
+// instead — which only clears this canvas's own pixels (the lines behind),
+// never the live screen behind the canvas.
 //
-// Two halves sweep at once: one wave front enters from the left and travels
-// right, the other from the right travels left, crossing in the middle. Many
-// densely-stacked lines with wide height variance overlap into a continuous
-// water surface. Each line is an ombre wake (full at the crest, fading to
-// transparent behind), tinted with the color of the swell that triggered the
-// celebration. Runs once, then calls onDone.
-//
-// prefers-reduced-motion gets a brief static translucent wash instead.
+// Tinted with the color of the swell that triggered the celebration. Runs
+// once, then calls onDone. prefers-reduced-motion gets a brief static wash.
 
-const DURATION = 2000 // ms
-const PSTEP = 4 // px between sampled points along each wave path
-const HALO = 5 // px the erase pass adds, so a front wave cuts a clean gap
+const DURATION = 1900 // ms
+const PSTEP = 4 // px between sampled points along each ripple path
+const RISE = 1.3 // how far the field travels up, in screen heights
 
-type Line = { dir: 1 | -1; yBase: number; amp: number; freq: number; phase: number; width: number; op: number }
+type Line = { yBase: number; amp: number; freq: number; phase: number; width: number; op: number }
 
 // Deterministic per-index jitter (a stable hash, so every celebration looks
 // the same) — keeps the field varied without Math.random.
@@ -37,26 +32,25 @@ function jit(i: number, salt: number): number {
 }
 
 function buildLines(): Line[] {
-  const N = 38
+  const N = 28
   const out: Line[] = []
   for (let i = 0; i < N; i++) {
-    const t = i / (N - 1) // 0 (top) .. 1 (bottom)
+    const t = i / (N - 1) // 0 (back/top) .. 1 (front/bottom)
     out.push({
-      dir: i % 2 === 0 ? 1 : -1, // alternate directions so halves cross
-      yBase: 0.03 + t * 0.94 + (jit(i, 1) - 0.5) * 0.02,
-      // Wide height variance: some lines nearly flat, some big swells.
-      amp: 0.012 + jit(i, 2) * 0.100,
-      freq: 0.005 + jit(i, 3) * 0.007,
+      // Start low and partly below the bottom edge so they rise up into view.
+      yBase: 0.52 + t * 0.62, // 0.52 .. 1.14 of viewport height
+      amp: 0.012 + jit(i, 2) * 0.026,
+      freq: 0.018 + jit(i, 3) * 0.022, // several humps across the width = water texture
       phase: jit(i, 4) * Math.PI * 2,
-      width: 1.5 + t * 4 + jit(i, 5) * 2, // thicker toward the bottom/front
-      op: 0.28 + jit(i, 6) * 0.20,
+      width: 1.5 + t * 3 + jit(i, 5) * 1, // thicker toward the front/bottom
+      op: 0.34 + jit(i, 6) * 0.20,
     })
   }
-  return out
+  // Back (top) first so the front (bottom) draws last and sits in front.
+  return out.sort((a, b) => a.yBase - b.yBase)
 }
 
-// Sorted top (back) → bottom (front) so the bottom-most draws last, in front.
-const ORDERED = buildLines().sort((a, b) => a.yBase - b.yBase)
+const ORDERED = buildLines()
 
 export function WaveSweepOverlay({ color, onDone }: { color: string; onDone: () => void }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
@@ -70,9 +64,7 @@ export function WaveSweepOverlay({ color, onDone }: { color: string; onDone: () 
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
-    // Resolve a CSS var() color (e.g. the brand fallback), then normalize any
-    // CSS color to "r,g,b" via the canvas so gradient stops can share the same
-    // RGB at alpha 0 and 1 (avoids the dark fringe 'transparent' would add).
+    // Resolve a CSS var() color, then normalize to "r,g,b" via the canvas.
     const raw = color.includes('var(')
       ? getComputedStyle(document.documentElement).getPropertyValue(color.slice(4, -1).trim()).trim() || '#888'
       : color
@@ -91,6 +83,7 @@ export function WaveSweepOverlay({ color, onDone }: { color: string; onDone: () 
 
     const dpr = Math.max(1, window.devicePixelRatio || 1)
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    const clamp01 = (v: number) => Math.max(0, Math.min(1, v))
 
     function fit() {
       if (!canvas || !ctx) return
@@ -105,70 +98,65 @@ export function WaveSweepOverlay({ color, onDone }: { color: string; onDone: () 
 
     let raf = 0
     let timer: ReturnType<typeof setTimeout> | null = null
-    const clamp01 = (v: number) => Math.max(0, Math.min(1, v))
 
-    function yAt(line: Line, x: number, H: number, drift: number) {
-      const angle = x * line.freq + line.phase + drift
+    // Draw one line at vertical offset `rise` (px). Erases everything below its
+    // ripple first (so the lines behind it disappear under it = depth), then
+    // strokes the ripple on top at the given alpha.
+    function drawLine(line: Line, W: number, H: number, rise: number, drift: number, alpha: number) {
+      if (!ctx || alpha <= 0.01) return
       const amp = line.amp * H
-      // Secondary harmonic (as in WaveField) breaks the clean sine so the line
-      // reads as a water ripple, not a snake.
-      const second = Math.sin(angle * 2 + 1.3) * amp * 0.18
-      return H * line.yBase + Math.sin(angle) * amp + second
-    }
-
-    function buildPath(line: Line, W: number, H: number, drift: number) {
-      const path = new Path2D()
+      const baseY = line.yBase * H - rise
+      const y = (x: number) => {
+        const a = x * line.freq + line.phase + drift
+        return baseY + Math.sin(a) * amp + Math.sin(a * 2 + 1.3) * amp * 0.18
+      }
+      const linePath = new Path2D()
+      const fillPath = new Path2D()
       for (let x = 0; x <= W; x += PSTEP) {
-        const y = yAt(line, x, H, drift)
-        if (x === 0) path.moveTo(x, y); else path.lineTo(x, y)
+        const yy = y(x)
+        if (x === 0) { linePath.moveTo(x, yy); fillPath.moveTo(x, yy) }
+        else { linePath.lineTo(x, yy); fillPath.lineTo(x, yy) }
       }
-      return path
+      fillPath.lineTo(W, H + 2)
+      fillPath.lineTo(0, H + 2)
+      fillPath.closePath()
+
+      // Erase the lines behind, below this ripple.
+      ctx.globalCompositeOperation = 'destination-out'
+      ctx.globalAlpha = 1
+      ctx.fill(fillPath)
+      // Stroke this ripple on top.
+      ctx.globalCompositeOperation = 'source-over'
+      ctx.globalAlpha = alpha
+      ctx.lineWidth = line.width
+      ctx.strokeStyle = `rgb(${rgb})`
+      ctx.stroke(linePath)
     }
 
-    // Ombre wake gradient: transparent at the tail, opaque at the crest,
-    // transparent just ahead of the crest. `body` is "r,g,b" (or "0,0,0" for
-    // the erase pass, where only alpha matters).
-    function wakeGradient(W: number, lead: number, wakeLen: number, dir: 1 | -1, body: string) {
-      const g = ctx!.createLinearGradient(0, 0, W, 0)
-      if (dir === 1) {
-        const tail = (lead - wakeLen) / W
-        const crest = lead / W
-        g.addColorStop(clamp01(tail), `rgba(${body},0)`)
-        g.addColorStop(clamp01(crest), `rgba(${body},1)`)
-        g.addColorStop(clamp01(crest + 0.001), `rgba(${body},0)`)
-      } else {
-        const crest = lead / W
-        const tail = (lead + wakeLen) / W
-        g.addColorStop(clamp01(crest - 0.001), `rgba(${body},0)`)
-        g.addColorStop(clamp01(crest), `rgba(${body},1)`)
-        g.addColorStop(clamp01(tail), `rgba(${body},0)`)
-      }
-      return g
-    }
-
-    if (reduce) {
-      // Static translucent wash with depth ordering, then clear + done.
-      const rect = canvas.getBoundingClientRect()
-      const W = rect.width
-      const H = rect.height
+    function render(p: number, W: number, H: number) {
+      if (!ctx) return
       ctx.clearRect(0, 0, W, H)
       ctx.lineCap = 'round'
       ctx.lineJoin = 'round'
+      const rise = p * RISE * H
+      const drift = p * 4
+      const fadeIn = clamp01(p / 0.10)
+      const fadeOut = clamp01((1 - p) / 0.28)
+      const timeFade = fadeIn * fadeOut
       for (const line of ORDERED) {
-        const path = buildPath(line, W, H, 0)
-        ctx.globalCompositeOperation = 'destination-out'
-        ctx.lineWidth = line.width + HALO
-        ctx.globalAlpha = 0.9
-        ctx.strokeStyle = '#000'
-        ctx.stroke(path)
-        ctx.globalCompositeOperation = 'source-over'
-        ctx.lineWidth = line.width
-        ctx.globalAlpha = line.op * 0.7
-        ctx.strokeStyle = `rgb(${rgb})`
-        ctx.stroke(path)
+        // Vertical fade: a ripple dims as it climbs past the upper screen, so
+        // the wave dissipates as it rises.
+        const cy = line.yBase * H - rise
+        const vFade = clamp01(cy / (H * 0.7))
+        drawLine(line, W, H, rise, drift, line.op * vFade * timeFade)
       }
       ctx.globalCompositeOperation = 'source-over'
       ctx.globalAlpha = 1
+    }
+
+    if (reduce) {
+      const rect = canvas.getBoundingClientRect()
+      render(0.35, rect.width, rect.height)
       timer = setTimeout(() => doneRef.current(), 700)
       return () => { if (timer) clearTimeout(timer); ro.disconnect() }
     }
@@ -178,40 +166,10 @@ export function WaveSweepOverlay({ color, onDone }: { color: string; onDone: () 
       if (!canvas || !ctx) return
       if (!start) start = ts
       const p = Math.min(1, (ts - start) / DURATION)
-
       const rect = canvas.getBoundingClientRect()
-      const W = rect.width
-      const H = rect.height
-      ctx.clearRect(0, 0, W, H) // transparent — never fill a background
-      ctx.lineCap = 'round'
-      ctx.lineJoin = 'round'
-
-      const fade = p < 0.82 ? 1 : 1 - (p - 0.82) / 0.18 // ease out so the wave clears
-      const drift = p * 5 // gentle shimmer as the wave drifts past
-      const wakeLen = W * 0.85 // long wake so much of the field shows at once
-
-      for (const line of ORDERED) {
-        const lead = line.dir === 1 ? p * (W + wakeLen) : W - p * (W + wakeLen)
-        const path = buildPath(line, W, H, drift)
-        // Erase the already-drawn back lines along this path first (so this
-        // line cuts a clean gap through them), then draw it on top.
-        ctx.globalCompositeOperation = 'destination-out'
-        ctx.lineWidth = line.width + HALO
-        ctx.globalAlpha = fade
-        ctx.strokeStyle = wakeGradient(W, lead, wakeLen, line.dir, '0,0,0')
-        ctx.stroke(path)
-        ctx.globalCompositeOperation = 'source-over'
-        ctx.lineWidth = line.width
-        ctx.globalAlpha = line.op * fade
-        ctx.strokeStyle = wakeGradient(W, lead, wakeLen, line.dir, rgb)
-        ctx.stroke(path)
-      }
-
-      ctx.globalCompositeOperation = 'source-over'
-      ctx.globalAlpha = 1
-
+      render(p, rect.width, rect.height)
       if (p >= 1) {
-        ctx.clearRect(0, 0, W, H)
+        ctx.clearRect(0, 0, rect.width, rect.height)
         doneRef.current()
         return
       }
