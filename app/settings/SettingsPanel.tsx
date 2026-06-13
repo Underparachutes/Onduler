@@ -23,6 +23,7 @@ import { parseHoursInput } from '@/lib/periods'
 import { getBuildPreset } from '@/lib/builds'
 import { detectMode, getRandomThemeAccent } from '@/lib/theme-colors'
 import { ImageAdjustOverlay } from '@/app/components/ImageAdjustOverlay'
+import { resizeImage } from '@/lib/image'
 import { readPinTopUnpinned, writePinTopUnpinned } from '@/app/components/PinTopApplier'
 import { EditGroupForm } from './EditGroupForm'
 
@@ -36,25 +37,6 @@ const TRACKING_MODES = [
   { id: 'points', label: 'Points', desc: 'Building consistency and showing up' },
   { id: 'hours', label: 'Hours', desc: 'Clocking real time toward mastery' },
 ] as const
-
-function resizeImage(file: File, maxDim: number): Promise<File> {
-  return new Promise((resolve) => {
-    const img = new Image()
-    img.onload = () => {
-      if (img.width <= maxDim && img.height <= maxDim) { resolve(file); return }
-      const scale = maxDim / Math.max(img.width, img.height)
-      const canvas = document.createElement('canvas')
-      canvas.width = Math.round(img.width * scale)
-      canvas.height = Math.round(img.height * scale)
-      const ctx = canvas.getContext('2d')!
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
-      canvas.toBlob((blob) => {
-        resolve(new File([blob!], file.name.replace(/\.\w+$/, '.jpg'), { type: 'image/jpeg' }))
-      }, 'image/jpeg', 0.85)
-    }
-    img.src = URL.createObjectURL(file)
-  })
-}
 
 type Group = { id: string; name: string; color: string }
 type HiddenMotion = { id: string; name: string }

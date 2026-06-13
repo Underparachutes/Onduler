@@ -1,7 +1,9 @@
 'use client'
 
 import { useEffect, useMemo, useState, useTransition } from 'react'
-import { completeOnboarding } from '@/app/actions/settings'
+import { completeOnboarding, uploadBackground, removeBackground, setBackgroundPosition } from '@/app/actions/settings'
+import { resizeImage } from '@/lib/image'
+import { ImageAdjustOverlay } from '@/app/components/ImageAdjustOverlay'
 import { detectMode, getRandomThemeAccent, getShuffledThemePalette } from '@/lib/theme-colors'
 import { BUILD_PRESETS } from '@/lib/builds'
 import { shouldShowOnboardingInstall, markOnboardingSeen } from '@/lib/install'
@@ -72,6 +74,11 @@ export function OnboardingFlow() {
   const [trackingMode, setTrackingMode] = useState<TrackingMode>('points')
   const [hapticEnabled, setHapticEnabled] = useState(true)
   const [celebrationEnabled, setCelebrationEnabled] = useState(true)
+
+  const [bgUrl, setBgUrl] = useState<string | null>(null)
+  const [bgPosition, setBgPosition] = useState('50 50 1')
+  const [uploading, setUploading] = useState(false)
+  const [adjusting, setAdjusting] = useState(false)
 
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
@@ -601,6 +608,73 @@ export function OnboardingFlow() {
             </button>
           ))}
         </div>
+      </div>
+
+      <div>
+        <p className="mb-2 text-xs uppercase tracking-widest text-th-muted">Background photo</p>
+        {bgUrl ? (
+          <div className="flex items-center gap-3">
+            {/* eslint-disable-next-line @next/next/no-img-element -- local preview of just-uploaded photo */}
+            <img src={bgUrl} alt="Your background" className="h-16 w-16 shrink-0 rounded-lg object-cover" />
+            <div className="flex flex-col gap-1">
+              <button
+                onClick={() => setAdjusting(true)}
+                className="text-left text-sm text-th-secondary hover:underline"
+              >
+                Adjust
+              </button>
+              <button
+                onClick={() => {
+                  setBgUrl(null)
+                  startTransition(async () => { await removeBackground() })
+                }}
+                className="text-left text-xs text-th-faint transition-colors hover:text-th-muted"
+              >
+                Remove
+              </button>
+            </div>
+          </div>
+        ) : (
+          <label className="block cursor-pointer rounded-lg border border-dashed border-th-border px-4 py-3 text-sm text-th-muted transition-colors hover:bg-th-surface active:scale-[0.99]">
+            {uploading ? 'Uploading…' : '+ Add a photo behind your motions'}
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={async (e) => {
+                const file = e.target.files?.[0]
+                if (!file) return
+                setUploading(true)
+                const resized = await resizeImage(file, 1920)
+                const fd = new FormData()
+                fd.append('file', resized)
+                const result = await uploadBackground(fd)
+                setUploading(false)
+                if (result && 'url' in result) {
+                  setBgUrl(result.url ?? null)
+                  setBgPosition('50 50 1')
+                }
+                e.target.value = ''
+              }}
+            />
+          </label>
+        )}
+        <p className="mt-1.5 text-xs text-th-faint">Optional.</p>
+        {adjusting && bgUrl && (
+          <ImageAdjustOverlay
+            url={bgUrl}
+            initialX={(() => { const p = bgPosition.split(/\s+/); return parseFloat(p[0]) || 50 })()}
+            initialY={(() => { const p = bgPosition.split(/\s+/); return parseFloat(p[1] ?? p[0]) || 50 })()}
+            initialScale={(() => { const p = bgPosition.split(/\s+/); return parseFloat(p[2]) || 1 })()}
+            onSave={(x, y, s) => {
+              const pos = `${Math.round(x)} ${Math.round(y)} ${Math.round(s * 100) / 100}`
+              setBgPosition(pos)
+              setAdjusting(false)
+              startTransition(async () => { await setBackgroundPosition(pos) })
+            }}
+            onCancel={() => setAdjusting(false)}
+          />
+        )}
       </div>
 
       <div>
