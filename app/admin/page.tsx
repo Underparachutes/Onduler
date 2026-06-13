@@ -47,18 +47,43 @@ export default async function AdminHomePage() {
     .sort((a, b) => (b.created_at ?? '').localeCompare(a.created_at ?? ''))
     .slice(0, 20)
 
-  // System totals
+  // System totals + raw logs for engagement (reduced in JS, see below)
   const [
     { count: motionCount },
     { count: swellCount },
     { count: logCount },
     { count: anchorCount },
+    { data: logRows },
   ] = await Promise.all([
     admin.from('motions').select('id', { count: 'exact', head: true }),
     admin.from('swells').select('id', { count: 'exact', head: true }),
     admin.from('logs').select('id', { count: 'exact', head: true }),
     admin.from('reflections').select('id', { count: 'exact', head: true }),
+    admin.from('logs').select('user_id, logged_at'),
   ])
+
+  // Engagement from logs: activation (ever logged) and 7d retention. Logs are
+  // the honest usage signal — auth.last_sign_in_at barely moves for a PWA with
+  // a persistent session. No chapter scoping: we want any activity, all chapters.
+  const sevenDaysAgoMs = now - 7 * 24 * 60 * 60 * 1000
+  const activatedUserIds = new Set<string>()
+  const logged7dUserIds = new Set<string>()
+  let logs7d = 0
+  const lastLogByUser = new Map<string, string>() // userId -> ISO timestamp
+  for (const row of logRows ?? []) {
+    if (!row.user_id) continue
+    activatedUserIds.add(row.user_id)
+    const t = row.logged_at ? new Date(row.logged_at).getTime() : 0
+    if (t >= sevenDaysAgoMs) {
+      logged7dUserIds.add(row.user_id)
+      logs7d++
+    }
+    const prev = lastLogByUser.get(row.user_id)
+    // logged_at is an ISO string, so lexical comparison is a valid recency check.
+    if (!prev || (row.logged_at && row.logged_at > prev)) {
+      lastLogByUser.set(row.user_id, row.logged_at)
+    }
+  }
 
   return (
     <div className="flex min-h-full flex-col px-4 py-8">
@@ -72,6 +97,15 @@ export default async function AdminHomePage() {
             <StatTile label="Total" value={String(totalUsers)} />
             <StatTile label="Active 7d" value={String(active7d)} />
             <StatTile label="Active 30d" value={String(active30d)} />
+          </div>
+        </section>
+
+        <section className="mb-10">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-th-muted">Engagement</p>
+          <div className="grid grid-cols-3 gap-3">
+            <StatTile label="Activated" value={String(activatedUserIds.size)} />
+            <StatTile label="Logged 7d" value={String(logged7dUserIds.size)} />
+            <StatTile label="Logs 7d" value={String(logs7d)} />
           </div>
         </section>
 
@@ -101,7 +135,7 @@ export default async function AdminHomePage() {
                       {u.email ?? '(no email)'}
                     </p>
                     <p className="text-[11px] text-th-faint">
-                      Signed up {formatDate(u.created_at)} · last in {formatRelative(u.last_sign_in_at ?? null)}
+                      Signed up {formatDate(u.created_at)} · last logged {lastLogByUser.has(u.id) ? formatRelative(lastLogByUser.get(u.id)!) : 'never'}
                     </p>
                   </div>
                   <span className="shrink-0 text-sm text-th-faint">→</span>
