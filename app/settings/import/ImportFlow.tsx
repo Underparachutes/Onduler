@@ -4,17 +4,25 @@ import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import { parseImportMarkdown, type ImportPreview } from '@/lib/import-parser'
 import { IMPORT_PROMPT_TEMPLATE } from '@/lib/import-prompt'
-import { confirmImport } from '@/app/actions/import'
+import { confirmImport, type ImportClearMode } from '@/app/actions/import'
 
 type Step = 'input' | 'preview' | 'done'
 
-export function ImportFlow({ trackingMode }: { trackingMode: 'points' | 'hours' }) {
+const CLEAR_OPTIONS: { mode: ImportClearMode; label: string; desc: string }[] = [
+  { mode: 'none', label: 'Keep them', desc: 'The import adds alongside what you have.' },
+  { mode: 'archive', label: 'Archive them', desc: 'Closes this chapter and imports into a fresh one. Nothing is lost.' },
+  { mode: 'delete', label: 'Delete them', desc: 'Removes your current swells and motions for good.' },
+]
+
+export function ImportFlow({ trackingMode, hasExistingData }: { trackingMode: 'points' | 'hours'; hasExistingData: boolean }) {
   const [step, setStep] = useState<Step>('input')
   const [markdown, setMarkdown] = useState('')
   const [preview, setPreview] = useState<ImportPreview | null>(null)
   const [counts, setCounts] = useState<{ swells: number; motions: number; groups: number; assignments: number } | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
+  const [clearMode, setClearMode] = useState<ImportClearMode>('none')
+  const [armedDelete, setArmedDelete] = useState(false)
   const [isPending, startTransition] = useTransition()
 
   function handleCopyPrompt() {
@@ -36,9 +44,14 @@ export function ImportFlow({ trackingMode }: { trackingMode: 'points' | 'hours' 
 
   function handleConfirm() {
     if (!preview) return
+    // Deleting destroys logs, so the delete path takes a second tap to confirm.
+    if (clearMode === 'delete' && !armedDelete) {
+      setArmedDelete(true)
+      return
+    }
     setError(null)
     startTransition(async () => {
-      const result = await confirmImport(preview)
+      const result = await confirmImport(preview, clearMode)
       if ('error' in result) {
         setError(result.error)
         return
@@ -52,7 +65,7 @@ export function ImportFlow({ trackingMode }: { trackingMode: 'points' | 'hours' 
     const parts: string[] = []
     if (counts.swells > 0) parts.push(`${counts.swells} swell${counts.swells === 1 ? '' : 's'}`)
     if (counts.motions > 0) parts.push(`${counts.motions} motion${counts.motions === 1 ? '' : 's'}`)
-    if (counts.groups > 0) parts.push(`${counts.groups} group${counts.groups === 1 ? '' : 's'}`)
+    if (counts.groups > 0) parts.push(`${counts.groups} bucket${counts.groups === 1 ? '' : 's'}`)
     if (counts.assignments > 0) parts.push(`${counts.assignments} assignment${counts.assignments === 1 ? '' : 's'}`)
 
     return (
@@ -101,7 +114,7 @@ export function ImportFlow({ trackingMode }: { trackingMode: 'points' | 'hours' 
 
         {preview.groups.length > 0 && (
           <div>
-            <p className="mb-1 text-sm text-th-secondary">{preview.groups.length} group{preview.groups.length === 1 ? '' : 's'}</p>
+            <p className="mb-1 text-sm text-th-secondary">{preview.groups.length} bucket{preview.groups.length === 1 ? '' : 's'}</p>
             <div className="flex flex-wrap gap-1.5">
               {preview.groups.map(g => (
                 <span key={g.name} className="rounded-full border border-th-border px-2.5 py-0.5 text-xs text-th-text">
@@ -120,6 +133,31 @@ export function ImportFlow({ trackingMode }: { trackingMode: 'points' | 'hours' 
           <p className="text-xs text-th-faint">{preview.unparsedLineCount} line{preview.unparsedLineCount === 1 ? '' : 's'} couldn&apos;t be parsed and will be ignored.</p>
         )}
 
+        {hasExistingData && (
+          <div>
+            <p className="mb-2 text-sm text-th-secondary">Your existing swells and motions</p>
+            <div className="flex flex-col gap-2">
+              {CLEAR_OPTIONS.map(o => (
+                <button
+                  key={o.mode}
+                  onClick={() => { setClearMode(o.mode); setArmedDelete(false) }}
+                  className={`rounded-lg border p-3 text-left transition-colors ${
+                    clearMode === o.mode ? 'border-th-btn' : 'border-th-border hover:bg-th-surface'
+                  }`}
+                >
+                  <p className="text-sm font-medium text-th-text">{o.label}</p>
+                  <p className="text-xs text-th-muted">{o.desc}</p>
+                </button>
+              ))}
+            </div>
+            {clearMode === 'delete' && (
+              <p className="mt-2 text-xs text-red-500">
+                Deleting motions also deletes every log they carry. This cannot be undone.
+              </p>
+            )}
+          </div>
+        )}
+
         {error && <p className="text-xs text-red-500">{error}</p>}
 
         <div className="flex items-center gap-3 pt-2">
@@ -128,10 +166,16 @@ export function ImportFlow({ trackingMode }: { trackingMode: 'points' | 'hours' 
             disabled={isPending}
             className="rounded-lg bg-th-btn px-4 py-2 text-sm font-medium text-th-btn-text active:scale-[0.97] disabled:opacity-50"
           >
-            {isPending ? 'Importing...' : 'Import'}
+            {isPending
+              ? 'Importing...'
+              : clearMode === 'delete'
+                ? (armedDelete ? 'Tap again to confirm' : 'Delete and import')
+                : clearMode === 'archive'
+                  ? 'Archive and import'
+                  : 'Import'}
           </button>
           <button
-            onClick={() => { setStep('input'); setPreview(null); setError(null) }}
+            onClick={() => { setStep('input'); setPreview(null); setError(null); setArmedDelete(false) }}
             className="rounded-lg border border-th-border px-4 py-2 text-sm text-th-muted active:scale-[0.97]"
           >
             Back

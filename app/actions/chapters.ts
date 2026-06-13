@@ -216,31 +216,8 @@ export async function archiveAndStartFreshChapter() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
-  const now = new Date().toISOString()
-
-  // 1. End the active chapter (if any).
-  const { data: active } = await supabase
-    .from('chapters')
-    .select('id, sort_order')
-    .eq('user_id', user.id)
-    .is('ended_at', null)
-    .maybeSingle()
-
-  let nextSortOrder = 0
-  if (active?.id) {
-    await supabase
-      .from('chapters')
-      .update({ ended_at: now })
-      .eq('id', active.id)
-      .eq('user_id', user.id)
-    nextSortOrder = (active.sort_order ?? 0) + 1
-  }
-
-  // 2. Create the new active chapter.
-  const { error: insertErr } = await supabase
-    .from('chapters')
-    .insert({ user_id: user.id, started_at: now, sort_order: nextSortOrder })
-  if (insertErr) return { error: insertErr.message }
+  const rolloverErr = await rolloverChapter(supabase, user.id)
+  if (rolloverErr) return { error: rolloverErr }
 
   // 3. Reset onboarding + build slots so the user lands clean and re-picks
   //    a shape. Tracking mode, theme, daily goals, haptics, celebration
@@ -262,4 +239,66 @@ export async function archiveAndStartFreshChapter() {
   revalidatePath('/', 'layout')
 
   return { success: true }
+}
+
+// Archive variant for the LLM import flow: ends the active chapter and starts
+// a fresh one, but keeps onboarding_complete true so the user is NOT routed
+// back through /onboarding — the import itself populates the new chapter.
+// Build slots and welcome-back state still reset since they reference swells
+// that just got archived.
+export async function archiveChapterForImport() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const rolloverErr = await rolloverChapter(supabase, user.id)
+  if (rolloverErr) return { error: rolloverErr }
+
+  await supabase
+    .from('user_settings')
+    .update({
+      primary_build: null,
+      secondary_build: null,
+      mvs_motions: null,
+      welcome_back_mode: null,
+      welcome_back_started_at: null,
+    })
+    .eq('user_id', user.id)
+
+  revalidatePath('/', 'layout')
+
+  return { success: true }
+}
+
+// Shared core of the two archive actions: end the active chapter (if any)
+// and insert the next one. Returns an error message string, or null on success.
+async function rolloverChapter(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string
+): Promise<string | null> {
+  const now = new Date().toISOString()
+
+  // 1. End the active chapter (if any).
+  const { data: active } = await supabase
+    .from('chapters')
+    .select('id, sort_order')
+    .eq('user_id', userId)
+    .is('ended_at', null)
+    .maybeSingle()
+
+  let nextSortOrder = 0
+  if (active?.id) {
+    await supabase
+      .from('chapters')
+      .update({ ended_at: now })
+      .eq('id', active.id)
+      .eq('user_id', userId)
+    nextSortOrder = (active.sort_order ?? 0) + 1
+  }
+
+  // 2. Create the new active chapter.
+  const { error: insertErr } = await supabase
+    .from('chapters')
+    .insert({ user_id: userId, started_at: now, sort_order: nextSortOrder })
+  return insertErr ? insertErr.message : null
 }

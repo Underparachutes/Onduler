@@ -4,18 +4,39 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { getActiveChapterId } from '@/lib/chapters'
 import { getShuffledThemePalette } from '@/lib/theme-colors'
+import { archiveChapterForImport } from '@/app/actions/chapters'
 import type { ImportPreview } from '@/lib/import-parser'
 
 type ImportResult =
   | { error: string }
   | { success: true; counts: { swells: number; motions: number; groups: number; assignments: number } }
 
-export async function confirmImport(preview: ImportPreview): Promise<ImportResult> {
+export type ImportClearMode = 'none' | 'archive' | 'delete'
+
+export async function confirmImport(preview: ImportPreview, clearMode: ImportClearMode = 'none'): Promise<ImportResult> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
+  // Archive path: close the current chapter and import into a fresh one.
+  // Must run before getActiveChapterId so the import lands in the new chapter.
+  if (clearMode === 'archive') {
+    const archived = await archiveChapterForImport()
+    if ('error' in archived && archived.error) return { error: archived.error }
+  }
+
   const chapterId = await getActiveChapterId(supabase, user.id)
+
+  // Delete path: hard-delete the active chapter's motions, swells, and buckets.
+  // Motion deletes cascade to their logs; swell deletes cascade to waypoints.
+  if (clearMode === 'delete') {
+    const { error: motionErr } = await supabase.from('motions').delete().eq('user_id', user.id).eq('chapter_id', chapterId)
+    if (motionErr) return { error: motionErr.message }
+    const { error: swellErr } = await supabase.from('swells').delete().eq('user_id', user.id).eq('chapter_id', chapterId)
+    if (swellErr) return { error: swellErr.message }
+    const { error: groupErr } = await supabase.from('groups').delete().eq('user_id', user.id).eq('chapter_id', chapterId)
+    if (groupErr) return { error: groupErr.message }
+  }
 
   const [{ data: settings }, { data: existingSwells }, { data: existingMotions }, { data: existingGroups }] = await Promise.all([
     supabase.from('user_settings').select('theme, tracking_mode').eq('user_id', user.id).single(),
@@ -176,6 +197,13 @@ export async function confirmImport(preview: ImportPreview): Promise<ImportResul
   if (junctionRows.length > 0) {
     const { error: junctionErr } = await supabase.from('motion_swells').insert(junctionRows)
     if (junctionErr) return { error: junctionErr.message }
+  }
+
+  // An import that brings buckets should leave the buckets UI switched on,
+  // otherwise the imported organization is invisible until the user finds
+  // the Settings toggle. (User-facing word is "buckets" per ADR 0012.)
+  if (preview.groups.length > 0) {
+    await supabase.from('user_settings').upsert({ user_id: user.id, groups_enabled: true })
   }
 
   revalidatePath('/dashboard')
