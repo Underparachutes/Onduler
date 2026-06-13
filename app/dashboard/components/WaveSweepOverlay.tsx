@@ -65,22 +65,26 @@ export function WaveSweepOverlay({ color, onDone }: { color: string; onDone: () 
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
-    // Resolve a CSS var() color, then normalize to "r,g,b" via the canvas.
-    const raw = color.includes('var(')
-      ? getComputedStyle(document.documentElement).getPropertyValue(color.slice(4, -1).trim()).trim() || '#888'
-      : color
-    ctx.fillStyle = raw
-    const norm = ctx.fillStyle
-    let rgb = '136,136,136'
-    if (typeof norm === 'string') {
-      if (norm[0] === '#') {
-        const n = parseInt(norm.slice(1), 16)
-        rgb = `${(n >> 16) & 255},${(n >> 8) & 255},${n & 255}`
-      } else {
-        const m = norm.match(/\d+/g)
-        if (m && m.length >= 3) rgb = `${m[0]},${m[1]},${m[2]}`
+    // Normalize any CSS color (incl. var()) to "r,g,b" via the canvas. The
+    // ripples ombre from the triggering swell's color into the theme brand.
+    const toRGB = (c: string): string => {
+      const v = c.includes('var(')
+        ? getComputedStyle(document.documentElement).getPropertyValue(c.slice(4, -1).trim()).trim() || '#888'
+        : c
+      ctx.fillStyle = v
+      const s = ctx.fillStyle
+      if (typeof s === 'string') {
+        if (s[0] === '#') {
+          const n = parseInt(s.slice(1), 16)
+          return `${(n >> 16) & 255},${(n >> 8) & 255},${n & 255}`
+        }
+        const m = s.match(/\d+/g)
+        if (m && m.length >= 3) return `${m[0]},${m[1]},${m[2]}`
       }
+      return '136,136,136'
     }
+    const swellRgb = toRGB(color)
+    const brandRgb = toRGB('var(--brand)')
 
     const dpr = Math.max(1, window.devicePixelRatio || 1)
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -120,8 +124,9 @@ export function WaveSweepOverlay({ color, onDone }: { color: string; onDone: () 
 
     // Draw one ripple: erase everything behind it below its line (depth), lay a
     // single translucent layer of water body below it (the erase first means
-    // bands never stack into mud), then stroke the surface ripple on top.
-    function drawLine(line: Line, W: number, H: number, rise: number, drift: number, alpha: number, tint: number) {
+    // bands never stack into mud), then stroke the surface ripple on top. The
+    // `paint` is the swell→brand ombre gradient, shared across lines.
+    function drawLine(line: Line, W: number, H: number, rise: number, drift: number, alpha: number, tint: number, paint: CanvasGradient) {
       if (!ctx || (alpha <= 0.01 && tint <= 0.01)) return
       const { linePath, fillPath } = paths(line, W, H, rise, drift)
       ctx.globalCompositeOperation = 'destination-out'
@@ -130,14 +135,22 @@ export function WaveSweepOverlay({ color, onDone }: { color: string; onDone: () 
       if (tint > 0.01) {
         ctx.globalCompositeOperation = 'source-over'
         ctx.globalAlpha = tint
-        ctx.fillStyle = `rgb(${rgb})`
+        ctx.fillStyle = paint
         ctx.fill(fillPath)
       }
       ctx.globalCompositeOperation = 'source-over'
       ctx.globalAlpha = alpha
       ctx.lineWidth = line.width
-      ctx.strokeStyle = `rgb(${rgb})`
+      ctx.strokeStyle = paint
       ctx.stroke(linePath)
+    }
+
+    // Opacity by absolute screen height: a ripple fades as it climbs toward the
+    // top, so the wave dissolves upward instead of flooding the screen.
+    function topFade(cy: number, H: number): number {
+      const yf = cy / H // 0 top .. 1 bottom
+      const s = clamp01((yf - 0.10) / 0.48)
+      return s * s * (3 - 2 * s) // smoothstep: clear up top, full below ~0.6H
     }
 
     function render(p: number, W: number, H: number) {
@@ -150,12 +163,14 @@ export function WaveSweepOverlay({ color, onDone }: { color: string; onDone: () 
       const fadeIn = clamp01(p / 0.10)
       const fadeOut = clamp01((1 - p) / 0.28)
       const timeFade = fadeIn * fadeOut
+      // Swell → brand ombre across the width, shared by every ripple this frame.
+      const paint = ctx.createLinearGradient(0, 0, W, 0)
+      paint.addColorStop(0, `rgb(${swellRgb})`)
+      paint.addColorStop(1, `rgb(${brandRgb})`)
       for (const line of ORDERED) {
-        // Vertical fade: a ripple dims as it climbs past the upper screen, so
-        // the wave dissipates as it rises.
         const cy = line.yBase * H - rise
-        const vFade = clamp01(cy / (H * 0.7))
-        drawLine(line, W, H, rise, drift, line.op * vFade * timeFade, TINT * vFade * timeFade)
+        const f = topFade(cy, H) * timeFade
+        drawLine(line, W, H, rise, drift, line.op * f, TINT * f, paint)
       }
       // Clear below the front (lowest) ripple so the water has a trailing edge
       // and the wave rises through rather than flooding to the bottom forever.
