@@ -256,7 +256,7 @@ export function SortableMotionList({
       ordered.findIndex(m => m.id === over.id)
     )
     setOrdered(next)
-    startTransition(async () => { guard(await reorderMotions(next.map(m => m.id))) })
+    startTransition(async () => { await guard(reorderMotions(next.map(m => m.id))) })
   }
 
   const q = searchQuery.toLowerCase().trim()

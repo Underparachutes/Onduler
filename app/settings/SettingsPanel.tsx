@@ -129,37 +129,37 @@ export function SettingsPanel({
   function handleTheme(t: string) {
     setCurrentTheme(t)
     document.documentElement.dataset.theme = t // eslint-disable-line react-hooks/immutability -- intentional DOM mutation
-    startTransition(async () => { guard(await setTheme(t)) })
+    startTransition(async () => { await guard(setTheme(t)) })
   }
 
   function handleMode(m: TrackingMode) {
     setCurrentMode(m)
-    startTransition(async () => { guard(await setTrackingMode(m)) })
+    startTransition(async () => { await guard(setTrackingMode(m)) })
   }
 
   function handleGroups(enabled: boolean) {
     setGroupsOn(enabled)
-    startTransition(async () => { guard(await setGroupsEnabled(enabled)) })
+    startTransition(async () => { await guard(setGroupsEnabled(enabled)) })
   }
 
   function handleSubmotions(enabled: boolean) {
     setSubmotionsOn(enabled)
-    startTransition(async () => { guard(await setSubmotionsEnabled(enabled)) })
+    startTransition(async () => { await guard(setSubmotionsEnabled(enabled)) })
   }
 
   function handleCelebration(enabled: boolean) {
     setCelebration(enabled)
-    startTransition(async () => { guard(await setCelebrationEnabled(enabled)) })
+    startTransition(async () => { await guard(setCelebrationEnabled(enabled)) })
   }
 
   function handleHaptic(enabled: boolean) {
     setHaptic(enabled)
-    startTransition(async () => { guard(await setHapticEnabled(enabled)) })
+    startTransition(async () => { await guard(setHapticEnabled(enabled)) })
   }
 
   function handleCycleEmail(enabled: boolean) {
     setCycleEmail(enabled)
-    startTransition(async () => { guard(await setEmailCycleCloseEnabled(enabled)) })
+    startTransition(async () => { await guard(setEmailCycleCloseEnabled(enabled)) })
   }
 
   function startEditGoal() {
@@ -173,19 +173,19 @@ export function SettingsPanel({
       if (!val || val <= 0) { setEditingGoal(false); return }
       setGoalHrs(val)
       setEditingGoal(false)
-      startTransition(async () => { guard(await setDailyGoalHours(val)) })
+      startTransition(async () => { await guard(setDailyGoalHours(val)) })
     } else {
       const val = parseInt(goalInput)
       if (!val || val < 1) { setEditingGoal(false); return }
       setGoalPts(val)
       setEditingGoal(false)
-      startTransition(async () => { guard(await setDailyGoal(val)) })
+      startTransition(async () => { await guard(setDailyGoal(val)) })
     }
   }
 
   function handleUnhide(id: string) {
     setLocalHiddenIds(prev => new Set([...prev, id]))
-    startTransition(async () => { guard(await unhideMotion(id)) })
+    startTransition(async () => { await guard(unhideMotion(id)) })
   }
 
   const editingGroup = editingGroupId ? groups.find(g => g.id === editingGroupId) ?? null : null
@@ -255,7 +255,7 @@ export function SettingsPanel({
                     <button
                       onClick={() => {
                         setHasBackground(false)
-                        startTransition(async () => { guard(await removeBackground()) })
+                        startTransition(async () => { await guard(removeBackground()) })
                       }}
                       className="text-xs text-th-faint transition-colors hover:text-th-muted"
                     >
@@ -337,7 +337,7 @@ export function SettingsPanel({
                         layer.style.backgroundSize = 'cover'
                       }
                     }
-                    startTransition(async () => { guard(await setBackgroundPosition(pos)) })
+                    startTransition(async () => { await guard(setBackgroundPosition(pos)) })
                   }}
                   onCancel={() => setAdjusting(false)}
                 />
@@ -370,7 +370,7 @@ export function SettingsPanel({
                     <button
                       onClick={() => {
                         setBarColor(null)
-                        startTransition(async () => { guard(await setProgressBarColor(null)) })
+                        startTransition(async () => { await guard(setProgressBarColor(null)) })
                       }}
                       className="text-xs text-th-faint transition-colors hover:text-th-muted"
                     >
@@ -382,7 +382,7 @@ export function SettingsPanel({
                     value={barColor || themeBrand}
                     onChange={(e) => {
                       setBarColor(e.target.value)
-                      startTransition(async () => { guard(await setProgressBarColor(e.target.value)) })
+                      startTransition(async () => { await guard(setProgressBarColor(e.target.value)) })
                     }}
                     className="h-8 w-8 cursor-pointer rounded-lg border border-th-border bg-th-surface p-0.5"
                   />
@@ -526,7 +526,7 @@ export function SettingsPanel({
                             document.documentElement.dataset.theme ?? 'biarritz',
                             detectMode()
                           )
-                          startTransition(async () => { guard(await createQuickGroup(name, color)) })
+                          startTransition(async () => { await guard(createQuickGroup(name, color)) })
                         }}
                         className="rounded-full border border-th-border px-3 py-1 text-xs text-th-muted transition-colors hover:border-th-focus hover:text-th-text"
                       >

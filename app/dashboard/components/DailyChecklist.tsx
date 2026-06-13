@@ -377,7 +377,7 @@ export function DailyChecklist({
       if (oldIdx === -1 || newIdx === -1 || oldIdx === newIdx) return
       const reordered = arrayMove(items, oldIdx, newIdx)
       setSwellContainers(prev => ({ ...prev, [sourceContainerId]: reordered }))
-      startTransition(async () => { guard(await reorderMotions(reordered.map(m => m.id))) })
+      startTransition(async () => { await guard(reorderMotions(reordered.map(m => m.id))) })
       return
     }
 
@@ -398,7 +398,7 @@ export function DailyChecklist({
         if (newSrc.length === 0) delete next[sourceContainerId]
         return next
       })
-      startTransition(async () => { guard(await setMotionSwells(activeMotionId, [])) })
+      startTransition(async () => { await guard(setMotionSwells(activeMotionId, [])) })
       toast.show({
         message: `${movedMotion.name} now feeds no swells.`,
         primary: {
@@ -406,7 +406,7 @@ export function DailyChecklist({
           onClick: () => {
             setSwellContainers(buildSwellContainers(motions, activeGroup))
             startTransition(async () => {
-              if (guard(await setMotionSwells(activeMotionId, prevSwells))) router.refresh()
+              if (await guard(setMotionSwells(activeMotionId, prevSwells))) router.refresh()
             })
           },
         },
@@ -441,7 +441,7 @@ export function DailyChecklist({
       return next
     })
 
-    startTransition(async () => { guard(await setMotionSwells(activeMotionId, newEntries)) })
+    startTransition(async () => { await guard(setMotionSwells(activeMotionId, newEntries)) })
 
     const sourceLabel = sourceSwell?.name ?? 'Unassigned'
     const targetLabel = targetSwell?.name ?? 'Unassigned'
@@ -453,7 +453,7 @@ export function DailyChecklist({
         onClick: () => {
           setSwellContainers(buildSwellContainers(motions, activeGroup))
           startTransition(async () => {
-            if (guard(await setMotionSwells(activeMotionId, prevSwells))) router.refresh()
+            if (await guard(setMotionSwells(activeMotionId, prevSwells))) router.refresh()
           })
         },
       },
@@ -461,8 +461,8 @@ export function DailyChecklist({
         label: 'Keep both',
         onClick: () => {
           startTransition(async () => {
-            if (!guard(await setMotionSwells(activeMotionId, prevSwells))) return
-            if (!guard(await duplicateMotion(activeMotionId, { swellId: targetContainerId, weight: sourceWeight }))) return
+            if (!await guard(setMotionSwells(activeMotionId, prevSwells))) return
+            if (!await guard(duplicateMotion(activeMotionId, { swellId: targetContainerId, weight: sourceWeight }))) return
             router.refresh()
           })
         },
@@ -526,7 +526,7 @@ export function DailyChecklist({
       setLocalDone(prev => { const next = new Set(prev); next.delete(motion.id); return next })
       setLocalValue(prev => Math.max(0, prev - motionDelta(motion)))
       updateSwellProgress(motion, -1)
-      startTransition(async () => { guard(await unlogMotion(motion.id)) })
+      startTransition(async () => { await guard(unlogMotion(motion.id)) })
     } else {
       if (hapticEnabled && 'vibrate' in navigator) navigator.vibrate([15, 30, 15, 30, 15])
       if (celebrationEnabled) {
@@ -552,7 +552,7 @@ export function DailyChecklist({
           hours: Math.round(Number(motion.default_hours) * mult * 4) / 4,
         },
       }))
-      startTransition(async () => { guard(await quickLogMotion(motion.id, intensity)) })
+      startTransition(async () => { await guard(quickLogMotion(motion.id, intensity)) })
       if (undoTimeoutRef.current) clearTimeout(undoTimeoutRef.current)
       undoTimeoutRef.current = setTimeout(() => setUndoToast(null), 3500)
       setUndoToast({ motion })
@@ -567,7 +567,7 @@ export function DailyChecklist({
     setLocalDone(prev => { const next = new Set(prev); next.delete(motion.id); return next })
     setLocalValue(prev => Math.max(0, prev - delta))
     setUndoToast(null)
-    startTransition(async () => { guard(await unlogMotion(motion.id)) })
+    startTransition(async () => { await guard(unlogMotion(motion.id)) })
   }
 
   function commitGoal() {
@@ -577,8 +577,8 @@ export function DailyChecklist({
     setLocalGoal(val)
     setEditingGoal(false)
     startTransition(async () => {
-      if (isHours) guard(await setDailyGoalHours(val))
-      else guard(await setDailyGoal(val))
+      if (isHours) await guard(setDailyGoalHours(val))
+      else await guard(setDailyGoal(val))
     })
   }
 
@@ -612,7 +612,7 @@ export function DailyChecklist({
 
       const next = arrayMove(items, oldIdx, newIdx)
       setContainers(prev => ({ ...prev, [activeContainer]: next }))
-      startTransition(async () => { guard(await reorderMotions(next.map(m => m.id))) })
+      startTransition(async () => { await guard(reorderMotions(next.map(m => m.id))) })
     } else {
       const srcItems = containers[activeContainer]
       const dstItems = containers[overContainer]
@@ -627,7 +627,7 @@ export function DailyChecklist({
 
       setContainers(prev => ({ ...prev, [activeContainer]: newSrc, [overContainer]: newDst }))
       startTransition(async () => {
-        guard(await reassignMotionToGroup(
+        await guard(reassignMotionToGroup(
           activeMotionId,
           overContainer === 'ungrouped' ? null : overContainer,
           newSrc.map(m => m.id),

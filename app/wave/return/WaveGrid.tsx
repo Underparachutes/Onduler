@@ -33,7 +33,7 @@ export function WaveGrid({ durationSeconds }: { durationSeconds: number | null }
   function submit() {
     if (!point) return
     startTransition(async () => {
-      if (guard(await recordWaveCheckin(point.x, point.y, durationSeconds))) {
+      if (await guard(recordWaveCheckin(point.x, point.y, durationSeconds))) {
         router.push('/wave/return/welcome')
       }
     })

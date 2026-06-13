@@ -44,7 +44,7 @@ export function AnchorsToolbar({ period, unlocks, anchorCount, anchorTarget, anc
   function adjust(delta: number) {
     const next = Math.max(0, Math.min(7, weeklyTarget + delta))
     setWeeklyTarget(next)
-    startTransition(async () => { guard(await setAnchorTarget(next)) })
+    startTransition(async () => { await guard(setAnchorTarget(next)) })
   }
 
   return (

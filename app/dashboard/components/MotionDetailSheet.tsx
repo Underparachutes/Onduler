@@ -286,7 +286,7 @@ export function MotionDetailSheet({
     lastValidName.current = trimmed
     setHeaderName(trimmed)
     startHeaderSave(async () => {
-      if (guard(await updateMotionDirect(motion.id, trimmed, parseInt(lastValidPts.current), parseFloat(lastValidHrs.current)))) router.refresh()
+      if (await guard(updateMotionDirect(motion.id, trimmed, parseInt(lastValidPts.current), parseFloat(lastValidHrs.current)))) router.refresh()
     })
   }
 
@@ -298,7 +298,7 @@ export function MotionDetailSheet({
     lastValidPts.current = str
     setHeaderPts(str)
     startHeaderSave(async () => {
-      if (guard(await updateMotionDirect(motion.id, lastValidName.current, num, parseFloat(lastValidHrs.current)))) router.refresh()
+      if (await guard(updateMotionDirect(motion.id, lastValidName.current, num, parseFloat(lastValidHrs.current)))) router.refresh()
     })
   }
 
@@ -311,7 +311,7 @@ export function MotionDetailSheet({
     lastValidHrs.current = str
     setHeaderHrs(str)
     startHeaderSave(async () => {
-      if (guard(await updateMotionDirect(motion.id, lastValidName.current, parseInt(lastValidPts.current), rounded))) router.refresh()
+      if (await guard(updateMotionDirect(motion.id, lastValidName.current, parseInt(lastValidPts.current), rounded))) router.refresh()
     })
   }
 
@@ -344,7 +344,7 @@ export function MotionDetailSheet({
       orderedSubs.findIndex(s => s.id === over.id)
     )
     setOrderedSubs(next)
-    startReorderSub(async () => { guard(await reorderMotions(next.map(s => s.id))) })
+    startReorderSub(async () => { await guard(reorderMotions(next.map(s => s.id))) })
   }
 
   // Add submotion — expandable from + button
@@ -371,7 +371,7 @@ export function MotionDetailSheet({
     const next = mode === 'rollup' ? 'distribute' : 'rollup'
     setMode(next)
     startMode(async () => {
-      if (guard(await setSubmotionMode(motion.id, next))) router.refresh()
+      if (await guard(setSubmotionMode(motion.id, next))) router.refresh()
     })
   }
 
@@ -428,7 +428,7 @@ export function MotionDetailSheet({
     }
     setEditSubSwellWeights(next)
     setEditSubSwellPctDraft(syncPctDraft(next))
-    startTransition(async () => { guard(await setMotionSwells(editingSubId, swellEntriesToArray(next))) })
+    startTransition(async () => { await guard(setMotionSwells(editingSubId, swellEntriesToArray(next))) })
   }
 
   function editSubSwellPctChange(swellId: string, value: string) {
@@ -446,7 +446,7 @@ export function MotionDetailSheet({
     const next = applyWeightEdit(editSubSwellWeights, swellId, num / 100)
     setEditSubSwellWeights(next)
     setEditSubSwellPctDraft(syncPctDraft(next))
-    startTransition(async () => { guard(await setMotionSwells(editingSubId!, swellEntriesToArray(next))) })
+    startTransition(async () => { await guard(setMotionSwells(editingSubId!, swellEntriesToArray(next))) })
   }
 
   function saveEditSub(sub: Submotion) {
@@ -454,7 +454,7 @@ export function MotionDetailSheet({
     const pts = parseInt(editSubPts)
     if (!name || isNaN(pts) || pts < 1) return
     startSavingSub(async () => {
-      if (!guard(await updateSubmotionDirect(sub.id, name, pts))) return
+      if (!await guard(updateSubmotionDirect(sub.id, name, pts))) return
       setEditingSubId(null)
       router.refresh()
     })
@@ -467,7 +467,7 @@ export function MotionDetailSheet({
     } else {
       if (subDelTimer.current) clearTimeout(subDelTimer.current)
       startDeletingSub(async () => {
-        if (!guard(await deleteMotion(subId))) return
+        if (!await guard(deleteMotion(subId))) return
         setEditingSubId(null)
         setConfirmingSubDel(null)
         router.refresh()
@@ -502,7 +502,7 @@ export function MotionDetailSheet({
     if (done) {
       setLocalDone(prev => { const n = new Set(prev); n.delete(sub.id); return n })
       onPointsDelta(-delta)
-      startTransition(async () => { guard(await unlogMotion(sub.id)) })
+      startTransition(async () => { await guard(unlogMotion(sub.id)) })
     } else {
       setLocalDone(prev => new Set([...prev, sub.id]))
       onPointsDelta(delta)
@@ -515,12 +515,12 @@ export function MotionDetailSheet({
           hours: Number(sub.default_hours),
         },
       }))
-      startTransition(async () => { guard(await quickLogMotion(sub.id)) })
+      startTransition(async () => { await guard(quickLogMotion(sub.id)) })
     }
   }
 
   function handleHide() {
-    startTransition(async () => { if (!guard(await hideMotion(motion.id))) return; onHide(motion.id); onClose() })
+    startTransition(async () => { if (!await guard(hideMotion(motion.id))) return; onHide(motion.id); onClose() })
   }
 
   function handleAdd() {
@@ -531,10 +531,12 @@ export function MotionDetailSheet({
     // parent's existing mode.
     const stampMode = orderedSubs.length === 0 ? mode : undefined
     startAdding(async () => {
-      const result = await createSubmotion(motion.id, name, stampMode)
-      if (!guard(result)) return
+      // Result is needed below for its id, so catch transport failures into
+      // the same { error } shape guard already understands.
+      const result = await createSubmotion(motion.id, name, stampMode).catch(() => ({ error: 'network' as string, id: undefined }))
+      if (!(await guard(result))) return
       if (result?.id && swellsToAssign.length > 0) {
-        guard(await setMotionSwells(result.id, swellsToAssign))
+        await guard(setMotionSwells(result.id, swellsToAssign))
       }
       setAddName('')
       setAddSwellWeights(new Map())
@@ -596,7 +598,7 @@ export function MotionDetailSheet({
       confirmTimer.current = setTimeout(() => setConfirming(false), 3000)
     } else {
       if (confirmTimer.current) clearTimeout(confirmTimer.current)
-      startDelete(async () => { if (guard(await deleteMotion(motion.id))) onClose() })
+      startDelete(async () => { if (await guard(deleteMotion(motion.id))) onClose() })
     }
   }
 
@@ -613,20 +615,20 @@ export function MotionDetailSheet({
     }
     setLocalSwellWeights(next)
     setSwellPctDraft(syncPctDraft(next))
-    startSwells(async () => { guard(await setMotionSwells(motion.id, swellEntries(next))) })
+    startSwells(async () => { await guard(setMotionSwells(motion.id, swellEntries(next))) })
   }
 
   function updateSwellWeight(swellId: string, pct: number) {
     const next = applyWeightEdit(localSwellWeights, swellId, pct / 100)
     setLocalSwellWeights(next)
     setSwellPctDraft(syncPctDraft(next))
-    startSwells(async () => { guard(await setMotionSwells(motion.id, swellEntries(next))) })
+    startSwells(async () => { await guard(setMotionSwells(motion.id, swellEntries(next))) })
   }
 
   function toggleGroup(groupId: string) {
     const next = localGroupId === groupId ? null : groupId
     setLocalGroupId(next)
-    startGroups(async () => { guard(await setMotionGroup(motion.id, next)) })
+    startGroups(async () => { await guard(setMotionGroup(motion.id, next)) })
   }
 
   return (

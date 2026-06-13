@@ -183,7 +183,7 @@ export function WeekEditView({
       })
       onLogDelta?.(delta)
       startTransition(async () => {
-        if (guard(await logMotionOnDay(motionId, dayKey))) router.refresh()
+        if (await guard(logMotionOnDay(motionId, dayKey))) router.refresh()
       })
     } else {
       const removeId = logIds[0]
@@ -197,7 +197,7 @@ export function WeekEditView({
       })
       onLogDelta?.(-delta)
       startTransition(async () => {
-        if (guard(await removeLogById(removeId))) router.refresh()
+        if (await guard(removeLogById(removeId))) router.refresh()
       })
     }
   }

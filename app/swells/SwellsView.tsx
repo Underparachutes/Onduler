@@ -319,7 +319,7 @@ function HiddenSwellsSection({ hiddenSwells }: { hiddenSwells: Swell[] }) {
   if (hiddenSwells.length === 0) return null
 
   function restore(id: string) {
-    startRestore(async () => { guard(await setSwellHidden(id, false)) })
+    startRestore(async () => { await guard(setSwellHidden(id, false)) })
   }
 
   const count = hiddenSwells.length

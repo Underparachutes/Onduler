@@ -152,7 +152,7 @@ export function SwellsList({
     const newIdx = orderedSwells.findIndex(s => s.id === over.id)
     const next = arrayMove(orderedSwells, oldIdx, newIdx)
     setOrderedSwells(next)
-    startTransition(async () => { guard(await reorderSwells(next.map(s => s.id))) })
+    startTransition(async () => { await guard(reorderSwells(next.map(s => s.id))) })
   }
 
   const ptsThisWeekMap = new Map(Object.entries(ptsThisWeek))
@@ -300,7 +300,7 @@ export function SwellsList({
                     type="button"
                     onClick={() => {
                       setLocalHiddenIds(prev => new Set([...prev, motion.id]))
-                      startTransition(async () => { guard(await hideMotion(motion.id)) })
+                      startTransition(async () => { await guard(hideMotion(motion.id)) })
                     }}
                     className="text-th-muted transition-all hover:text-th-text active:scale-[0.97]"
                   >
@@ -328,7 +328,7 @@ export function SwellsList({
           onUnlog={() => {
             const id = openSheetMotion.id
             setLocalDone(prev => { const next = new Set(prev); next.delete(id); return next })
-            startTransition(async () => { guard(await unlogMotion(id)) })
+            startTransition(async () => { await guard(unlogMotion(id)) })
             setOpenSheetId(null)
           }}
           allSwells={swellStubs}

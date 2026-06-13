@@ -92,7 +92,7 @@ export function CycleCeremony({
 
   function persist(didTune: boolean) {
     startTransition(async () => {
-      if (guard(await saveReflection({
+      if (await guard(saveReflection({
         cadence,
         cycleStart,
         cycleEnd,
@@ -109,7 +109,7 @@ export function CycleCeremony({
 
   function goToSwells() {
     startTransition(async () => {
-      if (guard(await saveReflection({
+      if (await guard(saveReflection({
         cadence,
         cycleStart,
         cycleEnd,
@@ -125,7 +125,7 @@ export function CycleCeremony({
 
   function goToMotions() {
     startTransition(async () => {
-      if (guard(await saveReflection({
+      if (await guard(saveReflection({
         cadence,
         cycleStart,
         cycleEnd,
@@ -141,7 +141,7 @@ export function CycleCeremony({
 
   function confirmArchive() {
     startTransition(async () => {
-      if (!guard(await saveReflection({
+      if (!await guard(saveReflection({
         cadence,
         cycleStart,
         cycleEnd,

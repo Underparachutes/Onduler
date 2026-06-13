@@ -142,7 +142,7 @@ export function SwellProficiencyView({
 
   function persistAll(name: string, color: string, targetPts: number | null, targetHrs: number | null) {
     startSave(async () => {
-      if (guard(await updateSwellDirect(swell.id, name, color, targetPts, targetHrs))) {
+      if (await guard(updateSwellDirect(swell.id, name, color, targetPts, targetHrs))) {
         router.refresh()
       }
     })
@@ -205,7 +205,7 @@ export function SwellProficiencyView({
   function toggleGroup(groupId: string) {
     const next = localGroupId === groupId ? null : groupId
     setLocalGroupId(next)
-    startGroup(async () => { guard(await setSwellGroup(swell.id, next)) })
+    startGroup(async () => { await guard(setSwellGroup(swell.id, next)) })
   }
 
   // Delete — two-tap confirm pattern, matches MotionDetailSheet.
@@ -220,7 +220,7 @@ export function SwellProficiencyView({
     }
     if (deleteTimer.current) clearTimeout(deleteTimer.current)
     startDelete(async () => {
-      if (guard(await deleteSwell(swell.id))) {
+      if (await guard(deleteSwell(swell.id))) {
         router.push('/swells')
       }
     })
@@ -303,7 +303,7 @@ export function SwellProficiencyView({
   function toggleHidden() {
     const next = !swell.hidden
     startHide(async () => {
-      if (!guard(await setSwellHidden(swell.id, next))) return
+      if (!await guard(setSwellHidden(swell.id, next))) return
       // Hiding moves the swell out of the main list; bouncing back to the
       // swells page makes the action feel resolved. Restoring keeps the user
       // on the proficiency view since the swell is now visible again.
@@ -770,13 +770,13 @@ export function SwellProficiencyView({
             doneMotionIds={doneMotionIds}
             onClose={() => setSelectedMotionId(null)}
             onPointsDelta={() => router.refresh()}
-            onHide={(id) => {
+            onHide={async (id) => {
               setSelectedMotionId(null)
-              hideMotion(id).then(result => { if (guard(result)) router.refresh() })
+              if (await guard(hideMotion(id))) router.refresh()
             }}
             isLogged={isLogged}
-            onUnlog={() => {
-              unlogMotion(selectedMotionId).then(result => { if (guard(result)) router.refresh() })
+            onUnlog={async () => {
+              if (await guard(unlogMotion(selectedMotionId))) router.refresh()
             }}
             allSwells={allSwells}
             allGroups={allGroups}

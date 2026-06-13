@@ -56,7 +56,7 @@ export function EditGroupForm({ group, allGroups, motions, swells, onClose }: Pr
     }
     if (confirmTimer.current) clearTimeout(confirmTimer.current)
     startDelete(async () => {
-      if (guard(await deleteGroup(group.id))) onClose()
+      if (await guard(deleteGroup(group.id))) onClose()
     })
   }
 
@@ -64,14 +64,14 @@ export function EditGroupForm({ group, allGroups, motions, swells, onClose }: Pr
     const current = motionGroupById.get(motionId) ?? null
     const next = current === group.id ? null : group.id
     setMotionGroupById(prev => new Map(prev).set(motionId, next))
-    startAssign(async () => { guard(await setMotionGroup(motionId, next)) })
+    startAssign(async () => { await guard(setMotionGroup(motionId, next)) })
   }
 
   function toggleSwell(swellId: string) {
     const current = swellGroupById.get(swellId) ?? null
     const next = current === group.id ? null : group.id
     setSwellGroupById(prev => new Map(prev).set(swellId, next))
-    startAssign(async () => { guard(await setSwellGroup(swellId, next)) })
+    startAssign(async () => { await guard(setSwellGroup(swellId, next)) })
   }
 
   return (

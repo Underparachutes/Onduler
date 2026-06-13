@@ -41,7 +41,7 @@ export function ShapePicker({ primary, existingSwellNames, mvsPool, resolvedMvsI
 
   function clearSlot(slot: SlotKey) {
     setPrimarySlot(null)
-    startTransition(async () => { guard(await setBuildSlot(slot, null)) })
+    startTransition(async () => { await guard(setBuildSlot(slot, null)) })
   }
 
   if (previewKey) {
@@ -53,7 +53,7 @@ export function ShapePicker({ primary, existingSwellNames, mvsPool, resolvedMvsI
         onConfirm={(names) => {
           setPrimarySlot(previewKey)
           startTransition(async () => {
-            guard(await adoptBuild('primary', previewKey, names, detectMode()))
+            await guard(adoptBuild('primary', previewKey, names, detectMode()))
           })
           setPreviewKey(null)
         }}
@@ -169,7 +169,7 @@ function StillShowingUpEditor({
 
   function persist(next: string[]) {
     setIds(next)
-    startSave(async () => { guard(await setMvsMotions(shapeKey, next)) })
+    startSave(async () => { await guard(setMvsMotions(shapeKey, next)) })
   }
 
   function removeAt(motionId: string) {
@@ -185,7 +185,7 @@ function StillShowingUpEditor({
   function resetToDefaults() {
     // Passing [] clears the override; the page recomputes defaults on next read.
     setIds([])
-    startSave(async () => { guard(await setMvsMotions(shapeKey, [])) })
+    startSave(async () => { await guard(setMvsMotions(shapeKey, [])) })
   }
 
   return (

@@ -185,9 +185,9 @@ export function MilestonesSection({ swellId, swellColor, milestones, swellMotion
       const wasRecurring = recurring.some(m => m.id === activeId)
       const nowRecurring = recurringRef.current.some(m => m.id === activeId)
       if (wasRecurring && !nowRecurring) {
-        startReorder(async () => { guard(await updateMilestone(activeId, swellId, { kind: 'one_shot' })) })
+        startReorder(async () => { await guard(updateMilestone(activeId, swellId, { kind: 'one_shot' })) })
       } else if (!wasRecurring && nowRecurring) {
-        startReorder(async () => { guard(await updateMilestone(activeId, swellId, { kind: 'recurring' })) })
+        startReorder(async () => { await guard(updateMilestone(activeId, swellId, { kind: 'recurring' })) })
       }
       return
     }
@@ -198,21 +198,21 @@ export function MilestonesSection({ swellId, swellColor, milestones, swellMotion
       const next = arrayMove(arr, arr.findIndex(m => m.id === activeId), arr.findIndex(m => m.id === overId))
       recurringRef.current = next
       setOrderedRecurring(next)
-      startReorder(async () => { guard(await reorderMilestones(next.map(m => m.id), swellId)) })
+      startReorder(async () => { await guard(reorderMilestones(next.map(m => m.id), swellId)) })
     } else if (container === 'oneShot' && oneShotRef.current.some(m => m.id === overId)) {
       const arr = oneShotRef.current
       const next = arrayMove(arr, arr.findIndex(m => m.id === activeId), arr.findIndex(m => m.id === overId))
       oneShotRef.current = next
       setOrderedOneShotsActive(next)
-      startReorder(async () => { guard(await reorderMilestones(next.map(m => m.id), swellId)) })
+      startReorder(async () => { await guard(reorderMilestones(next.map(m => m.id), swellId)) })
     }
 
     const wasRecurring = recurring.some(m => m.id === activeId)
     const nowRecurring = recurringRef.current.some(m => m.id === activeId)
     if (wasRecurring && !nowRecurring) {
-      startReorder(async () => { guard(await updateMilestone(activeId, swellId, { kind: 'one_shot' })) })
+      startReorder(async () => { await guard(updateMilestone(activeId, swellId, { kind: 'one_shot' })) })
     } else if (!wasRecurring && nowRecurring) {
-      startReorder(async () => { guard(await updateMilestone(activeId, swellId, { kind: 'recurring' })) })
+      startReorder(async () => { await guard(updateMilestone(activeId, swellId, { kind: 'recurring' })) })
     }
   }
 
@@ -500,7 +500,7 @@ function MilestoneRowName({
     setEditing(false)
     const trimmed = draft.trim()
     if (!trimmed || trimmed === milestone.name) { setDraft(milestone.name); return }
-    startSave(async () => { guard(await renameMilestone(milestone.id, trimmed, swellId)) })
+    startSave(async () => { await guard(renameMilestone(milestone.id, trimmed, swellId)) })
   }
 
   if (editing) {
@@ -620,16 +620,16 @@ function SortableRecurringRow({
     }
     startHit(async () => {
       if (milestone.cycleHit) {
-        guard(await resetCycleHits(milestone.id, swellId))
+        await guard(resetCycleHits(milestone.id, swellId))
       } else {
-        guard(await markRecurringHit(milestone.id, swellId))
+        await guard(markRecurringHit(milestone.id, swellId))
       }
     })
   }
 
   function persist(patch: { cadence?: 'weekly' | 'monthly'; targetCount?: number; bonusPoints?: number }) {
     startSave(async () => {
-      guard(await updateMilestone(milestone.id, swellId, patch))
+      await guard(updateMilestone(milestone.id, swellId, patch))
     })
   }
 
@@ -660,12 +660,12 @@ function SortableRecurringRow({
       return
     }
     if (deleteTimer.current) clearTimeout(deleteTimer.current)
-    startDelete(async () => { guard(await deleteMilestone(milestone.id, swellId)) })
+    startDelete(async () => { await guard(deleteMilestone(milestone.id, swellId)) })
   }
 
   function handleFlipKind() {
     startFlip(async () => {
-      guard(await updateMilestone(milestone.id, swellId, { kind: 'one_shot' }))
+      await guard(updateMilestone(milestone.id, swellId, { kind: 'one_shot' }))
     })
   }
 
@@ -702,7 +702,7 @@ function SortableRecurringRow({
               value={milestone.motionId ?? ''}
               onChange={e => {
                 const val = e.target.value || null
-                startSave(async () => { guard(await updateMilestone(milestone.id, swellId, { motionId: val })) })
+                startSave(async () => { await guard(updateMilestone(milestone.id, swellId, { motionId: val })) })
               }}
               className="flex-1 rounded-lg border border-th-border bg-th-surface px-2 py-1.5 text-sm text-th-text outline-none focus:border-th-focus"
             >
@@ -895,7 +895,7 @@ function SortableOneShotRow({
       onCelebrate(rect.bottom)
     }
     startToggle(async () => {
-      guard(await setOneShotComplete(milestone.id, !completed, swellId))
+      await guard(setOneShotComplete(milestone.id, !completed, swellId))
     })
   }
 
@@ -906,18 +906,18 @@ function SortableOneShotRow({
       return
     }
     if (deleteTimer.current) clearTimeout(deleteTimer.current)
-    startDelete(async () => { guard(await deleteMilestone(milestone.id, swellId)) })
+    startDelete(async () => { await guard(deleteMilestone(milestone.id, swellId)) })
   }
 
   function commitBonus() {
     const bonus = parseInt(bonusDraft)
     const val = !isNaN(bonus) && bonus >= 0 ? bonus : 0
-    if (val !== milestone.bonusPoints) startSave(async () => { guard(await updateMilestone(milestone.id, swellId, { bonusPoints: val })) })
+    if (val !== milestone.bonusPoints) startSave(async () => { await guard(updateMilestone(milestone.id, swellId, { bonusPoints: val })) })
   }
 
   function handleFlipKind() {
     startFlip(async () => {
-      guard(await updateMilestone(milestone.id, swellId, { kind: 'recurring' }))
+      await guard(updateMilestone(milestone.id, swellId, { kind: 'recurring' }))
     })
   }
 
