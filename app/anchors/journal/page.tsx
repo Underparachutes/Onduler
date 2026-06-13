@@ -76,6 +76,7 @@ export type WeekRenderData = {
 export type ChapterRenderData = {
   chapterId: string
   label: string
+  active: boolean
   weeks: WeekRenderData[]
 }
 
@@ -183,6 +184,7 @@ export default async function AnchorJournalPage() {
     return {
       chapterId: ch.chapterId,
       label: chapterLabel(ch.startedAt, ch.endedAt),
+      active: ch.endedAt === null,
       weeks,
     }
   })

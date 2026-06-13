@@ -1,7 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useTransition } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { deleteAnchor } from '@/app/actions/reflections'
+import { deleteArchivedChapter } from '@/app/actions/chapters'
 import { FrozenRadar } from '@/app/anchors/ceremony/FrozenRadar'
 import { WaveField, type WaveLine } from '@/app/components/WaveField'
 import type { ChapterRenderData, WeekRenderData, AnchorWithRadar } from './page'
@@ -71,6 +74,7 @@ export function JournalClient({ chapters, trackingMode }: Props) {
               <p className="text-[10px] uppercase tracking-widest text-th-muted">Chapter</p>
               <p className="text-[10px] text-th-faint">{chapter.label}</p>
             </div>
+            {!chapter.active && <ChapterDeleteControl chapterId={chapter.chapterId} />}
 
             {chapter.weeks.length === 0 ? (
               <p className="mt-2 text-xs text-th-faint">No activity in this chapter.</p>
@@ -133,6 +137,75 @@ function WeekRow({
   )
 }
 
+function AnchorDeleteButton({ anchorId }: { anchorId: string }) {
+  const router = useRouter()
+  const [confirming, setConfirming] = useState(false)
+  const [deleting, startDelete] = useTransition()
+
+  function handleDelete() {
+    if (!confirming) {
+      setConfirming(true)
+      return
+    }
+    startDelete(async () => {
+      const result = await deleteAnchor(anchorId)
+      if (result && 'success' in result && result.success) {
+        router.refresh()
+      }
+    })
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={handleDelete}
+      onBlur={() => setConfirming(false)}
+      disabled={deleting}
+      className="text-[10px] text-th-faint transition-colors hover:text-red-500 active:scale-[0.97] disabled:opacity-50"
+    >
+      {deleting ? 'Deleting...' : confirming ? 'Tap again to confirm' : 'Delete'}
+    </button>
+  )
+}
+
+function ChapterDeleteControl({ chapterId }: { chapterId: string }) {
+  const router = useRouter()
+  const [confirming, setConfirming] = useState(false)
+  const [deleting, startDelete] = useTransition()
+
+  function handleDelete() {
+    if (!confirming) {
+      setConfirming(true)
+      return
+    }
+    startDelete(async () => {
+      const result = await deleteArchivedChapter(chapterId)
+      if (result && 'success' in result && result.success) {
+        router.refresh()
+      }
+    })
+  }
+
+  return (
+    <div className="flex flex-col items-end gap-1 pt-1">
+      {confirming && !deleting && (
+        <p className="text-right text-[10px] text-red-500">
+          This deletes the chapter&apos;s swells, motions, logs, and anchors. It cannot be undone.
+        </p>
+      )}
+      <button
+        type="button"
+        onClick={handleDelete}
+        onBlur={() => setConfirming(false)}
+        disabled={deleting}
+        className="text-[10px] text-th-faint transition-colors hover:text-red-500 active:scale-[0.97] disabled:opacity-50"
+      >
+        {deleting ? 'Deleting...' : confirming ? 'Tap again to confirm' : 'Delete chapter'}
+      </button>
+    </div>
+  )
+}
+
 function WaveWeek() {
   return (
     <div className="relative overflow-hidden rounded-lg" style={{ height: 48 }}>
@@ -172,7 +245,10 @@ function AnchorsWeek({ week, trackingMode }: { week: WeekRenderData; trackingMod
               <p className="text-[10px] uppercase tracking-widest text-th-muted">
                 {cycleTypeLabel(a)}
               </p>
-              <p className="text-[10px] text-th-faint">{entryDate(a.created_at)}</p>
+              <div className="flex items-baseline gap-3">
+                <p className="text-[10px] text-th-faint">{entryDate(a.created_at)}</p>
+                <AnchorDeleteButton anchorId={a.id} />
+              </div>
             </div>
 
             {isCeremony ? (

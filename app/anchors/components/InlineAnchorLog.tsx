@@ -2,7 +2,7 @@
 
 import { useState, useRef, useTransition } from 'react'
 import Link from 'next/link'
-import { updateAnchorField, deleteFreeAnchor, getAnchorsForPeriod, type AnchorRow } from '@/app/actions/reflections'
+import { updateAnchorField, deleteAnchor, getAnchorsForPeriod, type AnchorRow } from '@/app/actions/reflections'
 import { formatWeekLabel, formatMonthLabel, formatQuarterLabel, formatYearLabel } from '@/lib/cycles'
 
 type Period = 'week' | 'month' | 'quarter' | 'year'
@@ -247,7 +247,7 @@ function FreeExpanded({
       return
     }
     startDelete(async () => {
-      const result = await deleteFreeAnchor(anchor.id)
+      const result = await deleteAnchor(anchor.id)
       if (result && 'success' in result && result.success) {
         onDelete(anchor.id)
       }

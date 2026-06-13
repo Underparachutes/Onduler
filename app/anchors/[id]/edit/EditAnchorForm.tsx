@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { updateAnchor, deleteFreeAnchor } from '@/app/actions/reflections'
+import { updateAnchor, deleteAnchor } from '@/app/actions/reflections'
 import { formatWeekLabel } from '@/lib/cycles'
 
 type Cycle = { cycleStart: string; cycleEnd: string }
@@ -67,7 +67,7 @@ export function EditAnchorForm({
       return
     }
     startDelete(async () => {
-      const result = await deleteFreeAnchor(id)
+      const result = await deleteAnchor(id)
       if (result && 'success' in result && result.success) {
         router.push('/anchors/journal')
       }

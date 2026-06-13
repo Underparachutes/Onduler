@@ -310,21 +310,22 @@ export async function updateAnchor(id: string, _prev: unknown, formData: FormDat
   return { success: true }
 }
 
-// Delete a free-form anchor. Ceremony anchors are protected for the same
-// reason updates are — they're frozen records of a cycle close.
-export async function deleteFreeAnchor(id: string) {
+// Delete an anchor — free or ceremony. Ceremony anchors were originally
+// protected as frozen records, but the journal is the user's library and
+// they own what stays in it (decision 2026-06-12). Callers gate with a
+// two-tap confirm.
+export async function deleteAnchor(id: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
   const { data: row } = await supabase
     .from('reflections')
-    .select('id, cycle_type')
+    .select('id')
     .eq('id', id)
     .eq('user_id', user.id)
     .maybeSingle()
   if (!row?.id) return { error: 'Anchor not found' }
-  if (row.cycle_type !== 'free') return { error: 'Ceremony anchors cannot be deleted' }
 
   const { error } = await supabase
     .from('reflections')

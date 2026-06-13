@@ -270,6 +270,35 @@ export async function archiveChapterForImport() {
   return { success: true }
 }
 
+// Permanently delete an archived chapter and everything in it. Every
+// chapter-scoped table (motions, swells, groups, logs, wave_checkins,
+// reflections) has ON DELETE CASCADE on chapter_id, so removing the chapter
+// row removes the lot. The active chapter is refused — archive it first.
+export async function deleteArchivedChapter(id: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const { data: chapter } = await supabase
+    .from('chapters')
+    .select('id, ended_at')
+    .eq('id', id)
+    .eq('user_id', user.id)
+    .maybeSingle()
+  if (!chapter?.id) return { error: 'Chapter not found' }
+  if (!chapter.ended_at) return { error: 'The active chapter cannot be deleted' }
+
+  const { error } = await supabase
+    .from('chapters')
+    .delete()
+    .eq('id', id)
+    .eq('user_id', user.id)
+  if (error) return { error: error.message }
+
+  revalidatePath('/', 'layout')
+  return { success: true }
+}
+
 // Shared core of the two archive actions: end the active chapter (if any)
 // and insert the next one. Returns an error message string, or null on success.
 async function rolloverChapter(
