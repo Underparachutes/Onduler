@@ -281,33 +281,18 @@ export function OnboardingFlow() {
     return (
       <ScreenShell
         title="Choose your swells."
-        description="Swells are nouns. The areas of life you want to invest in. Pick a few or add your own. You can edit them anytime."
+        description="Swells are nouns. The areas of life you want to invest in. Add at least 3. You can edit them anytime."
+        headerExtra={
+          <button
+            onClick={addCustomSwell}
+            className="mt-3 w-full rounded-lg border border-dashed border-th-border px-4 py-3 text-left text-sm text-th-muted transition-colors hover:bg-th-surface active:scale-[0.99]"
+          >
+            + Add your own
+          </button>
+        }
       >
         <div className="flex flex-col gap-2">
-          <p className="text-xs font-medium uppercase tracking-widest text-th-faint">Or try a mix</p>
-          <div className="grid grid-cols-2 gap-2">
-            {ARCHETYPE_PACKS.map(p => {
-              const active = activePackKey === p.key
-              return (
-                <button
-                  key={p.key}
-                  onClick={() => applyPack(p.key)}
-                  className={`flex flex-col gap-1 rounded-lg border px-3 py-2.5 text-left transition-colors active:scale-[0.99] ${
-                    active
-                      ? 'border-th-btn bg-th-surface'
-                      : 'border-th-border hover:bg-th-surface'
-                  }`}
-                >
-                  <span className="text-sm font-medium text-th-text">{p.label}</span>
-                  <span className="text-xs leading-snug text-th-muted">
-                    {p.swellNames.join(' · ')}
-                  </span>
-                </button>
-              )
-            })}
-          </div>
-
-          <p className="mt-4 text-xs font-medium uppercase tracking-widest text-th-faint">All swells</p>
+          <p className="text-xs font-medium uppercase tracking-widest text-th-faint">Example swells</p>
           {displayedSwells.map(s =>
             editingSwellId === s.id ? (
               <div
@@ -391,20 +376,36 @@ export function OnboardingFlow() {
             )
           )}
 
-          <button
-            onClick={addCustomSwell}
-            className="rounded-lg border border-dashed border-th-border px-4 py-3 text-left text-sm text-th-muted transition-colors hover:bg-th-surface active:scale-[0.99]"
-          >
-            + Add your own
-          </button>
+          <p className="mt-4 text-xs font-medium uppercase tracking-widest text-th-faint">Or try a mix</p>
+          <div className="grid grid-cols-2 gap-2">
+            {ARCHETYPE_PACKS.map(p => {
+              const active = activePackKey === p.key
+              return (
+                <button
+                  key={p.key}
+                  onClick={() => applyPack(p.key)}
+                  className={`flex flex-col gap-1 rounded-lg border px-3 py-2.5 text-left transition-colors active:scale-[0.99] ${
+                    active
+                      ? 'border-th-btn bg-th-surface'
+                      : 'border-th-border hover:bg-th-surface'
+                  }`}
+                >
+                  <span className="text-sm font-medium text-th-text">{p.label}</span>
+                  <span className="text-xs leading-snug text-th-muted">
+                    {p.swellNames.join(' · ')}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
         </div>
 
         <button
           onClick={() => setStep('motions')}
-          disabled={pickedSwells.length === 0 || pickedSwells.some(s => !s.name)}
+          disabled={pickedSwells.length < 3 || pickedSwells.some(s => !s.name)}
           className="w-full rounded-lg bg-th-btn py-3 text-sm font-medium text-th-btn-text transition-all hover:bg-th-btn-hover active:scale-[0.97] disabled:opacity-40"
         >
-          {pickedSwells.length === 0 ? 'Pick at least one' : 'Next →'}
+          {pickedSwells.length >= 3 ? 'Next →' : `Add ${3 - pickedSwells.length} more`}
         </button>
       </ScreenShell>
     )
@@ -627,7 +628,7 @@ export function OnboardingFlow() {
           </button>
         </div>
         <p className="text-xs text-th-faint">
-          Points weigh motions by effort. Hours track actual time spent.
+          Points give extra weight to motions that matter most. Hours track actual time spent.
         </p>
       </div>
 
@@ -672,11 +673,13 @@ function ScreenShell({
   onBack,
   title,
   description,
+  headerExtra,
   children,
 }: {
   onBack?: () => void
   title: string
   description: string
+  headerExtra?: React.ReactNode
   children: React.ReactNode
 }) {
   return (
@@ -695,6 +698,7 @@ function ScreenShell({
           )}
           <h1 className="mb-2 text-2xl font-semibold text-th-text">{title}</h1>
           <p className="text-sm text-th-muted">{description}</p>
+          {headerExtra}
         </div>
         <div className="flex flex-col gap-6 pb-12 pt-2">{children}</div>
       </div>
