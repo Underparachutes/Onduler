@@ -36,7 +36,9 @@ IMPORTANT: Output the entire doc inside a single markdown code block (triple bac
 \`\`\`
 
 Rules:
+- List 3-6 swells. Onduler needs at least 3 to draw its shapes.
 - List 4-12 motions total. Substantial but not overwhelming.
+- Every swell must have at least one motion under it, and every motion must appear under at least one swell.
 - Motion points are 1, 2, or 3 — reserve 3 for the highest-effort/highest-impact motions.
 - Swell targets are optional weekly point targets — only include them if a number feels meaningful given the motions inside.
 - Groups are optional. Skip the Groups section entirely if no natural grouping exists.

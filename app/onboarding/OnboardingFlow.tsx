@@ -8,6 +8,8 @@ import { detectMode, getRandomThemeAccent, getShuffledThemePalette } from '@/lib
 import { BUILD_PRESETS } from '@/lib/builds'
 import { shouldShowOnboardingInstall, markOnboardingSeen } from '@/lib/install'
 import { InstallInstructions } from '@/app/components/InstallInstructions'
+import { parseImportMarkdown } from '@/lib/import-parser'
+import { IMPORT_PROMPT_TEMPLATE } from '@/lib/import-prompt'
 
 type Step = 'swells' | 'motions' | 'personalize' | 'install'
 type TrackingMode = 'points' | 'hours'
@@ -25,6 +27,8 @@ type MotionEntry = {
   id: number
   swellId: number
   name: string
+  points?: number
+  hours?: number
 }
 
 const SEEDED_SWELLS: { name: string; description: string; motionHint: string }[] = [
@@ -122,6 +126,84 @@ export function OnboardingFlow() {
     setSwellEntries(prev =>
       prev.map(s => (s.custom ? s : { ...s, picked: packNames.has(s.name) }))
     )
+  }
+
+  const [aiOpen, setAiOpen] = useState(false)
+  const [aiText, setAiText] = useState('')
+  const [aiError, setAiError] = useState<string | null>(null)
+  const [aiCopied, setAiCopied] = useState(false)
+
+  function handleCopyAiPrompt() {
+    navigator.clipboard.writeText(IMPORT_PROMPT_TEMPLATE)
+    setAiCopied(true)
+    setTimeout(() => setAiCopied(false), 2000)
+  }
+
+  // Parse the AI's reply client-side and feed it into the normal onboarding
+  // state: imported swells land picked, imported motions land pre-assigned to
+  // their first swell. The user keeps full editing control from here.
+  function applyAiImport() {
+    setAiError(null)
+    const result = parseImportMarkdown(aiText, trackingMode)
+    if (result.swells.length === 0) {
+      setAiError("Couldn't find any swells in this text. Check that you pasted your AI's whole reply.")
+      return
+    }
+
+    const t = document.documentElement.dataset.theme ?? 'biarritz'
+    const palette = getShuffledThemePalette(t, detectMode())
+
+    // Swells: matching names (seeded or already added) just get picked;
+    // the rest come in as custom entries.
+    const idByName = new Map<string, number>()
+    swellEntries.forEach(s => idByName.set(s.name.trim().toLowerCase(), s.id))
+
+    let swellId = nextSwellId
+    const pickKeys = new Set<string>()
+    const newSwells: SwellEntry[] = []
+    result.swells.forEach((s, i) => {
+      const key = s.name.trim().toLowerCase()
+      if (idByName.has(key)) {
+        pickKeys.add(key)
+        return
+      }
+      const id = swellId++
+      idByName.set(key, id)
+      newSwells.push({
+        id,
+        name: s.name,
+        description: '',
+        color: palette[i % palette.length],
+        picked: true,
+        custom: true,
+      })
+    })
+
+    setSwellEntries(prev => [
+      ...prev.map(s => (pickKeys.has(s.name.trim().toLowerCase()) ? { ...s, picked: true } : s)),
+      ...newSwells,
+    ])
+    setNextSwellId(swellId)
+
+    // Motions: attach each to its first assigned swell. Motions the AI left
+    // unassigned have no home in onboarding and are skipped.
+    const existingMotionKeys = new Set(motions.map(m => m.name.trim().toLowerCase()))
+    let motionId = nextMotionId
+    const newMotions: MotionEntry[] = []
+    for (const m of result.motions) {
+      const mKey = m.name.trim().toLowerCase()
+      if (existingMotionKeys.has(mKey)) continue
+      const assignment = result.swellAssignments.find(a => a.motionName.trim().toLowerCase() === mKey)
+      const sid = assignment ? idByName.get(assignment.swellName.trim().toLowerCase()) : undefined
+      if (sid === undefined) continue
+      existingMotionKeys.add(mKey)
+      newMotions.push({ id: motionId++, swellId: sid, name: m.name, points: m.points, hours: m.hours })
+    }
+    setMotions(prev => [...prev, ...newMotions])
+    setNextMotionId(motionId)
+
+    setAiText('')
+    setAiOpen(false)
   }
 
   const displayedSwells = useMemo(() => {
@@ -276,6 +358,8 @@ export function OnboardingFlow() {
       .map(m => ({
         name: m.name,
         swellIndices: [swellIndexById[m.swellId]],
+        points: m.points,
+        hours: m.hours,
       }))
 
     startTransition(async () => {
@@ -405,6 +489,51 @@ export function OnboardingFlow() {
               )
             })}
           </div>
+
+          <p className="mt-4 text-xs font-medium uppercase tracking-widest text-th-faint">Or ask your AI</p>
+          {aiOpen ? (
+            <div className="flex flex-col gap-2">
+              <p className="text-xs text-th-muted">
+                Copy the prompt, paste it into your AI with some context about your life, then paste its reply below.
+              </p>
+              <button
+                onClick={handleCopyAiPrompt}
+                className="self-start rounded-lg border border-th-border px-3 py-1.5 text-sm text-th-text transition-colors hover:bg-th-surface active:scale-[0.97]"
+              >
+                {aiCopied ? 'Copied' : 'Copy prompt'}
+              </button>
+              <textarea
+                value={aiText}
+                onChange={e => setAiText(e.target.value)}
+                placeholder="Paste your AI's reply here..."
+                rows={6}
+                className="w-full rounded-lg border border-th-border bg-th-surface px-3 py-2 text-base text-th-text outline-none placeholder:text-th-faint focus:border-th-focus"
+              />
+              {aiError && <p className="text-xs text-red-500">{aiError}</p>}
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={applyAiImport}
+                  disabled={!aiText.trim()}
+                  className="rounded-lg bg-th-btn px-4 py-2 text-sm font-medium text-th-btn-text active:scale-[0.97] disabled:opacity-40"
+                >
+                  Add them
+                </button>
+                <button
+                  onClick={() => { setAiOpen(false); setAiError(null) }}
+                  className="text-sm text-th-faint transition-colors hover:text-th-muted"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={() => setAiOpen(true)}
+              className="rounded-lg border border-dashed border-th-border px-4 py-3 text-left text-sm text-th-muted transition-colors hover:bg-th-surface active:scale-[0.99]"
+            >
+              Have your AI draft your swells and motions
+            </button>
+          )}
         </div>
 
         <button

@@ -7,7 +7,7 @@ import { getActiveChapterId } from '@/lib/chapters'
 
 export async function completeOnboarding(
   swells: { name: string; color: string }[],
-  motions: { name: string; swellIndices: number[] }[],
+  motions: { name: string; swellIndices: number[]; points?: number; hours?: number }[],
   prefs: {
     theme: string
     tracking_mode: 'points' | 'hours'
@@ -47,8 +47,8 @@ export async function completeOnboarding(
       user_id: user.id,
       chapter_id: chapterId,
       name: m.name,
-      default_points: 1,
-      default_hours: 1.0,
+      default_points: m.points ?? 1,
+      default_hours: m.hours ?? 1.0,
       sort_order: i,
     }))
 
