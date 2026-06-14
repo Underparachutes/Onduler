@@ -2,16 +2,43 @@
 
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 export async function signUp(state: unknown, formData: FormData) {
   const supabase = await createClient()
   const email = formData.get('email') as string
   const password = formData.get('password') as string
 
+  // Acquisition source: the postcard QR carries utm_source=postcard; a direct
+  // arrival carries nothing. Store the raw value (so a future flyer/instagram
+  // channel needs no schema change); blank maps to 'direct'. See
+  // docs/specs/signup-explainer-qr-2026-06-13.md.
+  const signupSource = ((formData.get('utm_source') as string) || '').trim() || 'direct'
+
   const { data, error } = await supabase.auth.signUp({ email, password })
 
   if (error) {
     return { error: error.message }
+  }
+
+  // Write signup_source once, at account creation. There's no session yet
+  // (email confirmation is pending), so RLS would block the normal client —
+  // use the service-role client keyed by the new user's id. ON CONFLICT DO
+  // NOTHING (ignoreDuplicates) makes this write-once: a re-signup with an
+  // existing email never overwrites the original attribution. Best-effort:
+  // never let an attribution write failure block the signup.
+  if (data.user) {
+    try {
+      const admin = createAdminClient()
+      await admin
+        .from('user_settings')
+        .upsert(
+          { user_id: data.user.id, signup_source: signupSource },
+          { onConflict: 'user_id', ignoreDuplicates: true },
+        )
+    } catch {
+      // swallow — attribution is not worth failing a signup over
+    }
   }
 
   // Email confirmation is required — user needs to verify before logging in.

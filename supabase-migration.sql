@@ -153,7 +153,10 @@ CREATE TABLE user_settings (
   last_cycle_email_cycle_start date,
   background_url            text,
   background_position       text NOT NULL DEFAULT 'center',
-  progress_bar_color        text
+  progress_bar_color        text,
+  -- Where this account came from: raw utm_source at signup
+  -- (utm_source=postcard -> 'postcard'; absent -> 'direct'). Write-once.
+  signup_source            text
 );
 
 CREATE INDEX IF NOT EXISTS user_settings_stripe_customer_idx
