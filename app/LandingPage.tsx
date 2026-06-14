@@ -81,7 +81,7 @@ export function LandingPage() {
         {/* CTA */}
         <div className="flex w-full flex-col gap-3">
           <Link
-            href="/signup"
+            href="/signup?step=form"
             className="block rounded-xl bg-th-text px-4 py-3 text-center font-[family-name:var(--font-manrope)] text-sm font-medium text-th-bg transition-all active:scale-[0.97]"
           >
             Get started
