@@ -1,6 +1,6 @@
 # Onduler — State of the Project
 
-*Last updated: 2026-06-12*
+*Last updated: 2026-06-15*
 
 ## The big picture
 
@@ -13,6 +13,32 @@ Most habit apps treat every day like it should look the same. Onduler doesn't. T
 - **Waves** = Human energy and capacity cycle. Sometimes a wave is a creative obsession. Sometimes it's a depressive episode that keeps you in bed for a week. Sometimes it's grief, illness, a new baby, a hard season at work. Onduler treats them the same: a wave is whatever's pulling you under right now, and the app's response is to not chase you. We'll be here. Take care of what you need to take care of. When you surface, the tide is gentle — "hey, want to try knitting today?" — and the app meets you wherever you've landed. The product never uses the language of failure, deficit, or falling behind. Showing up at all is honored.
 
 - **Tides** = the steady, default rhythm. When you're not on a wave, the app gently helps you direct your energy across domains so nothing atrophies. This is where the gamification lives — points, hours, swells.
+
+## Who this is for, and the feeling
+
+*Brand soul, crystallized in a 2026-06-15 positioning session. This is the why behind the mechanics below. Where it bears on user-facing copy, it interacts with the Vocabulary and Working agreements rules.*
+
+**Who.** Searchers. People who want a fuller, more alive life but are allergic to the optimization machinery that usually comes with it. Creatives, people carrying mental illness, soft souls who feel itchy in their own skin and try on other selves for relief. People who don't yet know what brings them joy, or who they are under what they think they should be. This is a temperament, not a demographic, so we reach them by resonance and self-selection, never by targeting. The optimizer who wants streaks and PRs is not the user; copy should let that person feel nothing and leave.
+
+**The feeling: relief, then pride.** First contact should produce calm, specifically calm as relief, the exhale of a space where you cannot fall behind and nothing judges you. Not spa-stillness; calm in motion, like a sea that is calm but always moving. Over time the second feeling arrives on its own: pride, the quiet look back at what you slowly built. The whole job is to carry someone from relief to pride without ever using pressure. The competition manufactures pride through pressure and delivers neither.
+
+**A refuge, and a mirror with no opinion.** Onduler is a private space that is only yours. It reflects what you actually did and lets you decide whether you like what you see. It holds no opinion about whether your life is good enough. The judge is never the app, it is your own future self; your change over time becomes the opinion. This is motivational interviewing: ask the question, hold the data, let the gap between who you expected to be and who you actually were do the work. The Anchors surface is where this lives.
+
+**What it's really about: core, not joy.** Under the word "joy" the real thing is identity: noticing what is load-bearing in who you are (the roots you want to sink, which is what an Anchor already means in our water vocabulary), and noticing when you are drained by being someone you're not. The honest test is not "did this spark joy," it is "am I sustaining a self that isn't mine." Behavior shows what you did, not why, so the reflection layer is load-bearing: the data shows the drift, the gentle question makes someone feel the drain they'd been ignoring.
+
+**The moat: no other consciousness in the room.** No AI watching, no human watching, no algorithm scoring. As life gets more observed and more AI-evaluated, an unwatched space becomes rare, and that value is the absence of AI, which AI cannot replicate. This is a hard constraint, not a tagline. Never put an AI coach inside the refuge, even when competitors ship one. The someday insight engine must stay a mirror, never a coach: it can show you where your time went, it can never tell you what that means. Everything in the refuge reflects, nothing judges. This is why AI stays bring-your-own (see the AI-import decision): the user carries data out to their own AI if they want, the room stays empty.
+
+**Two products, one leads.** The headline is the over-time engine: a self-reflection app that shows you what your daily actions are actually building. The second, equally welcome, is the sparse memento: someone who uses it for a month at a fork and treasures it like a half-filled journal. Never imply the sparse user failed. But the brand leads with the engine, both because that is where the most value sits and because the longitudinal magic (what stayed, what drifted, what was absent when you felt off) needs years of data, which only the gentle no-decay design buys time to collect. All are welcome; some who get the most will make one realization and never return, and that is a win.
+
+**Plain-language floor.** A stranger gets five seconds against a wall of invented words (motions, swells, tides, wakes, anchors). The one thing they must grasp in plain language: a self-reflection app that shows you what your daily actions are actually building. Everything else may stay mysterious. The legibility we need is emotional ("this won't make me feel behind"), not functional. Never call it a habit tracker in user-facing copy; "habit tracker" is the scratchy sweater this is the relief from. Register is cozy game, not RPG grind. The skill-tree / character-sheet framing was a useful Reddit traffic hook but is being retired: it recruits optimizers and slightly contradicts the noticing-not-declaring soul.
+
+**The checklist is not the enemy.** The satisfying gesture of checking something off was never the problem; the guilt stapled to the unchecked box was. Keep the gesture, strip the shame: a list with no penalty for what stays blank is just satisfying. Self-selection is fine. If you don't like checklists this probably isn't for you, and the weekly calendar is the alternate door.
+
+**Duty of care (the mirror as cudgel).** The audience includes people in dark places, and depression reads neutral data as indictment. The same honest reflection that gives one person relief can hand another ammunition. Adjustable targets are the primary safeguard: meet yourself where you are, a depressed week can be "brush teeth, get out of bed," target of 1, and that counts. The gentler the activation the better; ideally the bar meets the user without their having to ask on the worst day (cf. the welcome-back ramp). Guard against a bad-day user opening to yesterday's ambitious targets and a wall of unchecked motions.
+
+**Privacy is the load-bearing wall (leaning, not yet locked).** "No observer in the room" only works as a moat if it is literally true. Litmus: Josh should be able to tell his own family to use it and mean it that he will never see a word they write. That makes privacy an architecture requirement (build it so you cannot read user content), not a promise to keep. Leaning direction, still under review: unwatched by default; per-user insight computed and shown only to that user (the mirror, on-brand); behavioral/usage analytics for the business (counts, retention, funnel, no content); content analysis rare and opt-in. De-identification helps aggregate research but is weak for life-logs (patterns re-identify) and still means someone read it, so consent-first and minimal beats de-id-and-hope. Before building any analysis layer or writing privacy-policy copy, get a real privacy review; the audience may log mental-health-adjacent content, which can be legally sensitive. Not yet a locked decision.
+
+**Open copy thread.** The "you are never locked in, change is good, start a new chapter" reassurance currently appears only at the cycle-close ceremony, a year in. It should also land on the first onboarding screen, which today opens cold on a task ("Choose your swells, add at least 3") with no welcome. Surface the never-locked-in relief at first contact.
 
 ## Vocabulary (user-facing — never deviate)
 
