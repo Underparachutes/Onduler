@@ -77,14 +77,17 @@ function IntroScreen({ onContinue }: { onContinue: () => void }) {
 
         {/* Explainer — the back-of-card copy, adapted for screen */}
         <div className="mb-8 flex w-full flex-col gap-4 text-sm leading-relaxed text-th-muted">
-          <p>Onduler is a daily tracker for reflection, momentum, and noticing your patterns.</p>
           <p>
-            Choose the motions you want to track. Connect them to the swells they
-            feed. Watch your wake build over time.
+            A self-reflection app that shows you what your days are quietly
+            building. No streaks, no guilt, nothing to fall behind on.
           </p>
           <p>
-            Made for people who are curious about what their daily life is actually
-            building.
+            Pick a few things you want more of in your life. Check off tasks as
+            you complete them throughout the day.
+          </p>
+          <p>
+            Over time, the shape of where your energy actually went rises to the
+            surface. That shape is your wake.
           </p>
         </div>
 
