@@ -71,11 +71,12 @@ export function LandingPage() {
 
         {/* Paragraph */}
         <p className="mb-8 w-full text-justify text-sm leading-relaxed text-th-muted">
-          Onduler tracks what you actually do through your daily motions.
-          You set up your daily motions to feed your swells. Over time, it
-          shows you the wake they create. There will be times when you need
-          to step back. That&apos;s life. Onduler will be there when
-          you&apos;re ready to get back on the board.
+          A self-reflection app that shows you what your days are quietly
+          building. No streaks, no guilt, nothing to fall behind on. Pick a
+          few things you want more of in your life. Check off tasks as you
+          complete them throughout the day. Over time, the shape of where
+          your energy actually went rises to the surface. That shape is your
+          wake.
         </p>
 
         {/* CTA */}
