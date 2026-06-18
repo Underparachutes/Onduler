@@ -156,7 +156,15 @@ CREATE TABLE user_settings (
   progress_bar_color        text,
   -- Where this account came from: raw utm_source at signup
   -- (utm_source=postcard -> 'postcard'; absent -> 'direct'). Write-once.
-  signup_source            text
+  signup_source            text,
+  -- Content-encryption key slots (operator-blind E2EE; see
+  -- docs/specs/private-content-encryption.md). Wrapped DEKs + public salts only;
+  -- no key or password is ever stored. Written by later phases — additive.
+  enc_enabled              boolean NOT NULL DEFAULT false,
+  enc_dek_recovery         text,   -- DEK wrapped by the recovery-code KEK (Slot 2)
+  enc_recovery_salt        text,
+  enc_dek_password         text,   -- DEK wrapped by the password KEK (Slot 3)
+  enc_kdf_salt             text
 );
 
 CREATE INDEX IF NOT EXISTS user_settings_stripe_customer_idx
@@ -276,3 +284,20 @@ CREATE TABLE contact_submissions (
 );
 ALTER TABLE contact_submissions ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "anon insert" ON contact_submissions FOR INSERT TO anon WITH CHECK (true);
+
+-- Passkey key slot (Slot 1) for content encryption. One row per registered
+-- passkey; each passkey's PRF output wraps the DEK separately. See
+-- docs/specs/private-content-encryption.md.
+CREATE TABLE user_key_passkeys (
+  id              uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id         uuid        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  credential_id   text        NOT NULL,   -- WebAuthn credential id (base64url)
+  enc_dek_passkey text        NOT NULL,   -- DEK wrapped by this passkey's PRF-derived KEK
+  prf_salt        text        NOT NULL,   -- salt fed to the PRF eval
+  label           text,                   -- optional, e.g. "iPhone"
+  created_at      timestamptz NOT NULL DEFAULT now()
+);
+ALTER TABLE user_key_passkeys ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "own user_key_passkeys" ON user_key_passkeys FOR ALL USING ((select auth.uid()) = user_id);
+CREATE INDEX user_key_passkeys_user_id_idx ON user_key_passkeys (user_id);
+CREATE UNIQUE INDEX user_key_passkeys_credential_id_key ON user_key_passkeys (credential_id);
