@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Onduler — Passkey PRF spike</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { font: 16px/1.5 -apple-system, system-ui, sans-serif; margin: 0; padding: 1.25rem; max-width: 40rem; }
+  h1 { font-size: 1.25rem; margin: 0 0 .25rem; }
+  p.sub { margin: 0 0 1rem; opacity: .7; }
+  button { font: inherit; padding: .7rem 1rem; margin: .25rem .5rem .25rem 0; border-radius: .6rem; border: 1px solid currentColor; background: transparent; cursor: pointer; }
+  button:disabled { opacity: .4; cursor: default; }
+  .card { border: 1px solid rgba(128,128,128,.35); border-radius: .75rem; padding: 1rem; margin: 1rem 0; }
+  .verdict { font-weight: 700; font-size: 1.05rem; }
+  .ok { color: #137a3a; } .bad { color: #b00020; } .warn { color: #8a6d00; }
+  pre { white-space: pre-wrap; word-break: break-all; background: rgba(128,128,128,.12); padding: .6rem; border-radius: .5rem; font-size: .8rem; }
+  code { background: rgba(128,128,128,.15); padding: 0 .25rem; border-radius: .25rem; }
+</style>
+</head>
+<body>
+<h1>Passkey PRF spike</h1>
+<p class="sub">Throwaway test: does this device return a <strong>stable</strong> secret from the WebAuthn <code>prf</code> extension? That secret is what would unlock the encryption key. Delete this file when done.</p>
+
+<div class="card">
+  <strong>Step 1 — register a passkey</strong>
+  <p>Creates a platform passkey (Face ID / fingerprint) and checks whether <code>prf</code> is supported.</p>
+  <button id="reg">Register passkey</button>
+  <div id="regOut"></div>
+</div>
+
+<div class="card">
+  <strong>Step 2 — read the PRF secret twice</strong>
+  <p>Reads the secret with the same input twice. They must match for this to be usable.</p>
+  <button id="read" disabled>Read PRF secret (×2)</button>
+  <div id="readOut"></div>
+</div>
+
+<div class="card">
+  <strong>Environment</strong>
+  <pre id="env"></pre>
+</div>
+
+<script>
+(function () {
+  const $ = (id) => document.getElementById(id);
+  // Fixed input so both reads use the same salt -> results must be identical.
+  const PRF_SALT = new TextEncoder().encode("onduler-prf-spike-v1-fixed-salt!");
+  let credentialId = null; // ArrayBuffer
+
+  // ---- helpers ----
+  const randBytes = (n) => crypto.getRandomValues(new Uint8Array(n));
+  const toHex = (buf) => [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, "0")).join("");
+  const b64url = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+  const fromB64url = (s) => { s = s.replace(/-/g,"+").replace(/_/g,"/"); const bin = atob(s); const u = new Uint8Array(bin.length); for (let i=0;i<bin.length;i++) u[i]=bin.charCodeAt(i); return u.buffer; };
+  const eq = (a, b) => { a = new Uint8Array(a); b = new Uint8Array(b); if (a.length !== b.length) return false; let d = 0; for (let i=0;i<a.length;i++) d |= a[i]^b[i]; return d === 0; };
+  const set = (el, html) => { el.innerHTML = html; };
+
+  // ---- environment ----
+  (function () {
+    const lines = [
+      "URL:        " + location.href,
+      "Secure ctx: " + window.isSecureContext + (window.isSecureContext ? "" : "  <-- WebAuthn needs HTTPS or localhost"),
+      "rp.id:      " + location.hostname,
+      "UA:         " + navigator.userAgent,
+      "PublicKeyCredential present: " + (typeof window.PublicKeyCredential !== "undefined"),
+    ];
+    set($("env"), lines.join("\n"));
+    if (typeof window.PublicKeyCredential === "undefined") {
+      $("reg").disabled = true;
+      set($("regOut"), '<p class="verdict bad">WebAuthn not available in this browser.</p>');
+    }
+  })();
+
+  // ---- step 1: register ----
+  $("reg").addEventListener("click", async () => {
+    $("reg").disabled = true;
+    set($("regOut"), "Waiting for biometric…");
+    try {
+      const cred = await navigator.credentials.create({
+        publicKey: {
+          challenge: randBytes(32),
+          rp: { name: "Onduler PRF spike" }, // rp.id defaults to current hostname
+          user: { id: randBytes(16), name: "spike@onduler.app", displayName: "PRF spike" },
+          pubKeyCredParams: [ { type: "public-key", alg: -7 }, { type: "public-key", alg: -257 } ],
+          authenticatorSelection: { authenticatorAttachment: "platform", residentKey: "preferred", userVerification: "required" },
+          timeout: 60000,
+          extensions: { prf: {} }, // ask whether prf is supported
+        },
+      });
+      credentialId = cred.rawId;
+      try { localStorage.setItem("prfSpikeCredId", b64url(cred.rawId)); } catch (_) {}
+      const ext = cred.getClientExtensionResults();
+      const prfEnabled = ext && ext.prf && ext.prf.enabled === true;
+      if (prfEnabled) {
+        set($("regOut"), '<p class="verdict ok">✅ Passkey registered. <code>prf.enabled = true</code> — this device supports PRF. Now run Step 2.</p>');
+      } else {
+        set($("regOut"), '<p class="verdict warn">⚠️ Passkey registered, but <code>prf.enabled</code> was not true at creation. Some platforms only confirm PRF on read — run Step 2 anyway; if it returns matching secrets, PRF works here.</p>');
+      }
+      $("read").disabled = false;
+    } catch (e) {
+      set($("regOut"), '<p class="verdict bad">❌ ' + (e && e.name ? e.name + ": " : "") + (e && e.message ? e.message : e) + '</p>');
+      $("reg").disabled = false;
+    }
+  });
+
+  // ---- step 2: read PRF twice ----
+  async function readOnce() {
+    const allow = credentialId ? [{ type: "public-key", id: credentialId }] : [];
+    const assertion = await navigator.credentials.get({
+      publicKey: {
+        challenge: randBytes(32),
+        allowCredentials: allow,
+        userVerification: "required",
+        timeout: 60000,
+        extensions: { prf: { eval: { first: PRF_SALT } } },
+      },
+    });
+    const ext = assertion.getClientExtensionResults();
+    const first = ext && ext.prf && ext.prf.results && ext.prf.results.first;
+    if (!first) throw new Error("No prf.results.first returned — PRF not usable on this device.");
+    return first;
+  }
+
+  $("read").addEventListener("click", async () => {
+    $("read").disabled = true;
+    set($("readOut"), "Reading secret (1/2)… approve the biometric prompt.");
+    try {
+      if (!credentialId) {
+        const saved = localStorage.getItem("prfSpikeCredId");
+        if (saved) credentialId = fromB64url(saved);
+      }
+      const a = await readOnce();
+      set($("readOut"), "Reading secret (2/2)… approve the biometric prompt again.");
+      const b = await readOnce();
+      const match = eq(a, b);
+      const verdict = match
+        ? '<p class="verdict ok">✅ STABLE — both reads matched. PRF is usable as the key source on this device.</p>'
+        : '<p class="verdict bad">❌ MISMATCH — the two reads differed. PRF is NOT a stable key source here; do not rely on it on this device.</p>';
+      set($("readOut"), verdict +
+        "<pre>read #1: " + toHex(a) + "\nread #2: " + toHex(b) + "</pre>");
+    } catch (e) {
+      set($("readOut"), '<p class="verdict bad">❌ ' + (e && e.name ? e.name + ": " : "") + (e && e.message ? e.message : e) + '</p>');
+    } finally {
+      $("read").disabled = false;
+    }
+  });
+})();
+</script>
+</body>
+</html>
