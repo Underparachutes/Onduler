@@ -57,6 +57,20 @@ export async function getEncSetupState(): Promise<EncSetupState> {
   }
 }
 
+// Lightweight per-user flag: are this user's content rows in ciphertext mode?
+// Drives the client-side write/read encryption gate. False until migration.
+export async function getEncEnabled(): Promise<boolean> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return false
+  const { data } = await supabase
+    .from('user_settings')
+    .select('enc_enabled')
+    .eq('user_id', user.id)
+    .single()
+  return !!data?.enc_enabled
+}
+
 // Everything the browser needs to UNLOCK the DEK. Still no secrets — these are
 // the wrapped blobs and the public salts; useless without the user's secret.
 export async function getKeyEnvelope(): Promise<{

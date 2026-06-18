@@ -1,7 +1,8 @@
 'use client'
 
-import { useActionState, useEffect, useState } from 'react'
+import { useActionState, useCallback, useEffect, useState } from 'react'
 import { createGroup } from '@/app/actions/groups'
+import { useContentCrypto } from '@/app/components/useContentCrypto'
 import { detectMode, getRandomThemeAccent } from '@/lib/theme-colors'
 
 type Props = {
@@ -9,7 +10,16 @@ type Props = {
 }
 
 export function AddGroupForm({ onClose }: Props) {
-  const [state, formAction, pending] = useActionState(createGroup, null)
+  const { encryptFormData } = useContentCrypto()
+  // Encrypt the content field client-side before the server action sees it.
+  const action = useCallback(
+    async (prev: unknown, fd: FormData) => {
+      await encryptFormData(fd, ['name'])
+      return createGroup(prev, fd)
+    },
+    [encryptFormData],
+  )
+  const [state, formAction, pending] = useActionState(action, null)
   const [color, setColor] = useState('#6366f1')
 
   // eslint-disable-next-line react-hooks/set-state-in-effect -- DOM read for theme on mount

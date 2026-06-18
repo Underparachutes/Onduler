@@ -1,8 +1,9 @@
 'use client'
 
-import { useActionState, useEffect, useState, useTransition } from 'react'
+import { useActionState, useCallback, useEffect, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { updateAnchor, deleteAnchor } from '@/app/actions/reflections'
+import { useContentCrypto } from '@/app/components/useContentCrypto'
 import { formatWeekLabel } from '@/lib/cycles'
 
 type Cycle = { cycleStart: string; cycleEnd: string }
@@ -29,8 +30,17 @@ export function EditAnchorForm({
   lastWeek,
 }: Props) {
   const router = useRouter()
-  const boundUpdate = updateAnchor.bind(null, id)
-  const [state, formAction, pending] = useActionState(boundUpdate, null)
+  const { encryptFormData } = useContentCrypto()
+  // Encrypt whichever content fields this anchor type submits; encryptFormData
+  // skips the absent ones (free → body/prompt, ceremony → expectation/observation).
+  const action = useCallback(
+    async (prev: unknown, fd: FormData) => {
+      await encryptFormData(fd, ['body_text', 'prompt_text', 'expectation_text', 'observation_text'])
+      return updateAnchor(id, prev, fd)
+    },
+    [encryptFormData, id],
+  )
+  const [state, formAction, pending] = useActionState(action, null)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [deleting, startDelete] = useTransition()
 

@@ -3,6 +3,7 @@
 import { useState, useRef, useTransition } from 'react'
 import Link from 'next/link'
 import { updateAnchorField, deleteAnchor, getAnchorsForPeriod, type AnchorRow } from '@/app/actions/reflections'
+import { useContentCrypto } from '@/app/components/useContentCrypto'
 import { formatWeekLabel, formatMonthLabel, formatQuarterLabel, formatYearLabel } from '@/lib/cycles'
 
 type Period = 'week' | 'month' | 'quarter' | 'year'
@@ -165,6 +166,7 @@ function SaveOnBlurTextarea({
   const [value, setValue] = useState(initialValue)
   const [error, setError] = useState<string | null>(null)
   const lastSaved = useRef(initialValue)
+  const { encryptContent } = useContentCrypto()
 
   async function handleBlur() {
     if (value === lastSaved.current) return
@@ -173,7 +175,7 @@ function SaveOnBlurTextarea({
       setValue(lastSaved.current)
       return
     }
-    const result = await updateAnchorField(anchorId, field, value)
+    const result = await updateAnchorField(anchorId, field, await encryptContent(value))
     if (result.error) {
       setError(result.error)
       setValue(lastSaved.current)

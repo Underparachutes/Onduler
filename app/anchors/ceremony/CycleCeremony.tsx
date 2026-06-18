@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { saveReflection } from '@/app/actions/reflections'
 import { archiveAndStartFreshChapter } from '@/app/actions/chapters'
 import { useSaveGuard } from '@/app/components/useSaveGuard'
+import { useContentCrypto } from '@/app/components/useContentCrypto'
 import { FrozenRadar } from './FrozenRadar'
 import { ceilDisplay, type DayKey } from '@/lib/periods'
 import { formatHrs } from '@/lib/format'
@@ -80,6 +81,7 @@ export function CycleCeremony({
   const [chapterExpanded, setChapterExpanded] = useState(false)
   const [isPending, startTransition] = useTransition()
   const guard = useSaveGuard()
+  const { encryptContent } = useContentCrypto()
 
   const isHours = trackingMode === 'hours'
   const totalActual = actuals.reduce((s, v) => s + v, 0)
@@ -90,17 +92,24 @@ export function CycleCeremony({
     return expectation || priorIntention || null
   }
 
+  // Build the reflection payload with the three text fields encrypted
+  // client-side (nulls preserved). One helper so all four ceremony exits share it.
+  async function reflectionInput(didTune: boolean) {
+    const enc = async (v: string | null) => (v ? encryptContent(v) : null)
+    return {
+      cadence,
+      cycleStart,
+      cycleEnd,
+      expectationText: await enc(resolvedExpectation()),
+      observationText: await enc(observation || null),
+      intentionText: await enc(intention || null),
+      didTune,
+    }
+  }
+
   function persist(didTune: boolean) {
     startTransition(async () => {
-      if (await guard(saveReflection({
-        cadence,
-        cycleStart,
-        cycleEnd,
-        expectationText: resolvedExpectation(),
-        observationText: observation || null,
-        intentionText: intention || null,
-        didTune,
-      }))) {
+      if (await guard(saveReflection(await reflectionInput(didTune)))) {
         router.push('/anchors')
         router.refresh()
       }
@@ -109,15 +118,7 @@ export function CycleCeremony({
 
   function goToSwells() {
     startTransition(async () => {
-      if (await guard(saveReflection({
-        cadence,
-        cycleStart,
-        cycleEnd,
-        expectationText: resolvedExpectation(),
-        observationText: observation || null,
-        intentionText: intention || null,
-        didTune: true,
-      }))) {
+      if (await guard(saveReflection(await reflectionInput(true)))) {
         router.push('/swells')
       }
     })
@@ -125,15 +126,7 @@ export function CycleCeremony({
 
   function goToMotions() {
     startTransition(async () => {
-      if (await guard(saveReflection({
-        cadence,
-        cycleStart,
-        cycleEnd,
-        expectationText: resolvedExpectation(),
-        observationText: observation || null,
-        intentionText: intention || null,
-        didTune: true,
-      }))) {
+      if (await guard(saveReflection(await reflectionInput(true)))) {
         router.push('/dashboard')
       }
     })
@@ -141,15 +134,7 @@ export function CycleCeremony({
 
   function confirmArchive() {
     startTransition(async () => {
-      if (!await guard(saveReflection({
-        cadence,
-        cycleStart,
-        cycleEnd,
-        expectationText: resolvedExpectation(),
-        observationText: observation || null,
-        intentionText: intention || null,
-        didTune: true,
-      }))) return
+      if (!await guard(saveReflection(await reflectionInput(true)))) return
       const result = await archiveAndStartFreshChapter()
       if (result && 'error' in result && result.error) {
         // Surface failure but stay on the page so the user can retry.

@@ -11,6 +11,7 @@ import { AddMotionForm } from '@/app/dashboard/components/AddMotionForm'
 import { MotionDetailSheet } from '@/app/dashboard/components/MotionDetailSheet'
 import { MilestonesSection, type Milestone } from './MilestonesSection'
 import { useSaveGuard } from '@/app/components/useSaveGuard'
+import { useContentCrypto } from '@/app/components/useContentCrypto'
 
 type Swell = {
   id: string
@@ -126,6 +127,7 @@ export function SwellProficiencyView({
 }: Props) {
   const router = useRouter()
   const guard = useSaveGuard()
+  const { encryptContent } = useContentCrypto()
   const [timeView, setTimeView] = useState<TimeView>('week')
   const [viewMode, setViewMode] = useState<ViewMode>('constellation')
   const [addOpen, setAddOpen] = useState(false)
@@ -142,7 +144,7 @@ export function SwellProficiencyView({
 
   function persistAll(name: string, color: string, targetPts: number | null, targetHrs: number | null) {
     startSave(async () => {
-      if (await guard(updateSwellDirect(swell.id, name, color, targetPts, targetHrs))) {
+      if (await guard(updateSwellDirect(swell.id, await encryptContent(name), color, targetPts, targetHrs))) {
         router.refresh()
       }
     })

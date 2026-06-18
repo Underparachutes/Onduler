@@ -8,11 +8,15 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { getDek, setDek as storeDek, clearDek as storeClearDek } from '@/lib/crypto/dek-store'
+import { getEncEnabled } from '@/app/actions/keys'
 
 type DekContextValue = {
   dek: CryptoKey | null
   /** True until the initial cache lookup resolves. */
   loading: boolean
+  /** Whether this user's content rows are in ciphertext mode (the write/read
+   *  encryption gate). False until migration flips it. */
+  encEnabled: boolean
   /** Adopt a freshly unlocked/created DEK (also caches it). */
   setDek: (dek: CryptoKey) => Promise<void>
   /** Forget the DEK in memory and cache (e.g. manual lock). */
@@ -24,12 +28,17 @@ const DekContext = createContext<DekContextValue | null>(null)
 export function DekProvider({ children }: { children: ReactNode }) {
   const [dek, setDekState] = useState<CryptoKey | null>(null)
   const [loading, setLoading] = useState(true)
+  const [encEnabled, setEncEnabled] = useState(false)
 
   useEffect(() => {
     let active = true
     getDek()
       .then(k => {
-        if (active) setDekState(k)
+        if (!active) return
+        setDekState(k)
+        // Only pay for the flag read when a DEK exists (i.e. an authenticated,
+        // set-up user) — public pages and logged-out users skip it entirely.
+        if (k) getEncEnabled().then(v => { if (active) setEncEnabled(v) }).catch(() => {})
       })
       .finally(() => {
         if (active) setLoading(false)
@@ -41,6 +50,7 @@ export function DekProvider({ children }: { children: ReactNode }) {
       if (event === 'SIGNED_OUT') {
         void storeClearDek()
         setDekState(null)
+        setEncEnabled(false)
       }
     })
 
@@ -53,15 +63,21 @@ export function DekProvider({ children }: { children: ReactNode }) {
   const setDek = async (k: CryptoKey) => {
     await storeDek(k)
     setDekState(k)
+    try {
+      setEncEnabled(await getEncEnabled())
+    } catch {
+      // leave the prior flag value
+    }
   }
 
   const clearDek = async () => {
     await storeClearDek()
     setDekState(null)
+    setEncEnabled(false)
   }
 
   return (
-    <DekContext.Provider value={{ dek, loading, setDek, clearDek }}>
+    <DekContext.Provider value={{ dek, loading, encEnabled, setDek, clearDek }}>
       {children}
     </DekContext.Provider>
   )

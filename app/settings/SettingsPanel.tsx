@@ -26,6 +26,7 @@ import { ImageAdjustOverlay } from '@/app/components/ImageAdjustOverlay'
 import { resizeImage } from '@/lib/image'
 import { readPinTopUnpinned, writePinTopUnpinned } from '@/app/components/PinTopApplier'
 import { useSaveGuard } from '@/app/components/useSaveGuard'
+import { useContentCrypto } from '@/app/components/useContentCrypto'
 import { EditGroupForm } from './EditGroupForm'
 
 const THEMES = [
@@ -125,6 +126,7 @@ export function SettingsPanel({
   const [uploading, setUploading] = useState(false)
   const [, startTransition] = useTransition()
   const guard = useSaveGuard()
+  const { encryptContent } = useContentCrypto()
 
   function handleTheme(t: string) {
     setCurrentTheme(t)
@@ -526,7 +528,7 @@ export function SettingsPanel({
                             document.documentElement.dataset.theme ?? 'biarritz',
                             detectMode()
                           )
-                          startTransition(async () => { await guard(createQuickGroup(name, color)) })
+                          startTransition(async () => { await guard(createQuickGroup(await encryptContent(name), color)) })
                         }}
                         className="rounded-full border border-th-border px-3 py-1 text-xs text-th-muted transition-colors hover:border-th-focus hover:text-th-text"
                       >

@@ -1,9 +1,10 @@
 'use client'
 
-import { useActionState, useEffect, useMemo, useRef, useState, useTransition } from 'react'
+import { useActionState, useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import { updateGroup, deleteGroup } from '@/app/actions/groups'
 import { setMotionGroup } from '@/app/actions/motions'
 import { setSwellGroup } from '@/app/actions/swells'
+import { useContentCrypto } from '@/app/components/useContentCrypto'
 import { useSaveGuard } from '@/app/components/useSaveGuard'
 
 type Group = { id: string; name: string; color: string }
@@ -19,8 +20,15 @@ type Props = {
 }
 
 export function EditGroupForm({ group, allGroups, motions, swells, onClose }: Props) {
-  const updateById = updateGroup.bind(null, group.id)
-  const [state, formAction, pending] = useActionState(updateById, null)
+  const { encryptFormData } = useContentCrypto()
+  const action = useCallback(
+    async (prev: unknown, fd: FormData) => {
+      await encryptFormData(fd, ['name'])
+      return updateGroup(group.id, prev, fd)
+    },
+    [encryptFormData, group.id],
+  )
+  const [state, formAction, pending] = useActionState(action, null)
   const [color, setColor] = useState(group.color)
   const [confirming, setConfirming] = useState(false)
   const [deleting, startDelete] = useTransition()

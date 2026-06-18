@@ -1,8 +1,9 @@
 'use client'
 
-import { useActionState, useEffect, useState } from 'react'
+import { useActionState, useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createFreeAnchor } from '@/app/actions/reflections'
+import { useContentCrypto } from '@/app/components/useContentCrypto'
 import { ANCHOR_PROMPTS, THEME_LABELS, type AnchorPromptTheme } from '@/lib/anchorPrompts'
 import { formatWeekLabel } from '@/lib/cycles'
 
@@ -19,7 +20,15 @@ type Props = {
 
 export function NewAnchorForm({ thisWeek, lastWeek, showLastWeek }: Props) {
   const router = useRouter()
-  const [state, formAction, pending] = useActionState(createFreeAnchor, null)
+  const { encryptFormData } = useContentCrypto()
+  const action = useCallback(
+    async (prev: unknown, fd: FormData) => {
+      await encryptFormData(fd, ['body_text', 'prompt_text'])
+      return createFreeAnchor(prev, fd)
+    },
+    [encryptFormData],
+  )
+  const [state, formAction, pending] = useActionState(action, null)
   const [pickerOpen, setPickerOpen] = useState(false)
   const [expandedTheme, setExpandedTheme] = useState<AnchorPromptTheme | null>(null)
   const [prompt, setPrompt] = useState<string>('')
