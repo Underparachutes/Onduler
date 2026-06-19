@@ -35,20 +35,29 @@ export function DekProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let active = true
-    getDek()
-      .then(k => {
+    const supabase = createClient()
+
+    ;(async () => {
+      try {
+        const k = await getDek()
         if (!active) return
         setDekState(k)
-        // Only pay for the flag read when a DEK exists (i.e. an authenticated,
-        // set-up user) — public pages and logged-out users skip it entirely.
-        if (k) getEncEnabled().then(v => { if (active) setEncEnabled(v) }).catch(() => {})
-      })
-      .finally(() => {
+        // Learn enc_enabled for ANY authenticated session — even one with no
+        // cached DEK — so the unlock gate can spot a locked-but-encrypted
+        // session (e.g. after a password reset on a fresh device). Guard on a
+        // LOCAL session read so public pages and logged-out users still pay
+        // nothing: getSession reads local storage (no network); getEncEnabled
+        // is the only round trip and runs only when a session exists.
+        const { data: { session } } = await supabase.auth.getSession()
+        if (active && session) {
+          try { setEncEnabled(await getEncEnabled()) } catch { /* keep default */ }
+        }
+      } finally {
         if (active) setLoading(false)
-      })
+      }
+    })()
 
     // Drop the cached key on sign-out so it never outlives the session.
-    const supabase = createClient()
     const { data: sub } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'SIGNED_OUT') {
         void storeClearDek()

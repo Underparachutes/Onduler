@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Mono, Manrope } from "next/font/google";
 import { ToastProvider } from "./components/Toast";
 import { DekProvider } from "./components/DekProvider";
+import { UnlockGate } from "./components/UnlockGate";
 import { AppShell } from "./AppShell";
 import Loading from "./loading";
 import "./globals.css";
@@ -54,6 +55,7 @@ export default function RootLayout({
             <Suspense fallback={<Loading />}>
               <AppShell>{children}</AppShell>
             </Suspense>
+            <UnlockGate />
           </DekProvider>
         </ToastProvider>
       </body>
