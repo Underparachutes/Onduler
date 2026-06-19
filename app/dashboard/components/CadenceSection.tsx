@@ -7,6 +7,7 @@ import {
   getMotionCadence,
   updateMilestone,
 } from '@/app/actions/milestones'
+import { useContentCrypto } from '@/app/components/useContentCrypto'
 
 type Cadence = 'weekly' | 'monthly'
 type MotionSwell = { id: string; name: string; color: string; weight: number }
@@ -43,6 +44,7 @@ export function CadenceSection({ motionId, motionName, motionSwells, trackingMod
   const [editing, setEditing] = useState(false)
   const [, startSave] = useTransition()
   const [, startDelete] = useTransition()
+  const { encryptContent } = useContentCrypto()
 
   // Edit-form local state
   const [cadence, setCadence] = useState<Cadence>('weekly')
@@ -152,7 +154,7 @@ export function CadenceSection({ motionId, motionName, motionSwells, trackingMod
         })
         setEditing(false)
       } else {
-        const r = await createMilestone(swellId, 'recurring', motionName, cadence, {
+        const r = await createMilestone(swellId, 'recurring', await encryptContent(motionName), cadence, {
           targetCount: count,
           bonusPoints: bonusValid,
           motionId,

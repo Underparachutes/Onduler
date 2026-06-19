@@ -7,6 +7,7 @@ import { deleteAnchor } from '@/app/actions/reflections'
 import { deleteArchivedChapter } from '@/app/actions/chapters'
 import { FrozenRadar } from '@/app/anchors/ceremony/FrozenRadar'
 import { WaveField, type WaveLine } from '@/app/components/WaveField'
+import { useDecrypted } from '@/app/components/useDecrypted'
 import type { ChapterRenderData, WeekRenderData, AnchorWithRadar } from './page'
 
 const WAVE_STRIP_LINES: WaveLine[] = [
@@ -33,7 +34,10 @@ type Props = {
   trackingMode: 'points' | 'hours'
 }
 
-export function JournalClient({ chapters, trackingMode }: Props) {
+export function JournalClient({ chapters: rawChapters, trackingMode }: Props) {
+  // Decrypt reflection text + radar swell names client-side before render.
+  // Inert (identity pass-through) until rows are ciphertext post-migration.
+  const chapters = useDecrypted(rawChapters)
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const allKeys = chapters.flatMap(ch => ch.weeks.map(w => `${ch.chapterId}:${w.cycleStart}`))
   const allExpanded = allKeys.length > 0 && allKeys.every(k => expanded.has(k))
@@ -261,13 +265,13 @@ function AnchorsWeek({ week, trackingMode }: { week: WeekRenderData; trackingMod
                 {a.expectation_text && (
                   <div>
                     <p className="text-[10px] uppercase tracking-widest text-th-muted">Expected</p>
-                    <p className="whitespace-pre-wrap text-sm text-th-text">{a.expectation_text}</p>
+                    <p className="whitespace-pre-wrap break-words text-sm text-th-text">{a.expectation_text}</p>
                   </div>
                 )}
                 {a.observation_text && (
                   <div>
                     <p className="text-[10px] uppercase tracking-widest text-th-muted">Observed</p>
-                    <p className="whitespace-pre-wrap text-sm text-th-text">{a.observation_text}</p>
+                    <p className="whitespace-pre-wrap break-words text-sm text-th-text">{a.observation_text}</p>
                   </div>
                 )}
                 {a.did_tune && (
@@ -280,10 +284,10 @@ function AnchorsWeek({ week, trackingMode }: { week: WeekRenderData; trackingMod
                 className="flex flex-col gap-2 rounded py-1 transition-colors hover:bg-th-surface/50 active:scale-[0.985]"
               >
                 {a.prompt_text && (
-                  <p className="text-xs italic text-th-faint">{a.prompt_text}</p>
+                  <p className="break-words text-xs italic text-th-faint">{a.prompt_text}</p>
                 )}
                 {a.body_text && (
-                  <p className="whitespace-pre-wrap text-sm text-th-text">{a.body_text}</p>
+                  <p className="whitespace-pre-wrap break-words text-sm text-th-text">{a.body_text}</p>
                 )}
               </Link>
             )}

@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { requireAdmin } from '@/lib/admin'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { formatHrs } from '@/lib/format'
+import { isEncrypted } from '@/lib/crypto/content'
 
 export const dynamic = 'force-dynamic'
 
@@ -130,7 +131,13 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
                   <li key={l.id} className="flex items-center justify-between gap-3 px-4 py-3">
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium text-th-text">
-                        {motionRef?.name ?? '(deleted motion)'}
+                        {/* Operator-blind: never render a user's content. Once a
+                            name is encrypted the operator holds no key, so show a
+                            lock instead of the enc: blob. Plaintext legacy names
+                            still show pre-migration. */}
+                        {motionRef
+                          ? (isEncrypted(motionRef.name) ? '🔒 encrypted' : motionRef.name)
+                          : '(deleted motion)'}
                       </p>
                       <p className="text-[11px] text-th-faint">{formatDateTime(l.logged_at)}</p>
                     </div>

@@ -1,3 +1,5 @@
+'use client'
+
 // Frozen radar for the ceremony reveal and journal. No drag, no period
 // toggle, no pill. Contemplative snapshot — colored polygon fills clipped
 // to the actuals outline, separator lines, tangent-rotated labels.
@@ -10,6 +12,7 @@ import {
   chartCeiling,
   scaleConfigFor,
 } from '@/lib/radar'
+import { useDecrypted } from '@/app/components/useDecrypted'
 
 const SIZE = 360
 const CENTER = { x: SIZE / 2, y: SIZE / 2 }
@@ -22,7 +25,7 @@ const VB_SIZE = VB_EXTENT * 2
 type Swell = { id: string; name: string; color: string; target: number }
 
 export function FrozenRadar({
-  swells,
+  swells: rawSwells,
   actuals,
   trackingMode,
 }: {
@@ -30,6 +33,10 @@ export function FrozenRadar({
   actuals: number[]
   trackingMode: 'points' | 'hours'
 }) {
+  // Self-decrypt the axis-label swell names so this works when rendered directly
+  // by a server page (archived chapter detail); a no-op where the parent already
+  // decrypted (journal, ceremony). Names are only read in render, never stated.
+  const swells = useDecrypted(rawSwells)
   const count = swells.length
   if (count < 3) {
     return (

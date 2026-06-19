@@ -26,6 +26,9 @@ import { ImageAdjustOverlay } from '@/app/components/ImageAdjustOverlay'
 import { resizeImage } from '@/lib/image'
 import { readPinTopUnpinned, writePinTopUnpinned } from '@/app/components/PinTopApplier'
 import { useSaveGuard } from '@/app/components/useSaveGuard'
+import { useContentCrypto } from '@/app/components/useContentCrypto'
+import { useDecryptedReady } from '@/app/components/useDecrypted'
+import { ExportButton } from './ExportButton'
 import { EditGroupForm } from './EditGroupForm'
 
 const THEMES = [
@@ -80,10 +83,10 @@ export function SettingsPanel({
   hapticEnabled,
   primaryBuild,
   email,
-  groups,
-  hiddenMotions,
-  assignableMotions,
-  assignableSwells,
+  groups: rawGroups,
+  hiddenMotions: rawHiddenMotions,
+  assignableMotions: rawAssignableMotions,
+  assignableSwells: rawAssignableSwells,
   archivedChapterCount,
   isAdmin,
   subscriptionStatus,
@@ -125,6 +128,20 @@ export function SettingsPanel({
   const [uploading, setUploading] = useState(false)
   const [, startTransition] = useTransition()
   const guard = useSaveGuard()
+  const { encryptContent } = useContentCrypto()
+
+  // Decrypt name-bearing props (group / hidden-motion / assignable names) once
+  // here; plaintext flows to the group list, hidden-motions list, and the
+  // EditGroupForm child (which seeds group.name into an uncontrolled input).
+  // Gate on `ready` so none of them mount/seed from a pending blank. Inert +
+  // ready synchronously until rows are ciphertext post-migration.
+  const { data: encData, ready } = useDecryptedReady({
+    groups: rawGroups,
+    hiddenMotions: rawHiddenMotions,
+    assignableMotions: rawAssignableMotions,
+    assignableSwells: rawAssignableSwells,
+  })
+  const { groups, hiddenMotions, assignableMotions, assignableSwells } = encData
 
   function handleTheme(t: string) {
     setCurrentTheme(t)
@@ -187,6 +204,9 @@ export function SettingsPanel({
     setLocalHiddenIds(prev => new Set([...prev, id]))
     startTransition(async () => { await guard(unhideMotion(id)) })
   }
+
+  // Hold until decryption settles (never blocks today — inert is ready at once).
+  if (!ready) return null
 
   const editingGroup = editingGroupId ? groups.find(g => g.id === editingGroupId) ?? null : null
 
@@ -526,7 +546,7 @@ export function SettingsPanel({
                             document.documentElement.dataset.theme ?? 'biarritz',
                             detectMode()
                           )
-                          startTransition(async () => { await guard(createQuickGroup(name, color)) })
+                          startTransition(async () => { await guard(createQuickGroup(await encryptContent(name), color)) })
                         }}
                         className="rounded-full border border-th-border px-3 py-1 text-xs text-th-muted transition-colors hover:border-th-focus hover:text-th-text"
                       >
@@ -664,21 +684,7 @@ export function SettingsPanel({
                   <p className="text-sm font-medium text-th-text">Export your data</p>
                   <p className="text-xs text-th-muted">Download everything as JSON</p>
                 </div>
-                <button
-                  onClick={async () => {
-                    const res = await fetch('/api/export')
-                    const blob = await res.blob()
-                    const url = URL.createObjectURL(blob)
-                    const a = document.createElement('a')
-                    a.href = url
-                    a.download = `onduler-export-${new Date().toISOString().slice(0, 10)}.json`
-                    a.click()
-                    URL.revokeObjectURL(url)
-                  }}
-                  className="text-sm text-th-secondary hover:underline"
-                >
-                  Download
-                </button>
+                <ExportButton />
               </div>
               <div className="flex items-center justify-between">
                 <div>

@@ -5,7 +5,9 @@ import Link from 'next/link'
 import { parseImportMarkdown, type ImportPreview } from '@/lib/import-parser'
 import { formatPts, formatHrs } from '@/lib/format'
 import { IMPORT_PROMPT_TEMPLATE } from '@/lib/import-prompt'
-import { confirmImport, type ImportClearMode } from '@/app/actions/import'
+import { confirmImport, getImportEntities, type ImportClearMode } from '@/app/actions/import'
+import { resolveImport, type ExistingEntities } from '@/lib/import-resolve'
+import { useContentCrypto } from '@/app/components/useContentCrypto'
 
 type Step = 'input' | 'preview' | 'done'
 
@@ -16,6 +18,7 @@ const CLEAR_OPTIONS: { mode: ImportClearMode; label: string; desc: string }[] = 
 ]
 
 export function ImportFlow({ trackingMode, hasExistingData }: { trackingMode: 'points' | 'hours'; hasExistingData: boolean }) {
+  const { encryptContent, decryptContent } = useContentCrypto()
   const [step, setStep] = useState<Step>('input')
   const [markdown, setMarkdown] = useState('')
   const [preview, setPreview] = useState<ImportPreview | null>(null)
@@ -52,7 +55,27 @@ export function ImportFlow({ trackingMode, hasExistingData }: { trackingMode: 'p
     }
     setError(null)
     startTransition(async () => {
-      const result = await confirmImport(preview, clearMode)
+      // Dedup + name→id resolution happen in the browser now (the server can't
+      // read encrypted names). For 'none' we dedup against existing entities,
+      // decrypted client-side; archive/delete start clean, so existing is empty.
+      let existing: ExistingEntities = { groups: [], swells: [], motions: [] }
+      if (clearMode === 'none') {
+        const raw = await getImportEntities()
+        existing = {
+          groups: await Promise.all(raw.groups.map(async g => ({ id: g.id, name: await decryptContent(g.name) }))),
+          swells: await Promise.all(raw.swells.map(async s => ({ id: s.id, name: await decryptContent(s.name) }))),
+          motions: await Promise.all(raw.motions.map(async m => ({ id: m.id, name: await decryptContent(m.name) }))),
+        }
+      }
+      const plan = resolveImport(preview, existing)
+      // Encrypt the new content names before the plan leaves the browser.
+      const encPlan = {
+        ...plan,
+        newGroups: await Promise.all(plan.newGroups.map(async g => ({ ...g, name: await encryptContent(g.name) }))),
+        newSwells: await Promise.all(plan.newSwells.map(async s => ({ ...s, name: await encryptContent(s.name) }))),
+        newMotions: await Promise.all(plan.newMotions.map(async m => ({ ...m, name: await encryptContent(m.name) }))),
+      }
+      const result = await confirmImport(encPlan, clearMode)
       if ('error' in result) {
         setError(result.error)
         return

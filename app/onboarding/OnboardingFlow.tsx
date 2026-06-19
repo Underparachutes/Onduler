@@ -10,6 +10,7 @@ import { shouldShowOnboardingInstall, markOnboardingSeen } from '@/lib/install'
 import { InstallInstructions } from '@/app/components/InstallInstructions'
 import { parseImportMarkdown } from '@/lib/import-parser'
 import { IMPORT_PROMPT_TEMPLATE } from '@/lib/import-prompt'
+import { useContentCrypto } from '@/app/components/useContentCrypto'
 
 type Step = 'swells' | 'motions' | 'personalize' | 'firstlog' | 'install'
 type TrackingMode = 'points' | 'hours'
@@ -111,6 +112,7 @@ function clearDraft() {
 }
 
 export function OnboardingFlow() {
+  const { encryptContent } = useContentCrypto()
   const [step, setStep] = useState<Step>('swells')
 
   const [swellEntries, setSwellEntries] = useState<SwellEntry[]>([])
@@ -472,9 +474,19 @@ export function OnboardingFlow() {
       // On success the action redirects and this code may never resume, so
       // the draft is cleared up front and restored if completion fails.
       clearDraft()
+      // Encrypt the first swell/motion names client-side before they leave the
+      // browser (gated on encActive, so inert/plaintext until migration flips
+      // it on). completeOnboarding inserts blindly and links by index, not name,
+      // so no server change is needed.
+      const encSwells = await Promise.all(
+        finalSwells.map(async s => ({ ...s, name: await encryptContent(s.name) })),
+      )
+      const encMotions = await Promise.all(
+        finalMotions.map(async m => ({ ...m, name: await encryptContent(m.name) })),
+      )
       let result: Awaited<ReturnType<typeof completeOnboarding>>
       try {
-        result = await completeOnboarding(finalSwells, finalMotions, prefs)
+        result = await completeOnboarding(encSwells, encMotions, prefs)
       } catch (e) {
         // Server-action redirects surface as a thrown control-flow error that
         // Next handles; anything else here is a real transport failure.

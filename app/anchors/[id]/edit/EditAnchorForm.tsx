@@ -1,8 +1,10 @@
 'use client'
 
-import { useActionState, useEffect, useState, useTransition } from 'react'
+import { useActionState, useCallback, useEffect, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { updateAnchor, deleteAnchor } from '@/app/actions/reflections'
+import { useContentCrypto } from '@/app/components/useContentCrypto'
+import { useDecryptedReady } from '@/app/components/useDecrypted'
 import { formatWeekLabel } from '@/lib/cycles'
 
 type Cycle = { cycleStart: string; cycleEnd: string }
@@ -21,16 +23,33 @@ type CycleChoice = 'this' | 'last' | 'none' | 'custom'
 
 export function EditAnchorForm({
   id,
-  bodyText,
-  promptText,
+  bodyText: rawBodyText,
+  promptText: rawPromptText,
   cycleStart,
   cycleEnd,
   thisWeek,
   lastWeek,
 }: Props) {
   const router = useRouter()
-  const boundUpdate = updateAnchor.bind(null, id)
-  const [state, formAction, pending] = useActionState(boundUpdate, null)
+  // The uncontrolled body textarea and the re-submitted hidden prompt input must
+  // seed with PLAINTEXT — seeding a raw enc: blob would double-encrypt on save.
+  // So decrypt and gate the form render on `ready`. Inert + ready immediately
+  // until rows are ciphertext post-migration.
+  const { data: { bodyText, promptText }, ready } = useDecryptedReady({
+    bodyText: rawBodyText,
+    promptText: rawPromptText,
+  })
+  const { encryptFormData } = useContentCrypto()
+  // Encrypt whichever content fields this anchor type submits; encryptFormData
+  // skips the absent ones (free → body/prompt, ceremony → expectation/observation).
+  const action = useCallback(
+    async (prev: unknown, fd: FormData) => {
+      await encryptFormData(fd, ['body_text', 'prompt_text', 'expectation_text', 'observation_text'])
+      return updateAnchor(id, prev, fd)
+    },
+    [encryptFormData, id],
+  )
+  const [state, formAction, pending] = useActionState(action, null)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [deleting, startDelete] = useTransition()
 
@@ -78,6 +97,10 @@ export function EditAnchorForm({
   const chipActive = 'border-th-text bg-th-text text-th-bg'
   const chipIdle = 'border-th-border text-th-muted hover:bg-th-surface'
 
+  // Hold the form until decryption settles so uncontrolled inputs seed with
+  // plaintext. Never blocks today (inert decrypt is ready synchronously).
+  if (!ready) return <p className="text-xs text-th-muted">Decrypting…</p>
+
   return (
     <>
       <div className="mb-6 flex items-center justify-between">
@@ -97,7 +120,7 @@ export function EditAnchorForm({
         <input type="hidden" name="prompt_text" value={promptText ?? ''} />
 
         {promptText && (
-          <p className="rounded-lg border border-th-border-soft bg-th-surface/40 px-3 py-2 text-xs italic text-th-secondary">
+          <p className="break-words rounded-lg border border-th-border-soft bg-th-surface/40 px-3 py-2 text-xs italic text-th-secondary">
             {promptText}
           </p>
         )}

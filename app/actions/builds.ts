@@ -30,10 +30,17 @@ export async function setBuildSlot(slot: BuildSlot, key: string | null) {
   return { success: true }
 }
 
+// E2EE: swell names are encrypted client-side, so the operator can't read them
+// — which means dedup-against-existing and the preset-name check can no longer
+// happen here (both require reading names). The client (ShapePicker) decrypts
+// its existing names, dedups the preset's swells against them, and passes the
+// survivors ALREADY ENCRYPTED. This action inserts them blindly. Color, sort,
+// and targets are non-sensitive and stay server-side. Inert until migration:
+// pre-encryption the client passes plaintext, which inserts fine.
 export async function adoptBuild(
   slot: BuildSlot,
   key: string,
-  swellNamesToCreate: string[],
+  encryptedSwellNames: string[],
   mode: ThemeMode = 'light'
 ) {
   const supabase = await createClient()
@@ -42,25 +49,14 @@ export async function adoptBuild(
 
   if (!isValidBuildKey(key)) return { error: 'Invalid build key' }
 
-  const preset = BUILD_PRESETS.find(p => p.key === key)
-  if (!preset) return { error: 'Preset not found' }
-
-  const requestedSet = new Set(swellNamesToCreate)
-  const allowedNames = preset.seededSwells.filter(n => requestedSet.has(n))
-
-  if (allowedNames.length > 0) {
+  if (encryptedSwellNames.length > 0) {
     const chapterId = await getActiveChapterId(supabase, user.id)
-    const [{ data: settings }, { data: existing }, { data: lastSwell }] = await Promise.all([
+    const [{ data: settings }, { data: lastSwell }] = await Promise.all([
       supabase
         .from('user_settings')
         .select('theme, tracking_mode')
         .eq('user_id', user.id)
         .single(),
-      supabase
-        .from('swells')
-        .select('name')
-        .eq('user_id', user.id)
-        .eq('chapter_id', chapterId),
       supabase
         .from('swells')
         .select('sort_order')
@@ -70,27 +66,22 @@ export async function adoptBuild(
         .limit(1),
     ])
 
-    const existingLowered = new Set((existing ?? []).map(s => s.name.trim().toLowerCase()))
-    const toInsertNames = allowedNames.filter(n => !existingLowered.has(n.trim().toLowerCase()))
+    const palette = getShuffledThemePalette(settings?.theme ?? 'biarritz', mode)
+    const isHours = (settings?.tracking_mode ?? 'points') === 'hours'
+    const baseSortOrder = (lastSwell?.[0]?.sort_order ?? -1) + 1
 
-    if (toInsertNames.length > 0) {
-      const palette = getShuffledThemePalette(settings?.theme ?? 'biarritz', mode)
-      const isHours = (settings?.tracking_mode ?? 'points') === 'hours'
-      const baseSortOrder = (lastSwell?.[0]?.sort_order ?? -1) + 1
+    const rows = encryptedSwellNames.map((name, i) => ({
+      user_id: user.id,
+      chapter_id: chapterId,
+      name,
+      color: palette[i % palette.length],
+      sort_order: baseSortOrder + i,
+      target_points: isHours ? null : 4,
+      target_hours: isHours ? 3 : null,
+    }))
 
-      const rows = toInsertNames.map((name, i) => ({
-        user_id: user.id,
-        chapter_id: chapterId,
-        name,
-        color: palette[i % palette.length],
-        sort_order: baseSortOrder + i,
-        target_points: isHours ? null : 4,
-        target_hours: isHours ? 3 : null,
-      }))
-
-      const { error: insertErr } = await supabase.from('swells').insert(rows)
-      if (insertErr) return { error: insertErr.message }
-    }
+    const { error: insertErr } = await supabase.from('swells').insert(rows)
+    if (insertErr) return { error: insertErr.message }
   }
 
   const column = slot === 'primary' ? 'primary_build' : 'secondary_build'

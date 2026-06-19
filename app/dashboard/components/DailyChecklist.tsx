@@ -29,6 +29,7 @@ import { formatPts, formatHrs } from '@/lib/format'
 import { ceilDisplay, parseHoursInput } from '@/lib/periods'
 import { useToast } from '@/app/components/Toast'
 import { useSaveGuard } from '@/app/components/useSaveGuard'
+import { useContentCrypto } from '@/app/components/useContentCrypto'
 import dynamic from 'next/dynamic'
 import { type CelebrationState } from './CelebrationOverlay'
 import { SortableMotionList, SortableMotionRow } from './SortableMotionList'
@@ -333,6 +334,7 @@ export function DailyChecklist({
   const router = useRouter()
   const toast = useToast()
   const guard = useSaveGuard()
+  const { encryptContent } = useContentCrypto()
 
   // By-swell DnD state — container map keyed by swell ID (or 'unassigned')
   const [swellContainers, setSwellContainers] = useState<Record<string, Motion[]>>(() => ({}))
@@ -472,7 +474,10 @@ export function DailyChecklist({
         onClick: () => {
           startTransition(async () => {
             if (!await guard(setMotionSwells(activeMotionId, prevSwells))) return
-            if (!await guard(duplicateMotion(activeMotionId, { swellId: targetContainerId, weight: sourceWeight }))) return
+            // Build the "(copy)" name client-side from the displayed (decrypted) name.
+            const src = motions.find(m => m.id === activeMotionId)
+            const dupName = src ? await encryptContent(`${src.name} (copy)`) : undefined
+            if (!await guard(duplicateMotion(activeMotionId, { swellId: targetContainerId, weight: sourceWeight, name: dupName }))) return
             router.refresh()
           })
         },

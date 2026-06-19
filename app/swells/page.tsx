@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { gateContentEncryption } from '@/lib/enc-gate'
 import { getActiveChapterId } from '@/lib/chapters'
 import { getTodayStart, getWeekStart, getLastWeekStart } from '@/lib/timezone'
 import { bonusBySwell } from '@/lib/waypoints'
@@ -9,6 +10,7 @@ export default async function SwellsPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+  await gateContentEncryption()
 
   const [
     chapterId,

@@ -7,6 +7,7 @@ import { DashboardShape } from './DashboardShape'
 import { WavePrompt } from './WavePrompt'
 import { HintCard } from '@/app/components/HintCard'
 import { InstallTile } from './InstallTile'
+import { useDecryptedReady } from '@/app/components/useDecrypted'
 
 const AddMotionForm = dynamic(() => import('./AddMotionForm').then(m => m.AddMotionForm))
 const AddGroupForm = dynamic(() => import('./AddGroupForm').then(m => m.AddGroupForm))
@@ -49,7 +50,12 @@ type Props = {
   progressBarColor: string | null
 }
 
-export function DashboardView(props: Props) {
+export function DashboardView(rawProps: Props) {
+  // Decrypt all name-bearing props (motion/swell/group/submotion names) once
+  // here; plaintext flows down to DailyChecklist/AddMotionForm/DashboardShape.
+  // Gate on `ready` so stateful children never seed from a pending blank.
+  // Inert + ready synchronously until rows are ciphertext post-migration.
+  const { data: props, ready } = useDecryptedReady(rawProps)
   const [openForm, setOpenForm] = useState<null | 'motion' | 'group'>(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -85,6 +91,9 @@ export function DashboardView(props: Props) {
 
   const hasMotions = props.motions.length > 0
   const safeTop = 'calc(env(safe-area-inset-top, 0px) + 0.5rem)'
+
+  // Hold until decryption settles (never blocks today — inert is ready at once).
+  if (!ready) return null
 
   return (
     <div className={`flex min-h-full flex-col items-center px-5 ${!hideShape ? 'pb-44' : 'pb-12'}`}>

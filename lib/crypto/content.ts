@@ -60,13 +60,13 @@ function toArrayBuffer(b: Uint8Array): ArrayBuffer {
   return ab
 }
 
-function bytesToB64url(bytes: Uint8Array): string {
+export function bytesToB64url(bytes: Uint8Array): string {
   let bin = ''
   for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i])
   return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
 }
 
-function b64urlToBytes(s: string): Uint8Array {
+export function b64urlToBytes(s: string): Uint8Array {
   const padded = s.replace(/-/g, '+').replace(/_/g, '/')
   const bin = atob(padded + '='.repeat((4 - (padded.length % 4)) % 4))
   const out = new Uint8Array(bin.length)
@@ -123,6 +123,12 @@ export async function deriveKek(secret: string, salt: Uint8Array): Promise<Crypt
 
 // Wrap the DEK with a KEK -> a storable blob (one key slot). Wrapping a key is
 // just encrypting its raw bytes.
+// Import 32 high-entropy bytes (e.g. a passkey PRF output) directly as a KEK.
+// No PBKDF2 — PRF output is already uniform, so stretching it buys nothing.
+export function kekFromBytes(raw: Uint8Array): Promise<CryptoKey> {
+  return getSubtle().importKey('raw', toArrayBuffer(raw), { name: 'AES-GCM', length: KEY_BITS }, false, ['encrypt', 'decrypt'])
+}
+
 export async function wrapDek(dek: CryptoKey, kek: CryptoKey): Promise<string> {
   const raw = new Uint8Array(await getSubtle().exportKey('raw', dek))
   return aesGcmEncrypt(kek, raw)

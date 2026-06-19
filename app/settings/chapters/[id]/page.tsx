@@ -5,6 +5,7 @@ import { getArchivedChapterDetail, type ArchivedChapterAnchor } from '@/app/acti
 import { formatPts, formatHrs } from '@/lib/format'
 import { formatWeekLabel, formatMonthLabel, formatQuarterLabel, formatYearLabel, type Cycle } from '@/lib/cycles'
 import { FrozenRadar } from '@/app/anchors/ceremony/FrozenRadar'
+import { DecryptedText } from '@/app/components/useDecrypted'
 
 function chapterRange(startedAt: string, endedAt: string): string {
   const fmt = new Intl.DateTimeFormat('en-US', {
@@ -118,7 +119,7 @@ export default async function ChapterDetailPage({
                         className="h-3 w-3 shrink-0 rounded-full"
                         style={{ backgroundColor: s.color }}
                       />
-                      <span className="flex-1 text-sm text-th-text">{s.name}</span>
+                      <span className="flex-1 text-sm text-th-text"><DecryptedText value={s.name} /></span>
                       {targetLabel && (
                         <span className="text-xs text-th-muted">{targetLabel}</span>
                       )}
@@ -146,7 +147,7 @@ export default async function ChapterDetailPage({
                       key={m.id}
                       className="flex items-center gap-3 border-b border-th-border-soft py-3 last:border-b-0"
                     >
-                      <span className="flex-1 text-sm text-th-text">{m.name}</span>
+                      <span className="flex-1 text-sm text-th-text"><DecryptedText value={m.name} /></span>
                       <span className="text-xs text-th-muted">{valueLabel}</span>
                     </div>
                   )
@@ -187,10 +188,10 @@ export default async function ChapterDetailPage({
                       >
                         {header}
                         {a.promptText && (
-                          <p className="text-xs italic text-th-faint">{a.promptText}</p>
+                          <p className="break-words text-xs italic text-th-faint"><DecryptedText value={a.promptText} /></p>
                         )}
                         {a.bodyText && (
-                          <p className="whitespace-pre-wrap text-sm text-th-text">{a.bodyText}</p>
+                          <p className="whitespace-pre-wrap break-words text-sm text-th-text"><DecryptedText value={a.bodyText} /></p>
                         )}
                       </Link>
                     )
@@ -215,13 +216,13 @@ export default async function ChapterDetailPage({
                       {a.expectationText && (
                         <div>
                           <p className="text-[10px] uppercase tracking-widest text-th-muted">Expected</p>
-                          <p className="whitespace-pre-wrap text-sm text-th-text">{a.expectationText}</p>
+                          <p className="whitespace-pre-wrap break-words text-sm text-th-text"><DecryptedText value={a.expectationText} /></p>
                         </div>
                       )}
                       {a.observationText && (
                         <div>
                           <p className="text-[10px] uppercase tracking-widest text-th-muted">Observed</p>
-                          <p className="whitespace-pre-wrap text-sm text-th-text">{a.observationText}</p>
+                          <p className="whitespace-pre-wrap break-words text-sm text-th-text"><DecryptedText value={a.observationText} /></p>
                         </div>
                       )}
                       {a.didTune && (

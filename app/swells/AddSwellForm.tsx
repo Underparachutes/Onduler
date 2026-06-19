@@ -1,7 +1,8 @@
 'use client'
 
-import { useActionState, useEffect, useState } from 'react'
+import { useActionState, useCallback, useEffect, useState } from 'react'
 import { createSwell } from '@/app/actions/swells'
+import { useContentCrypto } from '@/app/components/useContentCrypto'
 import { detectMode, getRandomThemeAccent } from '@/lib/theme-colors'
 
 type TrackingMode = 'points' | 'hours'
@@ -12,7 +13,15 @@ type Props = {
 }
 
 export function AddSwellForm({ trackingMode, onClose }: Props) {
-  const [state, action, isPending] = useActionState(createSwell, null)
+  const { encryptFormData } = useContentCrypto()
+  const wrappedAction = useCallback(
+    async (prev: unknown, fd: FormData) => {
+      await encryptFormData(fd, ['name'])
+      return createSwell(prev, fd)
+    },
+    [encryptFormData],
+  )
+  const [state, action, isPending] = useActionState(wrappedAction, null)
   const [color, setColor] = useState('#6b7280')
   const isHours = trackingMode === 'hours'
 

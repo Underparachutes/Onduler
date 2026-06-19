@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Onduler — onboarding carousel mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#06090f;            /* deep ocean ground */
+    --surface:#0e1422;
+    --surface-2:#161e30;
+    --text:#e8e6e1;          /* cream */
+    --secondary:#aab2c0;
+    --muted:#727d8e;
+    --faint:#3a4354;
+    --border:#1c2435;
+    --brand:#5a95e8;         /* default-theme dark blue */
+    --brand-deep:#2a6fdb;
+    --coral:#ed8f73;         /* tagline accent */
+    --green:#7bb78a;
+    --amber:#e3bb5c;
+    --pink:#d87693;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    background:#000;
+    color:var(--text);
+    font-family:'IBM Plex Mono',monospace;
+    display:flex;align-items:center;justify-content:center;
+    min-height:100dvh;padding:24px;
+    -webkit-font-smoothing:antialiased;
+  }
+  .phone{
+    position:relative;width:390px;max-width:100%;height:844px;max-height:92dvh;
+    background:var(--bg);border-radius:44px;overflow:hidden;
+    box-shadow:0 0 0 10px #14181f, 0 30px 80px rgba(0,0,0,.6);
+    display:flex;flex-direction:column;
+  }
+  /* sliding track */
+  .track{
+    flex:1;display:flex;overflow-x:auto;scroll-snap-type:x mandatory;
+    scrollbar-width:none;
+  }
+  .track::-webkit-scrollbar{display:none}
+  .slide{
+    min-width:100%;scroll-snap-align:center;
+    display:flex;flex-direction:column;align-items:center;
+    padding:74px 32px 0;text-align:center;
+  }
+  .visual{
+    flex:1;width:100%;display:flex;align-items:center;justify-content:center;
+    min-height:300px;
+  }
+  h1{
+    font-family:'Manrope',sans-serif;font-weight:600;letter-spacing:.01em;
+    font-size:30px;line-height:1.12;margin-bottom:14px;
+  }
+  .sub{
+    font-size:14px;line-height:1.55;color:var(--secondary);
+    max-width:300px;font-weight:400;
+  }
+  .copy{padding-bottom:18px}
+  .tagline{
+    margin-top:14px;font-size:12px;letter-spacing:.06em;color:var(--coral);
+    font-style:italic;
+  }
+  .wordmark{
+    font-family:'Manrope',sans-serif;font-weight:700;font-size:13px;
+    letter-spacing:.18em;text-transform:uppercase;color:var(--secondary);
+    margin-bottom:8px;
+  }
+  /* dots + buttons footer */
+  .footer{padding:0 32px calc(28px + env(safe-area-inset-bottom));background:linear-gradient(to top,var(--bg) 70%,transparent)}
+  .dots{display:flex;gap:9px;justify-content:center;margin:18px 0 22px}
+  .dot{width:9px;height:9px;border-radius:50%;border:1.4px solid var(--secondary);background:transparent;transition:background .25s,border-color .25s;cursor:pointer}
+  .dot.on{background:var(--text);border-color:var(--text)}
+  .btn{
+    display:block;width:100%;text-align:center;border-radius:14px;
+    font-family:'Manrope',sans-serif;font-size:16px;font-weight:600;
+    padding:16px;cursor:pointer;border:1.5px solid transparent;
+    transition:transform .04s ease, background .2s;
+  }
+  .btn:active{transform:scale(.985)}
+  .btn-primary{background:var(--brand);color:#04101f;margin-bottom:12px}
+  .btn-primary:hover{background:#74a8ee}
+  .btn-ghost{background:transparent;border-color:var(--brand);color:var(--brand)}
+  .btn-ghost:hover{background:rgba(90,149,232,.08)}
+
+  /* ---------- slide 1: welcome / wake ---------- */
+  .breathe{animation:breathe 5s ease-in-out infinite;transform-origin:center}
+  @keyframes breathe{0%,100%{opacity:.6;transform:scale(.97)}50%{opacity:1;transform:scale(1.03)}}
+  .breathe-soft{animation:breathe 5s ease-in-out infinite;transform-origin:center;filter:blur(7px)}
+
+  /* ---------- slide 2: motions list ---------- */
+  .panel{width:100%;max-width:320px;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:18px 16px;text-align:left}
+  .panel-head{font-family:'Manrope',sans-serif;font-size:12px;letter-spacing:.04em;color:var(--muted);text-transform:uppercase;margin-bottom:14px;display:flex;justify-content:space-between}
+  .mrow{display:flex;align-items:center;gap:12px;padding:11px 2px;border-bottom:1px solid var(--border)}
+  .mrow:last-child{border-bottom:none}
+  .check{width:22px;height:22px;border-radius:7px;border:1.6px solid var(--muted);flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#04101f;font-size:13px;font-weight:700}
+  .mrow.done .check{background:var(--brand);border-color:var(--brand)}
+  .mname{flex:1;font-size:14px;color:var(--text)}
+  .mrow.done .mname{color:var(--muted);text-decoration:line-through}
+  .pts{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+  .pull{margin-top:14px;font-size:11px;color:var(--faint);text-align:center}
+
+  /* ---------- slide 3: swells ---------- */
+  .srow{padding:12px 2px}
+  .sline{display:flex;align-items:center;gap:10px;margin-bottom:7px}
+  .sdot{width:11px;height:11px;border-radius:50%;flex-shrink:0}
+  .sname{flex:1;font-size:14px}
+  .sval{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+  .bar{height:6px;border-radius:4px;background:var(--surface-2);overflow:hidden}
+  .fill{height:100%;border-radius:4px}
+  .feed{margin-top:5px;font-size:10px;color:var(--faint);padding-left:21px}
+
+  /* ---------- slide 4: anchors ---------- */
+  .anchor{width:100%;max-width:320px;text-align:left}
+  .acard{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:18px}
+  .aprompt{font-family:'Manrope',sans-serif;font-size:13px;color:var(--brand);margin-bottom:10px}
+  .abody{font-size:13px;line-height:1.6;color:var(--secondary);font-style:italic}
+  .adate{margin-top:14px;font-size:10px;letter-spacing:.05em;color:var(--faint);text-transform:uppercase}
+
+  @media (max-height:740px){.slide{padding-top:54px}h1{font-size:26px}}
+</style>
+</head>
+<body>
+  <div class="phone">
+    <div class="track" id="track">
+
+      <!-- 1 — WELCOME / RELIEF -->
+      <section class="slide">
+        <div class="visual">
+          <svg width="240" height="240" viewBox="0 0 240 240" aria-hidden="true">
+            <g class="breathe-soft">
+              <polygon points="120,30 196,78 210,150 158,206 86,212 32,154 40,82" fill="none" stroke="var(--brand)" stroke-width="6"/>
+            </g>
+            <g class="breathe">
+              <polygon points="120,30 196,78 210,150 158,206 86,212 32,154 40,82" fill="none" stroke="var(--text)" stroke-width="1.4"/>
+            </g>
+            <circle cx="120" cy="120" r="3" fill="var(--text)"/>
+          </svg>
+        </div>
+        <div class="copy">
+          <div class="wordmark">Onduler</div>
+          <h1>You can't fall<br/>behind here.</h1>
+          <p class="sub">A quiet place to notice what your everyday motions are slowly building.</p>
+        </div>
+      </section>
+
+      <!-- 2 — MOTIONS -->
+      <section class="slide">
+        <div class="visual">
+          <div class="panel">
+            <div class="panel-head"><span>Today</span><span>Fri</span></div>
+            <div class="mrow done"><div class="check">✓</div><div class="mname">Surf</div><div class="pts">3</div></div>
+            <div class="mrow done"><div class="check">✓</div><div class="mname">Cook dinner</div><div class="pts">1</div></div>
+            <div class="mrow"><div class="check"></div><div class="mname">Call mom</div><div class="pts">1</div></div>
+            <div class="mrow done"><div class="check">✓</div><div class="mname">Journal</div><div class="pts">2</div></div>
+            <div class="mrow"><div class="check"></div><div class="mname">Stretch</div><div class="pts">1</div></div>
+            <div class="pull">nothing here judges the blanks</div>
+          </div>
+        </div>
+        <div class="copy">
+          <h1>Check off what<br/>you did today.</h1>
+          <p class="sub">A list with no penalty for what stays empty. Just the satisfying part.</p>
+        </div>
+      </section>
+
+      <!-- 3 — SWELLS -->
+      <section class="slide">
+        <div class="visual">
+          <div class="panel">
+            <div class="panel-head"><span>Swells</span><span>This week</span></div>
+            <div class="srow">
+              <div class="sline"><span class="sdot" style="background:var(--green)"></span><span class="sname">Movement</span><span class="sval">9 / 12</span></div>
+              <div class="bar"><div class="fill" style="width:75%;background:var(--green)"></div></div>
+              <div class="feed">fed by surf, stretch, walk</div>
+            </div>
+            <div class="srow">
+              <div class="sline"><span class="sdot" style="background:var(--pink)"></span><span class="sname">Family</span><span class="sval">4 / 6</span></div>
+              <div class="bar"><div class="fill" style="width:66%;background:var(--pink)"></div></div>
+              <div class="feed">fed by call mom, cook dinner</div>
+            </div>
+            <div class="srow">
+              <div class="sline"><span class="sdot" style="background:var(--amber)"></span><span class="sname">Creativity</span><span class="sval">5 / 8</span></div>
+              <div class="bar"><div class="fill" style="width:62%;background:var(--amber)"></div></div>
+              <div class="feed">fed by journal, make a playlist</div>
+            </div>
+          </div>
+        </div>
+        <div class="copy">
+          <h1>Watch your<br/>life take shape.</h1>
+          <p class="sub">Small motions feed the parts of life you care about. See what they're building.</p>
+        </div>
+      </section>
+
+      <!-- 4 — ANCHORS -->
+      <section class="slide">
+        <div class="visual">
+          <div class="anchor">
+            <div class="acard">
+              <div class="aprompt">What did you notice this week?</div>
+              <p class="abody">"Surfed three mornings and felt like myself again. The weeks I skip it, everything else gets louder."</p>
+              <div class="adate">Anchor · week of Jun 14</div>
+            </div>
+          </div>
+        </div>
+        <div class="copy">
+          <h1>Notice yourself,<br/>on your terms.</h1>
+          <p class="sub">Drop a note when something feels true. No advice, no scores, no one steering.</p>
+        </div>
+      </section>
+
+      <!-- 5 — REFUGE / PRIVACY -->
+      <section class="slide">
+        <div class="visual">
+          <svg width="210" height="210" viewBox="0 0 240 240" aria-hidden="true">
+            <g class="breathe-soft">
+              <polygon points="120,40 188,82 200,148 150,198 84,202 38,150 46,86" fill="none" stroke="var(--text)" stroke-width="5"/>
+            </g>
+            <g class="breathe">
+              <polygon points="120,40 188,82 200,148 150,198 84,202 38,150 46,86" fill="none" stroke="var(--text)" stroke-width="1.3"/>
+            </g>
+          </svg>
+        </div>
+        <div class="copy">
+          <h1>No one is<br/>watching but you.</h1>
+          <p class="sub">No coach, no algorithm scoring you. Your words lock with your face and stay encrypted, so even we can't read them.</p>
+          <div class="tagline">Every motion leaves a wake.</div>
+        </div>
+      </section>
+
+    </div>
+
+    <div class="footer">
+      <div class="dots" id="dots"></div>
+      <button class="btn btn-primary">Create your account</button>
+      <button class="btn btn-ghost">Sign in</button>
+    </div>
+  </div>
+
+<script>
+  const track = document.getElementById('track');
+  const slides = track.querySelectorAll('.slide');
+  const dotsWrap = document.getElementById('dots');
+  slides.forEach((_, i) => {
+    const d = document.createElement('button');
+    d.className = 'dot' + (i === 0 ? ' on' : '');
+    d.addEventListener('click', () => track.scrollTo({left: i * track.clientWidth, behavior: 'smooth'}));
+    dotsWrap.appendChild(d);
+  });
+  const dots = dotsWrap.querySelectorAll('.dot');
+  track.addEventListener('scroll', () => {
+    const i = Math.round(track.scrollLeft / track.clientWidth);
+    dots.forEach((d, j) => d.classList.toggle('on', j === i));
+  }, {passive: true});
+  document.addEventListener('keydown', e => {
+    const i = Math.round(track.scrollLeft / track.clientWidth);
+    if (e.key === 'ArrowRight') track.scrollTo({left: (i + 1) * track.clientWidth, behavior: 'smooth'});
+    if (e.key === 'ArrowLeft')  track.scrollTo({left: (i - 1) * track.clientWidth, behavior: 'smooth'});
+  });
+</script>
+</body>
+</html>

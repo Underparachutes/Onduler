@@ -429,7 +429,13 @@ async function rebalanceSubmotionBudget(
 
 export async function duplicateMotion(
   motionId: string,
-  opts?: { swellId?: string; weight?: number }
+  // `name` is the pre-built (and, when encryption is active, already-encrypted)
+  // "{name} (copy)" string from the client, which can read the source name. The
+  // server can't read it (ciphertext post-migration), so it must NOT string-
+  // build on it — appending "(copy)" to a ciphertext blob yields an
+  // undecryptable value. When name is absent, the server copies the source name
+  // verbatim instead (a valid, decryptable fallback, just without the suffix).
+  opts?: { swellId?: string; weight?: number; name?: string }
 ) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -451,7 +457,7 @@ export async function duplicateMotion(
     .insert({
       user_id: user.id,
       chapter_id: chapterId,
-      name: `${source.name} (copy)`,
+      name: opts?.name || source.name,
       default_points: source.default_points,
       default_hours: source.default_hours,
       group_id: source.group_id,

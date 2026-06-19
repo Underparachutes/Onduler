@@ -15,7 +15,15 @@ export async function signUp(state: unknown, formData: FormData) {
   // docs/specs/signup-explainer-qr-2026-06-13.md.
   const signupSource = ((formData.get('utm_source') as string) || '').trim() || 'direct'
 
-  const { data, error } = await supabase.auth.signUp({ email, password })
+  // Email confirmation is ON. Route the confirmation link through /auth/callback
+  // (which exchanges the code for a session) and on to /protect, where the user
+  // sets up their encryption keys before any content flow. Don't depend on the
+  // Supabase Site URL config for this.
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: { emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback?next=/protect` },
+  })
 
   if (error) {
     return { error: error.message }
@@ -48,7 +56,9 @@ export async function signUp(state: unknown, formData: FormData) {
     return { emailSent: true as const, email }
   }
 
-  redirect('/onboarding')
+  // No-confirmation fallback (if confirmation is ever turned off again): the
+  // session exists now, so send the user to set up encryption before onboarding.
+  redirect('/protect')
 }
 
 export async function signIn(state: unknown, formData: FormData) {

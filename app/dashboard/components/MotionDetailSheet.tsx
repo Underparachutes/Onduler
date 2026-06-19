@@ -27,6 +27,7 @@ import { parseHoursInput } from '@/lib/periods'
 import { applyWeightEdit, defaultWeightForNewSwell, totalAllocation } from '@/lib/contributions'
 import { useToast } from '@/app/components/Toast'
 import { useSaveGuard } from '@/app/components/useSaveGuard'
+import { useContentCrypto } from '@/app/components/useContentCrypto'
 import { CadenceSection } from './CadenceSection'
 
 type Swell = { id: string; name: string; color: string }
@@ -267,6 +268,7 @@ export function MotionDetailSheet({
   const router = useRouter()
   const toast = useToast()
   const guard = useSaveGuard()
+  const { encryptContent } = useContentCrypto()
   const [localDone, setLocalDone] = useState(() => new Set(doneMotionIds))
   const [, startTransition] = useTransition()
 
@@ -286,7 +288,7 @@ export function MotionDetailSheet({
     lastValidName.current = trimmed
     setHeaderName(trimmed)
     startHeaderSave(async () => {
-      if (await guard(updateMotionDirect(motion.id, trimmed, parseInt(lastValidPts.current), parseFloat(lastValidHrs.current)))) router.refresh()
+      if (await guard(updateMotionDirect(motion.id, await encryptContent(trimmed), parseInt(lastValidPts.current), parseFloat(lastValidHrs.current)))) router.refresh()
     })
   }
 
@@ -298,7 +300,7 @@ export function MotionDetailSheet({
     lastValidPts.current = str
     setHeaderPts(str)
     startHeaderSave(async () => {
-      if (await guard(updateMotionDirect(motion.id, lastValidName.current, num, parseFloat(lastValidHrs.current)))) router.refresh()
+      if (await guard(updateMotionDirect(motion.id, await encryptContent(lastValidName.current), num, parseFloat(lastValidHrs.current)))) router.refresh()
     })
   }
 
@@ -311,7 +313,7 @@ export function MotionDetailSheet({
     lastValidHrs.current = str
     setHeaderHrs(str)
     startHeaderSave(async () => {
-      if (await guard(updateMotionDirect(motion.id, lastValidName.current, parseInt(lastValidPts.current), rounded))) router.refresh()
+      if (await guard(updateMotionDirect(motion.id, await encryptContent(lastValidName.current), parseInt(lastValidPts.current), rounded))) router.refresh()
     })
   }
 
@@ -454,7 +456,7 @@ export function MotionDetailSheet({
     const pts = parseInt(editSubPts)
     if (!name || isNaN(pts) || pts < 1) return
     startSavingSub(async () => {
-      if (!await guard(updateSubmotionDirect(sub.id, name, pts))) return
+      if (!await guard(updateSubmotionDirect(sub.id, await encryptContent(name), pts))) return
       setEditingSubId(null)
       router.refresh()
     })
@@ -533,7 +535,7 @@ export function MotionDetailSheet({
     startAdding(async () => {
       // Result is needed below for its id, so catch transport failures into
       // the same { error } shape guard already understands.
-      const result = await createSubmotion(motion.id, name, stampMode).catch(() => ({ error: 'network' as string, id: undefined }))
+      const result = await createSubmotion(motion.id, await encryptContent(name), stampMode).catch(() => ({ error: 'network' as string, id: undefined }))
       if (!(await guard(result))) return
       if (result?.id && swellsToAssign.length > 0) {
         await guard(setMotionSwells(result.id, swellsToAssign))
@@ -577,7 +579,7 @@ export function MotionDetailSheet({
 
   function handleDuplicate() {
     startDuplicate(async () => {
-      const result = await duplicateMotion(motion.id)
+      const result = await duplicateMotion(motion.id, { name: await encryptContent(`${lastValidName.current} (copy)`) })
       if (result.error) return
       const newId = result.id!
       onClose()

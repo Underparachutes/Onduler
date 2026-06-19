@@ -34,6 +34,7 @@ import {
 import { cycleProgress } from '@/lib/cadence'
 import { CelebrationOverlay, type CelebrationState } from '@/app/dashboard/components/CelebrationOverlay'
 import { useSaveGuard } from '@/app/components/useSaveGuard'
+import { useContentCrypto } from '@/app/components/useContentCrypto'
 
 type Cadence = 'weekly' | 'monthly'
 
@@ -363,6 +364,7 @@ function AddMilestoneForm({ swellId, onClose }: { swellId: string; onClose: () =
   const [error, setError] = useState<string | null>(null)
   const [saving, startSave] = useTransition()
   const nameRef = useRef<HTMLInputElement>(null)
+  const { encryptContent } = useContentCrypto()
 
   useEffect(() => { nameRef.current?.focus() }, [])
 
@@ -383,7 +385,7 @@ function AddMilestoneForm({ swellId, onClose }: { swellId: string; onClose: () =
       const result = await createMilestone(
         swellId,
         kind,
-        trimmed,
+        await encryptContent(trimmed),
         kind === 'recurring' ? cadence : null,
         {
           targetCount: kind === 'recurring' ? count : null,
@@ -495,12 +497,13 @@ function MilestoneRowName({
   const [draft, setDraft] = useState(milestone.name)
   const [, startSave] = useTransition()
   const guard = useSaveGuard()
+  const { encryptContent } = useContentCrypto()
 
   function commit() {
     setEditing(false)
     const trimmed = draft.trim()
     if (!trimmed || trimmed === milestone.name) { setDraft(milestone.name); return }
-    startSave(async () => { await guard(renameMilestone(milestone.id, trimmed, swellId)) })
+    startSave(async () => { await guard(renameMilestone(milestone.id, await encryptContent(trimmed), swellId)) })
   }
 
   if (editing) {

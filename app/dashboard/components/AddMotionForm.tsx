@@ -1,7 +1,8 @@
 'use client'
 
-import { useActionState, useEffect, useState } from 'react'
+import { useActionState, useCallback, useEffect, useState } from 'react'
 import { createMotion } from '@/app/actions/motions'
+import { useContentCrypto } from '@/app/components/useContentCrypto'
 
 type Group = { id: string; name: string; color: string }
 type Swell = { id: string; name: string; color: string }
@@ -23,7 +24,15 @@ type Props = {
 }
 
 export function AddMotionForm({ groups, groupsEnabled, trackingMode, onClose, allSwells, swellId, swellLabel }: Props) {
-  const [state, formAction, pending] = useActionState(createMotion, null)
+  const { encryptFormData } = useContentCrypto()
+  const action = useCallback(
+    async (prev: unknown, fd: FormData) => {
+      await encryptFormData(fd, ['name'])
+      return createMotion(prev, fd)
+    },
+    [encryptFormData],
+  )
+  const [state, formAction, pending] = useActionState(action, null)
   const isHours = trackingMode === 'hours'
   const swellPickerOpen = !swellId && (allSwells?.length ?? 0) > 0
   const [selectedSwells, setSelectedSwells] = useState<Map<string, number>>(new Map())

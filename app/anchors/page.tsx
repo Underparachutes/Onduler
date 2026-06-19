@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
+import { gateContentEncryption } from '@/lib/enc-gate'
 import { getTodayStart, getWeekStart } from '@/lib/timezone'
 import { formatPts, formatHrs } from '@/lib/format'
 import {
@@ -35,6 +36,7 @@ import { markHintSeen } from '@/app/actions/settings'
 import { PeriodSelector, type PeriodOption } from './components/PeriodSelector'
 import { AnchorsToolbar } from './components/AnchorsToolbar'
 import { InlineAnchorLog } from './components/InlineAnchorLog'
+import { DecryptedText } from '@/app/components/useDecrypted'
 
 type CeremonyResult = { state: CeremonyState; cycleStart: string; cycleEnd: string; chapterId: string | null }
 
@@ -112,6 +114,7 @@ export default async function AnchorsPage({
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+  await gateContentEncryption()
 
   const [chapterId, todayStart, weekStart] = await Promise.all([
     getActiveChapterId(supabase, user.id),
@@ -648,7 +651,7 @@ export default async function AnchorsPage({
                   {swellBreakdown.map(s => (
                     <Link key={s.id} href={`/swells/${s.id}`} className="flex items-center gap-3 transition-opacity active:opacity-60">
                       <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: s.color }} />
-                      <span className="w-20 shrink-0 truncate text-xs text-th-secondary">{s.name}</span>
+                      <span className="w-20 shrink-0 truncate text-xs text-th-secondary"><DecryptedText value={s.name} /></span>
                       <div className="flex-1 overflow-hidden rounded-full bg-th-surface/40" style={{ height: '6px' }}>
                         <div
                           className="h-full rounded-full transition-all"

@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Mono, Manrope } from "next/font/google";
 import { ToastProvider } from "./components/Toast";
+import { DekProvider } from "./components/DekProvider";
 import { AppShell } from "./AppShell";
 import Loading from "./loading";
 import "./globals.css";
@@ -49,9 +50,11 @@ export default function RootLayout({
     >
       <body className="min-h-[100dvh] flex flex-col bg-th-bg text-th-text pb-[calc(5rem+env(safe-area-inset-bottom))] overflow-x-hidden md:flex-row md:pb-0">
         <ToastProvider>
-          <Suspense fallback={<Loading />}>
-            <AppShell>{children}</AppShell>
-          </Suspense>
+          <DekProvider>
+            <Suspense fallback={<Loading />}>
+              <AppShell>{children}</AppShell>
+            </Suspense>
+          </DekProvider>
         </ToastProvider>
       </body>
     </html>

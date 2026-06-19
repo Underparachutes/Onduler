@@ -1,8 +1,10 @@
 'use client'
 
-import { useState, useRef, useTransition } from 'react'
+import { useState, useRef, useEffect, useTransition } from 'react'
 import Link from 'next/link'
 import { updateAnchorField, deleteAnchor, getAnchorsForPeriod, type AnchorRow } from '@/app/actions/reflections'
+import { useContentCrypto } from '@/app/components/useContentCrypto'
+import { useDecrypted } from '@/app/components/useDecrypted'
 import { formatWeekLabel, formatMonthLabel, formatQuarterLabel, formatYearLabel } from '@/lib/cycles'
 
 type Period = 'week' | 'month' | 'quarter' | 'year'
@@ -41,7 +43,10 @@ type Props = {
 }
 
 export function InlineAnchorLog({ initialAnchors, initialTotal, periodStart, periodEnd, period }: Props) {
-  const [anchors, setAnchors] = useState(initialAnchors)
+  // State stays ciphertext (the pagination/delete source of truth); decrypt a
+  // view of it for render. Inert pass-through until rows are ciphertext.
+  const [rawAnchors, setAnchors] = useState(initialAnchors)
+  const anchors = useDecrypted(rawAnchors)
   const [total, setTotal] = useState(initialTotal)
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [loading, startLoading] = useTransition()
@@ -165,6 +170,19 @@ function SaveOnBlurTextarea({
   const [value, setValue] = useState(initialValue)
   const [error, setError] = useState<string | null>(null)
   const lastSaved = useRef(initialValue)
+  const { encryptContent } = useContentCrypto()
+
+  // Adopt a late-arriving seed (async decrypt resolving post-migration) only
+  // while the field is pristine, so an in-progress edit is never clobbered.
+  // No-op today: the inert decrypt delivers the right value synchronously.
+  useEffect(() => {
+    if (value === lastSaved.current && initialValue !== lastSaved.current) {
+      setValue(initialValue)
+      lastSaved.current = initialValue
+    }
+    // Sync on seed change only; `value` is read but must not retrigger.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialValue])
 
   async function handleBlur() {
     if (value === lastSaved.current) return
@@ -173,7 +191,7 @@ function SaveOnBlurTextarea({
       setValue(lastSaved.current)
       return
     }
-    const result = await updateAnchorField(anchorId, field, value)
+    const result = await updateAnchorField(anchorId, field, await encryptContent(value))
     if (result.error) {
       setError(result.error)
       setValue(lastSaved.current)
@@ -257,7 +275,7 @@ function FreeExpanded({
   return (
     <>
       {anchor.prompt_text && (
-        <p className="text-xs italic text-th-faint">{anchor.prompt_text}</p>
+        <p className="break-words text-xs italic text-th-faint">{anchor.prompt_text}</p>
       )}
       <SaveOnBlurTextarea
         anchorId={anchor.id}
