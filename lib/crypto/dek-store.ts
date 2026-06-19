@@ -5,10 +5,21 @@
 //     re-unlock. It can still encrypt/decrypt (Phase 3/4); to add a slot from
 //     it, the user re-unlocks. Cleared on logout.
 //
+// The cache is SCOPED TO THE USER id. A device that's seen more than one account
+// (or an account that was deleted + recreated) must never reuse a stale/foreign
+// DEK: a wrong key silently "succeeds" as unlocked but can't actually decrypt,
+// so content renders blank with no unlock prompt. getDek therefore returns the
+// cached key only when its stored userId matches the caller's, and drops any
+// mismatched or legacy (unkeyed) record. The OTP password-reset path doesn't
+// fire SIGNED_OUT, so this scoping — not logout — is what guarantees safety.
+//
 // No plaintext key ever touches localStorage or the network. Spec:
 // docs/specs/private-content-encryption.md
 
 let memoryDek: CryptoKey | null = null
+let memoryUserId: string | null = null
+
+type DekRecord = { key: CryptoKey; userId: string }
 
 const DB_NAME = 'onduler-keys'
 const STORE = 'dek'
@@ -29,25 +40,29 @@ function openDb(): Promise<IDBDatabase> {
   })
 }
 
-function idbPut(key: CryptoKey): Promise<void> {
+function idbPut(rec: DekRecord): Promise<void> {
   return openDb().then(
     db =>
       new Promise<void>((resolve, reject) => {
         const tx = db.transaction(STORE, 'readwrite')
-        tx.objectStore(STORE).put(key, RECORD)
+        tx.objectStore(STORE).put(rec, RECORD)
         tx.oncomplete = () => resolve()
         tx.onerror = () => reject(tx.error)
       }),
   )
 }
 
-function idbGet(): Promise<CryptoKey | null> {
+function idbGet(): Promise<DekRecord | null> {
   return openDb().then(
     db =>
-      new Promise<CryptoKey | null>((resolve, reject) => {
+      new Promise<DekRecord | null>((resolve, reject) => {
         const tx = db.transaction(STORE, 'readonly')
         const req = tx.objectStore(STORE).get(RECORD)
-        req.onsuccess = () => resolve((req.result as CryptoKey) ?? null)
+        req.onsuccess = () => {
+          const v = req.result as DekRecord | CryptoKey | undefined
+          // Legacy records were a bare CryptoKey (no userId) — treat as no match.
+          resolve(v && typeof (v as DekRecord).userId === 'string' ? (v as DekRecord) : null)
+        }
         req.onerror = () => reject(req.error)
       }),
   )
@@ -72,26 +87,39 @@ async function nonExtractableClone(dek: CryptoKey): Promise<CryptoKey> {
   return crypto.subtle.importKey('raw', raw, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt'])
 }
 
-export async function setDek(dek: CryptoKey): Promise<void> {
+export async function setDek(dek: CryptoKey, userId: string): Promise<void> {
   memoryDek = dek
+  memoryUserId = userId
   if (!hasIdb()) return
   try {
-    await idbPut(await nonExtractableClone(dek))
+    await idbPut({ key: await nonExtractableClone(dek), userId })
   } catch {
     // Non-extractable original or IndexedDB unavailable (private mode, etc.):
     // fall back to memory-only. A reload then just needs a fresh unlock.
   }
 }
 
-export async function getDek(): Promise<CryptoKey | null> {
-  if (memoryDek) return memoryDek
+// Returns the cached DEK only for the SAME user. A null/empty userId (no
+// session) never serves a cached key; a mismatched or legacy record is dropped.
+export async function getDek(userId: string | null): Promise<CryptoKey | null> {
+  if (!userId) return null
+  if (memoryDek && memoryUserId === userId) return memoryDek
   if (!hasIdb()) return null
   try {
-    memoryDek = await idbGet()
-  } catch {
+    const rec = await idbGet()
+    if (rec && rec.userId === userId) {
+      memoryDek = rec.key
+      memoryUserId = userId
+      return memoryDek
+    }
+    // Foreign / stale / legacy record — purge so it can't masquerade as unlocked.
     memoryDek = null
+    memoryUserId = null
+    await idbDelete()
+    return null
+  } catch {
+    return null
   }
-  return memoryDek
 }
 
 export function hasDekInMemory(): boolean {
@@ -100,6 +128,7 @@ export function hasDekInMemory(): boolean {
 
 export async function clearDek(): Promise<void> {
   memoryDek = null
+  memoryUserId = null
   if (!hasIdb()) return
   try {
     await idbDelete()
