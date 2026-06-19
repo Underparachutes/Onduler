@@ -6,6 +6,7 @@
 //
 // Spec: docs/specs/private-content-encryption.md (Phase 2 — key lifecycle).
 
+import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 
 // Plain wire shapes (mirror lib/crypto/keys.ts, kept local so this server module
@@ -179,6 +180,23 @@ export async function persistPasswordSlot(password: WrappedSlot): Promise<{ erro
   return {}
 }
 
+// Re-wrap the recovery slot under a freshly generated recovery code (Settings:
+// "regenerate recovery code"). Overwrites the recovery columns only — the old
+// code stops working the moment its salt is replaced. Never touches passkey or
+// password slots, and never flips enc_enabled.
+export async function persistRecoverySlot(recovery: WrappedSlot): Promise<{ error?: string }> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const { error } = await supabase
+    .from('user_settings')
+    .update({ enc_dek_recovery: recovery.wrapped, enc_recovery_salt: recovery.salt })
+    .eq('user_id', user.id)
+  if (error) return { error: error.message }
+  return {}
+}
+
 // Remove the password fallback slot (Settings: "reduce my risk surface").
 export async function removePasswordSlot(): Promise<{ error?: string }> {
   const supabase = await createClient()
@@ -204,5 +222,54 @@ export async function removePasskeySlot(credentialId: string): Promise<{ error?:
     .eq('user_id', user.id)
     .eq('credential_id', credentialId)
   if (error) return { error: error.message }
+  return {}
+}
+
+// Last-resort lockout escape. A user who can't unlock their encrypted content
+// (no working passkey, no password, no recovery code) has data that is
+// unrecoverable by ANYONE, us included — that's the E2EE guarantee. Rather than
+// trap them, wipe the unreadable content + all key material and reset to a
+// clean, keyless, pre-onboarding account so they can start over and set up new
+// protection. DESTRUCTIVE and irreversible. RLS-scoped to the caller; plain
+// preferences (theme, tracking mode, daily goals, haptics, celebration) survive.
+// Spec: docs/specs/private-content-encryption.md (Recovery — option B).
+export async function startFreshAfterLockout(): Promise<{ error?: string }> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  // 1. Delete ALL chapters (active + archived). The chapter_id ON DELETE CASCADE
+  //    removes every chapter-scoped table — motions, swells, groups, logs,
+  //    wave_checkins, reflections — and their children (motion_swells,
+  //    milestones, milestone_hits) transitively.
+  const { error: chErr } = await supabase.from('chapters').delete().eq('user_id', user.id)
+  if (chErr) return { error: chErr.message }
+
+  // 2. Drop every passkey key-slot.
+  const { error: pkErr } = await supabase.from('user_key_passkeys').delete().eq('user_id', user.id)
+  if (pkErr) return { error: pkErr.message }
+
+  // 3. Reset encryption + onboarding state to brand-new. enc_enabled goes false
+  //    so the write/read paths and the unlock gate stand down; the user re-sets
+  //    keys at /protect and re-onboards.
+  const { error: setErr } = await supabase
+    .from('user_settings')
+    .update({
+      enc_enabled: false,
+      enc_dek_recovery: null,
+      enc_recovery_salt: null,
+      enc_dek_password: null,
+      enc_kdf_salt: null,
+      onboarding_complete: false,
+      primary_build: null,
+      secondary_build: null,
+      mvs_motions: null,
+      welcome_back_mode: null,
+      welcome_back_started_at: null,
+    })
+    .eq('user_id', user.id)
+  if (setErr) return { error: setErr.message }
+
+  revalidatePath('/', 'layout')
   return {}
 }

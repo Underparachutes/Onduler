@@ -84,6 +84,11 @@ export function KeySetup({
       // Registers the passkey WITH Supabase Auth (so it's also a login
       // credential) and wraps the DEK into it — one ceremony.
       passkeyRef.current = await registerPasskey(core.dek)
+      // Always add the password fallback when the account password is in memory
+      // (signup): even a passkey user should be able to unlock with the password
+      // they already know, so a lost/un-synced passkey + unsaved code never means
+      // total lockout. The honest-operator caveat is accepted for this slot.
+      if (password) passwordRef.current = await addPasswordSlot(core.dek, password)
       setStep('recovery')
     } catch (e) {
       if (e instanceof PasskeyUnsupportedError || e instanceof PrfUnavailableError) {
@@ -304,8 +309,8 @@ function RecoveryStep({
       <Shell>
         <h1 className="mb-3 text-2xl font-semibold text-th-text">Save your recovery code</h1>
         <p className="mb-5 text-sm leading-relaxed text-th-muted">
-          Your passkey is your everyday unlock. Keep this code as a backup in case you ever lose your
-          passkey and devices — we can’t recover it for you.
+          Your passkey is your everyday unlock, and your account password works too. Keep this code
+          as a last-resort backup in case you lose both — we can’t recover it for you.
         </p>
         <div className="mb-5 select-all rounded-xl border border-th-border bg-th-surface px-4 py-4 text-center font-mono text-lg tracking-widest text-th-text">
           {recoveryCode}

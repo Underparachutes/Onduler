@@ -18,6 +18,10 @@ import { unhideMotion } from '@/app/actions/motions'
 import { createQuickGroup } from '@/app/actions/groups'
 import { uploadBackground, removeBackground, setProgressBarColor, setBackgroundPosition } from '@/app/actions/settings'
 import { changePassword } from '@/app/actions/auth'
+import { addPasswordSlot } from '@/lib/crypto/keys'
+import { getEncSetupState, persistPasswordSlot } from '@/app/actions/keys'
+import { useDek } from '@/app/components/DekProvider'
+import { KeyManagement } from '@/app/settings/KeyManagement'
 import { formatPts, formatHrs } from '@/lib/format'
 import { parseHoursInput } from '@/lib/periods'
 import { getBuildPreset } from '@/lib/builds'
@@ -658,6 +662,24 @@ export function SettingsPanel({
           )}
         </div>
 
+        {/* Privacy */}
+        <div>
+          <button
+            onClick={() => toggle('privacy')}
+            className="flex w-full items-center justify-between py-4 text-left transition-all active:scale-[0.99]"
+          >
+            <div>
+              <p className="text-sm font-medium text-th-text">Privacy</p>
+              <p className="truncate text-xs text-th-muted">How you unlock your private content</p>
+            </div>
+          </button>
+          {openSection === 'privacy' && (
+            <div className="pb-4">
+              <KeyManagement />
+            </div>
+          )}
+        </div>
+
         {/* Install Onduler */}
         <Link
           href="/welcome"
@@ -741,7 +763,49 @@ export function SettingsPanel({
 
 function ChangePasswordForm() {
   const [open, setOpen] = useState(false)
-  const [state, action, isPending] = useActionState(changePassword, null)
+  const { dek } = useDek()
+  const [hasPassword, setHasPassword] = useState(false)
+
+  // A content-encryption password slot is wrapped under the *account* password.
+  // Changing the password therefore strands that slot (it still decrypts only
+  // with the old password) unless we re-wrap it. Only fetch whether such a slot
+  // exists when the form is actually opened, so the common Settings load pays
+  // nothing.
+  useEffect(() => {
+    if (!open) return
+    let active = true
+    getEncSetupState()
+      .then(s => { if (active) setHasPassword(s.hasPassword) })
+      .catch(() => {})
+    return () => { active = false }
+  }, [open])
+
+  // Wrap the server action: change the account password, then re-wrap the
+  // password content-slot under the new password. The DEK lives only in the
+  // browser, so the re-wrap can't happen server-side. A passkey-only user (no
+  // password slot) skips this and gains no new surface.
+  const changeAndRewrap = async (prevState: unknown, formData: FormData) => {
+    // Refuse rather than strand the slot: a password slot exists but the DEK
+    // isn't loaded this session, so we couldn't re-wrap it after the change.
+    if (hasPassword && !dek) {
+      return { error: 'Unlock your private content first (passkey or recovery code), then change your password.' }
+    }
+
+    const result = await changePassword(prevState, formData)
+    if (result?.success && hasPassword && dek) {
+      const newPassword = (formData.get('new_password') as string)?.trim()
+      try {
+        const slot = await addPasswordSlot(dek, newPassword!)
+        const res = await persistPasswordSlot(slot)
+        if (res.error) throw new Error(res.error)
+      } catch {
+        return { error: 'Password changed, but re-securing your private content failed. Unlock with your passkey or recovery code from this device, then change your password again.' }
+      }
+    }
+    return result
+  }
+
+  const [state, action, isPending] = useActionState(changeAndRewrap, null)
 
   if (!open) {
     return (
@@ -777,7 +841,7 @@ function ChangePasswordForm() {
         className="rounded-lg border border-th-border bg-th-surface px-3 py-2 text-sm text-th-text outline-none focus:border-th-focus"
       />
       {state?.error && <p className="text-xs text-red-500">{state.error}</p>}
-      {state?.success && <p className="text-xs text-green-600">Password updated</p>}
+      {state && 'success' in state && state.success && <p className="text-xs text-green-600">Password updated</p>}
       <div className="flex items-center gap-2">
         <button
           type="submit"

@@ -85,15 +85,18 @@ export async function resetPassword(state: unknown, formData: FormData) {
   const supabase = await createClient()
   const email = formData.get('email') as string
 
-  const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback?next=/reset-password`,
-  })
+  // Code-based reset (no magic link). The recovery email template surfaces the
+  // 6–8 digit OTP via `{{ .Token }}`; the client verifies it with verifyOtp
+  // (type:'recovery') and continues to /reset-password. Link-based PKCE resets
+  // break across browsers/in-app webviews on phones — the OTP has no such
+  // binding. No redirectTo needed.
+  const { error } = await supabase.auth.resetPasswordForEmail(email)
 
   if (error) {
     return { error: error.message }
   }
 
-  return { message: 'Check your email for a reset link.' }
+  return { message: 'Check your email for a code.' }
 }
 
 export async function changePassword(prevState: unknown, formData: FormData) {
