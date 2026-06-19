@@ -13,6 +13,7 @@ import { useRouter } from 'next/navigation'
 import { useDek } from '@/app/components/DekProvider'
 import { KeySetup, Shell, btnPrimary } from '@/app/components/KeySetup'
 import { UnlockPanel, type UnlockEnvelope } from '@/app/components/UnlockPanel'
+import { StartFreshEscape } from '@/app/components/StartFreshEscape'
 import { runMigration } from './runMigration'
 
 type Envelope = UnlockEnvelope
@@ -146,6 +147,7 @@ function UnlockFlow({ envelope }: { envelope: Envelope }) {
       </p>
       {/* On success the context holds the DEK; ProtectFlow re-renders and we unmount. */}
       <UnlockPanel envelope={envelope} onUnlock={setDek} />
+      <StartFreshEscape />
     </Shell>
   )
 }

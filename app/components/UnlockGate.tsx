@@ -17,6 +17,7 @@ import { usePathname } from 'next/navigation'
 import { useDek } from '@/app/components/DekProvider'
 import { getKeyEnvelope } from '@/app/actions/keys'
 import { UnlockPanel, type UnlockEnvelope } from '@/app/components/UnlockPanel'
+import { StartFreshEscape } from '@/app/components/StartFreshEscape'
 import { Shell } from '@/app/components/KeySetup'
 
 const EXEMPT = ['/protect', '/login', '/signup', '/forgot-password', '/reset-password']
@@ -55,6 +56,7 @@ export function UnlockGate() {
         ) : (
           <p className="text-sm text-th-muted">Loading…</p>
         )}
+        <StartFreshEscape />
       </Shell>
     </div>
   )
