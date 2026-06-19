@@ -67,7 +67,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const [{ data: settings }, todayStart, weekStart, lastWeekStart, chapterId] = await Promise.all([
     supabase
       .from('user_settings')
-      .select('groups_enabled, submotions_enabled, onboarding_complete, daily_goal, daily_goal_hours, tracking_mode, celebration_enabled, haptic_enabled, welcome_back_mode, welcome_back_started_at, hints_seen, progress_bar_color')
+      .select('groups_enabled, submotions_enabled, onboarding_complete, enc_enabled, daily_goal, daily_goal_hours, tracking_mode, celebration_enabled, haptic_enabled, welcome_back_mode, welcome_back_started_at, hints_seen, progress_bar_color')
       .eq('user_id', user.id)
       .single(),
     getTodayStart(),
@@ -77,6 +77,9 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   ])
 
   if (!settings?.onboarding_complete) redirect('/onboarding')
+  // One-time content-encryption gate: set up keys (if needed) and migrate this
+  // user's content to ciphertext before any content surface renders.
+  if (!settings?.enc_enabled) redirect('/protect')
 
   const groupsEnabled = settings?.groups_enabled ?? false
   const submotionsEnabled = settings?.submotions_enabled ?? false

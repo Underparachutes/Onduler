@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
+import { gateContentEncryption } from '@/lib/enc-gate'
 import { getTodayStart, getWeekStart } from '@/lib/timezone'
 import { formatPts, formatHrs } from '@/lib/format'
 import {
@@ -113,6 +114,7 @@ export default async function AnchorsPage({
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+  await gateContentEncryption()
 
   const [chapterId, todayStart, weekStart] = await Promise.all([
     getActiveChapterId(supabase, user.id),

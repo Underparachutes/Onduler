@@ -31,6 +31,7 @@ export default async function ProtectPage() {
         nextHref={nextHref}
         userId={user.id}
         email={user.email ?? ''}
+        encEnabled={state.encEnabled}
         envelope={{
           passkeys: envelope.passkeys,
           recovery: envelope.recovery,
@@ -41,6 +42,6 @@ export default async function ProtectPage() {
   }
 
   return (
-    <ProtectFlow mode="setup" nextHref={nextHref} userId={user.id} email={user.email ?? ''} />
+    <ProtectFlow mode="setup" nextHref={nextHref} userId={user.id} email={user.email ?? ''} encEnabled={state.encEnabled} />
   )
 }

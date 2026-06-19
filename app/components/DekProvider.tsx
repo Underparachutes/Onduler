@@ -21,6 +21,9 @@ type DekContextValue = {
   setDek: (dek: CryptoKey) => Promise<void>
   /** Forget the DEK in memory and cache (e.g. manual lock). */
   clearDek: () => Promise<void>
+  /** Re-read enc_enabled (e.g. right after migration flips it) so the write/
+   *  read paths activate without a full reload. */
+  refreshEncEnabled: () => Promise<void>
 }
 
 const DekContext = createContext<DekContextValue | null>(null)
@@ -76,8 +79,16 @@ export function DekProvider({ children }: { children: ReactNode }) {
     setEncEnabled(false)
   }
 
+  const refreshEncEnabled = async () => {
+    try {
+      setEncEnabled(await getEncEnabled())
+    } catch {
+      // leave the prior flag value
+    }
+  }
+
   return (
-    <DekContext.Provider value={{ dek, loading, encEnabled, setDek, clearDek }}>
+    <DekContext.Provider value={{ dek, loading, encEnabled, setDek, clearDek, refreshEncEnabled }}>
       {children}
     </DekContext.Provider>
   )
