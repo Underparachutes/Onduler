@@ -179,6 +179,23 @@ export async function persistPasswordSlot(password: WrappedSlot): Promise<{ erro
   return {}
 }
 
+// Re-wrap the recovery slot under a freshly generated recovery code (Settings:
+// "regenerate recovery code"). Overwrites the recovery columns only — the old
+// code stops working the moment its salt is replaced. Never touches passkey or
+// password slots, and never flips enc_enabled.
+export async function persistRecoverySlot(recovery: WrappedSlot): Promise<{ error?: string }> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const { error } = await supabase
+    .from('user_settings')
+    .update({ enc_dek_recovery: recovery.wrapped, enc_recovery_salt: recovery.salt })
+    .eq('user_id', user.id)
+  if (error) return { error: error.message }
+  return {}
+}
+
 // Remove the password fallback slot (Settings: "reduce my risk surface").
 export async function removePasswordSlot(): Promise<{ error?: string }> {
   const supabase = await createClient()

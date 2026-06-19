@@ -102,6 +102,15 @@ export function addPasswordSlot(dek: CryptoKey, password: string): Promise<Wrapp
   return wrapWithSecret(dek, password)
 }
 
+// Mint a brand-new recovery code and wrap the (already-unlocked) DEK under it —
+// the regeneration path in Settings. Returns the human code to surface once plus
+// the storable slot; persisting it invalidates the old code (its salt is gone).
+export async function buildRecoverySlot(dek: CryptoKey): Promise<{ recoveryCode: string; recovery: WrappedSlot }> {
+  const recoveryCode = generateRecoveryCode()
+  const recovery = await wrapWithSecret(dek, canonicalizeRecoveryCode(recoveryCode))
+  return { recoveryCode, recovery }
+}
+
 // ---------------------------------------------------------------------------
 // unlock (password / recovery)
 // ---------------------------------------------------------------------------
