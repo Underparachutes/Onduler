@@ -14,7 +14,6 @@ import { useDek } from '@/app/components/DekProvider'
 import {
   buildCoreSlots,
   addPasswordSlot,
-  registerPasskeySlot,
   passkeySupported,
   canonicalizeRecoveryCode,
   PasskeyUnsupportedError,
@@ -23,6 +22,7 @@ import {
   type PasskeySlot,
   type WrappedSlot,
 } from '@/lib/crypto/keys'
+import { registerPasskey } from '@/lib/auth/passkey'
 import { persistCoreSlots, persistPasskeySlot } from '@/app/actions/keys'
 
 const btn = 'rounded-xl px-4 py-3 text-center text-sm font-medium transition-all active:scale-[0.97] disabled:opacity-50'
@@ -40,13 +40,11 @@ export function Shell({ children }: { children: ReactNode }) {
 type Step = 'primary' | 'password' | 'recovery'
 
 export function KeySetup({
-  userId,
-  email,
   password,
   onComplete,
 }: {
-  userId: string
-  email: string
+  userId?: string
+  email?: string
   /** The account password, if already in memory (signup path) — reused for the
    *  fallback slot so the user never types a second password. */
   password?: string
@@ -83,7 +81,9 @@ export function KeySetup({
     setError(null)
     setBusy(true)
     try {
-      passkeyRef.current = await registerPasskeySlot(core.dek, { userId, userName: email })
+      // Registers the passkey WITH Supabase Auth (so it's also a login
+      // credential) and wraps the DEK into it — one ceremony.
+      passkeyRef.current = await registerPasskey(core.dek)
       setStep('recovery')
     } catch (e) {
       if (e instanceof PasskeyUnsupportedError || e instanceof PrfUnavailableError) {

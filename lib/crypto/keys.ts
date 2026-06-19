@@ -26,11 +26,8 @@ import {
   newSalt,
   saltToString,
   saltFromString,
-  bytesToB64url,
   b64urlToBytes,
 } from './content'
-
-const textEncoder = new TextEncoder()
 
 // Web Crypto wants a real ArrayBuffer; a sliced/over-allocated Uint8Array isn't
 // always assignable to BufferSource across lib versions. Small data, free copy.
@@ -189,46 +186,10 @@ async function evalPrf(credentialId: ArrayBuffer, prfSalt: Uint8Array): Promise<
   return out
 }
 
-// Register a passkey and wrap the (already-unlocked) DEK into it. We do NOT
-// verify the credential server-side — the passkey is used as a key-derivation
-// source, not an auth factor (Supabase owns auth), so the challenge is local.
-export async function registerPasskeySlot(
-  dek: CryptoKey,
-  opts: { userId: string; userName: string; rpName?: string },
-): Promise<PasskeySlot> {
-  if (!passkeySupported()) throw new PasskeyUnsupportedError()
-  const prfSalt = newSalt()
-  const cred = (await navigator.credentials.create({
-    publicKey: {
-      challenge: toBuf(newSalt()),
-      rp: { name: opts.rpName ?? 'Onduler' }, // id omitted → current domain
-      user: {
-        id: toBuf(textEncoder.encode(opts.userId)),
-        name: opts.userName,
-        displayName: opts.userName,
-      },
-      pubKeyCredParams: [
-        { type: 'public-key', alg: -7 }, // ES256
-        { type: 'public-key', alg: -257 }, // RS256
-      ],
-      authenticatorSelection: { residentKey: 'required', userVerification: 'required' },
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- prf extension
-      extensions: { prf: { eval: { first: toBuf(prfSalt) } } } as any,
-    },
-  })) as PublicKeyCredential | null
-  if (!cred) throw new PrfUnavailableError()
-
-  // Some platforms surface PRF at create() time; others only on a follow-up
-  // get(). Try the cheap path first, fall back to an assertion.
-  let prfOut = readPrfFirst(cred)
-  if (!prfOut || prfOut.length < 32) prfOut = await evalPrf(cred.rawId, prfSalt)
-
-  return {
-    credentialId: bytesToB64url(new Uint8Array(cred.rawId)),
-    encDekPasskey: await wrapWithPrf(dek, prfOut),
-    prfSalt: saltToString(prfSalt),
-  }
-}
+// Passkey REGISTRATION now lives in lib/auth/passkey.ts — it routes through
+// Supabase's WebAuthn ceremony (so the passkey is also a login credential) while
+// requesting the PRF extension for the content key. This module keeps only the
+// PRF wrap/unwrap primitives + the logged-in unlock below.
 
 export async function unlockWithPasskey(slot: PasskeySlot): Promise<CryptoKey> {
   if (!passkeySupported()) throw new PasskeyUnsupportedError()
