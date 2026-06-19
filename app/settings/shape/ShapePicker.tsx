@@ -6,6 +6,8 @@ import { adoptBuild, setBuildSlot } from '@/app/actions/builds'
 import { detectMode } from '@/lib/theme-colors'
 import { setMvsMotions } from '@/app/actions/welcomeback'
 import { useSaveGuard } from '@/app/components/useSaveGuard'
+import { useDecrypted } from '@/app/components/useDecrypted'
+import { useContentCrypto } from '@/app/components/useContentCrypto'
 
 type SlotKey = 'primary' | 'secondary'
 type MvsMotion = { id: string; name: string; logCount: number }
@@ -20,7 +22,12 @@ type Props = {
 
 const MVS_MAX = 4
 
-export function ShapePicker({ primary, existingSwellNames, mvsPool, resolvedMvsIds, hasOverride }: Props) {
+export function ShapePicker({ primary, existingSwellNames: rawExistingSwellNames, mvsPool, resolvedMvsIds, hasOverride }: Props) {
+  // Decrypt existing swell names so the "already have this swell" dedup is
+  // correct once names are ciphertext; encrypt the names we add before they
+  // leave the browser. Both inert (pass-through) until migration flips on.
+  const existingSwellNames = useDecrypted(rawExistingSwellNames)
+  const { encryptContent } = useContentCrypto()
   const [primarySlot, setPrimarySlot] = useState<string | null>(primary)
   const [previewKey, setPreviewKey] = useState<BuildKey | null>(null)
   const [isPending, startTransition] = useTransition()
@@ -53,7 +60,8 @@ export function ShapePicker({ primary, existingSwellNames, mvsPool, resolvedMvsI
         onConfirm={(names) => {
           setPrimarySlot(previewKey)
           startTransition(async () => {
-            await guard(adoptBuild('primary', previewKey, names, detectMode()))
+            const encNames = await Promise.all(names.map(n => encryptContent(n)))
+            await guard(adoptBuild('primary', previewKey, encNames, detectMode()))
           })
           setPreviewKey(null)
         }}

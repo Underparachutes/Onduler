@@ -29,6 +29,7 @@ import { getBuildPreset, type BuildKey } from '@/lib/builds'
 import { formatHrs } from '@/lib/format'
 import { updateSwellTarget } from '@/app/actions/swells'
 import { WaveField, type WaveLine } from '@/app/components/WaveField'
+import { useDecrypted } from '@/app/components/useDecrypted'
 
 const SIZE = 360
 const CENTER = { x: SIZE / 2, y: SIZE / 2 }
@@ -125,7 +126,7 @@ type DragState = {
 }
 
 export function SwellRadar({
-  swells,
+  swells: rawSwells,
   actuals,
   period,
   primaryBuild,
@@ -134,6 +135,12 @@ export function SwellRadar({
   waveRamp,
   todayKey,
 }: Props) {
+  // Decrypt swell names (SVG labels, drag pill, and the build-preset name match
+  // in buildTargetsFor all read them). Rendered directly by the anchors server
+  // page, so it must self-decrypt. No gate: names are only read in render/memo,
+  // never seeded into state, so a late decrypt flows through. Inert until
+  // rows are ciphertext post-migration.
+  const swells = useDecrypted(rawSwells)
   const isHours = trackingMode === 'hours'
   const currencyShort = isHours ? 'hrs' : 'pts'
   const baseScale = scaleConfigFor(trackingMode)

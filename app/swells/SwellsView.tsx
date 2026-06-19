@@ -10,6 +10,7 @@ import { AddSwellForm } from './AddSwellForm'
 import { AddGroupForm } from '@/app/dashboard/components/AddGroupForm'
 import { HintCard } from '@/app/components/HintCard'
 import { useSaveGuard } from '@/app/components/useSaveGuard'
+import { useDecryptedReady } from '@/app/components/useDecrypted'
 
 type Swell = { id: string; name: string; color: string }
 type MotionSwell = { id: string; name: string; color: string; weight: number }
@@ -78,7 +79,12 @@ function usePersistedHideDone(key: string): [boolean, () => void] {
   return [hideDone, toggle]
 }
 
-export function SwellsView(props: Props) {
+export function SwellsView(rawProps: Props) {
+  // Decrypt all name-bearing props (swell/group/motion names) once at this top
+  // boundary; plaintext flows down to SwellsList/SwellRow/MotionSwellToggle.
+  // Gate on `ready` so stateful children never seed from a pending blank.
+  // Inert + ready synchronously until rows are ciphertext post-migration.
+  const { data: props, ready } = useDecryptedReady(rawProps)
   const [openForm, setOpenForm] = useState<null | 'swell' | 'group'>(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const [hideDone, toggleHideDone] = usePersistedHideDone('onduler-hide-done-swells')
@@ -129,6 +135,9 @@ export function SwellsView(props: Props) {
   }, 0)
 
   const formatValue = (n: number) => isHours ? formatHrs(ceilDisplay(n, true)) : String(ceilDisplay(n))
+
+  // Hold until decryption settles (never blocks today — inert is ready at once).
+  if (!ready) return null
 
   return (
     <div className="flex min-h-full flex-col items-center px-5 pb-12">

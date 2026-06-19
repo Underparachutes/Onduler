@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getActiveChapterId } from '@/lib/chapters'
 import { ImportFlow } from './ImportFlow'
+import { RestoreFlow } from './RestoreFlow'
 
 export default async function ImportPage() {
   const supabase = await createClient()
@@ -28,14 +29,21 @@ export default async function ImportPage() {
       .eq('chapter_id', chapterId),
   ])
 
+  const hasExistingData = (swellCount ?? 0) > 0 || (motionCount ?? 0) > 0
+
   return (
     <div className="flex min-h-full flex-col items-center px-5 py-12">
       <div className="w-full max-w-[22rem]">
         <h1 className="mb-6">Import from your AI</h1>
         <ImportFlow
           trackingMode={(settings?.tracking_mode as 'points' | 'hours') ?? 'points'}
-          hasExistingData={(swellCount ?? 0) > 0 || (motionCount ?? 0) > 0}
+          hasExistingData={hasExistingData}
         />
+
+        <div className="mt-12 border-t border-th-border-soft pt-8">
+          <h2 className="mb-4 text-lg font-semibold text-th-text">Restore from a backup</h2>
+          <RestoreFlow hasExistingData={hasExistingData} />
+        </div>
       </div>
     </div>
   )

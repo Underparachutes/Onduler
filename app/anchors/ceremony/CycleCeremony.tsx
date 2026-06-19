@@ -6,6 +6,7 @@ import { saveReflection } from '@/app/actions/reflections'
 import { archiveAndStartFreshChapter } from '@/app/actions/chapters'
 import { useSaveGuard } from '@/app/components/useSaveGuard'
 import { useContentCrypto } from '@/app/components/useContentCrypto'
+import { useDecrypted } from '@/app/components/useDecrypted'
 import { FrozenRadar } from './FrozenRadar'
 import { ceilDisplay, type DayKey } from '@/lib/periods'
 import { formatHrs } from '@/lib/format'
@@ -68,11 +69,16 @@ export function CycleCeremony({
   cycleStart,
   cycleEnd,
   cycleLabel,
-  swells,
+  swells: rawSwells,
   actuals,
   trackingMode,
-  priorIntention,
+  priorIntention: rawPriorIntention,
 }: Props) {
+  // Decrypt the radar swell names + the prior intention. priorIntention isn't
+  // only a placeholder: resolvedExpectation() can re-encrypt it on save, so it
+  // must be plaintext (a save only fires on a user click, long after the
+  // sub-ms decrypt settles). Inert pass-through until rows are ciphertext.
+  const { swells, priorIntention } = useDecrypted({ swells: rawSwells, priorIntention: rawPriorIntention })
   const router = useRouter()
   const [step, setStep] = useState<Step>('expectation')
   const [expectation, setExpectation] = useState('')

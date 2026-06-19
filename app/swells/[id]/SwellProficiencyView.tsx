@@ -12,6 +12,7 @@ import { MotionDetailSheet } from '@/app/dashboard/components/MotionDetailSheet'
 import { MilestonesSection, type Milestone } from './MilestonesSection'
 import { useSaveGuard } from '@/app/components/useSaveGuard'
 import { useContentCrypto } from '@/app/components/useContentCrypto'
+import { useDecryptedReady } from '@/app/components/useDecrypted'
 
 type Swell = {
   id: string
@@ -104,7 +105,18 @@ function truncate(name: string): string {
   return name.slice(0, LABEL_MAX_CHARS - 1) + '…'
 }
 
-export function SwellProficiencyView({
+// Wrapper: decrypt name-bearing props before the stateful inner mounts. This
+// view seeds the swell name into its own edit state (draftName/lastValidName),
+// so an inline gate wouldn't help — those hooks would capture a pending blank.
+// Mounting the inner only once `ready` guarantees its seeds are plaintext.
+// Inert + ready synchronously until rows are ciphertext post-migration.
+export function SwellProficiencyView(rawProps: Props) {
+  const { data, ready } = useDecryptedReady(rawProps)
+  if (!ready) return null
+  return <SwellProficiencyViewInner {...data} />
+}
+
+function SwellProficiencyViewInner({
   swell,
   weekPts,
   weekHrs,
