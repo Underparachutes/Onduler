@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useTransition } from 'react'
+import { useState, useEffect, useRef, useCallback, useTransition } from 'react'
 import {
   DndContext,
   DragOverlay,
@@ -322,6 +322,20 @@ export function DailyChecklist({
   const [goalInput, setGoalInput] = useState(String(goalValue))
   const [undoToast, setUndoToast] = useState<{ motion: Motion } | null>(null)
   const undoTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined)
+
+  // Measure the sticky header's bottom edge so the undo toast can sit just
+  // below it ("under the pill") regardless of which view mode's header is
+  // mounted — header height varies between flat / by-swell / Views modes.
+  const [headerBottom, setHeaderBottom] = useState<number | null>(null)
+  const headerResizeRef = useRef<ResizeObserver | null>(null)
+  const headerRef = useCallback((el: HTMLDivElement | null) => {
+    headerResizeRef.current?.disconnect()
+    if (!el) return
+    const measure = () => setHeaderBottom(el.getBoundingClientRect().bottom)
+    measure()
+    headerResizeRef.current = new ResizeObserver(measure)
+    headerResizeRef.current.observe(el)
+  }, [])
 
   // Groups DnD state
   const [containers, setContainers] = useState<Record<string, Motion[]>>(() => {
@@ -733,7 +747,7 @@ export function DailyChecklist({
   )
 
   const undoToastEl = undoToast && (
-    <div className="fixed left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-lg border border-th-border bg-th-surface px-4 py-2.5 shadow-lg" style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 5.5rem)' }}>
+    <div className="fixed left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-lg border border-th-border bg-th-surface px-4 py-2.5 shadow-lg" style={{ top: headerBottom != null ? `${headerBottom + 8}px` : 'calc(env(safe-area-inset-top, 0px) + 6rem)' }}>
       <span className="truncate text-sm text-th-muted">Logged {undoToast.motion.name}</span>
       <button onClick={handleUndo} className="shrink-0 text-sm font-semibold text-th-btn">Undo</button>
     </div>
@@ -826,7 +840,7 @@ export function DailyChecklist({
     return (
       <>
         <div>
-          <div className="sticky top-0 z-10 bg-th-bg pb-3">
+          <div ref={headerRef} className="sticky top-0 z-10 bg-th-bg pb-3">
             {topBar}
             {dateHeader}
             {headerToolbar}
@@ -900,7 +914,7 @@ export function DailyChecklist({
     return (
       <>
         <div>
-          <div className="sticky top-0 z-10 bg-th-bg pb-3">
+          <div ref={headerRef} className="sticky top-0 z-10 bg-th-bg pb-3">
             {topBar}
             {dateHeader}
             {headerToolbar}
@@ -965,7 +979,7 @@ export function DailyChecklist({
     return (
       <>
         <div>
-          <div className="sticky top-0 z-10 bg-th-bg pb-3">
+          <div ref={headerRef} className="sticky top-0 z-10 bg-th-bg pb-3">
             {topBar}
             {dateHeader}
             {headerToolbar}
@@ -1008,7 +1022,7 @@ export function DailyChecklist({
   return (
     <>
       <div>
-        <div className="sticky top-0 z-10 bg-th-bg pb-3">
+        <div ref={headerRef} className="sticky top-0 z-10 bg-th-bg pb-3">
           {topBar}
           {dateHeader}
           {progressStats}
