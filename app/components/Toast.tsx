@@ -63,9 +63,9 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         <div
           className="fixed left-1/2 z-50 flex items-center gap-3 rounded-lg bg-th-text px-4 py-2.5 shadow-lg transition-all duration-200 ease-out max-w-[calc(100vw-2rem)] md:max-w-lg"
           style={{
-            bottom: 'calc(3.5rem + env(safe-area-inset-bottom, 0px) + 0.5rem)',
+            top: 'calc(env(safe-area-inset-top, 0px) + 1rem)',
             opacity: visible ? 1 : 0,
-            transform: `translateX(-50%) translateY(${visible ? '0' : '100%'})`,
+            transform: `translateX(-50%) translateY(${visible ? '0' : '-100%'})`,
           }}
         >
           <span className="min-w-0 truncate text-sm text-th-bg">{toast.message}</span>
