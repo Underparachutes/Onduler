@@ -13,7 +13,7 @@ export function SideNav({ pendingAnchor = false }: { pendingAnchor?: boolean }) 
 
   return (
     <nav
-      className="sticky top-0 hidden h-[100dvh] w-60 shrink-0 flex-col gap-1 border-r border-th-border bg-th-bg px-3 md:flex"
+      className="sticky top-0 hidden h-[100dvh] w-60 shrink-0 flex-col gap-1 border-r border-th-border bg-th-bg px-3 desktop:flex"
       style={{
         paddingTop: 'max(env(safe-area-inset-top), 1.5rem)',
         paddingBottom: 'max(env(safe-area-inset-bottom), 1.5rem)',

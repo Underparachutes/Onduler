@@ -37,7 +37,7 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
       <PinTopApplier />
       <TimezoneSync />
       {user && <SideNav pendingAnchor={pendingAnchor} />}
-      <div className="mx-auto flex w-full max-w-lg flex-col flex-1 md:mx-0 md:ml-12 md:mr-auto lg:max-w-4xl">
+      <div className="mx-auto flex w-full max-w-lg flex-col flex-1 desktop:mx-0 desktop:ml-12 desktop:mr-auto desktop:lg:max-w-4xl">
         {children}
       </div>
       {user && <BottomNav pendingAnchor={pendingAnchor} />}

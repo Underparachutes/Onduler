@@ -13,7 +13,7 @@ export function BottomNav({ pendingAnchor = false }: { pendingAnchor?: boolean }
 
   return (
     <nav
-      className="pointer-events-none fixed inset-x-0 z-40 px-4 md:hidden"
+      className="pointer-events-none fixed inset-x-0 z-40 px-4 desktop:hidden"
       style={{
         bottom: 'calc(env(safe-area-inset-bottom, 0px) + 1rem)',
         transform: 'translate3d(0,0,0)',

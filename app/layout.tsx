@@ -49,7 +49,7 @@ export default function RootLayout({
       data-theme="biarritz"
       className={`${manrope.variable} ${ibmPlexMono.variable} h-full antialiased`}
     >
-      <body className="min-h-[100dvh] flex flex-col bg-th-bg text-th-text pb-[calc(5rem+env(safe-area-inset-bottom))] overflow-x-hidden md:flex-row md:pb-0">
+      <body className="min-h-[100dvh] flex flex-col bg-th-bg text-th-text pb-[calc(5rem+env(safe-area-inset-bottom))] overflow-x-hidden desktop:flex-row desktop:pb-0">
         <ToastProvider>
           <DekProvider>
             <Suspense fallback={<Loading />}>
