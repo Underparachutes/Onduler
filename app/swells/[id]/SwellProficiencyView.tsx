@@ -519,6 +519,7 @@ function SwellProficiencyViewInner({
             groups={[]}
             groupsEnabled={false}
             trackingMode={trackingMode}
+            allSwells={allSwells}
             swellId={swell.id}
             swellLabel={swell.name}
             onClose={() => {

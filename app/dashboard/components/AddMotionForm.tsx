@@ -34,8 +34,12 @@ export function AddMotionForm({ groups, groupsEnabled, trackingMode, onClose, al
   )
   const [state, formAction, pending] = useActionState(action, null)
   const isHours = trackingMode === 'hours'
-  const swellPickerOpen = !swellId && (allSwells?.length ?? 0) > 0
-  const [selectedSwells, setSelectedSwells] = useState<Map<string, number>>(new Map())
+  const swellPickerOpen = (allSwells?.length ?? 0) > 0
+  // Pre-select the contextual swell when opened from a swell page, so the
+  // common "add to this swell" case is one tap but other swells stay pickable.
+  const [selectedSwells, setSelectedSwells] = useState<Map<string, number>>(
+    () => (swellId && swellPickerOpen ? new Map([[swellId, 1]]) : new Map()),
+  )
 
   function toggleSwell(id: string) {
     setSelectedSwells(prev => {
@@ -99,7 +103,7 @@ export function AddMotionForm({ groups, groupsEnabled, trackingMode, onClose, al
       </p>
 
       <form action={formAction} className="flex flex-col gap-4">
-        {swellId && <input type="hidden" name="swell_id" value={swellId} />}
+        {swellId && !swellPickerOpen && <input type="hidden" name="swell_id" value={swellId} />}
         <input
           name="name"
           type="text"
