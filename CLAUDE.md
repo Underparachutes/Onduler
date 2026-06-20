@@ -31,6 +31,7 @@ When the user signals they're wrapping up (or you hit a natural stopping point):
 - Apply the vocabulary in PROJECT.md consistently. Motions, swells, groups, tide/wave. Never "tasks," "activities," "goals," "domains" in user-facing copy.
 - Apply count-based pluralization in all UI strings.
 - Follow the mirror principle in reports and empty states.
+- Commit straight to `main`. No feature branches — the E2EE work that warranted them is done (decided 2026-06-19). Still only commit/push when asked.
 
 ## When in doubt
 
