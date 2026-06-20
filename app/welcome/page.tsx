@@ -58,7 +58,14 @@ export default async function WelcomePage() {
           </ol>
         </section>
 
-        {!user && (
+        {user ? (
+          <Link
+            href="/dashboard"
+            className="block rounded-lg bg-th-btn px-4 py-3 text-center text-sm font-medium text-th-btn-text transition-colors active:scale-[0.97]"
+          >
+            Continue to Onduler →
+          </Link>
+        ) : (
           <div className="flex gap-3">
             <Link
               href="/signup"

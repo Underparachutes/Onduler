@@ -86,7 +86,12 @@ function SlideVisual({ visual, active }: { visual: Visual; active: boolean }) {
   }
 }
 
-export function OnboardingCarousel() {
+// `onGetStarted`, when given, makes the primary CTA advance in place instead of
+// navigating to /signup. The signup page passes this so a QR arrival (which
+// carries utm_source on the /signup URL) stays on that URL through the intro —
+// navigating away would drop the attribution. The landing leaves it undefined
+// and the CTA links to /signup?step=form.
+export function OnboardingCarousel({ onGetStarted }: { onGetStarted?: () => void } = {}) {
   const trackRef = useRef<HTMLDivElement | null>(null)
   const [active, setActive] = useState(0)
   const lastIndex = onboardingSlides.length - 1
@@ -194,13 +199,24 @@ export function OnboardingCarousel() {
       {/* Persistent bottom actions — stay put as the carousel changes */}
       <div className="relative z-10 px-6 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-2">
         <div className="mx-auto flex w-full max-w-sm flex-col gap-3">
-          <Link
-            href="/signup?step=form"
-            style={{ backgroundImage: 'var(--brand-fill)', color: 'var(--brand-fg)' }}
-            className="block rounded-xl px-4 py-3 text-center font-[family-name:var(--font-manrope)] text-sm font-medium transition-all active:scale-[0.97]"
-          >
-            Get started
-          </Link>
+          {onGetStarted ? (
+            <button
+              type="button"
+              onClick={onGetStarted}
+              style={{ backgroundImage: 'var(--brand-fill)', color: 'var(--brand-fg)' }}
+              className="block rounded-xl px-4 py-3 text-center font-[family-name:var(--font-manrope)] text-sm font-medium transition-all active:scale-[0.97]"
+            >
+              Get started
+            </button>
+          ) : (
+            <Link
+              href="/signup?step=form"
+              style={{ backgroundImage: 'var(--brand-fill)', color: 'var(--brand-fg)' }}
+              className="block rounded-xl px-4 py-3 text-center font-[family-name:var(--font-manrope)] text-sm font-medium transition-all active:scale-[0.97]"
+            >
+              Get started
+            </Link>
+          )}
           <Link
             href="/login"
             style={{ backgroundImage: 'linear-gradient(90deg, var(--th-muted), #f5c87e)', color: '#241a10' }}

@@ -7,12 +7,11 @@ import { ImageAdjustOverlay } from '@/app/components/ImageAdjustOverlay'
 import { detectMode, getRandomThemeAccent, getShuffledThemePalette } from '@/lib/theme-colors'
 import { BUILD_PRESETS } from '@/lib/builds'
 import { shouldShowOnboardingInstall, markOnboardingSeen } from '@/lib/install'
-import { InstallInstructions } from '@/app/components/InstallInstructions'
 import { parseImportMarkdown } from '@/lib/import-parser'
 import { IMPORT_PROMPT_TEMPLATE } from '@/lib/import-prompt'
 import { useContentCrypto } from '@/app/components/useContentCrypto'
 
-type Step = 'swells' | 'motions' | 'personalize' | 'firstlog' | 'install'
+type Step = 'swells' | 'motions' | 'personalize' | 'firstlog'
 type TrackingMode = 'points' | 'hours'
 
 type SwellEntry = {
@@ -182,11 +181,11 @@ export function OnboardingFlow() {
     draftLoaded.current = true
   }, [])
 
-  // Mirror durable inputs to the draft on every change. The install step is
+  // Mirror durable inputs to the draft on every change. The first-log step is
   // skipped: it carries no new input, and completion clears the draft anyway.
   useEffect(() => {
     if (!draftLoaded.current) return
-    if (step === 'install' || step === 'firstlog') return
+    if (step === 'firstlog') return
     writeDraft({
       v: 1,
       step,
@@ -432,29 +431,24 @@ export function OnboardingFlow() {
   }
 
   function goToInstallOrFinish(useDefaults = false) {
+    // Mobile, non-standalone users finish onto /welcome — the non-gated page
+    // that holds the add-to-home-screen steps, so the instructions stay put.
+    // Everyone else lands on the dashboard. Either way onboarding is saved first
+    // (server-side redirect from the action), so no icon launch can bounce them
+    // back into onboarding.
     if (!useDefaults && showInstall) {
-      // Persist onboarding FIRST, then show the add-to-home-screen steps. The
-      // persist advances to the install step on success (see persist()).
       markOnboardingSeen()
-      persist(false, 'install')
+      finish(false, '/welcome')
       return
     }
     finish(useDefaults)
   }
 
-  // Hard navigation, not router.push: guarantees a fresh SSR read of
-  // onboarding_complete (now true) across the PWA boundary, and avoids the
-  // router-cache loop that client navigation caused here before.
-  function goToDashboard() {
-    window.location.assign('/dashboard')
+  function finish(useDefaults = false, redirectTo = '/dashboard') {
+    persist(useDefaults, redirectTo)
   }
 
-  // The non-install completion path: persist and let the server action redirect.
-  function finish(useDefaults = false) {
-    persist(useDefaults, 'redirect')
-  }
-
-  function persist(useDefaults: boolean, mode: 'redirect' | 'install') {
+  function persist(useDefaults: boolean, redirectTo: string) {
     setError(null)
     const prefs = useDefaults
       ? {
@@ -500,7 +494,7 @@ export function OnboardingFlow() {
       )
       let result: Awaited<ReturnType<typeof completeOnboarding>>
       try {
-        result = await completeOnboarding(encSwells, encMotions, prefs, mode === 'redirect')
+        result = await completeOnboarding(encSwells, encMotions, prefs, redirectTo)
       } catch (e) {
         // Server-action redirects surface as a thrown control-flow error that
         // Next handles; anything else here is a real transport failure.
@@ -521,13 +515,9 @@ export function OnboardingFlow() {
           hapticEnabled,
           celebrationEnabled,
         })
-        return
       }
-      // Install mode persisted without redirecting: onboarding is now saved, so
-      // it's safe to show the add-to-home-screen steps. Exits from there just
-      // navigate to /dashboard — they must not call completeOnboarding again or
-      // it would double-insert the swells and motions.
-      if (mode === 'install') setStep('install')
+      // Success redirects server-side (to /welcome or /dashboard), so this
+      // transition never resumes past the completeOnboarding call.
     })
   }
 
@@ -902,24 +892,6 @@ export function OnboardingFlow() {
           className="w-full rounded-lg bg-th-btn py-3 text-sm font-medium text-th-btn-text transition-all hover:bg-th-btn-hover active:scale-[0.97] disabled:opacity-50"
         >
           {isPending ? 'Setting up…' : anyLogged ? 'Start fresh →' : 'Got it →'}
-        </button>
-      </ScreenShell>
-    )
-  }
-
-  if (step === 'install') {
-    return (
-      <ScreenShell
-        title="You're all set. One more thing."
-        description="Onduler lives best on your home screen. Add it once and it opens like an app — your setup is already saved."
-      >
-        <InstallInstructions onDone={goToDashboard} />
-
-        <button
-          onClick={goToDashboard}
-          className="w-full text-center text-sm text-th-faint transition-colors hover:text-th-muted"
-        >
-          Not now
         </button>
       </ScreenShell>
     )

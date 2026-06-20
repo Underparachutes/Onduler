@@ -14,12 +14,12 @@ export async function completeOnboarding(
     haptic_enabled: boolean
     celebration_enabled: boolean
   },
-  // When false, persist everything but skip the redirect and return { ok: true }.
-  // The install step uses this so onboarding is saved *before* the user follows
-  // the add-to-home-screen steps — otherwise launching from the new icon lands
-  // on /dashboard with onboarding_complete still false and bounces them back to
-  // the start of onboarding.
-  redirectAfter = true
+  // Where to send the user after onboarding is saved. Mobile users go to
+  // /welcome (the non-gated install-instructions page) so the add-to-home-screen
+  // steps stay readable — redirecting from the action itself, rather than
+  // rendering them on /onboarding, avoids the post-action route refresh bouncing
+  // them off the gated /onboarding page the instant onboarding_complete flips.
+  redirectTo = '/dashboard'
 ) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -118,8 +118,7 @@ export async function completeOnboarding(
 
   revalidatePath('/dashboard')
   revalidatePath('/swells')
-  if (!redirectAfter) return { ok: true as const }
-  redirect('/dashboard')
+  redirect(redirectTo)
 }
 
 export async function setDailyGoal(goal: number) {
