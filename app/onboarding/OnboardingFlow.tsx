@@ -433,14 +433,28 @@ export function OnboardingFlow() {
 
   function goToInstallOrFinish(useDefaults = false) {
     if (!useDefaults && showInstall) {
+      // Persist onboarding FIRST, then show the add-to-home-screen steps. The
+      // persist advances to the install step on success (see persist()).
       markOnboardingSeen()
-      setStep('install')
+      persist(false, 'install')
       return
     }
     finish(useDefaults)
   }
 
+  // Hard navigation, not router.push: guarantees a fresh SSR read of
+  // onboarding_complete (now true) across the PWA boundary, and avoids the
+  // router-cache loop that client navigation caused here before.
+  function goToDashboard() {
+    window.location.assign('/dashboard')
+  }
+
+  // The non-install completion path: persist and let the server action redirect.
   function finish(useDefaults = false) {
+    persist(useDefaults, 'redirect')
+  }
+
+  function persist(useDefaults: boolean, mode: 'redirect' | 'install') {
     setError(null)
     const prefs = useDefaults
       ? {
@@ -486,7 +500,7 @@ export function OnboardingFlow() {
       )
       let result: Awaited<ReturnType<typeof completeOnboarding>>
       try {
-        result = await completeOnboarding(encSwells, encMotions, prefs)
+        result = await completeOnboarding(encSwells, encMotions, prefs, mode === 'redirect')
       } catch (e) {
         // Server-action redirects surface as a thrown control-flow error that
         // Next handles; anything else here is a real transport failure.
@@ -507,7 +521,13 @@ export function OnboardingFlow() {
           hapticEnabled,
           celebrationEnabled,
         })
+        return
       }
+      // Install mode persisted without redirecting: onboarding is now saved, so
+      // it's safe to show the add-to-home-screen steps. Exits from there just
+      // navigate to /dashboard — they must not call completeOnboarding again or
+      // it would double-insert the swells and motions.
+      if (mode === 'install') setStep('install')
     })
   }
 
@@ -890,19 +910,16 @@ export function OnboardingFlow() {
   if (step === 'install') {
     return (
       <ScreenShell
-        title="Install Onduler"
-        description="Onduler lives best on your home screen. Add it once and it opens like an app."
+        title="You're all set. One more thing."
+        description="Onduler lives best on your home screen. Add it once and it opens like an app — your setup is already saved."
       >
-        <InstallInstructions onDone={() => finish(false)} />
-
-        {error && <p className="text-xs text-red-500">{error}</p>}
+        <InstallInstructions onDone={goToDashboard} />
 
         <button
-          onClick={() => finish(false)}
-          disabled={isPending}
-          className="w-full text-center text-sm text-th-faint transition-colors hover:text-th-muted disabled:opacity-50"
+          onClick={goToDashboard}
+          className="w-full text-center text-sm text-th-faint transition-colors hover:text-th-muted"
         >
-          {isPending ? 'Setting up…' : 'Not now'}
+          Not now
         </button>
       </ScreenShell>
     )

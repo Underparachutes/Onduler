@@ -13,7 +13,13 @@ export async function completeOnboarding(
     tracking_mode: 'points' | 'hours'
     haptic_enabled: boolean
     celebration_enabled: boolean
-  }
+  },
+  // When false, persist everything but skip the redirect and return { ok: true }.
+  // The install step uses this so onboarding is saved *before* the user follows
+  // the add-to-home-screen steps — otherwise launching from the new icon lands
+  // on /dashboard with onboarding_complete still false and bounces them back to
+  // the start of onboarding.
+  redirectAfter = true
 ) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -112,6 +118,7 @@ export async function completeOnboarding(
 
   revalidatePath('/dashboard')
   revalidatePath('/swells')
+  if (!redirectAfter) return { ok: true as const }
   redirect('/dashboard')
 }
 
