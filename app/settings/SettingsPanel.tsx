@@ -710,8 +710,8 @@ export function SettingsPanel({
               </div>
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-th-text">Import from your AI</p>
-                  <p className="text-xs text-th-muted">Set up swells and motions with any LLM</p>
+                  <p className="text-sm font-medium text-th-text">Import or restore data</p>
+                  <p className="text-xs text-th-muted">Restore a backup, or set up with an LLM</p>
                 </div>
                 <Link href="/settings/import" className="text-sm text-th-secondary hover:underline">
                   Import

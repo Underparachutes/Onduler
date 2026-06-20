@@ -34,7 +34,8 @@ export default async function ImportPage() {
   return (
     <div className="flex min-h-full flex-col items-center px-5 py-12">
       <div className="w-full max-w-[22rem]">
-        <h1 className="mb-6">Import from your AI</h1>
+        <h1 className="mb-6">Import or restore</h1>
+        <h2 className="mb-4 text-lg font-semibold text-th-text">Set up with your AI</h2>
         <ImportFlow
           trackingMode={(settings?.tracking_mode as 'points' | 'hours') ?? 'points'}
           hasExistingData={hasExistingData}
