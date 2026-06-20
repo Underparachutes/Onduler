@@ -196,15 +196,15 @@ export function OnboardingCarousel() {
         <div className="mx-auto flex w-full max-w-sm flex-col gap-3">
           <Link
             href="/signup?step=form"
-            style={{ backgroundImage: 'var(--brand-gradient)' }}
-            className="block rounded-xl px-4 py-3 text-center font-[family-name:var(--font-manrope)] text-sm font-medium text-th-bg transition-all active:scale-[0.97]"
+            style={{ backgroundImage: 'var(--brand-fill)', color: 'var(--brand-fg)' }}
+            className="block rounded-xl px-4 py-3 text-center font-[family-name:var(--font-manrope)] text-sm font-medium transition-all active:scale-[0.97]"
           >
             Get started
           </Link>
           <Link
             href="/login"
-            style={{ backgroundImage: 'linear-gradient(90deg, var(--th-muted), #f5c87e)' }}
-            className="block rounded-xl px-4 py-3 text-center font-[family-name:var(--font-manrope)] text-sm font-medium text-th-bg transition-all active:scale-[0.97]"
+            style={{ backgroundImage: 'linear-gradient(90deg, var(--th-muted), #f5c87e)', color: '#241a10' }}
+            className="block rounded-xl px-4 py-3 text-center font-[family-name:var(--font-manrope)] text-sm font-medium transition-all active:scale-[0.97]"
           >
             Sign in
           </Link>

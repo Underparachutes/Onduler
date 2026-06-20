@@ -75,17 +75,26 @@ html {
    * lighter green is unreadable on light surfaces. Dark mode override lives
    * in the prefers-color-scheme:dark :root block below. */
   --brand: #0bc85b;
+  /* Legible label color when --brand is used as a solid button fill.
+   * Chosen per theme against that theme's brand luminance (most brands are
+   * light → dark ink; Biarritz light's brand is dark navy → light ink). */
+  --brand-fg: #04080d;
   /* Brand gradient — used by .brand-text on the wordmark, the floating-pill
    * "Onduler" label, and the floating-pill `+` glyph. Derived from --brand
    * so changing the brand color updates all three surfaces. Bold at the
    * start, fading into the surface at the end (so the silent trailing
    * letter is what dissolves, not the leading one). */
   --brand-gradient: linear-gradient(90deg, var(--brand), color-mix(in oklch, var(--brand) 40%, var(--th-surface)));
+  /* Brand fill — for solid CTA buttons. Stays in-hue (brand → darker brand)
+   * rather than fading toward the surface, so a single --brand-fg label reads
+   * cleanly across the whole gradient in every theme/mode. */
+  --brand-fill: linear-gradient(135deg, var(--brand), color-mix(in oklch, var(--brand) 78%, black));
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     --brand: #72f189;
+    --brand-fg: #04080d;
 
     --th-bg: #04080d;
     --th-surface: #0e1c2e;
@@ -122,6 +131,7 @@ html {
 /* Bolinas — northern California fog */
 [data-theme="bolinas"] {
   --brand: #87ae73;
+  --brand-fg: #1f2520;
 
   --th-bg: #ebede7;
   --th-surface: #dfe1da;
@@ -157,6 +167,7 @@ html {
 @media (prefers-color-scheme: dark) {
   [data-theme="bolinas"] {
     --brand: #f2c421;
+    --brand-fg: #15120f;
 
     --th-bg: #15120f;
     --th-surface: #1e1a16;
@@ -193,6 +204,7 @@ html {
 /* Biarritz — Atlantic surf town */
 [data-theme="biarritz"] {
   --brand: #14225d;
+  --brand-fg: #f5efe5;
 
   --th-bg: #f5efe5;
   --th-surface: #ebe3d4;
@@ -228,6 +240,7 @@ html {
 @media (prefers-color-scheme: dark) {
   [data-theme="biarritz"] {
     --brand: #f67e4e;
+    --brand-fg: #0e2329;
 
     --th-bg: #0e2329;
     --th-surface: #15303a;

@@ -81,11 +81,11 @@ function IntroScreen({ onContinue }: { onContinue: () => void }) {
         <div className="mb-8 flex w-full flex-col gap-4 text-sm leading-relaxed text-th-muted">
           <p>
             A self-reflection app that shows you what your days are quietly
-            building. No streaks, no guilt, nothing to fall behind on.
+            building.
           </p>
           <p>
-            Pick a few things you want more of in your life. Check off tasks as
-            you complete them throughout the day.
+            Pick a few things you want more of in your life. Check off the small
+            daily motions that get you there.
           </p>
           <p>
             Over time, the shape of where your energy actually went rises to the
