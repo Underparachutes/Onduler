@@ -12,7 +12,7 @@ import { MotionDetailSheet } from '@/app/dashboard/components/MotionDetailSheet'
 import { MilestonesSection, type Milestone } from './MilestonesSection'
 import { useSaveGuard } from '@/app/components/useSaveGuard'
 import { useContentCrypto } from '@/app/components/useContentCrypto'
-import { useDecryptedReady } from '@/app/components/useDecrypted'
+import { useDecryptedReady, useLocked } from '@/app/components/useDecrypted'
 
 type Swell = {
   id: string
@@ -153,6 +153,9 @@ function SwellProficiencyViewInner({
   const [draftTarget, setDraftTarget] = useState('')
   const [, startSave] = useTransition()
   const lastValidName = useRef(swell.name)
+  // Locked: name shows "🔒 Locked" and must not be editable (would overwrite the
+  // real encrypted name). Color / target stay editable — they aren't encrypted.
+  const locked = useLocked()
 
   function persistAll(name: string, color: string, targetPts: number | null, targetHrs: number | null) {
     startSave(async () => {
@@ -549,11 +552,16 @@ function SwellProficiencyViewInner({
                   type="color"
                   value={localColor}
                   onChange={e => handleColorChange(e.target.value)}
+                  disabled={locked}
                   aria-label="Swell color"
-                  className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                  className="absolute inset-0 h-full w-full cursor-pointer opacity-0 disabled:cursor-default"
                 />
               </label>
-              {editingName ? (
+              {locked ? (
+                <span className="min-w-0 flex-1 truncate text-lg font-semibold text-th-muted">
+                  {swell.name}
+                </span>
+              ) : editingName ? (
                 <input
                   autoFocus
                   value={draftName}
@@ -616,12 +624,13 @@ function SwellProficiencyViewInner({
                   <button
                     type="button"
                     onClick={() => { setDraftTarget(isHours ? formatHrs(Number(target)) : String(target)); setEditingTarget(true) }}
-                    className="text-th-faint transition-colors hover:text-th-secondary"
+                    disabled={locked}
+                    className="text-th-faint transition-colors hover:text-th-secondary disabled:hover:text-th-faint"
                     aria-label="Edit weekly target"
                   >
                     {' / '}{formatValue(target)}
                   </button>
-                ) : (
+                ) : locked ? null : (
                   <button
                     type="button"
                     onClick={() => { setDraftTarget(''); setEditingTarget(true) }}
@@ -638,7 +647,7 @@ function SwellProficiencyViewInner({
               <div className="mb-2 rounded-full bg-th-surface/40" style={{ height: '5px' }}>
                 <div
                   className="h-full rounded-full transition-all duration-500"
-                  style={{ width: `${progress}%`, background: `linear-gradient(to right, color-mix(in oklch, ${swell.color} 35%, var(--th-surface)), ${swell.color})`, backgroundSize: `${100 / (progress / 100)}% 100%` }}
+                  style={{ width: `${progress}%`, backgroundImage: `linear-gradient(to right, color-mix(in oklch, ${swell.color} 35%, var(--th-surface)), ${swell.color})`, backgroundSize: `${100 / (progress / 100)}% 100%` }}
                 />
               </div>
             )}
@@ -701,8 +710,9 @@ function SwellProficiencyViewInner({
                 <button
                   type="button"
                   onClick={() => setAddOpen(true)}
+                  disabled={locked}
                   aria-label={`Add motion to ${swell.name}`}
-                  className="flex h-6 w-6 items-center justify-center text-xl font-light leading-none text-th-muted transition-colors hover:text-th-text active:scale-95"
+                  className="flex h-6 w-6 items-center justify-center text-xl font-light leading-none text-th-muted transition-colors hover:text-th-text active:scale-95 disabled:opacity-40 disabled:hover:text-th-muted"
                 >
                   +
                 </button>

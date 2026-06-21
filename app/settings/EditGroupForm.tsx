@@ -5,6 +5,7 @@ import { updateGroup, deleteGroup } from '@/app/actions/groups'
 import { setMotionGroup } from '@/app/actions/motions'
 import { setSwellGroup } from '@/app/actions/swells'
 import { useContentCrypto } from '@/app/components/useContentCrypto'
+import { useLocked } from '@/app/components/useDecrypted'
 import { useSaveGuard } from '@/app/components/useSaveGuard'
 
 type Group = { id: string; name: string; color: string }
@@ -42,6 +43,10 @@ export function EditGroupForm({ group, allGroups, motions, swells, onClose }: Pr
   )
   const [, startAssign] = useTransition()
   const guard = useSaveGuard()
+  // Locked: the name is unreadable on this device. Keep assignment toggles usable
+  // (they don't touch encrypted fields) but block rename so we never seed/save
+  // the "🔒 Locked" placeholder over the real name.
+  const locked = useLocked()
 
   const groupNameById = useMemo(
     () => new Map(allGroups.map(g => [g.id, g.name])),
@@ -88,10 +93,12 @@ export function EditGroupForm({ group, allGroups, motions, swells, onClose }: Pr
         <input
           name="name"
           type="text"
-          defaultValue={group.name}
-          required
-          autoFocus
-          className="rounded-lg border border-th-border bg-th-surface px-3 py-2.5 text-base text-th-text outline-none focus:border-th-focus"
+          defaultValue={locked ? '' : group.name}
+          placeholder={locked ? '🔒 Locked — unlock to rename' : undefined}
+          disabled={locked}
+          required={!locked}
+          autoFocus={!locked}
+          className="rounded-lg border border-th-border bg-th-surface px-3 py-2.5 text-base text-th-text outline-none focus:border-th-focus disabled:opacity-60"
         />
 
         <div className="flex items-center gap-2">
@@ -118,7 +125,7 @@ export function EditGroupForm({ group, allGroups, motions, swells, onClose }: Pr
           </button>
           <button
             type="submit"
-            disabled={pending}
+            disabled={pending || locked}
             className="ml-auto rounded-lg bg-th-btn px-4 py-2 text-sm font-medium text-th-btn-text transition-colors hover:bg-th-btn-hover disabled:opacity-50"
           >
             {pending ? 'Saving…' : 'Save'}

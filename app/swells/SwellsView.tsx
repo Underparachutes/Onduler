@@ -84,7 +84,7 @@ export function SwellsView(rawProps: Props) {
   // boundary; plaintext flows down to SwellsList/SwellRow/MotionSwellToggle.
   // Gate on `ready` so stateful children never seed from a pending blank.
   // Inert + ready synchronously until rows are ciphertext post-migration.
-  const { data: props, ready } = useDecryptedReady(rawProps)
+  const { data: props, ready, locked } = useDecryptedReady(rawProps)
   const [openForm, setOpenForm] = useState<null | 'swell' | 'group'>(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const [hideDone, toggleHideDone] = usePersistedHideDone('onduler-hide-done-swells')
@@ -159,8 +159,9 @@ export function SwellsView(rawProps: Props) {
                   <div ref={menuRef} className="relative">
                     <button
                       onClick={handlePlus}
+                      disabled={locked}
                       aria-label="Add"
-                      className="brand-text flex items-center justify-center text-3xl font-light leading-none text-th-muted transition-colors hover:text-th-text"
+                      className="brand-text flex items-center justify-center text-3xl font-light leading-none text-th-muted transition-colors hover:text-th-text disabled:opacity-40 disabled:hover:text-th-muted"
                     >
                       +
                     </button>

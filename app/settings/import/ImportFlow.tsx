@@ -8,6 +8,7 @@ import { IMPORT_PROMPT_TEMPLATE } from '@/lib/import-prompt'
 import { confirmImport, getImportEntities, type ImportClearMode } from '@/app/actions/import'
 import { resolveImport, type ExistingEntities } from '@/lib/import-resolve'
 import { useContentCrypto } from '@/app/components/useContentCrypto'
+import { useLocked } from '@/app/components/useDecrypted'
 
 type Step = 'input' | 'preview' | 'done'
 
@@ -28,6 +29,9 @@ export function ImportFlow({ trackingMode, hasExistingData }: { trackingMode: 'p
   const [clearMode, setClearMode] = useState<ImportClearMode>('none')
   const [armedDelete, setArmedDelete] = useState(false)
   const [isPending, startTransition] = useTransition()
+  // Locked: import re-encrypts every name as it lands, which we can't do without
+  // a key on this device. Block the flow until they unlock.
+  const locked = useLocked()
 
   function handleCopyPrompt() {
     navigator.clipboard.writeText(IMPORT_PROMPT_TEMPLATE)
@@ -206,6 +210,14 @@ export function ImportFlow({ trackingMode, hasExistingData }: { trackingMode: 'p
           </button>
         </div>
       </div>
+    )
+  }
+
+  if (locked) {
+    return (
+      <p className="text-sm leading-relaxed text-th-muted">
+        🔒 Your content is locked on this device. Unlock it before importing, so the new entries can be encrypted with your key.
+      </p>
     )
   }
 

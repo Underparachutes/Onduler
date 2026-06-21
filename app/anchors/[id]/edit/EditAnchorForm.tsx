@@ -35,7 +35,7 @@ export function EditAnchorForm({
   // seed with PLAINTEXT — seeding a raw enc: blob would double-encrypt on save.
   // So decrypt and gate the form render on `ready`. Inert + ready immediately
   // until rows are ciphertext post-migration.
-  const { data: { bodyText, promptText }, ready } = useDecryptedReady({
+  const { data: { bodyText, promptText }, ready, locked } = useDecryptedReady({
     bodyText: rawBodyText,
     promptText: rawPromptText,
   })
@@ -100,6 +100,14 @@ export function EditAnchorForm({
   // Hold the form until decryption settles so uncontrolled inputs seed with
   // plaintext. Never blocks today (inert decrypt is ready synchronously).
   if (!ready) return <p className="text-xs text-th-muted">Decrypting…</p>
+
+  // Locked: the body/prompt are unreadable on this device, so editing would seed
+  // the "🔒 Locked" placeholder. Send them to unlock instead of corrupting it.
+  if (locked) return (
+    <p className="text-sm leading-relaxed text-th-muted">
+      🔒 This anchor is locked on this device. Unlock your content to read or edit it.
+    </p>
+  )
 
   return (
     <>

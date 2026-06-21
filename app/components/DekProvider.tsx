@@ -7,7 +7,7 @@
 
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { getDek, setDek as storeDek, clearDek as storeClearDek } from '@/lib/crypto/dek-store'
+import { getDek, setDek as storeDek, clearDek as storeClearDek, hasDekInMemory } from '@/lib/crypto/dek-store'
 import { getEncEnabled } from '@/app/actions/keys'
 
 type DekContextValue = {
@@ -73,7 +73,25 @@ export function DekProvider({ children }: { children: ReactNode }) {
         setDekState(null)
         setEncEnabled(false)
       } else if (session?.user?.id) {
-        userIdRef.current = session.user.id
+        const uid = session.user.id
+        userIdRef.current = uid
+        // The initial getSession() above can resolve before the session is
+        // hydrated, or getEncEnabled() can transiently see a not-yet-refreshed
+        // token and return false — leaving encEnabled stuck false (no unlock
+        // pill, edit guards inert) even though the account IS encrypted. When a
+        // session arrives/refreshes (INITIAL_SESSION / SIGNED_IN / TOKEN_REFRESHED),
+        // backfill the enc flag and the cached DEK so the locked state resolves.
+        void (async () => {
+          try {
+            if (!hasDekInMemory()) {
+              const k = await getDek(uid)
+              if (k && active) setDekState(k)
+            }
+            if (active) setEncEnabled(await getEncEnabled())
+          } catch {
+            /* keep current values */
+          }
+        })()
       }
     })
 

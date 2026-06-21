@@ -35,6 +35,7 @@ import { cycleProgress } from '@/lib/cadence'
 import { CelebrationOverlay, type CelebrationState } from '@/app/dashboard/components/CelebrationOverlay'
 import { useSaveGuard } from '@/app/components/useSaveGuard'
 import { useContentCrypto } from '@/app/components/useContentCrypto'
+import { useLocked } from '@/app/components/useDecrypted'
 
 type Cadence = 'weekly' | 'monthly'
 
@@ -95,6 +96,7 @@ function DroppableSection({ id, children }: { id: string; children: React.ReactN
 }
 
 export function MilestonesSection({ swellId, swellColor, milestones, swellMotions }: Props) {
+  const locked = useLocked()
   const [adding, setAdding] = useState(false)
   const [showCompleted, setShowCompleted] = useState(false)
   const [celebration, setCelebration] = useState<CelebrationState | null>(null)
@@ -231,7 +233,7 @@ export function MilestonesSection({ swellId, swellColor, milestones, swellMotion
         <p className="text-xs font-semibold uppercase tracking-widest text-th-muted">
           Waypoints
         </p>
-        {!adding && (
+        {!adding && !locked && (
           <button
             type="button"
             onClick={() => setAdding(true)}
@@ -498,12 +500,23 @@ function MilestoneRowName({
   const [, startSave] = useTransition()
   const guard = useSaveGuard()
   const { encryptContent } = useContentCrypto()
+  // Locked: name reads "🔒 Locked" and can't be edited (would overwrite the real
+  // encrypted name). Render it static; the rest of the waypoint row stays usable.
+  const locked = useLocked()
 
   function commit() {
     setEditing(false)
     const trimmed = draft.trim()
     if (!trimmed || trimmed === milestone.name) { setDraft(milestone.name); return }
     startSave(async () => { await guard(renameMilestone(milestone.id, await encryptContent(trimmed), swellId)) })
+  }
+
+  if (locked) {
+    return (
+      <span className={`min-w-0 flex-1 truncate text-sm ${completed ? 'text-th-faint line-through' : 'text-th-muted'}`}>
+        {milestone.name}
+      </span>
+    )
   }
 
   if (editing) {

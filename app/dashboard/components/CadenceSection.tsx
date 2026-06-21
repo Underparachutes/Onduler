@@ -8,6 +8,7 @@ import {
   updateMilestone,
 } from '@/app/actions/milestones'
 import { useContentCrypto } from '@/app/components/useContentCrypto'
+import { useLocked } from '@/app/components/useDecrypted'
 
 type Cadence = 'weekly' | 'monthly'
 type MotionSwell = { id: string; name: string; color: string; weight: number }
@@ -39,6 +40,9 @@ function pickPrimarySwell(swells: MotionSwell[]): MotionSwell | null {
 }
 
 export function CadenceSection({ motionId, motionName, motionSwells, trackingMode }: Props) {
+  // Locked: saving a cadence creates a waypoint stamped with the (unreadable)
+  // motion name, so editing is suppressed until unlock. The summary still shows.
+  const locked = useLocked()
   const [loading, setLoading] = useState(true)
   const [state, setState] = useState<CadenceState>(null)
   const [editing, setEditing] = useState(false)
@@ -197,7 +201,7 @@ export function CadenceSection({ motionId, motionName, motionSwells, trackingMod
     <div className="mb-6">
       <div className="mb-3 flex items-baseline justify-between gap-2">
         <p className="text-xs font-medium uppercase tracking-widest text-th-faint">Cadence</p>
-        {state && !editing && (
+        {state && !editing && !locked && (
           <button
             type="button"
             onClick={() => setEditing(true)}
@@ -212,7 +216,7 @@ export function CadenceSection({ motionId, motionName, motionSwells, trackingMod
         <p className="text-xs text-th-secondary">{summaryFor(state)}</p>
       )}
 
-      {!editing && !state && (
+      {!editing && !state && !locked && (
         <button
           type="button"
           onClick={() => setEditing(true)}

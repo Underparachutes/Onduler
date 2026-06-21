@@ -6,7 +6,7 @@ import { adoptBuild, setBuildSlot } from '@/app/actions/builds'
 import { detectMode } from '@/lib/theme-colors'
 import { setMvsMotions } from '@/app/actions/welcomeback'
 import { useSaveGuard } from '@/app/components/useSaveGuard'
-import { useDecrypted } from '@/app/components/useDecrypted'
+import { useDecrypted, useLocked } from '@/app/components/useDecrypted'
 import { useContentCrypto } from '@/app/components/useContentCrypto'
 
 type SlotKey = 'primary' | 'secondary'
@@ -28,6 +28,10 @@ export function ShapePicker({ primary, existingSwellNames: rawExistingSwellNames
   // leave the browser. Both inert (pass-through) until migration flips on.
   const existingSwellNames = useDecrypted(rawExistingSwellNames)
   const { encryptContent } = useContentCrypto()
+  // Locked: adopting a preset creates swells whose names we can't encrypt here.
+  // Suppress preset adoption until unlock (clearing a slot stays allowed — it
+  // touches no encrypted field).
+  const locked = useLocked()
   const [primarySlot, setPrimarySlot] = useState<string | null>(primary)
   const [previewKey, setPreviewKey] = useState<BuildKey | null>(null)
   const [isPending, startTransition] = useTransition()
@@ -99,12 +103,15 @@ export function ShapePicker({ primary, existingSwellNames: rawExistingSwellNames
 
         <section>
           <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-th-muted">Presets</p>
-          <div className="grid grid-cols-2 gap-3">
+          {locked && (
+            <p className="mb-3 text-xs text-th-muted">🔒 Unlock your content to add a starter set.</p>
+          )}
+          <div className={`grid grid-cols-2 gap-3 ${locked ? 'opacity-40' : ''}`}>
             {BUILD_PRESETS.map(p => (
               <PresetCard
                 key={p.key}
                 presetKey={p.key}
-                onTap={() => openPreview(p.key)}
+                onTap={() => { if (!locked) openPreview(p.key) }}
                 isActive={primarySlot === p.key}
               />
             ))}

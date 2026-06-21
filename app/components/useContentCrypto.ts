@@ -12,19 +12,28 @@ import { encryptField, decryptField } from '@/lib/crypto/content'
 export function useContentCrypto() {
   const { dek, encEnabled } = useDek()
   const active = !!dek && encEnabled
+  // Locked: this account is in ciphertext mode but no key is loaded. Writes must
+  // be refused — otherwise a save would either store plaintext into an encrypted
+  // account or persist the "🔒 Locked" placeholder over a real name. Edit UIs
+  // disable themselves while locked (useLocked); this is the last-line guard.
+  const locked = encEnabled && !dek
 
   // Encrypt one value (pass-through when inactive). Empty strings pass through
   // so "is it empty?" checks (required-name guards, nullable optional text)
   // keep working once encryption is active.
   const encryptContent = useCallback(
-    async (value: string): Promise<string> => (active && dek && value ? encryptField(dek, value) : value),
-    [active, dek],
+    async (value: string): Promise<string> => {
+      if (locked) throw new Error('Content is locked — unlock to make changes.')
+      return active && dek && value ? encryptField(dek, value) : value
+    },
+    [active, dek, locked],
   )
 
   // Encrypt the named string fields of a FormData in place, then return it —
   // for wrapping `<form action={…}>` server actions without reshaping the form.
   const encryptFormData = useCallback(
     async (fd: FormData, fields: readonly string[]): Promise<FormData> => {
+      if (locked) throw new Error('Content is locked — unlock to make changes.')
       if (!active || !dek) return fd
       for (const f of fields) {
         const v = fd.get(f)
@@ -32,7 +41,7 @@ export function useContentCrypto() {
       }
       return fd
     },
-    [active, dek],
+    [active, dek, locked],
   )
 
   // Decrypt one value (pass-through on plaintext / when inactive). Used by the

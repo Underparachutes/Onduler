@@ -6,7 +6,7 @@ import { saveReflection } from '@/app/actions/reflections'
 import { archiveAndStartFreshChapter } from '@/app/actions/chapters'
 import { useSaveGuard } from '@/app/components/useSaveGuard'
 import { useContentCrypto } from '@/app/components/useContentCrypto'
-import { useDecrypted } from '@/app/components/useDecrypted'
+import { useDecrypted, useLocked } from '@/app/components/useDecrypted'
 import { FrozenRadar } from './FrozenRadar'
 import { ceilDisplay, type DayKey } from '@/lib/periods'
 import { formatHrs } from '@/lib/format'
@@ -88,6 +88,7 @@ export function CycleCeremony({
   const [isPending, startTransition] = useTransition()
   const guard = useSaveGuard()
   const { encryptContent } = useContentCrypto()
+  const locked = useLocked()
 
   const isHours = trackingMode === 'hours'
   const totalActual = actuals.reduce((s, v) => s + v, 0)
@@ -149,6 +150,28 @@ export function CycleCeremony({
       }
       router.push('/onboarding')
     })
+  }
+
+  // Locked: the ceremony writes reflection text we can't encrypt on this device.
+  // Send them to unlock rather than failing mid-flow.
+  if (locked) {
+    return (
+      <div className="flex min-h-full flex-col items-center px-5 py-12">
+        <div className="flex w-full max-w-[22rem] flex-col gap-4">
+          <p className="text-xs uppercase tracking-widest text-th-muted">Anchor</p>
+          <p className="text-sm leading-relaxed text-th-muted">
+            🔒 Your content is locked on this device. Unlock it to sit with this {noun}&rsquo;s anchor.
+          </p>
+          <button
+            type="button"
+            onClick={() => router.push('/anchors')}
+            className="self-start text-xs text-th-faint transition-all hover:text-th-muted active:scale-[0.97]"
+          >
+            ← Back
+          </button>
+        </div>
+      </div>
+    )
   }
 
   return (

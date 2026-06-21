@@ -139,7 +139,7 @@ export function SettingsPanel({
   // EditGroupForm child (which seeds group.name into an uncontrolled input).
   // Gate on `ready` so none of them mount/seed from a pending blank. Inert +
   // ready synchronously until rows are ciphertext post-migration.
-  const { data: encData, ready } = useDecryptedReady({
+  const { data: encData, ready, locked } = useDecryptedReady({
     groups: rawGroups,
     hiddenMotions: rawHiddenMotions,
     assignableMotions: rawAssignableMotions,
@@ -545,6 +545,7 @@ export function SettingsPanel({
                     {['Morning rituals', 'Wind down'].map(name => (
                       <button
                         key={name}
+                        disabled={locked}
                         onClick={() => {
                           const color = getRandomThemeAccent(
                             document.documentElement.dataset.theme ?? 'biarritz',
@@ -552,7 +553,7 @@ export function SettingsPanel({
                           )
                           startTransition(async () => { await guard(createQuickGroup(await encryptContent(name), color)) })
                         }}
-                        className="rounded-full border border-th-border px-3 py-1 text-xs text-th-muted transition-colors hover:border-th-focus hover:text-th-text"
+                        className="rounded-full border border-th-border px-3 py-1 text-xs text-th-muted transition-colors hover:border-th-focus hover:text-th-text disabled:opacity-40"
                       >
                         + {name}
                       </button>

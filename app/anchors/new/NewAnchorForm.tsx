@@ -4,6 +4,7 @@ import { useActionState, useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createFreeAnchor } from '@/app/actions/reflections'
 import { useContentCrypto } from '@/app/components/useContentCrypto'
+import { useLocked } from '@/app/components/useDecrypted'
 import { ANCHOR_PROMPTS, THEME_LABELS, type AnchorPromptTheme } from '@/lib/anchorPrompts'
 import { formatWeekLabel } from '@/lib/cycles'
 
@@ -20,6 +21,7 @@ type Props = {
 
 export function NewAnchorForm({ thisWeek, lastWeek, showLastWeek }: Props) {
   const router = useRouter()
+  const locked = useLocked()
   const { encryptFormData } = useContentCrypto()
   const action = useCallback(
     async (prev: unknown, fd: FormData) => {
@@ -52,6 +54,26 @@ export function NewAnchorForm({ thisWeek, lastWeek, showLastWeek }: Props) {
   const chipBase = 'rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors active:scale-[0.97]'
   const chipActive = 'border-th-text bg-th-text text-th-bg'
   const chipIdle = 'border-th-border text-th-muted hover:bg-th-surface'
+
+  // Locked: a new anchor's text would be unencryptable on this device. Send them
+  // to unlock instead of writing plaintext (or failing) into an encrypted account.
+  if (locked) {
+    return (
+      <div className="flex flex-col gap-4">
+        <p className="text-xs uppercase tracking-widest text-th-muted">Drop an anchor</p>
+        <p className="text-sm leading-relaxed text-th-muted">
+          🔒 Your content is locked on this device. Unlock it to write a new anchor.
+        </p>
+        <button
+          type="button"
+          onClick={() => router.push('/anchors')}
+          className="self-start text-xs text-th-faint transition-all hover:text-th-muted active:scale-[0.97]"
+        >
+          ← Back
+        </button>
+      </div>
+    )
+  }
 
   return (
     <>

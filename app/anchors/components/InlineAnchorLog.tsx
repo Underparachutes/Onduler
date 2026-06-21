@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useTransition } from 'react'
 import Link from 'next/link'
 import { updateAnchorField, deleteAnchor, getAnchorsForPeriod, type AnchorRow } from '@/app/actions/reflections'
 import { useContentCrypto } from '@/app/components/useContentCrypto'
-import { useDecrypted } from '@/app/components/useDecrypted'
+import { useDecrypted, useLocked } from '@/app/components/useDecrypted'
 import { formatWeekLabel, formatMonthLabel, formatQuarterLabel, formatYearLabel } from '@/lib/cycles'
 
 type Period = 'week' | 'month' | 'quarter' | 'year'
@@ -171,6 +171,9 @@ function SaveOnBlurTextarea({
   const [error, setError] = useState<string | null>(null)
   const lastSaved = useRef(initialValue)
   const { encryptContent } = useContentCrypto()
+  // Locked: the field reads "🔒 Locked" and can't be edited (would overwrite the
+  // real encrypted text). Show it static until they unlock.
+  const locked = useLocked()
 
   // Adopt a late-arriving seed (async decrypt resolving post-migration) only
   // while the field is pristine, so an in-progress edit is never clobbered.
@@ -208,8 +211,9 @@ function SaveOnBlurTextarea({
         value={value}
         onChange={e => { setValue(e.target.value); setError(null) }}
         onBlur={handleBlur}
+        readOnly={locked}
         rows={3}
-        className="w-full resize-none rounded border border-th-border bg-th-surface px-2.5 py-2 text-sm text-th-text outline-none focus:border-th-focus"
+        className="w-full resize-none rounded border border-th-border bg-th-surface px-2.5 py-2 text-sm text-th-text outline-none focus:border-th-focus read-only:opacity-60"
       />
       {error && <p className="mt-0.5 text-[10px] text-red-500">{error}</p>}
     </div>

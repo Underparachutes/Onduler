@@ -55,7 +55,7 @@ export function DashboardView(rawProps: Props) {
   // here; plaintext flows down to DailyChecklist/AddMotionForm/DashboardShape.
   // Gate on `ready` so stateful children never seed from a pending blank.
   // Inert + ready synchronously until rows are ciphertext post-migration.
-  const { data: props, ready } = useDecryptedReady(rawProps)
+  const { data: props, ready, locked } = useDecryptedReady(rawProps)
   const [openForm, setOpenForm] = useState<null | 'motion' | 'group'>(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -132,8 +132,9 @@ export function DashboardView(rawProps: Props) {
                     <div ref={menuRef} className="relative">
                       <button
                         onClick={handlePlus}
+                        disabled={locked}
                         aria-label="Add"
-                        className="brand-text flex items-center justify-center text-3xl font-light leading-none text-th-muted transition-colors hover:text-th-text"
+                        className="brand-text flex items-center justify-center text-3xl font-light leading-none text-th-muted transition-colors hover:text-th-text disabled:opacity-40 disabled:hover:text-th-muted"
                       >
                         +
                       </button>
@@ -200,8 +201,9 @@ export function DashboardView(rawProps: Props) {
                   <div ref={menuRef} className="relative">
                     <button
                       onClick={handlePlus}
+                      disabled={locked}
                       aria-label="Add"
-                      className="brand-text flex items-center justify-center text-3xl font-light leading-none text-th-muted transition-colors hover:text-th-text"
+                      className="brand-text flex items-center justify-center text-3xl font-light leading-none text-th-muted transition-colors hover:text-th-text disabled:opacity-40 disabled:hover:text-th-muted"
                     >
                       +
                     </button>

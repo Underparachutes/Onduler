@@ -28,6 +28,7 @@ import { applyWeightEdit, defaultWeightForNewSwell, totalAllocation } from '@/li
 import { useToast } from '@/app/components/Toast'
 import { useSaveGuard } from '@/app/components/useSaveGuard'
 import { useContentCrypto } from '@/app/components/useContentCrypto'
+import { useLocked } from '@/app/components/useDecrypted'
 import { CadenceSection } from './CadenceSection'
 
 type Swell = { id: string; name: string; color: string }
@@ -125,6 +126,9 @@ function SortableSubmotion({
 }: SortableSubmotionProps) {
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } =
     useSortable({ id: sub.id })
+  // Locked: submotion name is unreadable, so renaming would corrupt it. Logging
+  // and viewing stay live; only the edit entry point is suppressed.
+  const locked = useLocked()
 
   if (isEditing) {
     return (
@@ -229,7 +233,8 @@ function SortableSubmotion({
       <button
         onPointerDown={e => e.stopPropagation()}
         onClick={() => onStartEdit(sub)}
-        className="shrink-0 p-2 text-th-faint transition-colors hover:text-th-muted"
+        disabled={locked}
+        className="shrink-0 p-2 text-th-faint transition-colors hover:text-th-muted disabled:opacity-40"
         aria-label="Edit submotion"
       >
         <svg viewBox="0 0 16 16" fill="currentColor" className="h-4 w-4">
@@ -269,6 +274,9 @@ export function MotionDetailSheet({
   const toast = useToast()
   const guard = useSaveGuard()
   const { encryptContent } = useContentCrypto()
+  // Locked: the name shows "🔒 Locked" and must stay read-only (editing would
+  // overwrite the real encrypted name). Pts/hrs and other fields aren't encrypted.
+  const locked = useLocked()
   const [localDone, setLocalDone] = useState(() => new Set(doneMotionIds))
   const [, startTransition] = useTransition()
 
@@ -645,7 +653,8 @@ export function MotionDetailSheet({
               value={headerName}
               onChange={e => setHeaderName(e.target.value)}
               onBlur={blurName}
-              className="min-w-0 flex-1 rounded-lg border border-th-border bg-th-surface px-3 py-2 text-xl font-semibold text-th-text outline-none focus:border-th-focus"
+              disabled={locked}
+              className="min-w-0 flex-1 rounded-lg border border-th-border bg-th-surface px-3 py-2 text-xl font-semibold text-th-text outline-none focus:border-th-focus disabled:opacity-60"
             />
             <button onClick={onClose} className="mt-0.5 shrink-0 text-th-faint transition-colors hover:text-th-muted">
               <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" strokeWidth="2" strokeLinecap="round">
@@ -661,7 +670,8 @@ export function MotionDetailSheet({
               value={headerPts}
               onChange={e => setHeaderPts(e.target.value)}
               onBlur={blurPts}
-              className="w-16 rounded-lg border border-th-border bg-th-surface px-3 py-2 text-sm text-th-text outline-none focus:border-th-focus"
+              disabled={locked}
+              className="w-16 rounded-lg border border-th-border bg-th-surface px-3 py-2 text-sm text-th-text outline-none focus:border-th-focus disabled:opacity-60"
             />
             <label className="shrink-0 text-xs text-th-muted">Hrs</label>
             <input
@@ -670,7 +680,8 @@ export function MotionDetailSheet({
               value={headerHrs}
               onChange={e => setHeaderHrs(e.target.value)}
               onBlur={blurHrs}
-              className="w-16 rounded-lg border border-th-border bg-th-surface px-3 py-2 text-sm text-th-text outline-none focus:border-th-focus"
+              disabled={locked}
+              className="w-16 rounded-lg border border-th-border bg-th-surface px-3 py-2 text-sm text-th-text outline-none focus:border-th-focus disabled:opacity-60"
             />
           </div>
         </div>
@@ -738,7 +749,8 @@ export function MotionDetailSheet({
                   return next
                 })
               }}
-              className={`${orderedSubs.length > 0 ? '' : 'ml-auto'} shrink-0 p-0.5 text-th-faint transition-colors hover:text-th-muted`}
+              disabled={locked}
+              className={`${orderedSubs.length > 0 ? '' : 'ml-auto'} shrink-0 p-0.5 text-th-faint transition-colors hover:text-th-muted disabled:opacity-40`}
               aria-label="Add submotion"
             >
               <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="h-4 w-4">
@@ -974,7 +986,7 @@ export function MotionDetailSheet({
               </button>
               <button
                 onClick={handleDuplicate}
-                disabled={duplicating}
+                disabled={duplicating || locked}
                 className="text-xs text-th-faint transition-colors disabled:opacity-50 hover:text-th-muted"
               >
                 {duplicating ? 'Duplicating…' : 'Duplicate'}

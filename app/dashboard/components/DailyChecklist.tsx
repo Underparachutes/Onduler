@@ -30,6 +30,7 @@ import { ceilDisplay, parseHoursInput } from '@/lib/periods'
 import { useToast } from '@/app/components/Toast'
 import { useSaveGuard } from '@/app/components/useSaveGuard'
 import { useContentCrypto } from '@/app/components/useContentCrypto'
+import { useLocked } from '@/app/components/useDecrypted'
 import dynamic from 'next/dynamic'
 import { type CelebrationState } from './CelebrationOverlay'
 import { SortableMotionList, SortableMotionRow } from './SortableMotionList'
@@ -349,6 +350,10 @@ export function DailyChecklist({
   const toast = useToast()
   const guard = useSaveGuard()
   const { encryptContent } = useContentCrypto()
+  // Locked: the "Keep both" duplicate stamps a (copy) name we can't encrypt here,
+  // so that option is dropped while locked. The move itself touches no encrypted
+  // field and stays available.
+  const locked = useLocked()
 
   // By-swell DnD state — container map keyed by swell ID (or 'unassigned')
   const [swellContainers, setSwellContainers] = useState<Record<string, Motion[]>>(() => ({}))
@@ -483,19 +488,21 @@ export function DailyChecklist({
           })
         },
       },
-      secondary: {
-        label: 'Keep both',
-        onClick: () => {
-          startTransition(async () => {
-            if (!await guard(setMotionSwells(activeMotionId, prevSwells))) return
-            // Build the "(copy)" name client-side from the displayed (decrypted) name.
-            const src = motions.find(m => m.id === activeMotionId)
-            const dupName = src ? await encryptContent(`${src.name} (copy)`) : undefined
-            if (!await guard(duplicateMotion(activeMotionId, { swellId: targetContainerId, weight: sourceWeight, name: dupName }))) return
-            router.refresh()
-          })
+      ...(locked ? {} : {
+        secondary: {
+          label: 'Keep both',
+          onClick: () => {
+            startTransition(async () => {
+              if (!await guard(setMotionSwells(activeMotionId, prevSwells))) return
+              // Build the "(copy)" name client-side from the displayed (decrypted) name.
+              const src = motions.find(m => m.id === activeMotionId)
+              const dupName = src ? await encryptContent(`${src.name} (copy)`) : undefined
+              if (!await guard(duplicateMotion(activeMotionId, { swellId: targetContainerId, weight: sourceWeight, name: dupName }))) return
+              router.refresh()
+            })
+          },
         },
-      },
+      }),
     })
   }
 

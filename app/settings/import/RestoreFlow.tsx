@@ -6,6 +6,7 @@ import { getImportEntities, type ImportClearMode } from '@/app/actions/import'
 import { restoreExport } from '@/app/actions/restore'
 import { resolveRestore } from '@/lib/restore-resolve'
 import { useContentCrypto } from '@/app/components/useContentCrypto'
+import { useLocked } from '@/app/components/useDecrypted'
 import type { ExportPayload } from '@/lib/export-format'
 import type { ExistingEntities } from '@/lib/import-resolve'
 
@@ -49,6 +50,9 @@ export function RestoreFlow({ hasExistingData }: { hasExistingData: boolean }) {
   const [clearMode, setClearMode] = useState<ImportClearMode>('none')
   const [armedDelete, setArmedDelete] = useState(false)
   const [isPending, startTransition] = useTransition()
+  // Locked: restore re-encrypts names/text as it rebuilds, which needs a key on
+  // this device. Block until they unlock.
+  const locked = useLocked()
 
   async function handleFile(file: File) {
     setError(null)
@@ -115,6 +119,14 @@ export function RestoreFlow({ hasExistingData }: { hasExistingData: boolean }) {
       setCounts(result.counts)
       setStep('done')
     })
+  }
+
+  if (locked) {
+    return (
+      <p className="text-sm leading-relaxed text-th-muted">
+        🔒 Your content is locked on this device. Unlock it before restoring, so the rebuilt entries can be encrypted with your key.
+      </p>
+    )
   }
 
   if (step === 'done' && counts) {
