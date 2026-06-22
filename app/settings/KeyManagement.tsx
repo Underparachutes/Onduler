@@ -24,6 +24,7 @@ import { UnlockPanel, type UnlockEnvelope } from '@/app/components/UnlockPanel'
 import {
   addPasswordSlot,
   buildRecoverySlot,
+  unlockWithRecoveryCode,
   passkeySupported,
   PasskeyUnsupportedError,
   PrfUnavailableError,
@@ -59,6 +60,13 @@ export function KeyManagement() {
   // so the OLD code stays valid until the user confirms they saved the new one.
   const [newCode, setNewCode] = useState<{ code: string; slot: WrappedSlot } | null>(null)
   const [codeCopied, setCodeCopied] = useState(false)
+  // Verify-my-code: a no-op check that the saved recovery code still unlocks,
+  // without locking out first. Derives the KEK from the typed code against the
+  // stored slot — no DEK needed, so it works locked or unlocked. The unwrapped
+  // DEK is discarded; this never changes any key material.
+  const [showVerify, setShowVerify] = useState(false)
+  const [verifyCode, setVerifyCode] = useState('')
+  const [verifyState, setVerifyState] = useState<'idle' | 'checking' | 'ok' | 'bad'>('idle')
   // Pending slot-add op waiting on a fresh (extractable) unlock — when set, the
   // re-auth panel shows and runs this once the user unlocks.
   const [reauth, setReauth] = useState<{ run: (dek: CryptoKey) => void | Promise<void> } | null>(null)
@@ -184,6 +192,19 @@ export function KeyManagement() {
   // Mint a fresh recovery code (needs the DEK in memory). Build it client-side
   // and show it; only persist — invalidating the old code — once the user
   // confirms they saved it.
+  async function verifyRecoveryCode() {
+    if (!envelope?.recovery) return
+    const code = verifyCode.trim()
+    if (!code) return
+    setVerifyState('checking')
+    try {
+      await unlockWithRecoveryCode(code, envelope.recovery) // throws on a wrong code
+      setVerifyState('ok')
+    } catch {
+      setVerifyState('bad')
+    }
+  }
+
   function regenerateCode() {
     setCodeCopied(false)
     withExtractableDek(async dek => {
@@ -411,6 +432,51 @@ export function KeyManagement() {
             </button>
           )}
         </div>
+
+        {/* Verify a saved code without locking out first — pure check, no change. */}
+        {!newCode && envelope?.recovery && (
+          showVerify ? (
+            <div className="flex flex-col gap-2">
+              <input
+                autoCapitalize="characters"
+                autoComplete="off"
+                spellCheck={false}
+                placeholder="XXXXX-XXXXX-XXXXX-XXXXX"
+                value={verifyCode}
+                onChange={e => { setVerifyCode(e.target.value); if (verifyState !== 'idle') setVerifyState('idle') }}
+                className="rounded-lg border border-th-border bg-th-surface px-3 py-2 text-center font-mono text-sm tracking-widest text-th-text outline-none focus:border-th-focus"
+              />
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={verifyRecoveryCode}
+                  disabled={verifyState === 'checking' || !verifyCode.trim()}
+                  className="rounded-lg bg-th-btn px-3 py-2 text-xs font-medium text-th-btn-text disabled:opacity-40"
+                >
+                  {verifyState === 'checking' ? 'Checking…' : 'Check'}
+                </button>
+                <button
+                  onClick={() => { setShowVerify(false); setVerifyCode(''); setVerifyState('idle') }}
+                  className="text-xs text-th-faint transition-colors hover:text-th-muted"
+                >
+                  Cancel
+                </button>
+              </div>
+              {verifyState === 'ok' && (
+                <p className="text-xs text-green-600">✓ That code works. Keep it somewhere safe.</p>
+              )}
+              {verifyState === 'bad' && (
+                <p className="text-xs text-red-500">That code didn’t match. Check for typos, or regenerate a new one.</p>
+              )}
+            </div>
+          ) : (
+            <button
+              onClick={() => { setShowVerify(true); setVerifyCode(''); setVerifyState('idle') }}
+              className="self-start text-xs text-th-faint transition-colors hover:text-th-muted"
+            >
+              Verify your saved code
+            </button>
+          )
+        )}
 
         {newCode && (
           <div className="flex flex-col gap-3">
