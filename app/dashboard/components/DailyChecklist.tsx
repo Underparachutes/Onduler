@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback, useTransition } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo, useTransition } from 'react'
 import {
   DndContext,
   DragOverlay,
@@ -27,6 +27,7 @@ import { setDailyGoal, setDailyGoalHours } from '@/app/actions/settings'
 import { reassignMotionToGroup, reorderMotions, setMotionSwells, duplicateMotion } from '@/app/actions/motions'
 import { formatPts, formatHrs } from '@/lib/format'
 import { ceilDisplay, parseHoursInput } from '@/lib/periods'
+import { ombreGradient, type SwellBand } from '@/lib/ombre'
 import { useToast } from '@/app/components/Toast'
 import { useSaveGuard } from '@/app/components/useSaveGuard'
 import { useContentCrypto } from '@/app/components/useContentCrypto'
@@ -541,6 +542,24 @@ export function DailyChecklist({
   const displayValue = viewsMode ? viewsWeekValue : localValue
   const displayGoal = viewsMode ? viewsWeekGoal : localGoal
   const progress = Math.min((displayValue / displayGoal) * 100, 100)
+
+  // Multi-swell ombré: bucket today's earned value per swell (base × contribution
+  // weight across each done motion), in stable on-screen swell order, so the fill
+  // doubles as a "where the effort went" breakdown. Daily bar only — Views (week)
+  // mode keeps the single-color bar. Spec: docs/specs/multi-swell-ombre-bar-2026-06-21.md
+  const todayBands: SwellBand[] = useMemo(() => {
+    const totals: Record<string, number> = {}
+    const allM = [...motions, ...Object.values(submotionsMap).flat()]
+    for (const m of allM) {
+      if (!localDone.has(m.id)) continue
+      const base = isHours ? Number(m.default_hours) : m.default_points
+      for (const s of m.swells) totals[s.id] = (totals[s.id] ?? 0) + base * s.weight
+    }
+    return allSwells
+      .map(s => ({ color: s.color, value: totals[s.id] ?? 0 }))
+      .filter(b => b.value > 0)
+  }, [localDone, motions, submotionsMap, allSwells, isHours])
+  const ombre = viewsMode ? null : ombreGradient(todayBands)
   const formatValue = (n: number) => isHours ? formatHrs(ceilDisplay(n, true)) : formatPts(ceilDisplay(n))
   const motionDelta = (motion: Motion) => isHours ? Number(motion.default_hours) : motion.default_points
 
@@ -779,7 +798,7 @@ export function DailyChecklist({
       <div className="flex-1 h-[5px] overflow-hidden rounded-full bg-th-surface">
         <div
           className="h-full rounded-full transition-all"
-          style={{ width: `${progress}%`, background: progressBarColor ? `linear-gradient(to right, color-mix(in oklch, ${progressBarColor} 35%, var(--th-surface)), ${progressBarColor})` : 'linear-gradient(to right, color-mix(in oklch, var(--brand) 35%, var(--th-surface)), var(--brand))', backgroundSize: `${100 / (progress / 100)}% 100%` }}
+          style={{ width: `${progress}%`, background: ombre ?? (progressBarColor ? `linear-gradient(to right, color-mix(in oklch, ${progressBarColor} 35%, var(--th-surface)), ${progressBarColor})` : 'linear-gradient(to right, color-mix(in oklch, var(--brand) 35%, var(--th-surface)), var(--brand))'), backgroundSize: ombre ? '100% 100%' : `${100 / (progress / 100)}% 100%` }}
         />
       </div>
       <div className="relative shrink-0" ref={filterRef}>
