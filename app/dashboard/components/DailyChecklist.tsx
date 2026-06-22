@@ -1025,6 +1025,7 @@ export function DailyChecklist({
             divingId={divingId}
             onLog={handleLog}
             onOpenSheet={setOpenSheetId}
+            onShowCompleted={() => toggleFilter('hideCompleted')}
           />
         </div>
         {detailSheet}

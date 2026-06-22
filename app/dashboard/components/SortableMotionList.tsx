@@ -219,6 +219,9 @@ type ListProps = {
   divingId?: string | null
   onLog: (motion: Motion, x: number, y: number, rowBottom?: number, intensity?: Intensity) => void
   onOpenSheet: (id: string) => void
+  /** Turn off "Hide completed" — used by the all-done hint so an empty list
+   *  isn't a dead end. */
+  onShowCompleted?: () => void
 }
 
 export function SortableMotionList({
@@ -234,6 +237,7 @@ export function SortableMotionList({
   divingId = null,
   onLog,
   onOpenSheet,
+  onShowCompleted,
 }: ListProps) {
   const [ordered, setOrdered] = useState(motions)
   const [dragging, setDragging] = useState(false)
@@ -268,6 +272,15 @@ export function SortableMotionList({
     return true
   })
 
+  // "Hide completed" is on and it's the only reason nothing's showing — i.e. the
+  // list is empty because everything left is done. Without a hint this reads as a
+  // broken/empty screen, so offer a gentle nudge + a way back to the full list.
+  const allDoneHidden =
+    !q &&
+    visible.length === 0 &&
+    hideDone &&
+    ordered.some(m => !localHiddenIds.has(m.id) && localDone.has(m.id))
+
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={() => setDragging(true)} onDragEnd={handleDragEnd} onDragCancel={() => setDragging(false)}>
       {dragging && <div className="fixed inset-0 z-40" />}
@@ -287,6 +300,19 @@ export function SortableMotionList({
           ))}
           {visible.length === 0 && q && (
             <p className="py-4 text-center text-sm text-th-faint">No motions match &ldquo;{searchQuery}&rdquo;</p>
+          )}
+          {allDoneHidden && (
+            <div className="py-8 text-center">
+              <p className="text-sm text-th-muted">You&rsquo;ve logged everything for today.</p>
+              {onShowCompleted && (
+                <button
+                  onClick={onShowCompleted}
+                  className="mt-1 text-sm text-th-secondary hover:underline"
+                >
+                  Show all
+                </button>
+              )}
+            </div>
           )}
         </div>
       </SortableContext>
