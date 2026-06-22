@@ -24,6 +24,11 @@ type DekContextValue = {
   /** Re-read enc_enabled (e.g. right after migration flips it) so the write/
    *  read paths activate without a full reload. */
   refreshEncEnabled: () => Promise<void>
+  /** Drop a DEK that can't decrypt this account's content (a stale/wrong cached
+   *  key, e.g. left over after the account's DEK changed) WITHOUT lowering
+   *  encEnabled — so the locked state + unlock pill engage and the user can
+   *  re-unlock with a valid slot, instead of being stranded on blank labels. */
+  invalidateDek: () => Promise<void>
   /** Ground-truth correction: the read path calls this when it finds ciphertext
    *  it can't read (definitely an encrypted account), so the gate + edit-locks
    *  engage even if the server `getEncEnabled` fetch lost a race on this load.
@@ -137,6 +142,14 @@ export function DekProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  const invalidateDek = useCallback(async () => {
+    await storeClearDek()
+    setDekState(null)
+    // Deliberately keep encEnabled: the account is still encrypted, we've only
+    // lost a usable key. Lowering it would hide the unlock pill (UnlockGate gates
+    // on encEnabled) and strand the user on blank labels.
+  }, [])
+
   // Only ever raises the flag (idempotent: React bails when it's already true),
   // so a ground-truth "this is ciphertext" can rescue a stuck-false fetch but a
   // transient false can never lower a confirmed-true flag.
@@ -145,7 +158,7 @@ export function DekProvider({ children }: { children: ReactNode }) {
   }, [])
 
   return (
-    <DekContext.Provider value={{ dek, loading, encEnabled, setDek, clearDek, refreshEncEnabled, confirmEncrypted }}>
+    <DekContext.Provider value={{ dek, loading, encEnabled, setDek, clearDek, refreshEncEnabled, confirmEncrypted, invalidateDek }}>
       {children}
     </DekContext.Provider>
   )
