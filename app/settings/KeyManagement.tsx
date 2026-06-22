@@ -6,12 +6,21 @@
 // and only WRAPPED blobs reach the server. Adding a slot needs the DEK in memory
 // (so the content must be unlocked); removing one doesn't.
 //
+// EXTRACTABLE-DEK requirement: wrapping a new slot exports the DEK's raw bytes,
+// which only works on an EXTRACTABLE key. The session-cached DEK (IndexedDB) is
+// stored NON-extractable for at-rest safety, so after a reload it can decrypt but
+// can't be wrapped — exportKey throws InvalidStateError. So every slot-add op
+// routes through `withExtractableDek`: if the live DEK isn't extractable (cached,
+// or absent), it forces a fresh unlock via UnlockPanel, adopts that extractable
+// key, then runs. A freshly unlocked DEK is extractable, so it wraps fine.
+//
 // Guard rail: never drop below one primary unlock (passkey or password). Recovery
 // is a backup, not a day-to-day unlock, so it can't be the last thing standing.
 // Spec: docs/specs/private-content-encryption.md (step 7 — slot management).
 
 import { useEffect, useState } from 'react'
 import { useDek } from '@/app/components/DekProvider'
+import { UnlockPanel, type UnlockEnvelope } from '@/app/components/UnlockPanel'
 import {
   addPasswordSlot,
   buildRecoverySlot,
@@ -35,10 +44,11 @@ import {
 type PasskeyRow = { credentialId: string; label: string | null }
 
 export function KeyManagement() {
-  const { dek } = useDek()
+  const { dek, setDek } = useDek()
   const [loading, setLoading] = useState(true)
   const [state, setState] = useState<EncSetupState | null>(null)
   const [passkeys, setPasskeys] = useState<PasskeyRow[]>([])
+  const [envelope, setEnvelope] = useState<UnlockEnvelope | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
@@ -49,11 +59,15 @@ export function KeyManagement() {
   // so the OLD code stays valid until the user confirms they saved the new one.
   const [newCode, setNewCode] = useState<{ code: string; slot: WrappedSlot } | null>(null)
   const [codeCopied, setCodeCopied] = useState(false)
+  // Pending slot-add op waiting on a fresh (extractable) unlock — when set, the
+  // re-auth panel shows and runs this once the user unlocks.
+  const [reauth, setReauth] = useState<{ run: (dek: CryptoKey) => void | Promise<void> } | null>(null)
 
   async function refresh() {
     const [s, env] = await Promise.all([getEncSetupState(), getKeyEnvelope()])
     setState(s)
     setPasskeys(env.passkeys.map(p => ({ credentialId: p.credentialId, label: p.label ?? null })))
+    setEnvelope({ passkeys: env.passkeys, recovery: env.recovery, password: env.password })
   }
 
   useEffect(() => {
@@ -63,6 +77,7 @@ export function KeyManagement() {
         if (!active) return
         setState(s)
         setPasskeys(env.passkeys.map(p => ({ credentialId: p.credentialId, label: p.label ?? null })))
+        setEnvelope({ passkeys: env.passkeys, recovery: env.recovery, password: env.password })
       })
       .catch(() => { if (active) setError('Couldn’t load your privacy settings.') })
       .finally(() => { if (active) setLoading(false) })
@@ -85,34 +100,58 @@ export function KeyManagement() {
     }
   }
 
-  async function addPasskey() {
-    if (!dek) { setError('Unlock your private content first, then add a passkey.'); return }
-    await run(async () => {
-      try {
-        const slot = await registerPasskey(dek)
-        const res = await persistPasskeySlot(slot, { replaceExisting: false })
-        if (res.error) throw new Error(res.error)
-        setNotice('Passkey added.')
-      } catch (e) {
-        if (e instanceof PasskeyUnsupportedError) throw new Error('This device doesn’t support passkeys.')
-        if (e instanceof PrfUnavailableError) throw new Error('That passkey can’t protect your content. Try a different one.')
-        throw e
-      }
-    })
+  // Run `fn` with an EXTRACTABLE DEK. Wrapping a new slot reads the DEK's raw
+  // bytes, which only works on an extractable key — the session-cached DEK is
+  // non-extractable, so after a reload it can't be wrapped. When the live DEK
+  // isn't usable (cached or absent), stash the op and surface the re-auth panel;
+  // the fresh unlock yields an extractable key that wraps fine.
+  function withExtractableDek(fn: (dek: CryptoKey) => void | Promise<void>) {
+    if (dek?.extractable) { void fn(dek); return }
+    if (!envelope) { setError('Couldn’t load your unlock options. Reload and try again.'); return }
+    setError(null)
+    setNotice(null)
+    setReauth({ run: fn })
   }
 
-  async function enablePassword() {
-    if (!dek) { setError('Unlock your private content first, then add a password.'); return }
+  // Fresh unlock came back (extractable). Adopt it for the session, then run the
+  // op that was waiting on it.
+  async function onReauthUnlock(freshDek: CryptoKey) {
+    const op = reauth?.run
+    setReauth(null)
+    await setDek(freshDek)
+    await op?.(freshDek)
+  }
+
+  function addPasskey() {
+    withExtractableDek(dek =>
+      run(async () => {
+        try {
+          const slot = await registerPasskey(dek)
+          const res = await persistPasskeySlot(slot, { replaceExisting: false })
+          if (res.error) throw new Error(res.error)
+          setNotice('Passkey added.')
+        } catch (e) {
+          if (e instanceof PasskeyUnsupportedError) throw new Error('This device doesn’t support passkeys.')
+          if (e instanceof PrfUnavailableError) throw new Error('That passkey can’t protect your content. Try a different one.')
+          throw e
+        }
+      }),
+    )
+  }
+
+  function enablePassword() {
     const value = pw.trim()
     if (value.length < 6) { setError('Use at least 6 characters — your account password.'); return }
-    await run(async () => {
-      const slot = await addPasswordSlot(dek, value)
-      const res = await persistPasswordSlot(slot)
-      if (res.error) throw new Error(res.error)
-      setShowPwForm(false)
-      setPw('')
-      setNotice('Password fallback enabled.')
-    })
+    withExtractableDek(dek =>
+      run(async () => {
+        const slot = await addPasswordSlot(dek, value)
+        const res = await persistPasswordSlot(slot)
+        if (res.error) throw new Error(res.error)
+        setShowPwForm(false)
+        setPw('')
+        setNotice('Password fallback enabled.')
+      }),
+    )
   }
 
   async function disablePassword() {
@@ -145,17 +184,18 @@ export function KeyManagement() {
   // Mint a fresh recovery code (needs the DEK in memory). Build it client-side
   // and show it; only persist — invalidating the old code — once the user
   // confirms they saved it.
-  async function regenerateCode() {
-    if (!dek) { setError('Unlock your private content first, then regenerate your code.'); return }
-    setError(null)
-    setNotice(null)
+  function regenerateCode() {
     setCodeCopied(false)
-    try {
-      const { recoveryCode, recovery } = await buildRecoverySlot(dek)
-      setNewCode({ code: recoveryCode, slot: recovery })
-    } catch {
-      setError('Couldn’t generate a new code. Try again.')
-    }
+    withExtractableDek(async dek => {
+      setError(null)
+      setNotice(null)
+      try {
+        const { recoveryCode, recovery } = await buildRecoverySlot(dek)
+        setNewCode({ code: recoveryCode, slot: recovery })
+      } catch {
+        setError('Couldn’t generate a new code. Try again.')
+      }
+    })
   }
 
   function downloadCode(code: string) {
@@ -220,10 +260,28 @@ export function KeyManagement() {
         you can unlock them.
       </p>
 
-      {locked && (
+      {locked && !reauth && (
         <p className="rounded-lg bg-th-surface px-3 py-2 text-xs text-th-faint">
-          Unlock your private content to add a passkey or password.
+          Your content is locked on this device. Adding or changing a key will ask you to unlock first.
         </p>
+      )}
+
+      {reauth && envelope && (
+        <div className="flex flex-col gap-3 rounded-xl border border-th-border bg-th-surface p-4">
+          <div>
+            <p className="text-sm font-medium text-th-text">Confirm it’s you</p>
+            <p className="mt-1 text-xs leading-relaxed text-th-muted">
+              Unlock once more to change how your content is protected on this device.
+            </p>
+          </div>
+          <UnlockPanel envelope={envelope} onUnlock={onReauthUnlock} />
+          <button
+            onClick={() => { setReauth(null); setError(null) }}
+            className="text-center text-xs text-th-faint transition-colors hover:text-th-muted"
+          >
+            Cancel
+          </button>
+        </div>
       )}
 
       {/* Passkeys */}
@@ -257,7 +315,7 @@ export function KeyManagement() {
         {canAddPasskey && (
           <button
             onClick={addPasskey}
-            disabled={busy || locked}
+            disabled={busy || !!reauth}
             className="self-start text-sm text-th-secondary hover:underline disabled:opacity-40"
           >
             {busy ? 'Working…' : 'Add a passkey'}
@@ -295,7 +353,7 @@ export function KeyManagement() {
             !showPwForm && (
               <button
                 onClick={() => { setShowPwForm(true); setError(null); setNotice(null) }}
-                disabled={locked}
+                disabled={!!reauth}
                 className="text-sm text-th-secondary hover:underline disabled:opacity-40"
               >
                 Enable
@@ -346,7 +404,7 @@ export function KeyManagement() {
           {!newCode && (
             <button
               onClick={regenerateCode}
-              disabled={busy || locked}
+              disabled={busy || !!reauth}
               className="shrink-0 text-sm text-th-secondary hover:underline disabled:opacity-40"
             >
               Regenerate
