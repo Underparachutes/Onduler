@@ -41,6 +41,7 @@ type Step = 'primary' | 'password' | 'recovery'
 
 export function KeySetup({
   password,
+  adoptDek = true,
   onComplete,
 }: {
   userId?: string
@@ -48,7 +49,15 @@ export function KeySetup({
   /** The account password, if already in memory (signup path) — reused for the
    *  fallback slot so the user never types a second password. */
   password?: string
-  onComplete: () => void
+  /** Push the new DEK into DekProvider on finish (default). The relabel flow sets
+   *  this false: adopting the DEK flips the unlock gate to "unlocked" and would
+   *  unmount the in-progress relabel before its content rewrite runs, so it
+   *  adopts the key itself only after the rewrite finishes. */
+  adoptDek?: boolean
+  /** Receives the freshly created DEK. Most callers rely on DekProvider (setDek
+   *  runs first) and ignore it; the relabel flow needs the key in hand to rewrite
+   *  content under it. */
+  onComplete: (dek?: CryptoKey) => void
 }) {
   const { setDek } = useDek()
   const [step, setStep] = useState<Step>('primary')
@@ -146,8 +155,8 @@ export function KeySetup({
         const pkRes = await persistPasskeySlot(passkeyRef.current, { replaceExisting: true })
         if (pkRes.error) throw new Error(pkRes.error)
       }
-      await setDek(core.dek)
-      onComplete()
+      if (adoptDek) await setDek(core.dek)
+      onComplete(core.dek)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Something went wrong saving your keys.')
       setBusy(false)

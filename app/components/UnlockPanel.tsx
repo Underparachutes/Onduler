@@ -30,12 +30,18 @@ export function UnlockPanel({
   envelope,
   onUnlock,
   recoveryLabel = 'Unlock with recovery code',
+  showUnavailable = false,
 }: {
   envelope: UnlockEnvelope
   /** Called with the unwrapped DEK. May throw to surface an error in the panel
    *  (e.g. a downstream re-wrap failed) — the slot itself unlocked fine. */
   onUnlock: (dek: CryptoKey) => void | Promise<void>
   recoveryLabel?: string
+  /** Genuine-lockout surfaces (the unlock gate, /protect) set this so the user
+   *  sees EVERY method and which ones aren't set up — they can rule each out
+   *  before considering a wipe. Left false where a method is intentionally
+   *  withheld (reset-password hides the password slot it's repairing). */
+  showUnavailable?: boolean
 }) {
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -77,14 +83,24 @@ export function UnlockPanel({
     setBusy(false)
   }
 
+  const hasPasskey = envelope.passkeys.length > 0
+  const canPasskey = hasPasskey && passkeySupported()
+
   return (
     <>
       {error && <p className="mb-4 text-sm text-red-500">{error}</p>}
 
-      {!showRecovery && envelope.passkeys.length > 0 && passkeySupported() && (
+      {!showRecovery && canPasskey && (
         <button className={btnPrimary + ' mb-3 w-full'} disabled={busy} onClick={unlockPasskey}>
           {busy ? 'Unlocking…' : 'Unlock with passkey'}
         </button>
+      )}
+      {!showRecovery && showUnavailable && !canPasskey && (
+        <p className="mb-3 text-sm text-th-faint">
+          {hasPasskey
+            ? 'You have a passkey, but this device or browser can’t use it. Try the device where you set it up.'
+            : 'No passkey is set up on this account.'}
+        </p>
       )}
 
       {!showRecovery && envelope.password && (
@@ -105,6 +121,11 @@ export function UnlockPanel({
             Unlock with password
           </button>
         </div>
+      )}
+      {!showRecovery && showUnavailable && !envelope.password && (
+        <p className="mb-3 text-sm text-th-faint">
+          No password unlock is set up on this account.
+        </p>
       )}
 
       {showRecovery && envelope.recovery && (
@@ -128,7 +149,7 @@ export function UnlockPanel({
         </div>
       )}
 
-      {envelope.recovery && (
+      {envelope.recovery ? (
         <button
           className="mt-2 w-full text-center text-xs text-th-faint"
           onClick={() => {
@@ -139,6 +160,10 @@ export function UnlockPanel({
         >
           {showRecovery ? 'Back to other options' : 'Use my recovery code instead'}
         </button>
+      ) : (
+        showUnavailable && (
+          <p className="mt-2 text-center text-xs text-th-faint">No recovery code is on file.</p>
+        )
       )}
     </>
   )

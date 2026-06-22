@@ -5,7 +5,7 @@
 // consume `useDek()`. Hydrates from the dek-store cache on mount and clears the
 // cache when Supabase reports a sign-out, so a logged-out device keeps no key.
 
-import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { getDek, setDek as storeDek, clearDek as storeClearDek, hasDekInMemory } from '@/lib/crypto/dek-store'
 import { getEncEnabled } from '@/app/actions/keys'
@@ -24,6 +24,11 @@ type DekContextValue = {
   /** Re-read enc_enabled (e.g. right after migration flips it) so the write/
    *  read paths activate without a full reload. */
   refreshEncEnabled: () => Promise<void>
+  /** Ground-truth correction: the read path calls this when it finds ciphertext
+   *  it can't read (definitely an encrypted account), so the gate + edit-locks
+   *  engage even if the server `getEncEnabled` fetch lost a race on this load.
+   *  One-way — only ever sets the flag true, never false. */
+  confirmEncrypted: () => void
 }
 
 const DekContext = createContext<DekContextValue | null>(null)
@@ -132,8 +137,15 @@ export function DekProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  // Only ever raises the flag (idempotent: React bails when it's already true),
+  // so a ground-truth "this is ciphertext" can rescue a stuck-false fetch but a
+  // transient false can never lower a confirmed-true flag.
+  const confirmEncrypted = useCallback(() => {
+    setEncEnabled(prev => prev || true)
+  }, [])
+
   return (
-    <DekContext.Provider value={{ dek, loading, encEnabled, setDek, clearDek, refreshEncEnabled }}>
+    <DekContext.Provider value={{ dek, loading, encEnabled, setDek, clearDek, refreshEncEnabled, confirmEncrypted }}>
       {children}
     </DekContext.Provider>
   )

@@ -19,7 +19,7 @@ import { usePathname } from 'next/navigation'
 import { useDek } from '@/app/components/DekProvider'
 import { getKeyEnvelope } from '@/app/actions/keys'
 import { UnlockPanel, type UnlockEnvelope } from '@/app/components/UnlockPanel'
-import { StartFreshEscape } from '@/app/components/StartFreshEscape'
+import { LockoutRecovery } from '@/app/components/LockoutRecovery'
 import { Shell } from '@/app/components/KeySetup'
 
 const EXEMPT = ['/protect', '/login', '/signup', '/forgot-password', '/reset-password']
@@ -72,14 +72,18 @@ export function UnlockGate() {
         <h1 className="mb-3 text-2xl font-semibold text-th-text">Unlock your content</h1>
         <p className="mb-6 text-sm leading-relaxed text-th-muted">
           Your private labels and journal entries are locked on this device. Your data is all still
-          here — unlock once with your passkey or recovery code to see the names again.
+          here — unlock once with whichever you set up to see the names again.
         </p>
         {envelope ? (
-          <UnlockPanel envelope={envelope} onUnlock={async k => { await setDek(k); setOpen(false) }} />
+          <UnlockPanel
+            envelope={envelope}
+            onUnlock={async k => { await setDek(k); setOpen(false) }}
+            showUnavailable
+          />
         ) : (
           <p className="text-sm text-th-muted">Loading…</p>
         )}
-        <StartFreshEscape />
+        <LockoutRecovery />
       </Shell>
     </div>
   )

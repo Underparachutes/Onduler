@@ -273,3 +273,34 @@ export async function startFreshAfterLockout(): Promise<{ error?: string }> {
   revalidatePath('/', 'layout')
   return {}
 }
+
+// The gentler sibling of startFreshAfterLockout: the user lost every unlock but
+// wants to KEEP their history and only reset the unreadable labels. Clear all
+// stale key material so a fresh KeySetup installs clean slots — but keep the
+// data, keep onboarding, and crucially keep enc_enabled = TRUE. Leaving the flag
+// true is deliberate: the /protect migration gate only fires when it's false, and
+// that gate's migration would skip the now-stale `enc:` rows (it can't tell them
+// from fresh ciphertext) and wrongly re-enable encryption over garbage. With the
+// flag left true, the only path that rewrites those rows is the relabel flow
+// itself (runRelabel). DESTRUCTIVE only to key material; RLS-scoped to the caller.
+export async function resetKeysForRelabel(): Promise<{ error?: string }> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const { error: pkErr } = await supabase.from('user_key_passkeys').delete().eq('user_id', user.id)
+  if (pkErr) return { error: pkErr.message }
+
+  const { error: setErr } = await supabase
+    .from('user_settings')
+    .update({
+      enc_dek_recovery: null,
+      enc_recovery_salt: null,
+      enc_dek_password: null,
+      enc_kdf_salt: null,
+    })
+    .eq('user_id', user.id)
+  if (setErr) return { error: setErr.message }
+
+  return {}
+}

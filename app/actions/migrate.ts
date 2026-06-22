@@ -11,6 +11,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { REFLECTION_FIELDS, type MigrationContent, type MigrationUpdates } from '@/lib/crypto/migrate'
+import type { RelabelUpdates } from '@/lib/crypto/relabel'
 
 export async function getContentForMigration(): Promise<MigrationContent> {
   const supabase = await createClient()
@@ -42,6 +43,29 @@ export async function getContentForMigration(): Promise<MigrationContent> {
 // targeted updates is fine — and far simpler than a bulk upsert (which would
 // need every NOT NULL column in the payload). The server can't read any value.
 export async function writeMigratedContent(updates: MigrationUpdates): Promise<{ error?: string }> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+  const uid = user.id
+
+  const tasks: PromiseLike<{ error: { message: string } | null }>[] = []
+  for (const m of updates.motions) tasks.push(supabase.from('motions').update({ name: m.name }).eq('id', m.id).eq('user_id', uid))
+  for (const s of updates.swells) tasks.push(supabase.from('swells').update({ name: s.name }).eq('id', s.id).eq('user_id', uid))
+  for (const g of updates.groups) tasks.push(supabase.from('groups').update({ name: g.name }).eq('id', g.id).eq('user_id', uid))
+  for (const ms of updates.milestones) tasks.push(supabase.from('milestones').update({ name: ms.name }).eq('id', ms.id).eq('user_id', uid))
+  for (const r of updates.reflections) tasks.push(supabase.from('reflections').update(r.fields).eq('id', r.id).eq('user_id', uid))
+
+  const results = await Promise.all(tasks)
+  const failed = results.find(r => r.error)
+  if (failed?.error) return { error: failed.error.message }
+  return {}
+}
+
+// Blind per-row rewrite for the relabel-after-lockout flow. Same shape as
+// writeMigratedContent, but reflection fields may be null (the user's old journal
+// text was sealed under the lost key and can't be recovered, so it's cleared).
+// The server still can't read any value it writes.
+export async function writeRelabeledContent(updates: RelabelUpdates): Promise<{ error?: string }> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }

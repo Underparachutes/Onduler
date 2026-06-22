@@ -13,7 +13,7 @@ import { useRouter } from 'next/navigation'
 import { useDek } from '@/app/components/DekProvider'
 import { KeySetup, Shell, btnPrimary } from '@/app/components/KeySetup'
 import { UnlockPanel, type UnlockEnvelope } from '@/app/components/UnlockPanel'
-import { StartFreshEscape } from '@/app/components/StartFreshEscape'
+import { LockoutRecovery } from '@/app/components/LockoutRecovery'
 import { runMigration } from './runMigration'
 
 type Envelope = UnlockEnvelope
@@ -146,8 +146,8 @@ function UnlockFlow({ envelope }: { envelope: Envelope }) {
         Unlock your private labels and journal entries on this device.
       </p>
       {/* On success the context holds the DEK; ProtectFlow re-renders and we unmount. */}
-      <UnlockPanel envelope={envelope} onUnlock={setDek} />
-      <StartFreshEscape />
+      <UnlockPanel envelope={envelope} onUnlock={setDek} showUnavailable />
+      <LockoutRecovery />
     </Shell>
   )
 }
