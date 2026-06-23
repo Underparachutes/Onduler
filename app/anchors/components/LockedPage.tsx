@@ -52,7 +52,7 @@ export function LockedPage({ actuals = [], inWave = false, hintSeen = true }: Pr
         </div>
       </div>
 
-      <div className="relative flex flex-1 flex-col items-center justify-center overflow-hidden pb-28 text-center">
+      <div className="anchors-dark-field relative flex flex-1 flex-col items-center justify-center overflow-hidden bg-th-bg pb-28 text-center">
         <WaveField lines={WAVE_LINES} />
 
         <div className="relative w-full max-w-[22rem] px-5" style={{ zIndex: 1 }}>

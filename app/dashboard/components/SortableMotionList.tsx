@@ -86,6 +86,17 @@ type RowProps = {
   onOpenSheet: () => void
 }
 
+// Carve the center out of a painted box so only a colored ring shows, with the
+// center kept genuinely transparent (a wallpaper photo shows through instead of
+// being covered by a theme-bg fill). Standard mask-compositing border trick.
+export const RING_MASK: React.CSSProperties = {
+  padding: 2,
+  WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+  WebkitMaskComposite: 'xor',
+  mask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+  maskComposite: 'exclude',
+}
+
 // Checkbox paint that ties a motion to its swell(s): a solid swell color, or a
 // weighted ombré when the motion spans several swells, so the link survives even
 // with swell titles hidden. null → no swell, caller keeps the neutral treatment.
@@ -165,9 +176,8 @@ export function SortableMotionRow({ motion, done, diving, trackingMode, hidePtsH
           className={`relative flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center rounded transition-all ${
             checkPaint ? '' : checked ? 'border-2 border-th-btn text-th-btn' : 'border-2 border-th-border'
           }`}
-          style={checkPaint ? { background: checkPaint } : undefined}
+          style={checkPaint ? (checked ? { background: checkPaint } : { background: checkPaint, ...RING_MASK }) : undefined}
         >
-          {checkPaint && !checked && <span className="absolute inset-[2px] rounded-[3px] bg-th-bg" />}
           {checked && (
             <svg viewBox="0 0 12 10" fill="none" className="relative h-3 w-3">
               <path d="M1 5l3.5 3.5L11 1" stroke={checkPaint ? checkInk : 'currentColor'} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />

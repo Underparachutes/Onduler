@@ -288,6 +288,50 @@ body {
   font-feature-settings: 'ss01', 'tnum';
 }
 
+/* Locked Anchors field — the wake + wave visuals are light ink on a dark field,
+ * so they wash out on a light surface. Force this element to the active theme's
+ * DARK palette even in OS light mode; the floating top pill is a sibling outside
+ * this element and so keeps the normal light chrome (as does the bottom/side
+ * nav). The values below mirror each theme's dark block, so in OS dark mode this
+ * is a no-op. */
+[data-theme="tjornuvik"] .anchors-dark-field,
+:root:not([data-theme]) .anchors-dark-field {
+  --th-bg: #090a0c;
+  --th-surface: #14171a;
+  --th-surface-2: #1c2024;
+  --th-text: #eef2f0;
+  --th-secondary: #bbc2c0;
+  --th-muted: #8c938f;
+  --th-faint: #5a625e;
+  --th-border: #262b2e;
+  --th-border-soft: #181c1f;
+  --th-accent: #f4f7fa;
+}
+[data-theme="bolinas"] .anchors-dark-field {
+  --th-bg: #181410;
+  --th-surface: #231c15;
+  --th-surface-2: #2e251c;
+  --th-text: #f0e5d2;
+  --th-secondary: #cfbe9f;
+  --th-muted: #9e8e74;
+  --th-faint: #645847;
+  --th-border: #342a1f;
+  --th-border-soft: #251e15;
+  --th-accent: #c4d266;
+}
+[data-theme="biarritz"] .anchors-dark-field {
+  --th-bg: #0e2329;
+  --th-surface: #15303a;
+  --th-surface-2: #1e404c;
+  --th-text: #f3ebd9;
+  --th-secondary: #d3c9b3;
+  --th-muted: #aea590;
+  --th-faint: #6d7a82;
+  --th-border: #244a56;
+  --th-border-soft: #1a3742;
+  --th-accent: #de7140;
+}
+
 /* Prevent Safari auto-zoom on focus — iOS zooms inputs below 16px and
    doesn't reset on blur, breaking fixed nav and requiring manual pinch. */
 input, textarea, select { font-size: 16px; }
