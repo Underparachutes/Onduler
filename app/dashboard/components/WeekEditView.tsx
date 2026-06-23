@@ -88,17 +88,23 @@ function DayBox({
       onPointerUp={cancelPress}
       onPointerLeave={cancelPress}
       onClick={handleClick}
+      onContextMenu={(e) => e.preventDefault()}
       disabled={isFuture}
-      className={`flex h-7 w-7 items-center justify-center rounded text-xs transition-colors ${
+      className={`flex h-7 w-7 select-none items-center justify-center rounded text-xs transition-colors ${
         isFuture
           ? 'bg-th-surface/50 text-th-faint/30 cursor-default'
           : count > 0
             ? 'text-th-btn font-semibold'
             : 'bg-th-surface text-th-faint hover:bg-th-border'
       }`}
-      style={count > 0 && !isFuture ? {
-        background: `color-mix(in oklch, var(--th-accent) ${intensity}%, var(--th-surface))`,
-      } : undefined}
+      style={{
+        WebkitUserSelect: 'none',
+        userSelect: 'none',
+        WebkitTouchCallout: 'none',
+        ...(count > 0 && !isFuture ? {
+          background: `color-mix(in oklch, var(--th-accent) ${intensity}%, var(--th-surface))`,
+        } : {}),
+      }}
     >
       {count === 0 ? '' : count === 1 ? '✓' : `${count}×`}
     </button>
