@@ -78,6 +78,7 @@ type Props = {
   initialDetailId?: string | null
   initialViews?: boolean
   progressBarColor?: string | null
+  hintCalendarSeen?: boolean
 }
 
 function DroppableGroup({
@@ -274,6 +275,7 @@ export function DailyChecklist({
   initialDetailId,
   initialViews,
   progressBarColor,
+  hintCalendarSeen,
 }: Props) {
   const isHours = trackingMode === 'hours'
   const todayValue = isHours ? todayHours : todayPoints
@@ -930,6 +932,7 @@ export function DailyChecklist({
             swellWeeklyProgress={swellWeeklyProgress}
             swellTargets={swellTargets}
             onTargetCross={celebrationEnabled ? fireSweep : undefined}
+            hintCalendarSeen={hintCalendarSeen}
           />
         </div>
         {detailSheet}

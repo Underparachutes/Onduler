@@ -228,7 +228,7 @@ export async function setGroupsEnabled(enabled: boolean) {
   return { success: true }
 }
 
-export async function markHintSeen(key: 'motions' | 'swells' | 'anchors_locked' | 'anchors_unlocked' | 'settings') {
+export async function markHintSeen(key: 'motions' | 'swells' | 'anchors_locked' | 'anchors_unlocked' | 'settings' | 'calendar') {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }

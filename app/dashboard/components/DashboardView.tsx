@@ -45,6 +45,7 @@ type Props = {
   swellTargets: Record<string, number>
   weeklyLogMap: Record<string, Record<string, string[]>>
   hintMotionsSeen: boolean
+  hintCalendarSeen: boolean
   initialDetailId: string | null
   initialViews: boolean
   progressBarColor: string | null
@@ -193,6 +194,7 @@ export function DashboardView(rawProps: Props) {
                 initialDetailId={props.initialDetailId}
                 initialViews={props.initialViews}
                 progressBarColor={props.progressBarColor}
+                hintCalendarSeen={props.hintCalendarSeen}
               />
             ) : (
               <>

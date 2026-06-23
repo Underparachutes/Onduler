@@ -338,6 +338,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       swellTargets={swellTargets}
       weeklyLogMap={weeklyLogMap}
       hintMotionsSeen={!!hintsSeen.motions}
+      hintCalendarSeen={!!hintsSeen.calendar}
       initialDetailId={initialDetailId ?? null}
       initialViews={initialViews === 'true'}
       progressBarColor={(settings?.progress_bar_color as string) ?? null}

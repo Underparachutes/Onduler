@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { markHintSeen } from '@/app/actions/settings'
 
-export type HintKey = 'motions' | 'swells' | 'anchors_locked' | 'anchors_unlocked' | 'settings'
+export type HintKey = 'motions' | 'swells' | 'anchors_locked' | 'anchors_unlocked' | 'settings' | 'calendar'
 
 type Props = {
   hintKey: HintKey

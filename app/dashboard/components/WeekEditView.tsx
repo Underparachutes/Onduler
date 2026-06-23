@@ -1,10 +1,11 @@
 'use client'
 
-import { useEffect, useState, useTransition } from 'react'
+import { useEffect, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { logMotionOnDay, removeLogById } from '@/app/actions/logs'
 import { formatHrs } from '@/lib/format'
 import { useSaveGuard } from '@/app/components/useSaveGuard'
+import { HintCard } from '@/app/components/HintCard'
 
 type MotionSwell = { id: string; name: string; color: string; weight: number }
 type Motion = { id: string; name: string; default_points: number; default_hours: number; swells: MotionSwell[]; groupId: string | null; submotionMode: 'distribute' | 'rollup' | null }
@@ -30,6 +31,7 @@ type Props = {
   swellWeeklyProgress?: Record<string, number>
   swellTargets?: Record<string, number>
   onTargetCross?: (color: string) => void
+  hintCalendarSeen?: boolean
 }
 
 import { getWeekDayKeys } from './weekDayKeys'
@@ -42,16 +44,50 @@ function DayBox({
   isFuture,
   dayIndex,
   onTap,
+  onRemove,
 }: {
   count: number
   isFuture: boolean
   dayIndex: number
   onTap: () => void
+  onRemove: () => void
 }) {
+  // Tap adds a completion; long-press (400ms) removes the most recent one — so a
+  // tap is always additive and never ambiguously toggles. Mirrors the daily
+  // view's tap/long-press gesture.
+  const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const didLongPress = useRef(false)
+
+  const startPress = () => {
+    if (isFuture) return
+    didLongPress.current = false
+    pressTimer.current = setTimeout(() => {
+      didLongPress.current = true
+      onRemove()
+    }, 400)
+  }
+  const cancelPress = () => {
+    if (pressTimer.current) {
+      clearTimeout(pressTimer.current)
+      pressTimer.current = null
+    }
+  }
+  const handleClick = () => {
+    cancelPress()
+    if (didLongPress.current) {
+      didLongPress.current = false
+      return
+    }
+    onTap()
+  }
+
   const intensity = 15 + dayIndex * 7
   return (
     <button
-      onClick={onTap}
+      onPointerDown={startPress}
+      onPointerUp={cancelPress}
+      onPointerLeave={cancelPress}
+      onClick={handleClick}
       disabled={isFuture}
       className={`flex h-7 w-7 items-center justify-center rounded text-xs transition-colors ${
         isFuture
@@ -86,7 +122,7 @@ function MotionWeekRow({
   trackingMode: TrackingMode
   hidePtsHrs: boolean
   todayKey: string
-  onTapDay: (motionId: string, dayKey: string, logIds: string[]) => void
+  onTapDay: (motionId: string, dayKey: string, logIds: string[], intent: 'add' | 'remove') => void
   indent?: boolean
   readOnly?: boolean
 }) {
@@ -131,7 +167,8 @@ function MotionWeekRow({
               count={count}
               isFuture={isFuture}
               dayIndex={i}
-              onTap={() => onTapDay(motion.id, dk, ids)}
+              onTap={() => onTapDay(motion.id, dk, ids, 'add')}
+              onRemove={() => onTapDay(motion.id, dk, ids, 'remove')}
             />
           )
         })}
@@ -157,6 +194,7 @@ export function WeekEditView({
   swellWeeklyProgress,
   swellTargets,
   onTargetCross,
+  hintCalendarSeen,
 }: Props) {
   const [, startTransition] = useTransition()
   const router = useRouter()
@@ -174,14 +212,14 @@ export function WeekEditView({
   // eslint-disable-next-line react-hooks/set-state-in-effect -- sync prop → local state for optimistic updates
   useEffect(() => { setLocalLogMap(weeklyLogMap) }, [weeklyLogMap])
 
-  function handleTapDay(motionId: string, dayKey: string, logIds: string[]) {
+  function handleTapDay(motionId: string, dayKey: string, logIds: string[], intent: 'add' | 'remove') {
     const allMotions = [...motions, ...Object.values(submotionsMap).flat()]
     const motion = allMotions.find(m => m.id === motionId)
     const delta = motion
       ? (trackingMode === 'hours' ? Number(motion.default_hours) : motion.default_points)
       : 0
 
-    if (logIds.length === 0) {
+    if (intent === 'add') {
       setLocalLogMap(prev => {
         const motionMap = { ...(prev[motionId] ?? {}) }
         motionMap[dayKey] = [...(motionMap[dayKey] ?? []), '__pending__']
@@ -209,11 +247,14 @@ export function WeekEditView({
         if (await guard(logMotionOnDay(motionId, dayKey))) router.refresh()
       })
     } else {
-      const removeId = logIds[0]
+      // Remove the most recent persisted log (skip optimistic '__pending__'
+      // placeholders that have no real id to delete yet).
+      const removeId = [...logIds].reverse().find(id => id !== '__pending__')
+      if (!removeId) return
       setLocalLogMap(prev => {
         const motionMap = { ...(prev[motionId] ?? {}) }
         const ids = [...(motionMap[dayKey] ?? [])]
-        const idx = ids.indexOf(removeId)
+        const idx = ids.lastIndexOf(removeId)
         if (idx !== -1) ids.splice(idx, 1)
         motionMap[dayKey] = ids
         return { ...prev, [motionId]: motionMap }
@@ -322,6 +363,9 @@ export function WeekEditView({
 
   return (
     <div>
+      <HintCard hintKey="calendar" title="Tap to add, hold to remove." seen={!!hintCalendarSeen}>
+        <p>Each tap logs one completion — tap again to add another. Press and hold a day to remove the most recent.</p>
+      </HintCard>
       {!hideNav && (
         <>
           <div className="mb-3 flex items-center justify-between">
