@@ -23,6 +23,8 @@ import { reorderMotions } from '@/app/actions/motions'
 import { useSaveGuard } from '@/app/components/useSaveGuard'
 import { formatPts, formatHrs } from '@/lib/format'
 import { INTENSITY_MULTIPLIER, type Intensity } from '@/lib/intensity'
+import { ombreGradient } from '@/lib/ombre'
+import { readableInk } from '@/lib/theme-colors'
 
 type Swell = { id: string; name: string; color: string; weight: number }
 type Motion = { id: string; name: string; default_points: number; default_hours: number; swells: Swell[]; groupId: string | null; submotionMode: 'distribute' | 'rollup' | null }
@@ -84,7 +86,19 @@ type RowProps = {
   onOpenSheet: () => void
 }
 
+// Checkbox paint that ties a motion to its swell(s): a solid swell color, or a
+// weighted ombré when the motion spans several swells, so the link survives even
+// with swell titles hidden. null → no swell, caller keeps the neutral treatment.
+function swellPaint(swells: Swell[]): { paint: string | null; ink: string } {
+  return {
+    paint: ombreGradient(swells.map(s => ({ color: s.color, value: s.weight }))),
+    ink: swells.length ? readableInk(swells[0].color) : 'currentColor',
+  }
+}
+
 export function SortableMotionRow({ motion, done, diving, trackingMode, hidePtsHrs, sortableId, onLog, onOpenSheet }: RowProps) {
+  const { paint: checkPaint, ink: checkInk } = swellPaint(motion.swells)
+  const checked = done || diving
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: sortableId ?? motion.id })
   const [showPicker, setShowPicker] = useState(false)
@@ -148,11 +162,15 @@ export function SortableMotionRow({ motion, done, diving, trackingMode, hidePtsH
           onPointerUp={cancelPress}
           onPointerLeave={cancelPress}
           onClick={handleClick}
-          className={`flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center rounded border-2 transition-all ${done || diving ? 'border-th-btn text-th-btn' : 'border-th-border'}`}
+          className={`relative flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center rounded transition-all ${
+            checkPaint ? '' : checked ? 'border-2 border-th-btn text-th-btn' : 'border-2 border-th-border'
+          }`}
+          style={checkPaint ? { background: checkPaint } : undefined}
         >
-          {(done || diving) && (
-            <svg viewBox="0 0 12 10" fill="none" className="h-3 w-3">
-              <path d="M1 5l3.5 3.5L11 1" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+          {checkPaint && !checked && <span className="absolute inset-[2px] rounded-[3px] bg-th-bg" />}
+          {checked && (
+            <svg viewBox="0 0 12 10" fill="none" className="relative h-3 w-3">
+              <path d="M1 5l3.5 3.5L11 1" stroke={checkPaint ? checkInk : 'currentColor'} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           )}
         </button>

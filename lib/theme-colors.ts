@@ -16,6 +16,22 @@ export const THEME_PALETTES: Record<ThemeName, { light: string[]; dark: string[]
   },
 }
 
+// Relative luminance (sRGB, 0–1) of a #rrggbb hex.
+export function luminance(hex: string): number {
+  const h = hex.replace('#', '')
+  const r = parseInt(h.slice(0, 2), 16) / 255
+  const g = parseInt(h.slice(2, 4), 16) / 255
+  const b = parseInt(h.slice(4, 6), 16) / 255
+  const lin = (c: number) => (c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4))
+  return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b)
+}
+
+// Readable ink (check glyph) to sit on a solid swell fill: dark on light swells,
+// white on dark ones. Threshold matches the studio's accent-text contrast check.
+export function readableInk(hex: string): string {
+  return luminance(hex) > 0.5 ? '#0b0d0c' : '#ffffff'
+}
+
 export function detectMode(): ThemeMode {
   if (typeof window === 'undefined') return 'light'
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'

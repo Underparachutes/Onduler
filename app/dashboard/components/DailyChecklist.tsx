@@ -28,6 +28,7 @@ import { reassignMotionToGroup, reorderMotions, setMotionSwells, duplicateMotion
 import { formatPts, formatHrs } from '@/lib/format'
 import { ceilDisplay, parseHoursInput } from '@/lib/periods'
 import { ombreGradient, type SwellBand } from '@/lib/ombre'
+import { readableInk } from '@/lib/theme-colors'
 import { useToast } from '@/app/components/Toast'
 import { useSaveGuard } from '@/app/components/useSaveGuard'
 import { useContentCrypto } from '@/app/components/useContentCrypto'
@@ -212,13 +213,21 @@ function MotionDragOverlay({
   done: boolean
   trackingMode: TrackingMode
 }) {
+  const dragPaint = ombreGradient(motion.swells.map(s => ({ color: s.color, value: s.weight })))
+  const dragInk = motion.swells.length ? readableInk(motion.swells[0].color) : 'currentColor'
   return (
     <div className="flex items-center gap-1 select-none rotate-1 shadow-xl">
       <div className={`flex flex-1 items-center gap-3 rounded-lg border px-3 py-3 bg-th-bg ${done ? 'border-th-border opacity-50' : 'border-th-btn'}`}>
-        <div className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 ${done ? 'border-th-btn text-th-btn' : 'border-th-border'}`}>
+        <div
+          className={`relative flex h-5 w-5 shrink-0 items-center justify-center rounded transition-all ${
+            dragPaint ? '' : done ? 'border-2 border-th-btn text-th-btn' : 'border-2 border-th-border'
+          }`}
+          style={dragPaint ? { background: dragPaint } : undefined}
+        >
+          {dragPaint && !done && <span className="absolute inset-[2px] rounded-[3px] bg-th-bg" />}
           {done && (
-            <svg viewBox="0 0 12 10" fill="none" className="h-3 w-3">
-              <path d="M1 5l3.5 3.5L11 1" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+            <svg viewBox="0 0 12 10" fill="none" className="relative h-3 w-3">
+              <path d="M1 5l3.5 3.5L11 1" stroke={dragPaint ? dragInk : 'currentColor'} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           )}
         </div>

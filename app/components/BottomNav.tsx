@@ -47,7 +47,7 @@ export function BottomNav({ pendingAnchor = false }: { pendingAnchor?: boolean }
                   <span className="pointer-events-none absolute -right-1 -top-1 h-1.5 w-1.5 rounded-full bg-th-text" />
                 )}
               </span>
-              <span className={`text-[10px] font-medium ${active ? 'brand-text' : ''}`}>{label}</span>
+              <span className="text-[10px] font-medium" style={active ? { color: 'var(--brand)' } : undefined}>{label}</span>
             </Link>
           )
         })}
