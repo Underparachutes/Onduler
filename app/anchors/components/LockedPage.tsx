@@ -38,7 +38,7 @@ type Props = {
 
 export function LockedPage({ actuals = [], inWave = false, hintSeen = true }: Props) {
   return (
-    <div className="fixed inset-0 z-0 flex flex-col overflow-hidden bg-th-bg md:left-60">
+    <div className="anchors-dark-bg fixed inset-0 z-0 flex flex-col overflow-hidden bg-th-bg md:left-60">
       <div className="sticky top-0 z-10 mx-5 bg-th-bg pb-4">
         <div className="mb-1 flex items-center justify-between">
           <p className="brand-text text-xs uppercase tracking-widest text-th-muted">Onduler</p>

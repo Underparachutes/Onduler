@@ -332,6 +332,15 @@ body {
   --th-accent: #de7140;
 }
 
+/* Locked Anchors root: darken only the page background so the dark field runs
+ * all the way to the top, behind/around the floating pill. The pill keeps its
+ * light --th-surface + text tokens (untouched here), so it stays light chrome
+ * floating on the dark field. */
+[data-theme="tjornuvik"] .anchors-dark-bg,
+:root:not([data-theme]) .anchors-dark-bg { --th-bg: #090a0c; }
+[data-theme="bolinas"] .anchors-dark-bg { --th-bg: #181410; }
+[data-theme="biarritz"] .anchors-dark-bg { --th-bg: #0e2329; }
+
 /* Prevent Safari auto-zoom on focus — iOS zooms inputs below 16px and
    doesn't reset on blur, breaking fixed nav and requiring manual pinch. */
 input, textarea, select { font-size: 16px; }
