@@ -153,8 +153,10 @@ function SwellProficiencyViewInner({
   const [draftTarget, setDraftTarget] = useState('')
   const [, startSave] = useTransition()
   const lastValidName = useRef(swell.name)
-  // Locked: name shows "🔒 Locked" and must not be editable (would overwrite the
-  // real encrypted name). Color / target stay editable — they aren't encrypted.
+  // Locked: the key is missing on this device, so editing is paused. The name
+  // shows "🔒 Locked" (editing it would overwrite the real encrypted name), and
+  // color + target are disabled too so the surface is uniformly read-only — a
+  // half-editable state while locked reads as broken. Logging is unaffected.
   const locked = useLocked()
 
   function persistAll(name: string, color: string, targetPts: number | null, targetHrs: number | null) {

@@ -886,7 +886,8 @@ export function MotionDetailSheet({
                   <button
                     key={g.id}
                     onClick={() => toggleGroup(g.id)}
-                    className="rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wide transition-colors"
+                    disabled={locked}
+                    className="rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wide transition-colors disabled:opacity-50"
                     style={active
                       ? { backgroundColor: g.color, borderColor: g.color, color: '#fff' }
                       : { borderColor: 'var(--color-th-border)', color: 'var(--color-th-muted)' }}
@@ -924,7 +925,8 @@ export function MotionDetailSheet({
                   <div key={s.id} className="flex items-center gap-2">
                     <button
                       onClick={() => toggleSwell(s.id)}
-                      className="rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wide transition-colors"
+                      disabled={locked}
+                      className="rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wide transition-colors disabled:opacity-50"
                       style={active
                         ? zeroWeight
                           ? { borderColor: s.color, borderStyle: 'dashed', color: s.color, backgroundColor: 'transparent' }
@@ -939,6 +941,7 @@ export function MotionDetailSheet({
                           type="number"
                           min="1"
                           max="100"
+                          disabled={locked}
                           value={swellPctDraft.get(s.id) ?? String(pct)}
                           onChange={e => setSwellPctDraft(prev => new Map(prev).set(s.id, e.target.value))}
                           onBlur={e => {
@@ -949,7 +952,7 @@ export function MotionDetailSheet({
                               setSwellPctDraft(prev => new Map(prev).set(s.id, String(pct)))
                             }
                           }}
-                          className="w-10 rounded border border-th-border bg-th-surface px-1 py-0.5 text-center text-xs text-th-text outline-none focus:border-th-focus"
+                          className="w-10 rounded border border-th-border bg-th-surface px-1 py-0.5 text-center text-xs text-th-text outline-none focus:border-th-focus disabled:opacity-50"
                         />
                         <span className="text-xs text-th-faint">%</span>
                       </div>
