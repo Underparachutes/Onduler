@@ -420,6 +420,11 @@ export function OnboardingFlow() {
   // eslint-disable-next-line react-hooks/set-state-in-effect -- check install eligibility on mount
   useEffect(() => { setShowInstall(shouldShowOnboardingInstall()) }, [])
 
+  // Steps swap in place (no route change), so window scroll carries over. Reset
+  // to the top on every step change so each screen starts at its first item —
+  // e.g. landing on Motions shows the first swell, not wherever Swells was scrolled.
+  useEffect(() => { window.scrollTo(0, 0) }, [step])
+
   function proceedFromPersonalize(useDefaults = false) {
     // Show the first-log practice when they have motions to try it on, unless
     // they chose to skip with defaults.
@@ -533,6 +538,13 @@ export function OnboardingFlow() {
           >
             + Add your own
           </button>
+        }
+        footer={
+          <NavBar
+            onNext={() => setStep('motions')}
+            nextDisabled={pickedSwells.length < 3 || pickedSwells.some(s => !s.name)}
+            nextLabel={pickedSwells.length >= 3 ? 'Next' : `Add ${3 - pickedSwells.length} more`}
+          />
         }
       >
         <div className="flex flex-col gap-2">
@@ -689,14 +701,6 @@ export function OnboardingFlow() {
           </div>
 
         </div>
-
-        <button
-          onClick={() => setStep('motions')}
-          disabled={pickedSwells.length < 3 || pickedSwells.some(s => !s.name)}
-          className="w-full rounded-lg bg-th-btn py-3 text-sm font-medium text-th-btn-text transition-all hover:bg-th-btn-hover active:scale-[0.97] disabled:opacity-40"
-        >
-          {pickedSwells.length >= 3 ? 'Next →' : `Add ${3 - pickedSwells.length} more`}
-        </button>
       </ScreenShell>
     )
   }
@@ -707,11 +711,25 @@ export function OnboardingFlow() {
       seededHintByName[s.name] = s.motionHint
     })
 
+    const goToPersonalize = () => {
+      pickedSwells.forEach(s => {
+        const draft = (motionDrafts[s.id] ?? '').trim()
+        if (draft) addMotion(s.id)
+      })
+      setStep('personalize')
+    }
+
     return (
       <ScreenShell
-        onBack={() => setStep('swells')}
         title="What do you do for each?"
         description="Motions are verbs. The daily actions that feed each swell. Add a few or skip and add them later."
+        footer={
+          <NavBar
+            onBack={() => setStep('swells')}
+            onNext={goToPersonalize}
+            nextLabel="Next"
+          />
+        }
       >
         <div className="flex flex-col gap-6">
           {pickedSwells.map(s => {
@@ -822,19 +840,6 @@ export function OnboardingFlow() {
             )
           })}
         </div>
-
-        <button
-          onClick={() => {
-            pickedSwells.forEach(s => {
-              const draft = (motionDrafts[s.id] ?? '').trim()
-              if (draft) addMotion(s.id)
-            })
-            setStep('personalize')
-          }}
-          className="w-full rounded-lg bg-th-btn py-3 text-sm font-medium text-th-btn-text transition-all hover:bg-th-btn-hover active:scale-[0.97]"
-        >
-          Next →
-        </button>
       </ScreenShell>
     )
   }
@@ -844,9 +849,16 @@ export function OnboardingFlow() {
     const anyLogged = demoMotions.some(m => demoLogged.has(m.id))
     return (
       <ScreenShell
-        onBack={() => setStep('personalize')}
         title="Try logging one."
         description="Tap a motion to log it. This is just practice, nothing is saved. Your tracking starts fresh on the next screen."
+        footer={
+          <NavBar
+            onBack={() => setStep('personalize')}
+            onNext={() => goToInstallOrFinish(false)}
+            nextDisabled={isPending}
+            nextLabel={isPending ? 'Setting up…' : anyLogged ? 'Start fresh' : 'Got it'}
+          />
+        }
       >
         <div className="flex flex-col">
           {demoMotions.map(m => {
@@ -885,23 +897,31 @@ export function OnboardingFlow() {
         )}
 
         {error && <p className="text-xs text-red-500">{error}</p>}
-
-        <button
-          onClick={() => goToInstallOrFinish(false)}
-          disabled={isPending}
-          className="w-full rounded-lg bg-th-btn py-3 text-sm font-medium text-th-btn-text transition-all hover:bg-th-btn-hover active:scale-[0.97] disabled:opacity-50"
-        >
-          {isPending ? 'Setting up…' : anyLogged ? 'Start fresh →' : 'Got it →'}
-        </button>
       </ScreenShell>
     )
   }
 
   return (
     <ScreenShell
-      onBack={() => setStep('motions')}
       title="Make it yours."
       description="A few choices to set the feel. You can change all of these in Settings."
+      footer={
+        <NavBar
+          onBack={() => setStep('motions')}
+          onNext={() => proceedFromPersonalize(false)}
+          nextDisabled={isPending}
+          nextLabel={isPending ? 'Setting up…' : 'Next'}
+          extra={
+            <button
+              onClick={() => finish(true)}
+              disabled={isPending}
+              className="mt-2 w-full text-center text-xs text-th-faint transition-colors hover:text-th-muted disabled:opacity-50"
+            >
+              Skip and use defaults
+            </button>
+          }
+        />
+      }
     >
       <div>
         <p className="mb-2 text-xs uppercase tracking-widest text-th-muted">Theme</p>
@@ -1042,59 +1062,84 @@ export function OnboardingFlow() {
       </div>
 
       {error && <p className="text-xs text-red-500">{error}</p>}
-
-      <div className="flex flex-col gap-3">
-        <button
-          onClick={() => proceedFromPersonalize(false)}
-          disabled={isPending}
-          className="w-full rounded-lg bg-th-btn py-3 text-sm font-medium text-th-btn-text transition-all hover:bg-th-btn-hover active:scale-[0.97] disabled:opacity-50"
-        >
-          {isPending ? 'Setting up…' : 'Next →'}
-        </button>
-        <button
-          onClick={() => finish(true)}
-          disabled={isPending}
-          className="text-center text-xs text-th-faint transition-colors hover:text-th-muted disabled:opacity-50"
-        >
-          Skip and use defaults
-        </button>
-      </div>
     </ScreenShell>
   )
 }
 
 function ScreenShell({
-  onBack,
   title,
   description,
   headerExtra,
   children,
+  footer,
 }: {
-  onBack?: () => void
   title: string
   description: string
   headerExtra?: React.ReactNode
   children: React.ReactNode
+  footer?: React.ReactNode
 }) {
   return (
     <div className="flex min-h-full flex-col items-center">
       <div className="flex w-full max-w-[22rem] flex-col px-4">
         <div className="sticky z-10 -mx-4 bg-th-bg px-4 pb-4 pt-12" style={{ top: 0 }}>
-          {onBack ? (
-            <button
-              onClick={onBack}
-              className="mb-4 text-sm text-th-faint transition-all hover:text-th-muted active:scale-[0.97]"
-            >
-              ← Back
-            </button>
-          ) : (
-            <p className="brand-text mb-2 text-xs uppercase tracking-widest text-th-muted">Onduler</p>
-          )}
+          <p className="brand-text mb-2 text-xs uppercase tracking-widest text-th-muted">Onduler</p>
           <h1 className="mb-2 text-2xl font-semibold text-th-text">{title}</h1>
           <p className="text-sm text-th-muted">{description}</p>
           {headerExtra}
         </div>
-        <div className="flex flex-col gap-6 pb-12 pt-2">{children}</div>
+        {/* Bottom padding clears the fixed NavBar (button + safe-area). */}
+        <div className="flex flex-col gap-6 pb-36 pt-2">{children}</div>
+      </div>
+      {footer}
+    </div>
+  )
+}
+
+// Sticky bottom navigation for the onboarding flow. Back is a brand-outlined
+// ghost, Next a solid brand fill — both carry the active theme's brand color.
+// Fixed (not in-flow) so it stays put as the step content scrolls; mirrors the
+// app's fixed BottomNav, and the body's reserved bottom padding keeps content
+// from hiding behind it. No arrows — words only.
+function NavBar({
+  onBack,
+  onNext,
+  nextLabel,
+  nextDisabled,
+  extra,
+}: {
+  onBack?: () => void
+  onNext: () => void
+  nextLabel: string
+  nextDisabled?: boolean
+  extra?: React.ReactNode
+}) {
+  return (
+    <div className="fixed inset-x-0 bottom-0 z-30 border-t border-th-border-soft bg-th-bg/95 backdrop-blur">
+      <div
+        className="mx-auto w-full max-w-[22rem] px-4 pt-3"
+        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 0.75rem)' }}
+      >
+        <div className="flex gap-3">
+          {onBack && (
+            <button
+              onClick={onBack}
+              className="rounded-lg border px-6 py-3 text-sm font-medium transition-all hover:bg-th-surface active:scale-[0.97]"
+              style={{ borderColor: 'var(--brand)', color: 'var(--brand)' }}
+            >
+              Back
+            </button>
+          )}
+          <button
+            onClick={onNext}
+            disabled={nextDisabled}
+            className="flex-1 rounded-lg py-3 text-sm font-medium transition-all hover:opacity-90 active:scale-[0.97] disabled:opacity-40"
+            style={{ background: 'var(--brand-fill)', color: 'var(--brand-fg)' }}
+          >
+            {nextLabel}
+          </button>
+        </div>
+        {extra}
       </div>
     </div>
   )

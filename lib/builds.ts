@@ -12,7 +12,7 @@ export const BUILD_PRESETS: BuildPreset[] = [
     key: 'maker',
     label: 'The Maker',
     description: 'For the builder, the writer, the one with a craft. Weeks that lean into making things.',
-    seededSwells: ['Creativity', 'Work', 'Mind'],
+    seededSwells: ['Creativity', 'Adventure', 'Mind'],
   },
   {
     key: 'athlete',
