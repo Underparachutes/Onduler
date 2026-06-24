@@ -8,7 +8,7 @@ import { useLocked } from '@/app/components/useDecrypted'
 import { ANCHOR_PROMPTS, THEME_LABELS, type AnchorPromptTheme } from '@/lib/anchorPrompts'
 import { formatWeekLabel } from '@/lib/cycles'
 
-const THEMES: AnchorPromptTheme[] = ['notice', 'honor', 'consider', 'release', 'invite']
+const THEMES: AnchorPromptTheme[] = ['notice', 'honor', 'consider', 'release', 'invite', 'see']
 
 type Cycle = { cycleStart: string; cycleEnd: string }
 type CycleChoice = 'this' | 'last' | 'none'

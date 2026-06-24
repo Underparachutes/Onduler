@@ -1,4 +1,4 @@
-export type AnchorPromptTheme = 'notice' | 'honor' | 'consider' | 'release' | 'invite'
+export type AnchorPromptTheme = 'notice' | 'honor' | 'consider' | 'release' | 'invite' | 'see'
 
 export type AnchorPrompt = {
   theme: AnchorPromptTheme
@@ -31,6 +31,11 @@ export const ANCHOR_PROMPTS: AnchorPrompt[] = [
   { theme: 'invite',   text: 'What swell would grow if you just leaned toward it?' },
   { theme: 'invite',   text: 'What have you been curious about but haven’t started?' },
   { theme: 'invite',   text: 'What would your week look like if you said yes to one more thing?' },
+  { theme: 'see',      text: 'What looked beautiful this week?' },
+  { theme: 'see',      text: 'What did you notice that wasn’t yours?' },
+  { theme: 'see',      text: 'What was the weather of your week?' },
+  { theme: 'see',      text: 'Where did your eye go when you weren’t trying?' },
+  { theme: 'see',      text: 'What did you walk past more than once?' },
 ]
 
 export const THEME_LABELS: Record<AnchorPromptTheme, string> = {
@@ -39,4 +44,5 @@ export const THEME_LABELS: Record<AnchorPromptTheme, string> = {
   consider: 'Consider',
   release: 'Release',
   invite: 'Invite',
+  see: 'See',
 }
