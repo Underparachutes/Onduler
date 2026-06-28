@@ -1,0 +1,97 @@
+<!-- @dsCard group="Foundations" name="Colors" -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Onduler · Colors</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Manrope:wght@500;600;700&display=swap" rel="stylesheet" />
+<style>
+  /* Default theme — values mirror app/globals.css :root (light) and the
+     prefers-color-scheme: dark block. Code is the source of truth. */
+  .light {
+    --th-bg:#f3f5f4; --th-surface:#e9eceb; --th-surface-2:#dde2e0;
+    --th-text:#0b0d0c; --th-secondary:#343937; --th-muted:#5c6360; --th-faint:#99a29e;
+    --th-border:#d1d6d3; --th-border-soft:#e2e6e3;
+    --th-btn:#0a2540; --th-btn-text:#eef3f6; --th-accent:#0a2540; --th-accent-text:#ffffff;
+    --th-success:#2f7d6b; --th-wave-wash:rgba(10,37,64,.07);
+    --brand:#0bc85b; --brand-fg:#04080d;
+    --sw1:#0b3d6e;--sw2:#155e8a;--sw3:#1e7ea6;--sw4:#2899b8;--sw5:#38b2c4;
+    --sw6:#52c8cc;--sw7:#72d9d4;--sw8:#96e5de;--sw9:#b8ede8;--sw10:#d6f4f2;
+  }
+  .dark {
+    --th-bg:#090a0c; --th-surface:#14171a; --th-surface-2:#1c2024;
+    --th-text:#eef2f0; --th-secondary:#bbc2c0; --th-muted:#8c938f; --th-faint:#5a625e;
+    --th-border:#262b2e; --th-border-soft:#181c1f;
+    --th-btn:#f4f7fa; --th-btn-text:#04080d; --th-accent:#f4f7fa; --th-accent-text:#04080d;
+    --th-success:#4eb09a; --th-wave-wash:rgba(244,247,250,.08);
+    --brand:#72f189; --brand-fg:#04080d;
+    --sw1:#3a7ec2;--sw2:#4498cc;--sw3:#4eb2d6;--sw4:#5ccade;--sw5:#6edce2;
+    --sw6:#84e8e4;--sw7:#9cf0e8;--sw8:#b4f4ee;--sw9:#ccf8f4;--sw10:#e2fcfa;
+  }
+  * { box-sizing: border-box; }
+  html { font-size: 18px; }
+  body { margin:0; font-family:'IBM Plex Mono',monospace; background:#cfd4d2; padding:24px; }
+  h1 { font-family:'Manrope',sans-serif; letter-spacing:.05em; font-size:20px; margin:0 0 2px; }
+  .sub { font-size:12px; color:#5c6360; margin:0 0 20px; }
+  .panes { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .pane { background:var(--th-bg); color:var(--th-text); border-radius:16px; padding:18px; border:1px solid var(--th-border); }
+  .mode { font-size:11px; text-transform:uppercase; letter-spacing:.16em; font-weight:600; color:var(--th-muted); margin:0 0 12px; }
+  .grid { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; margin-bottom:14px; }
+  .tok { display:flex; align-items:center; gap:8px; font-size:11px; }
+  .chip { width:22px; height:22px; border-radius:6px; border:1px solid var(--th-border); flex:0 0 auto; }
+  .name { color:var(--th-secondary); }
+  .hex { color:var(--th-faint); margin-left:auto; font-size:10px; }
+  .ramp { display:flex; height:26px; border-radius:8px; overflow:hidden; border:1px solid var(--th-border); }
+  .ramp > div { flex:1; }
+  .label { font-size:11px; color:var(--th-muted); margin:14px 0 6px; }
+  .brandrow { display:flex; gap:8px; align-items:center; margin-top:12px; }
+  .brandfill { font-family:'Manrope'; font-weight:600; font-size:12px; padding:6px 14px; border-radius:999px;
+    color:var(--brand-fg); background:linear-gradient(135deg,var(--brand),color-mix(in oklch,var(--brand) 78%,black)); }
+</style>
+</head>
+<body>
+  <h1>Colors</h1>
+  <p class="sub">Default theme — “deep ocean”. Semantic tokens + the 10-step swell ramp. Bolinas &amp; Biarritz ship as separate theme cards.</p>
+  <div class="panes">
+    <div class="pane light">
+      <p class="mode">Default · Light</p>
+      <div class="grid">
+        <div class="tok"><span class="chip" style="background:var(--th-bg)"></span><span class="name">bg</span><span class="hex">#f3f5f4</span></div>
+        <div class="tok"><span class="chip" style="background:var(--th-surface)"></span><span class="name">surface</span><span class="hex">#e9eceb</span></div>
+        <div class="tok"><span class="chip" style="background:var(--th-surface-2)"></span><span class="name">surface-2</span><span class="hex">#dde2e0</span></div>
+        <div class="tok"><span class="chip" style="background:var(--th-text)"></span><span class="name">text</span><span class="hex">#0b0d0c</span></div>
+        <div class="tok"><span class="chip" style="background:var(--th-secondary)"></span><span class="name">secondary</span><span class="hex">#343937</span></div>
+        <div class="tok"><span class="chip" style="background:var(--th-muted)"></span><span class="name">muted</span><span class="hex">#5c6360</span></div>
+        <div class="tok"><span class="chip" style="background:var(--th-faint)"></span><span class="name">faint</span><span class="hex">#99a29e</span></div>
+        <div class="tok"><span class="chip" style="background:var(--th-border)"></span><span class="name">border</span><span class="hex">#d1d6d3</span></div>
+        <div class="tok"><span class="chip" style="background:var(--th-accent)"></span><span class="name">accent</span><span class="hex">#0a2540</span></div>
+        <div class="tok"><span class="chip" style="background:var(--th-success)"></span><span class="name">success</span><span class="hex">#2f7d6b</span></div>
+      </div>
+      <p class="label">Swell ramp · swell-1 → swell-10</p>
+      <div class="ramp"><div style="background:var(--sw1)"></div><div style="background:var(--sw2)"></div><div style="background:var(--sw3)"></div><div style="background:var(--sw4)"></div><div style="background:var(--sw5)"></div><div style="background:var(--sw6)"></div><div style="background:var(--sw7)"></div><div style="background:var(--sw8)"></div><div style="background:var(--sw9)"></div><div style="background:var(--sw10)"></div></div>
+      <div class="brandrow"><span class="brandfill">Brand fill</span><span class="hex" style="color:var(--th-faint)">--brand #0bc85b</span></div>
+    </div>
+    <div class="pane dark">
+      <p class="mode">Default · Dark</p>
+      <div class="grid">
+        <div class="tok"><span class="chip" style="background:var(--th-bg)"></span><span class="name">bg</span><span class="hex">#090a0c</span></div>
+        <div class="tok"><span class="chip" style="background:var(--th-surface)"></span><span class="name">surface</span><span class="hex">#14171a</span></div>
+        <div class="tok"><span class="chip" style="background:var(--th-surface-2)"></span><span class="name">surface-2</span><span class="hex">#1c2024</span></div>
+        <div class="tok"><span class="chip" style="background:var(--th-text)"></span><span class="name">text</span><span class="hex">#eef2f0</span></div>
+        <div class="tok"><span class="chip" style="background:var(--th-secondary)"></span><span class="name">secondary</span><span class="hex">#bbc2c0</span></div>
+        <div class="tok"><span class="chip" style="background:var(--th-muted)"></span><span class="name">muted</span><span class="hex">#8c938f</span></div>
+        <div class="tok"><span class="chip" style="background:var(--th-faint)"></span><span class="name">faint</span><span class="hex">#5a625e</span></div>
+        <div class="tok"><span class="chip" style="background:var(--th-border)"></span><span class="name">border</span><span class="hex">#262b2e</span></div>
+        <div class="tok"><span class="chip" style="background:var(--th-accent)"></span><span class="name">accent</span><span class="hex">#f4f7fa</span></div>
+        <div class="tok"><span class="chip" style="background:var(--th-success)"></span><span class="name">success</span><span class="hex">#4eb09a</span></div>
+      </div>
+      <p class="label">Swell ramp · swell-1 → swell-10</p>
+      <div class="ramp"><div style="background:var(--sw1)"></div><div style="background:var(--sw2)"></div><div style="background:var(--sw3)"></div><div style="background:var(--sw4)"></div><div style="background:var(--sw5)"></div><div style="background:var(--sw6)"></div><div style="background:var(--sw7)"></div><div style="background:var(--sw8)"></div><div style="background:var(--sw9)"></div><div style="background:var(--sw10)"></div></div>
+      <div class="brandrow"><span class="brandfill">Brand fill</span><span class="hex" style="color:var(--th-faint)">--brand #72f189</span></div>
+    </div>
+  </div>
+</body>
+</html>

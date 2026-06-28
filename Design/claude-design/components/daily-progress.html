@@ -1,0 +1,52 @@
+<!-- @dsCard group="Components" name="Daily progress" -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Onduler · Daily progress</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Manrope:wght@600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --th-bg:#f3f5f4; --th-surface:#e9eceb; --th-text:#0b0d0c;
+    --th-secondary:#343937; --th-muted:#5c6360; --th-faint:#99a29e;
+    --brand:#0bc85b;
+  }
+  * { box-sizing:border-box; }
+  html { font-size:18px; }
+  body { margin:0; background:#cfd4d2; font-family:'IBM Plex Mono',monospace; padding:28px; display:flex; justify-content:center; }
+  .sheet { width:340px; background:var(--th-bg); border-radius:18px; padding:20px 18px; }
+  .cap { font-size:11px; color:var(--th-muted); margin:0 0 18px; }
+  .block { margin-bottom:22px; }
+  .block:last-child { margin-bottom:0; }
+  .head { display:flex; align-items:baseline; justify-content:space-between; margin-bottom:8px; }
+  h1 { font-family:'Manrope'; letter-spacing:.05em; font-size:18px; font-weight:700; margin:0; color:var(--th-text); }
+  .pts { font-family:'Manrope'; font-size:18px; font-weight:700; color:var(--th-text); }
+  .pts span { font-family:'IBM Plex Mono'; font-size:11px; font-weight:400; text-transform:uppercase; letter-spacing:.12em; color:var(--th-muted); margin-left:4px; }
+  /* Header progress bar: 5px tall, rounded, --th-surface track. */
+  .track { height:5px; border-radius:999px; background:var(--th-surface); overflow:hidden; }
+  .fill { height:100%; border-radius:999px; }
+  .stats { display:flex; justify-content:space-between; font-size:12px; color:var(--th-secondary); margin-top:8px; }
+  .sub { font-size:11px; color:var(--th-muted); margin:2px 0 0; }
+</style>
+</head>
+<body>
+  <div class="sheet">
+    <p class="cap">The slim bar at the top of the Motions surface — single brand fill, or ombré split by where today's effort went.</p>
+
+    <div class="block">
+      <div class="head"><h1>Saturday, June 21</h1><span class="pts">96<span>pts</span></span></div>
+      <div class="track"><div class="fill" style="width:64%;background:linear-gradient(to right,color-mix(in oklch,var(--brand) 35%,var(--th-surface)),var(--brand))"></div></div>
+      <div class="stats"><span>96 / 150 target</span><span>64%</span></div>
+      <p class="sub">Single brand fill (no swells logged yet)</p>
+    </div>
+
+    <div class="block">
+      <div class="head"><h1>Saturday, June 21</h1><span class="pts">128<span>pts</span></span></div>
+      <div class="track"><div class="fill" style="width:85%;background:linear-gradient(to right,#2A6FDB 0%,#2A6FDB 38%,#1FA38C 38%,#1FA38C 66%,#E2785A 66%,#E2785A 100%)"></div></div>
+      <div class="stats"><span>128 / 150 target</span><span>85%</span></div>
+      <p class="sub">Ombré fill — Movement · Mind · Home, in on-screen order</p>
+    </div>
+  </div>
+</body>
+</html>

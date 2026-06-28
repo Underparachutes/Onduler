@@ -1,0 +1,74 @@
+<!-- @dsCard group="Components" name="Bottom nav" -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Onduler · Bottom nav</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --th-bg:#f3f5f4; --th-surface:#e9eceb; --th-text:#0b0d0c;
+    --th-muted:#5c6360; --th-faint:#99a29e; --th-border:#d1d6d3;
+    --brand:#0bc85b;
+    --color-th-bg:var(--th-bg);
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:#cfd4d2; font-family:'IBM Plex Mono',monospace; padding:32px; display:flex; flex-direction:column; align-items:center; gap:18px; }
+  .cap { font-size:11px; color:#5c6360; }
+  .pill {
+    display:flex; gap:4px; background:var(--th-surface); border:1px solid var(--th-border);
+    border-radius:999px; padding:8px 8px 10px; box-shadow:0 4px 14px rgba(0,0,0,.08);
+  }
+  .tab { display:flex; flex-direction:column; align-items:center; gap:3px; padding:8px 16px; border-radius:999px; color:var(--th-faint); }
+  .tab.active { color:var(--th-text); background:var(--th-bg); }
+  .tab.active .lbl { color:var(--brand); }
+  .lbl { font-size:10px; font-weight:500; }
+  svg { width:20px; height:20px; }
+  .pulse { animation:nav-tide-pulse 2.4s ease-in-out infinite; }
+  @keyframes nav-tide-pulse { 0%,100%{opacity:.7;transform:translateY(0)} 50%{opacity:1;transform:translateY(-1px)} }
+  .dim { opacity:.55; }
+</style>
+</head>
+<body>
+  <p class="cap">Four tabs. Active tab fills with --th-bg; its label takes the brand color.</p>
+  <div class="pill">
+    <div class="tab active">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="4" stroke="currentColor"/><path d="M8 12.5l3 3 5-6" stroke="currentColor"/></svg>
+      <span class="lbl">Motions</span>
+    </div>
+    <div class="tab">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9" stroke="currentColor"/><path d="M12 5 L14.2 11.6 L9.8 11.6 Z" fill="currentColor" stroke="currentColor"/><path d="M12 19 L14.2 12.4 L9.8 12.4 Z" fill="none" stroke="currentColor"/></svg>
+      <span class="lbl">Swells</span>
+    </div>
+    <div class="tab">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="4.5" r="1.9" stroke="currentColor"/><path d="M12 6.4 V 20" stroke="currentColor"/><path d="M8.6 10.5 H 15.4" stroke="currentColor"/><path d="M4.6 13.5 C 4.6 17.6, 8.2 20, 12 20 C 15.8 20, 19.4 17.6, 19.4 13.5" stroke="currentColor"/><path d="M4.6 13.5 L 6.6 14.7 M 4.6 13.5 L 4.6 15.7" stroke="currentColor"/><path d="M19.4 13.5 L 17.4 14.7 M 19.4 13.5 L 19.4 15.7" stroke="currentColor"/></svg>
+      <span class="lbl">Anchors</span>
+    </div>
+    <div class="tab">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h9 M17 8h4" stroke="currentColor"/><circle cx="14.5" cy="8" r="2.25" fill="var(--color-th-bg)" stroke="currentColor"/><path d="M3 16h4 M12 16h9" stroke="currentColor"/><circle cx="9.5" cy="16" r="2.25" fill="var(--color-th-bg)" stroke="currentColor"/></svg>
+      <span class="lbl">Settings</span>
+    </div>
+  </div>
+
+  <p class="cap">Pending cycle-close: Anchors tab tide-pulses; the others dim slightly.</p>
+  <div class="pill">
+    <div class="tab dim">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="4" stroke="currentColor"/><path d="M8 12.5l3 3 5-6" stroke="currentColor"/></svg>
+      <span class="lbl">Motions</span>
+    </div>
+    <div class="tab dim">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9" stroke="currentColor"/><path d="M12 5 L14.2 11.6 L9.8 11.6 Z" fill="currentColor" stroke="currentColor"/><path d="M12 19 L14.2 12.4 L9.8 12.4 Z" fill="none" stroke="currentColor"/></svg>
+      <span class="lbl">Swells</span>
+    </div>
+    <div class="tab pulse" style="color:var(--th-text)">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="4.5" r="1.9" stroke="currentColor"/><path d="M12 6.4 V 20" stroke="currentColor"/><path d="M8.6 10.5 H 15.4" stroke="currentColor"/><path d="M4.6 13.5 C 4.6 17.6, 8.2 20, 12 20 C 15.8 20, 19.4 17.6, 19.4 13.5" stroke="currentColor"/><path d="M4.6 13.5 L 6.6 14.7 M 4.6 13.5 L 4.6 15.7" stroke="currentColor"/><path d="M19.4 13.5 L 17.4 14.7 M 19.4 13.5 L 19.4 15.7" stroke="currentColor"/></svg>
+      <span class="lbl" style="color:var(--th-muted)">Anchors</span>
+    </div>
+    <div class="tab dim">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h9 M17 8h4" stroke="currentColor"/><circle cx="14.5" cy="8" r="2.25" fill="var(--color-th-bg)" stroke="currentColor"/><path d="M3 16h4 M12 16h9" stroke="currentColor"/><circle cx="9.5" cy="16" r="2.25" fill="var(--color-th-bg)" stroke="currentColor"/></svg>
+      <span class="lbl">Settings</span>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,63 @@
+<!-- @dsCard group="Components" name="Swell row" -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Onduler · Swell row</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --th-bg:#f3f5f4; --th-surface:#e9eceb; --th-text:#0b0d0c;
+    --th-secondary:#343937; --th-muted:#5c6360;
+  }
+  * { box-sizing:border-box; }
+  html { font-size:18px; }
+  body { margin:0; background:#cfd4d2; font-family:'IBM Plex Mono',monospace; padding:28px; display:flex; justify-content:center; }
+  .sheet { width:340px; background:var(--th-bg); border-radius:18px; padding:20px 18px; }
+  .swell { margin-bottom:18px; }
+  .head { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+  .nm { font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:.12em; }
+  .vv { font-size:12px; color:var(--th-secondary); }
+  .ck { font-size:12px; color:var(--th-secondary); }
+  /* Tide bar: 4px, low-sat track, fills with the swell color. */
+  .track { height:4px; border-radius:999px; background:color-mix(in srgb,var(--th-surface) 40%,transparent); overflow:hidden; }
+  .fill { height:100%; border-radius:999px; }
+  .last { font-size:12px; color:var(--th-secondary); margin:6px 0 0; }
+</style>
+</head>
+<body>
+  <div class="sheet">
+    <!-- Movement — blue, over target -->
+    <div class="swell">
+      <div class="head">
+        <span class="nm" style="color:#2A6FDB">Movement</span>
+        <span class="vv">156 / 150 pts</span>
+        <span class="ck">&#10003;</span>
+      </div>
+      <div class="track"><div class="fill" style="width:100%;background:linear-gradient(to right,color-mix(in oklch,#2A6FDB 35%,#e9eceb),#2A6FDB)"></div></div>
+      <p class="last">Last week: 140 pts</p>
+    </div>
+
+    <!-- Mind — teal, partway -->
+    <div class="swell">
+      <div class="head">
+        <span class="nm" style="color:#1FA38C">Mind</span>
+        <span class="vv">42 / 80 pts</span>
+      </div>
+      <div class="track"><div class="fill" style="width:52%;background:linear-gradient(to right,color-mix(in oklch,#1FA38C 35%,#e9eceb),#1FA38C)"></div></div>
+      <p class="last">Last week: 70 pts</p>
+    </div>
+
+    <!-- Home — warm, low -->
+    <div class="swell" style="margin-bottom:0">
+      <div class="head">
+        <span class="nm" style="color:#E2785A">Home</span>
+        <span class="vv">1.0 / 4.0 hrs</span>
+      </div>
+      <div class="track"><div class="fill" style="width:25%;background:linear-gradient(to right,color-mix(in oklch,#E2785A 35%,#e9eceb),#E2785A)"></div></div>
+      <p class="last">Last week: 3.5 hrs</p>
+    </div>
+  </div>
+</body>
+</html>

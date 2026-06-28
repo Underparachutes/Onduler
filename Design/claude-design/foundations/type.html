@@ -1,0 +1,56 @@
+<!-- @dsCard group="Foundations" name="Type" -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Onduler · Type</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --th-bg:#f3f5f4; --th-surface:#e9eceb; --th-text:#0b0d0c;
+    --th-secondary:#343937; --th-muted:#5c6360; --th-faint:#99a29e;
+    --th-accent:#0a2540;
+    --font-sans:'IBM Plex Mono',monospace; --font-display:'Manrope',sans-serif;
+  }
+  * { box-sizing:border-box; }
+  html { font-size:18px; }
+  body { margin:0; background:var(--th-bg); color:var(--th-text);
+    font-family:var(--font-sans); font-feature-settings:'ss01','tnum'; padding:28px; }
+  .row { padding:14px 0; border-bottom:1px solid var(--th-surface); }
+  .meta { font-size:11px; color:var(--th-faint); margin-bottom:6px; }
+  .display { font-family:var(--font-display); letter-spacing:.05em; }
+  .kicker { font-size:11px; letter-spacing:.16em; text-transform:uppercase; font-weight:600; color:var(--th-accent); }
+  .num { font-variant-numeric:tabular-nums; }
+  em { font-style:italic; }
+</style>
+</head>
+<body>
+  <div class="row">
+    <p class="meta">Display · Manrope 600 · 32px · tracking +0.05em</p>
+    <div class="display" style="font-size:32px;font-weight:600;">Show up for your life</div>
+  </div>
+  <div class="row">
+    <p class="meta">Display · Manrope 700 · 20px — section headers (h1/h2)</p>
+    <div class="display" style="font-size:20px;font-weight:700;">Saturday, June 21</div>
+  </div>
+  <div class="row">
+    <p class="meta">Kicker · IBM Plex Mono 600 · 11px · all-caps · accent</p>
+    <div class="kicker">This week</div>
+  </div>
+  <div class="row">
+    <p class="meta">Body / UI · IBM Plex Mono 400 · 17px (primary row label)</p>
+    <div style="font-size:17px;">Morning walk along the cliff path</div>
+  </div>
+  <div class="row">
+    <p class="meta">Body · IBM Plex Mono 400 · 14px · secondary</p>
+    <div style="font-size:14px;color:var(--th-secondary);">A calm friend at the water's edge — warm, direct, brief. Emphasis renders <em>like this</em>.</div>
+  </div>
+  <div class="row" style="border-bottom:none;">
+    <p class="meta">Tabular numerals · stats &amp; targets</p>
+    <div class="num" style="font-size:24px;font-weight:600;">128 / 150 pts &nbsp;·&nbsp; 4.25 hrs</div>
+  </div>
+</body>
+</html>

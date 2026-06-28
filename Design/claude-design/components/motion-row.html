@@ -1,0 +1,60 @@
+<!-- @dsCard group="Components" name="Motion row" -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Onduler · Motion row</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --th-bg:#f3f5f4; --th-surface:#e9eceb; --th-text:#0b0d0c;
+    --th-secondary:#343937; --th-muted:#5c6360; --th-faint:#99a29e;
+    --th-border:#d1d6d3; --th-border-soft:#e2e6e3; --th-btn:#0a2540;
+    --sw-cook:#E2785A; --sw-move:#2A6FDB;
+  }
+  * { box-sizing:border-box; }
+  html { font-size:18px; }
+  body { margin:0; background:#cfd4d2; font-family:'IBM Plex Mono',monospace; padding:28px; display:flex; justify-content:center; }
+  .sheet { width:340px; background:var(--th-bg); border-radius:18px; padding:8px 18px; }
+  .cap { font-size:11px; color:var(--th-muted); padding:12px 0 4px; }
+  /* Paper-list row: no card chrome, hairline divider, ~56px tall. */
+  .row { display:flex; align-items:center; gap:12px; padding:14px 0; border-bottom:1px solid var(--th-border-soft); }
+  .row:last-child { border-bottom:none; }
+  .box { position:relative; width:20px; height:20px; flex:0 0 auto; border-radius:7px; }
+  .box.empty { border:2px solid var(--th-border); }
+  .box.fill-navy { background:var(--th-btn); display:flex; align-items:center; justify-content:center; }
+  .box.fill-swell { display:flex; align-items:center; justify-content:center; }
+  .name { flex:1; min-width:0; font-size:17px; color:var(--th-text); }
+  .name.done { color:var(--th-muted); text-decoration:line-through; }
+  .val { flex:0 0 auto; font-size:14px; font-weight:600; color:var(--th-secondary); }
+  .val.done { color:var(--th-faint); }
+  .chk { width:12px; height:12px; }
+</style>
+</head>
+<body>
+  <div class="sheet">
+    <p class="cap">Paper-list. Tap to log, long-press to drag-reorder. No badges, no shadows.</p>
+
+    <div class="row">
+      <span class="box empty"></span>
+      <span class="name">Morning walk along the cliff path</span>
+      <span class="val">12 pts</span>
+    </div>
+
+    <div class="row">
+      <span class="box fill-navy"><svg class="chk" viewBox="0 0 12 10" fill="none"><path d="M1 5l3.5 3.5L11 1" stroke="#eef3f6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      <span class="name done">Cook dinner at home</span>
+      <span class="val done">8 pts</span>
+    </div>
+
+    <div class="row">
+      <span class="box fill-swell" style="background:var(--sw-move)"><svg class="chk" viewBox="0 0 12 10" fill="none"><path d="M1 5l3.5 3.5L11 1" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      <span class="name done">Kayak the bay</span>
+      <span class="val done">1.5 hrs</span>
+    </div>
+
+    <p class="cap">Checkbox fills with the feeding swell's color (ombré across multiple swells); the check ink stays readable against it.</p>
+  </div>
+</body>
+</html>
