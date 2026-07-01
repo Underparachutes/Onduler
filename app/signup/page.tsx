@@ -153,10 +153,9 @@ function CodeStep({ email, onVerified }: { email: string; onVerified: (userId: s
         <input
           inputMode="numeric"
           autoComplete="one-time-code"
-          maxLength={10}
           placeholder="Enter code"
           value={code}
-          onChange={e => setCode(e.target.value)}
+          onChange={e => setCode(e.target.value.replace(/\D/g, ''))}
           className="mb-3 w-full rounded-lg border border-th-border bg-th-surface px-3 py-3 text-center font-mono text-2xl tracking-[0.3em] text-th-text outline-none focus:border-th-focus"
         />
         {error && <p className="mb-3 text-sm text-red-500">{error}</p>}
