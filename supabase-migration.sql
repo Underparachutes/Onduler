@@ -224,6 +224,43 @@ CREATE POLICY "own motion_swells" ON motion_swells FOR ALL USING (
   EXISTS (SELECT 1 FROM motions WHERE motions.id = motion_swells.motion_id AND motions.user_id = (select auth.uid()))
 );
 
+-- Lock privileged user_settings columns from client writes. The "own
+-- user_settings" policy stops cross-user edits but not WHICH columns a user sets
+-- on their own row, and `authenticated` holds a table-level UPDATE grant. Since
+-- the anon key + JWT live in the browser, a user could PATCH user_settings via
+-- PostgREST and self-grant is_admin or subscription_status. A column-level REVOKE
+-- can't carve columns out of the table grant, so a BEFORE trigger pins these four
+-- columns for the untrusted API roles (authenticated, anon); service_role (the
+-- Stripe webhook) and postgres (manual admin) fall through and can still write
+-- them. stripe_customer_id stays writable (checkout upserts it via the user
+-- client; harmless on its own). See scripts/migrate-lock-user-settings-columns.sql.
+CREATE OR REPLACE FUNCTION protect_user_settings_privileged_cols()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  IF current_user IN ('authenticated', 'anon') THEN
+    IF TG_OP = 'UPDATE' THEN
+      NEW.is_admin            := OLD.is_admin;
+      NEW.subscription_status := OLD.subscription_status;
+      NEW.subscription_id     := OLD.subscription_id;
+      NEW.current_period_end  := OLD.current_period_end;
+    ELSIF TG_OP = 'INSERT' THEN
+      NEW.is_admin            := false;
+      NEW.subscription_status := 'none';
+      NEW.subscription_id     := NULL;
+      NEW.current_period_end  := NULL;
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS protect_user_settings_privileged_cols ON user_settings;
+CREATE TRIGGER protect_user_settings_privileged_cols
+  BEFORE INSERT OR UPDATE ON user_settings
+  FOR EACH ROW EXECUTE FUNCTION protect_user_settings_privileged_cols();
+
 
 -- 4. INDEXES
 

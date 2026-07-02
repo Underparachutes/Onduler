@@ -24,31 +24,39 @@ export async function POST(request: NextRequest) {
 
   const supabase = createAdminClient()
 
-  switch (event.type) {
-    case 'checkout.session.completed':
-      await handleCheckoutCompleted(
-        event.data.object as Stripe.Checkout.Session,
-        supabase,
-      )
-      break
-    case 'customer.subscription.updated':
-      await handleSubscriptionUpdated(
-        event.data.object as Stripe.Subscription,
-        supabase,
-      )
-      break
-    case 'customer.subscription.deleted':
-      await handleSubscriptionDeleted(
-        event.data.object as Stripe.Subscription,
-        supabase,
-      )
-      break
-    case 'invoice.payment_failed':
-      await handlePaymentFailed(
-        event.data.object as Stripe.Invoice,
-        supabase,
-      )
-      break
+  // Any failure below (DB write or Stripe fetch) throws, and we return 500 so
+  // Stripe retries the event. Returning 200 on a failed write would silently
+  // drop the subscription-state change — a paid user never gets upgraded.
+  try {
+    switch (event.type) {
+      case 'checkout.session.completed':
+        await handleCheckoutCompleted(
+          event.data.object as Stripe.Checkout.Session,
+          supabase,
+        )
+        break
+      case 'customer.subscription.updated':
+        await handleSubscriptionUpdated(
+          event.data.object as Stripe.Subscription,
+          supabase,
+        )
+        break
+      case 'customer.subscription.deleted':
+        await handleSubscriptionDeleted(
+          event.data.object as Stripe.Subscription,
+          supabase,
+        )
+        break
+      case 'invoice.payment_failed':
+        await handlePaymentFailed(
+          event.data.object as Stripe.Invoice,
+          supabase,
+        )
+        break
+    }
+  } catch (err) {
+    console.error(`Stripe webhook handler failed for ${event.type} (${event.id}):`, err)
+    return new Response('Webhook handler failed', { status: 500 })
   }
 
   return new Response('ok', { status: 200 })
@@ -67,7 +75,7 @@ async function handleCheckoutCompleted(
       : session.customer?.id
 
   if (session.mode === 'payment') {
-    await supabase
+    const { error } = await supabase
       .from('user_settings')
       .update({
         stripe_customer_id: customerId,
@@ -76,6 +84,7 @@ async function handleCheckoutCompleted(
         current_period_end: null,
       })
       .eq('user_id', userId)
+    if (error) throw new Error(`lifetime update failed: ${error.message}`)
     return
   }
 
@@ -89,7 +98,7 @@ async function handleCheckoutCompleted(
 
   const periodEnd = subscription.items.data[0]?.current_period_end
 
-  await supabase
+  const { error } = await supabase
     .from('user_settings')
     .update({
       stripe_customer_id: customerId,
@@ -100,6 +109,7 @@ async function handleCheckoutCompleted(
         : null,
     })
     .eq('user_id', userId)
+  if (error) throw new Error(`checkout subscription update failed: ${error.message}`)
 }
 
 async function handleSubscriptionUpdated(
@@ -113,7 +123,7 @@ async function handleSubscriptionUpdated(
 
   const periodEnd = subscription.items.data[0]?.current_period_end
 
-  await supabase
+  const { error } = await supabase
     .from('user_settings')
     .update({
       subscription_status: subscription.status,
@@ -123,6 +133,7 @@ async function handleSubscriptionUpdated(
         : null,
     })
     .eq('stripe_customer_id', customerId)
+  if (error) throw new Error(`subscription update failed: ${error.message}`)
 }
 
 async function handleSubscriptionDeleted(
@@ -134,7 +145,7 @@ async function handleSubscriptionDeleted(
       ? subscription.customer
       : subscription.customer.id
 
-  await supabase
+  const { error } = await supabase
     .from('user_settings')
     .update({
       subscription_status: 'canceled',
@@ -142,6 +153,7 @@ async function handleSubscriptionDeleted(
       current_period_end: null,
     })
     .eq('stripe_customer_id', customerId)
+  if (error) throw new Error(`subscription delete update failed: ${error.message}`)
 }
 
 async function handlePaymentFailed(
@@ -154,8 +166,9 @@ async function handlePaymentFailed(
       : invoice.customer?.id
   if (!customerId) return
 
-  await supabase
+  const { error } = await supabase
     .from('user_settings')
     .update({ subscription_status: 'past_due' })
     .eq('stripe_customer_id', customerId)
+  if (error) throw new Error(`payment failed update failed: ${error.message}`)
 }
