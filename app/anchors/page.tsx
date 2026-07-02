@@ -218,79 +218,9 @@ export default async function AnchorsPage({
     return <LockedPage actuals={wakeActuals} inWave={inWave} hintSeen={!!lockHintsSeen.anchors_locked} />
   }
 
-  const [
-    { data: allLogs },
-    { data: allWaveCheckins },
-    { data: swells },
-    { data: settings },
-    { data: allWaypointHits },
-    { data: allOneShotCompletions },
-    { data: earliestLogRow },
-  ] = await Promise.all([
-    supabase
-      .from('logs')
-      .select('points, hours, logged_at, motion_id, motions(name, motion_swells(contribution_weight, swells(id, name, color)))')
-      .eq('user_id', user.id)
-      .eq('chapter_id', chapterId)
-      .order('logged_at', { ascending: false }),
-    supabase
-      .from('wave_checkins')
-      .select('energy, alignment, duration_seconds, checked_in_at')
-      .eq('user_id', user.id)
-      .eq('chapter_id', chapterId)
-      .order('checked_in_at', { ascending: false }),
-    supabase
-      .from('swells')
-      .select('id, name, color, target_points, target_hours')
-      .eq('user_id', user.id)
-      .eq('chapter_id', chapterId)
-      .eq('hidden', false)
-      .order('sort_order'),
-    supabase
-      .from('user_settings')
-      .select('tracking_mode, primary_build, secondary_build, welcome_back_mode, welcome_back_started_at, hints_seen, progress_bar_color, anchor_target_per_week')
-      .eq('user_id', user.id)
-      .single(),
-    supabase
-      .from('milestone_hits')
-      .select('hit_at, milestones(swell_id, bonus_points)')
-      .eq('user_id', user.id),
-    supabase
-      .from('milestones')
-      .select('swell_id, bonus_points, completed_at')
-      .eq('user_id', user.id)
-      .eq('kind', 'one_shot')
-      .not('completed_at', 'is', null),
-    supabase
-      .from('logs')
-      .select('logged_at')
-      .eq('chapter_id', chapterId)
-      .order('logged_at', { ascending: true })
-      .limit(1),
-  ])
-
-  const trackingMode: 'points' | 'hours' = (settings?.tracking_mode as 'points' | 'hours') ?? 'points'
-  const isHours = trackingMode === 'hours'
-  const formatValue = (n: number) => (isHours ? formatHrs(ceilDisplay(n, true)) : formatPts(ceilDisplay(n)))
-  const primaryBuild = (settings?.primary_build as BuildKey | null) ?? null
-  const secondaryBuild = (settings?.secondary_build as BuildKey | null) ?? null
-  const hintsSeen = (settings?.hints_seen as Record<string, boolean>) ?? {}
-  const progressBarColor = (settings?.progress_bar_color as string) ?? null
-  const anchorTargetPerWeek: number = (settings?.anchor_target_per_week as number) ?? 1
-  let anchorTargetForPeriod = anchorTargetPerWeek
-  if (period === 'month') anchorTargetForPeriod = Math.ceil(anchorTargetPerWeek * daysInMonth(todayKey) / 7)
-  if (period === 'quarter') anchorTargetForPeriod = Math.ceil(anchorTargetPerWeek * daysInQuarter(todayKey) / 7)
-  if (period === 'year') anchorTargetForPeriod = Math.ceil(anchorTargetPerWeek * daysInYear(todayKey) / 7)
-  if (!hintsSeen.anchors_locked) markHintSeen('anchors_locked')
-  const welcomeBackMode = (settings?.welcome_back_mode as WelcomeBackMode | null) ?? null
-  const welcomeBackStartedKey = settings?.welcome_back_started_at
-    ? pacificDayKey(settings.welcome_back_started_at as string)
-    : null
-  const weeklyRamp = currentRamp(welcomeBackMode, welcomeBackStartedKey, todayKey)
-  const earliestKey: DayKey = earliestLogRow?.[0]
-    ? pacificDayKey(earliestLogRow[0].logged_at)
-    : todayKey
-
+  // Resolve the active period window up front so the bonus queries below can
+  // bound to it (rather than fetching every hit/completion ever). Depends only
+  // on the finalized period + weekStart/todayKey/rawStart, all known here.
   const currentWeekStartKey = pacificDayKey(weekStart)
   const requestedStart = rawStart && /^\d{4}-\d{2}-\d{2}$/.test(rawStart) ? (rawStart as DayKey) : null
 
@@ -342,6 +272,86 @@ export default async function AnchorsPage({
       isCurrentPeriod = true
     }
   }
+
+  const [
+    { data: allLogs },
+    { data: allWaveCheckins },
+    { data: swells },
+    { data: settings },
+    { data: allWaypointHits },
+    { data: allOneShotCompletions },
+    { data: earliestLogRow },
+  ] = await Promise.all([
+    supabase
+      .from('logs')
+      .select('points, hours, logged_at, motion_id, motions(name, motion_swells(contribution_weight, swells(id, name, color)))')
+      .eq('user_id', user.id)
+      .eq('chapter_id', chapterId)
+      .order('logged_at', { ascending: false }),
+    supabase
+      .from('wave_checkins')
+      .select('energy, alignment, duration_seconds, checked_in_at')
+      .eq('user_id', user.id)
+      .eq('chapter_id', chapterId)
+      .order('checked_in_at', { ascending: false }),
+    supabase
+      .from('swells')
+      .select('id, name, color, target_points, target_hours')
+      .eq('user_id', user.id)
+      .eq('chapter_id', chapterId)
+      .eq('hidden', false)
+      .order('sort_order'),
+    supabase
+      .from('user_settings')
+      .select('tracking_mode, primary_build, secondary_build, welcome_back_mode, welcome_back_started_at, hints_seen, progress_bar_color, anchor_target_per_week')
+      .eq('user_id', user.id)
+      .single(),
+    // Bonus rows: bound to the active period (was all-time). Generous 1-day
+    // buffer for DST/Pacific-offset safety; filterByPeriodKey does the exact
+    // Pacific-day-key cut below, so the buffer never over- or under-counts.
+    supabase
+      .from('milestone_hits')
+      .select('hit_at, milestones(swell_id, bonus_points)')
+      .eq('user_id', user.id)
+      .gte('hit_at', addDays(periodStart, -1) + 'T00:00:00-08:00')
+      .lte('hit_at', addDays(periodEnd, 1) + 'T23:59:59-08:00'),
+    supabase
+      .from('milestones')
+      .select('swell_id, bonus_points, completed_at')
+      .eq('user_id', user.id)
+      .eq('kind', 'one_shot')
+      .not('completed_at', 'is', null)
+      .gte('completed_at', addDays(periodStart, -1) + 'T00:00:00-08:00')
+      .lte('completed_at', addDays(periodEnd, 1) + 'T23:59:59-08:00'),
+    supabase
+      .from('logs')
+      .select('logged_at')
+      .eq('chapter_id', chapterId)
+      .order('logged_at', { ascending: true })
+      .limit(1),
+  ])
+
+  const trackingMode: 'points' | 'hours' = (settings?.tracking_mode as 'points' | 'hours') ?? 'points'
+  const isHours = trackingMode === 'hours'
+  const formatValue = (n: number) => (isHours ? formatHrs(ceilDisplay(n, true)) : formatPts(ceilDisplay(n)))
+  const primaryBuild = (settings?.primary_build as BuildKey | null) ?? null
+  const secondaryBuild = (settings?.secondary_build as BuildKey | null) ?? null
+  const hintsSeen = (settings?.hints_seen as Record<string, boolean>) ?? {}
+  const progressBarColor = (settings?.progress_bar_color as string) ?? null
+  const anchorTargetPerWeek: number = (settings?.anchor_target_per_week as number) ?? 1
+  let anchorTargetForPeriod = anchorTargetPerWeek
+  if (period === 'month') anchorTargetForPeriod = Math.ceil(anchorTargetPerWeek * daysInMonth(todayKey) / 7)
+  if (period === 'quarter') anchorTargetForPeriod = Math.ceil(anchorTargetPerWeek * daysInQuarter(todayKey) / 7)
+  if (period === 'year') anchorTargetForPeriod = Math.ceil(anchorTargetPerWeek * daysInYear(todayKey) / 7)
+  if (!hintsSeen.anchors_locked) markHintSeen('anchors_locked')
+  const welcomeBackMode = (settings?.welcome_back_mode as WelcomeBackMode | null) ?? null
+  const welcomeBackStartedKey = settings?.welcome_back_started_at
+    ? pacificDayKey(settings.welcome_back_started_at as string)
+    : null
+  const weeklyRamp = currentRamp(welcomeBackMode, welcomeBackStartedKey, todayKey)
+  const earliestKey: DayKey = earliestLogRow?.[0]
+    ? pacificDayKey(earliestLogRow[0].logged_at)
+    : todayKey
 
   const { anchors: periodAnchors, total: periodAnchorTotal } = await getAnchorsForPeriod(periodStart, periodEnd)
 
