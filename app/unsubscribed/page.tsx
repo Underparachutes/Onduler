@@ -50,12 +50,14 @@ export default async function UnsubscribedPage({
         <p className="mb-10 text-sm leading-relaxed text-th-muted">{entry.body}</p>
 
         {status === 'ok' && token && (
-          <a
-            href={`/api/email/resubscribe?token=${token}`}
-            className="mb-6 inline-block rounded-lg border border-th-border bg-th-surface px-4 py-2 text-sm text-th-text transition-all active:scale-[0.97]"
-          >
-            Resubscribe
-          </a>
+          <form method="post" action={`/api/email/resubscribe?token=${encodeURIComponent(token)}`}>
+            <button
+              type="submit"
+              className="mb-6 inline-block rounded-lg border border-th-border bg-th-surface px-4 py-2 text-sm text-th-text transition-all active:scale-[0.97]"
+            >
+              Resubscribe
+            </button>
+          </form>
         )}
 
         <div className="flex flex-col gap-2 text-sm">

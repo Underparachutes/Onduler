@@ -2,14 +2,23 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 // Mirror of /api/email/unsubscribe — same token check, flips the flag
-// back on. Used by the "Resubscribe" button on /unsubscribed for the
-// case where someone clicked the link by accident. Accepts GET so the
-// confirmation page can link straight to it.
+// back on. Used by the "Resubscribe" button on /unsubscribed. Mutates on
+// POST only (the button is a form POST); a GET must not flip state, since
+// link prefetchers would silently resubscribe someone who just left.
+// A stray GET just bounces back to the confirmation page.
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
-async function handle(request: NextRequest) {
+export async function GET(request: NextRequest) {
+  const token = request.nextUrl.searchParams.get('token')
+  const appUrl =
+    process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '') ?? 'https://onduler.app'
+  const suffix = token ? `&token=${encodeURIComponent(token)}` : ''
+  return NextResponse.redirect(`${appUrl}/unsubscribed?status=ok${suffix}`, 303)
+}
+
+export async function POST(request: NextRequest) {
   const token = request.nextUrl.searchParams.get('token')
   const appUrl =
     process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '') ?? 'https://onduler.app'
@@ -40,6 +49,3 @@ async function handle(request: NextRequest) {
 
   return NextResponse.redirect(`${appUrl}/unsubscribed?status=resubscribed`, 303)
 }
-
-export async function GET(request: NextRequest) { return handle(request) }
-export async function POST(request: NextRequest) { return handle(request) }

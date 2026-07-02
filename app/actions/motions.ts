@@ -42,35 +42,29 @@ export async function createMotion(prevState: unknown, formData: FormData) {
 
   const chapterId = await getActiveChapterId(supabase, user.id)
 
-  const { data: inserted, error } = await supabase
-    .from('motions')
-    .insert({ user_id: user.id, chapter_id: chapterId, name, default_points: defaultPoints, default_hours: defaultHours, group_id })
-    .select('id')
-    .single()
+  // Motion + swell links in one transaction (RPC) so a link failure can't
+  // leave an orphaned motion. Multi-select takes precedence over single swell_id.
+  const swellLinks =
+    swellEntries.length > 0
+      ? swellEntries.map(e => ({ swell_id: e.swellId, weight: e.weight }))
+      : swell_id
+        ? [{ swell_id, weight: 1 }]
+        : null
+
+  const { error } = await supabase.rpc('create_motion_with_swells', {
+    p_chapter_id: chapterId,
+    p_name: name,
+    p_default_points: defaultPoints,
+    p_default_hours: defaultHours,
+    p_group_id: group_id,
+    p_parent_id: null,
+    p_sort_order: null,
+    p_swells: swellLinks,
+  })
 
   if (error) return { error: error.message }
 
-  if (inserted) {
-    if (swellEntries.length > 0) {
-      const { error: linkErr } = await supabase.from('motion_swells').insert(
-        swellEntries.map(e => ({
-          motion_id: inserted.id,
-          swell_id: e.swellId,
-          contribution_weight: e.weight,
-        })),
-      )
-      if (linkErr) return { error: `Motion created, but linking swells failed: ${linkErr.message}` }
-      for (const e of swellEntries) revalidatePath(`/swells/${e.swellId}`)
-    } else if (swell_id) {
-      const { error: linkErr } = await supabase.from('motion_swells').insert({
-        motion_id: inserted.id,
-        swell_id,
-        contribution_weight: 1,
-      })
-      if (linkErr) return { error: `Motion created, but linking the swell failed: ${linkErr.message}` }
-      revalidatePath(`/swells/${swell_id}`)
-    }
-  }
+  for (const link of swellLinks ?? []) revalidatePath(`/swells/${link.swell_id}`)
 
   revalidatePath('/dashboard')
   revalidatePath('/swells')
@@ -149,20 +143,21 @@ export async function setMotionSwells(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
-  const { error: clearErr } = await supabase.from('motion_swells').delete().eq('motion_id', motionId)
-  if (clearErr) return { error: clearErr.message }
+  // Replace the full link set in one transaction (RPC) so a failed insert can't
+  // leave the motion feeding zero swells (silent loss of contribution weights).
+  const links =
+    entries.length > 0
+      ? normalizeEntries(entries).map(({ swellId, weight }) => ({
+          swell_id: swellId,
+          weight,
+        }))
+      : null
 
-  if (entries.length > 0) {
-    const normalized = normalizeEntries(entries)
-    const { error: insErr } = await supabase.from('motion_swells').insert(
-      normalized.map(({ swellId, weight }) => ({
-        motion_id: motionId,
-        swell_id: swellId,
-        contribution_weight: weight,
-      }))
-    )
-    if (insErr) return { error: insErr.message }
-  }
+  const { error } = await supabase.rpc('set_motion_swells', {
+    p_motion_id: motionId,
+    p_swells: links,
+  })
+  if (error) return { error: error.message }
 
   revalidatePath('/swells')
   revalidatePath('/dashboard')
@@ -452,30 +447,24 @@ export async function duplicateMotion(
 
   const chapterId = await getActiveChapterId(supabase, user.id)
 
+  // Motion + optional swell link in one transaction (RPC) so a link failure
+  // can't leave an orphaned duplicate.
   const { data: inserted, error } = await supabase
-    .from('motions')
-    .insert({
-      user_id: user.id,
-      chapter_id: chapterId,
-      name: opts?.name || source.name,
-      default_points: source.default_points,
-      default_hours: source.default_hours,
-      group_id: source.group_id,
-      sort_order: (source.sort_order ?? 0) + 1,
+    .rpc('create_motion_with_swells', {
+      p_chapter_id: chapterId,
+      p_name: opts?.name || source.name,
+      p_default_points: source.default_points,
+      p_default_hours: source.default_hours,
+      p_group_id: source.group_id,
+      p_parent_id: null,
+      p_sort_order: (source.sort_order ?? 0) + 1,
+      p_swells: opts?.swellId
+        ? [{ swell_id: opts.swellId, weight: opts.weight ?? 1 }]
+        : null,
     })
-    .select('id, name')
-    .single()
+    .single<{ id: string; name: string }>()
 
   if (error) return { error: error.message }
-
-  if (opts?.swellId && inserted) {
-    const { error: linkErr } = await supabase.from('motion_swells').insert({
-      motion_id: inserted.id,
-      swell_id: opts.swellId,
-      contribution_weight: opts.weight ?? 1,
-    })
-    if (linkErr) return { error: linkErr.message }
-  }
 
   revalidatePath('/dashboard')
   revalidatePath('/swells')

@@ -55,8 +55,11 @@ type CandidateRow = {
 function authorized(request: NextRequest): boolean {
   const secret = process.env.CRON_SECRET
   if (!secret) {
-    // No secret configured = local dev. Allow anyone (so we can curl it).
-    return true
+    // No secret configured. Only allow the open bypass outside production
+    // (local dev, so we can curl it). If the env var is ever missing or
+    // misnamed in prod, fail closed — otherwise anyone on the public
+    // internet could trigger the send.
+    return process.env.NODE_ENV !== 'production'
   }
   const auth = request.headers.get('authorization') ?? ''
   return auth === `Bearer ${secret}`
@@ -204,13 +207,22 @@ async function handleCron(request: NextRequest) {
     }
   }
 
+  // Aggregate by status so the default response never carries user_ids.
+  const statusCounts: Record<string, number> = {}
+  for (const r of sendResults) {
+    statusCounts[r.status] = (statusCounts[r.status] ?? 0) + 1
+  }
+
   return Response.json({
     today: todayKey,
     cycle,
     cadence: CADENCE,
     dryRun,
     total_candidates: candidateRows.length,
-    sent: sendResults.filter(r => r.status === 'sent').length,
-    results: sendResults,
+    sent: statusCounts['sent'] ?? 0,
+    status_counts: statusCounts,
+    // Per-user detail includes user_ids, so only expose it in dry-run mode
+    // (used for local/manual inspection). A real send response leaks nothing.
+    ...(dryRun ? { results: sendResults } : {}),
   })
 }
