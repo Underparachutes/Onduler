@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getActiveChapterId } from '@/lib/chapters'
 import { pacificDayKey, type DayKey } from '@/lib/periods'
 import { daysInCycle, formatCycleLabel, type Cadence } from '@/lib/cycles'
-import { getCeremonyState } from '@/app/actions/reflections'
+import { getCeremonyState, fetchLogDays } from '@/app/actions/reflections'
 import { CycleCeremony } from '../CycleCeremony'
 
 const CADENCES: Cadence[] = ['week', 'month', 'quarter', 'year']
@@ -27,7 +27,8 @@ export default async function CeremonyPage({
 
   const chapterId = await getActiveChapterId(supabase, user.id)
   const todayKey = pacificDayKey(new Date())
-  const { state, cycleStart, cycleEnd } = await getCeremonyState(supabase, user.id, cadence, todayKey)
+  const logDays = await fetchLogDays(supabase, user.id, chapterId)
+  const { state, cycleStart, cycleEnd } = await getCeremonyState(supabase, user.id, chapterId, logDays, cadence, todayKey)
 
   // Only a pending ceremony renders here. Already-completed cycles and
   // wave-cycles (zero logs) both route the user back — the ceremony is a

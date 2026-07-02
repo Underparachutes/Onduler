@@ -28,7 +28,7 @@ import { LockedCadenceTile } from './components/LockedCadenceTile'
 import { WaveField, type WaveLine } from '@/app/components/WaveField'
 import { LockedPage } from './components/LockedPage'
 import { getActiveChapterId } from '@/lib/chapters'
-import { getCeremonyState, getUnlockState, getAnchorsForPeriod, type CeremonyState } from '@/app/actions/reflections'
+import { getCeremonyState, getUnlockState, getAnchorsForPeriod, fetchLogDays, type CeremonyState } from '@/app/actions/reflections'
 import { formatCycleLabel, type Cadence } from '@/lib/cycles'
 import type { BuildKey } from '@/lib/builds'
 import { HintCard } from '@/app/components/HintCard'
@@ -123,9 +123,14 @@ export default async function AnchorsPage({
   ])
   const todayKey = pacificDayKey(todayStart)
 
+  // Resolve the chapter's log-day set once and thread it into the unlock +
+  // ceremony calcs below. Previously each of the 5 calls re-resolved the
+  // chapter and re-scanned the full chapter log table.
+  const logDays = await fetchLogDays(supabase, user.id, chapterId)
+
   const [ceremonies, unlocks] = await Promise.all([
-    Promise.all(CADENCES.map(c => getCeremonyState(supabase, user.id, c, todayKey))) as Promise<CeremonyResult[]>,
-    getUnlockState(supabase, user.id, todayKey),
+    Promise.all(CADENCES.map(c => getCeremonyState(supabase, user.id, chapterId, logDays, c, todayKey))) as Promise<CeremonyResult[]>,
+    getUnlockState(logDays, todayKey),
   ])
   const ceremonyByCadence: Record<Cadence, CeremonyResult> = {
     week: ceremonies[0], month: ceremonies[1], quarter: ceremonies[2], year: ceremonies[3],

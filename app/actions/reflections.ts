@@ -13,43 +13,35 @@ export type CeremonyState = 'none' | 'pending' | 'completed'
 
 export type UnlockState = Record<Cadence, boolean>
 
-// Fetches the user's active chapter + distinct log days within the chapter
-// window, returning a Set of Pacific day keys. Used by unlock + ceremony
-// calculations alike.
-async function fetchChapterAndLogDays(
+// Fetches the distinct log days (Pacific day keys) within a chapter. The
+// caller resolves the chapter id once (via getActiveChapterId) and threads
+// the resulting Set into the unlock + ceremony calcs, so a single page
+// render scans the chapter log table once rather than per calculation.
+export async function fetchLogDays(
   supabase: SupabaseClient,
   userId: string,
-): Promise<{ chapterId: string | null; chapterStart: string | null; logDays: Set<DayKey> }> {
-  const { data: chapter } = await supabase
-    .from('chapters')
-    .select('id, started_at')
-    .eq('user_id', userId)
-    .is('ended_at', null)
-    .maybeSingle()
-  if (!chapter?.id) {
-    return { chapterId: null, chapterStart: null, logDays: new Set() }
-  }
+  chapterId: string,
+): Promise<Set<DayKey>> {
   const { data: logs } = await supabase
     .from('logs')
     .select('logged_at')
     .eq('user_id', userId)
-    .eq('chapter_id', chapter.id)
+    .eq('chapter_id', chapterId)
   const days = new Set<DayKey>()
   for (const l of logs ?? []) {
     days.add(pacificDayKey(l.logged_at))
   }
-  return { chapterId: chapter.id, chapterStart: chapter.started_at, logDays: days }
+  return days
 }
 
 // Per-chapter unlock state. A cadence is unlocked once *any* closed cycle
 // of that cadence within the active chapter cleared the engagement floor.
-// "Once unlocked, stays unlocked for the chapter" (ADR 0007).
+// "Once unlocked, stays unlocked for the chapter" (ADR 0007). Pure over the
+// pre-resolved log-day set — the caller supplies logDays via fetchLogDays.
 export async function getUnlockState(
-  supabase: SupabaseClient,
-  userId: string,
+  logDays: Set<DayKey>,
   todayKey: DayKey,
 ): Promise<UnlockState> {
-  const { logDays } = await fetchChapterAndLogDays(supabase, userId)
   return {
     week: unlockedForCadence(logDays, 'week', todayKey, cycleContaining),
     month: unlockedForCadence(logDays, 'month', todayKey, cycleContaining),
@@ -71,13 +63,14 @@ export async function getUnlockState(
 export async function getCeremonyState(
   supabase: SupabaseClient,
   userId: string,
+  chapterId: string | null,
+  logDays: Set<DayKey>,
   cadence: Cadence,
   todayKey: DayKey,
 ): Promise<{ state: CeremonyState; cycleStart: DayKey; cycleEnd: DayKey; chapterId: string | null }> {
   const cycle = closedCycleFor(todayKey, cadence)
   const { cycleStart, cycleEnd } = cycle
 
-  const { chapterId, logDays } = await fetchChapterAndLogDays(supabase, userId)
   if (!chapterId) return { state: 'none', cycleStart, cycleEnd, chapterId: null }
 
   const { data: existing } = await supabase
