@@ -34,7 +34,7 @@ The product is explicitly built for multi-year retention, so unbounded "pull all
 
 - [x] **`/anchors` fetches all-time `milestone_hits` with no bound.** `app/anchors/page.tsx:249-258` reads every hit ever, then filters by period in JS (and mixes in archived-chapter milestones). **Direction:** add a `hit_at >= periodStart` bound, matching the dashboard/swells pattern. **S**
 
-- [ ] **Cron is a per-user sequential N+1.** `cycle-close-email/route.ts:101-104` calls `auth.admin.getUserById` one user at a time, then the main loop does sequential per-user chapter → **unbounded** logs → reflections queries. At hundreds of users this is hundreds of serial round-trips per run (Vercel function timeout risk). **Direction:** batch the email lookup (`auth.admin.listUsers` paginated, or a single join), process users with bounded concurrency (`Promise.all` over chunks), and bound the per-user logs read to the cycle window. **M**
+- [x] **Cron is a per-user sequential N+1.** `cycle-close-email/route.ts:101-104` calls `auth.admin.getUserById` one user at a time, then the main loop does sequential per-user chapter → **unbounded** logs → reflections queries. At hundreds of users this is hundreds of serial round-trips per run (Vercel function timeout risk). **Direction:** batch the email lookup (`auth.admin.listUsers` paginated, or a single join), process users with bounded concurrency (`Promise.all` over chunks), and bound the per-user logs read to the cycle window. **M**
 
 ---
 
