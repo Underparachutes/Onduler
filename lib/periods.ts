@@ -182,9 +182,30 @@ export function parseHoursInput(text: string): number | null {
   return isNaN(n) || n < 0 ? null : n
 }
 
-// Pacific calendar day key for a logged_at timestamp. Centralized so the
-// rest of the app stops re-instantiating the Intl formatter.
-const pacificDateFmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Los_Angeles' })
+// Calendar day key (YYYY-MM-DD) for a timestamp, in the given IANA timezone.
+// Per-tz Intl formatters are cached so tight loops don't re-instantiate.
+const dayFmtCache = new Map<string, Intl.DateTimeFormat>()
+function dayFmt(tz: string): Intl.DateTimeFormat {
+  let f = dayFmtCache.get(tz)
+  if (!f) {
+    f = new Intl.DateTimeFormat('en-CA', { timeZone: tz })
+    dayFmtCache.set(tz, f)
+  }
+  return f
+}
+
+export function dayKey(loggedAt: string | Date, tz: string = 'America/Los_Angeles'): DayKey {
+  return dayFmt(tz).format(typeof loggedAt === 'string' ? new Date(loggedAt) : loggedAt)
+}
+
+// Sunday (week start) day key for the week containing `loggedAt`, in `tz`.
+export function sundayKey(loggedAt: string | Date, tz: string = 'America/Los_Angeles'): DayKey {
+  return sundayOf(dayKey(loggedAt, tz))
+}
+
+// Deprecated alias — Pacific-hardcoded. Being replaced by dayKey(ts, tz) as the
+// per-user-timezone migration (Phase B) threads the user's zone through call
+// sites. See docs/specs/per-user-timezone-2026-07-03.md.
 export function pacificDayKey(loggedAt: string | Date): DayKey {
-  return pacificDateFmt.format(typeof loggedAt === 'string' ? new Date(loggedAt) : loggedAt)
+  return dayKey(loggedAt, 'America/Los_Angeles')
 }
