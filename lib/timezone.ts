@@ -27,8 +27,9 @@ function tzOffsetMs(date: Date, tz: string): number {
 }
 
 // Midnight of `dateStr` (YYYY-MM-DD) in `tz`, as a UTC Date. Solves for the UTC
-// instant whose local wall clock is 00:00 on that date.
-function zonedMidnight(dateStr: string, tz: string): Date {
+// instant whose local wall clock is 00:00 on that date. Exported so query
+// bounds can be exact per-user (e.g. [start-of-day, start-of-next-day) windows).
+export function startOfDayUtc(dateStr: string, tz: string = DEFAULT_TZ): Date {
   const [y, m, d] = dateStr.split('-').map(Number)
   const guessUtc = Date.UTC(y, m - 1, d)
   const offset = tzOffsetMs(new Date(guessUtc), tz)
@@ -51,15 +52,15 @@ function sundayOf(dateStr: string, weeksBack = 0): string {
 }
 
 export async function getTodayStart(tz: string = DEFAULT_TZ): Promise<Date> {
-  return zonedMidnight(zonedToday(tz), tz)
+  return startOfDayUtc(zonedToday(tz), tz)
 }
 
 // Sunday 00:00 (local) of the current week (Sun–Sat cycle).
 export async function getWeekStart(tz: string = DEFAULT_TZ): Promise<Date> {
-  return zonedMidnight(sundayOf(zonedToday(tz)), tz)
+  return startOfDayUtc(sundayOf(zonedToday(tz)), tz)
 }
 
 // Sunday 00:00 (local) of the previous week.
 export async function getLastWeekStart(tz: string = DEFAULT_TZ): Promise<Date> {
-  return zonedMidnight(sundayOf(zonedToday(tz), 1), tz)
+  return startOfDayUtc(sundayOf(zonedToday(tz), 1), tz)
 }

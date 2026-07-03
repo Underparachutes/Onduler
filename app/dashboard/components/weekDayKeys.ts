@@ -1,5 +1,5 @@
-export function getWeekDayKeys(offset: number): string[] {
-  const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }))
+export function getWeekDayKeys(offset: number, tz: string = 'America/Los_Angeles'): string[] {
+  const now = new Date(new Date().toLocaleString('en-US', { timeZone: tz }))
   const jsDay = now.getDay()
   const daysSinceSun = jsDay
   const sunday = new Date(now)

@@ -32,6 +32,7 @@ type Props = {
   swellTargets?: Record<string, number>
   onTargetCross?: (color: string) => void
   hintCalendarSeen?: boolean
+  timezone: string
 }
 
 import { getWeekDayKeys } from './weekDayKeys'
@@ -201,13 +202,14 @@ export function WeekEditView({
   swellTargets,
   onTargetCross,
   hintCalendarSeen,
+  timezone,
 }: Props) {
   const [, startTransition] = useTransition()
   const router = useRouter()
   const guard = useSaveGuard()
-  const dayKeys = getWeekDayKeys(weekOffset)
+  const dayKeys = getWeekDayKeys(weekOffset, timezone)
 
-  const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }))
+  const now = new Date(new Date().toLocaleString('en-US', { timeZone: timezone }))
   const y = now.getFullYear()
   const m = String(now.getMonth() + 1).padStart(2, '0')
   const d = String(now.getDate()).padStart(2, '0')

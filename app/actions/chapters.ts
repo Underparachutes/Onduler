@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
-import { pacificDayKey, type DayKey } from '@/lib/periods'
+import { dayKey, type DayKey } from '@/lib/periods'
 
 // Archived-chapter list (Past chapters browse). Returns chapters whose
 // ended_at IS NOT NULL, newest-first by sort_order. log_count is included
@@ -144,13 +144,14 @@ export async function getArchivedChapterDetail(
       .eq('chapter_id', chapterId),
     supabase
       .from('user_settings')
-      .select('tracking_mode')
+      .select('tracking_mode, timezone')
       .eq('user_id', user.id)
       .single(),
   ])
 
   const trackingMode: 'points' | 'hours' = (settings?.tracking_mode as 'points' | 'hours') ?? 'points'
   const isHours = trackingMode === 'hours'
+  const tz = (settings?.timezone as string) || 'America/Los_Angeles'
   const swellsRows = swells ?? []
   const logsForActuals = (chapterLogs ?? []) as LogWithSwells[]
 
@@ -158,7 +159,7 @@ export async function getArchivedChapterDetail(
     const acc = new Map<string, number>()
     swellsRows.forEach(s => acc.set(s.id, 0))
     for (const log of logsForActuals) {
-      const day = pacificDayKey(log.logged_at)
+      const day = dayKey(log.logged_at, tz)
       if (day < cycleStart || day > cycleEnd) continue
       const motion = Array.isArray(log.motions) ? log.motions[0] : log.motions
       motion?.motion_swells?.forEach(ms => {

@@ -2,7 +2,8 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getActiveChapterId } from '@/lib/chapters'
 import { getTodayStart, getWeekStart, getLastWeekStart } from '@/lib/timezone'
-import { pacificDayKey } from '@/lib/periods'
+import { dayKey } from '@/lib/periods'
+import { getUserTimezone } from '@/lib/user-timezone'
 import { bonusBySwell } from '@/lib/waypoints'
 import { currentRamp, type WelcomeBackMode } from '@/lib/welcomeback'
 import { DashboardView } from './components/DashboardView'
@@ -64,15 +65,16 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
+  const tz = await getUserTimezone(user.id)
   const [{ data: settings }, todayStart, weekStart, lastWeekStart, chapterId] = await Promise.all([
     supabase
       .from('user_settings')
       .select('groups_enabled, submotions_enabled, onboarding_complete, enc_enabled, daily_goal, daily_goal_hours, tracking_mode, celebration_enabled, haptic_enabled, welcome_back_mode, welcome_back_started_at, hints_seen, progress_bar_color')
       .eq('user_id', user.id)
       .single(),
-    getTodayStart(),
-    getWeekStart(),
-    getLastWeekStart(),
+    getTodayStart(tz),
+    getWeekStart(tz),
+    getLastWeekStart(tz),
     getActiveChapterId(supabase, user.id),
   ])
 
@@ -197,10 +199,10 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const weeklyLogMap: Record<string, Record<string, string[]>> = {}
   for (const log of twoWeekLogs ?? []) {
     if (!log.motion_id) continue
-    const dayKey = pacificDayKey(log.logged_at)
+    const logDay = dayKey(log.logged_at, tz)
     if (!weeklyLogMap[log.motion_id]) weeklyLogMap[log.motion_id] = {}
-    if (!weeklyLogMap[log.motion_id][dayKey]) weeklyLogMap[log.motion_id][dayKey] = []
-    weeklyLogMap[log.motion_id][dayKey].push(log.id)
+    if (!weeklyLogMap[log.motion_id][logDay]) weeklyLogMap[log.motion_id][logDay] = []
+    weeklyLogMap[log.motion_id][logDay].push(log.id)
   }
 
   const submotionsMap: Record<string, { id: string; name: string; default_points: number; default_hours: number; swells: { id: string; name: string; color: string; weight: number }[] }[]> = {}
@@ -257,10 +259,10 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   // welcome screen, weekly targets soften over 3 weeks (40% → 70% → 100%) so
   // celebration is reachable while they re-acclimate. After 3 weeks, ramp
   // returns null and full targets resume.
-  const todayKey = pacificDayKey(todayStart)
+  const todayKey = dayKey(todayStart, tz)
   const welcomeBackMode = (settings?.welcome_back_mode as WelcomeBackMode | null) ?? null
   const welcomeBackStartedKey = settings?.welcome_back_started_at
-    ? pacificDayKey(settings.welcome_back_started_at as string)
+    ? dayKey(settings.welcome_back_started_at as string, tz)
     : null
   const weeklyRamp = currentRamp(welcomeBackMode, welcomeBackStartedKey, todayKey)
 
@@ -315,6 +317,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
   return (
     <DashboardView
+      timezone={tz}
       groupsEnabled={groupsEnabled}
       submotionsEnabled={submotionsEnabled}
       motions={motions}

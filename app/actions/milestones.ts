@@ -3,7 +3,8 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { getWeekStart } from '@/lib/timezone'
-import { pacificDayKey } from '@/lib/periods'
+import { dayKey } from '@/lib/periods'
+import { getUserTimezone } from '@/lib/user-timezone'
 import { cycleStartKey, type Cadence } from '@/lib/cadence'
 
 type MilestoneKind = 'recurring' | 'one_shot'
@@ -269,10 +270,11 @@ export async function resetCycleHits(milestoneId: string, swellId: string) {
     .single()
   if (!milestone) return { error: 'Waypoint not found' }
 
+  const tz = await getUserTimezone(user.id)
   const now = new Date()
-  const todayKey = pacificDayKey(now)
-  const weekStart = await getWeekStart()
-  const weekStartStr = pacificDayKey(weekStart)
+  const todayKey = dayKey(now, tz)
+  const weekStart = await getWeekStart(tz)
+  const weekStartStr = dayKey(weekStart, tz)
   const cadence: Cadence = (milestone.cadence as Cadence) ?? 'weekly'
   const cycleStart = cycleStartKey(cadence, weekStartStr, todayKey)
 

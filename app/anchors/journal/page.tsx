@@ -2,7 +2,8 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getJournalData, type JournalChapter, type JournalWeek, type AnchorRow } from '@/app/actions/reflections'
-import { pacificDayKey, type DayKey } from '@/lib/periods'
+import { dayKey, type DayKey } from '@/lib/periods'
+import { getUserTimezone } from '@/lib/user-timezone'
 import { FrozenRadar } from '@/app/anchors/ceremony/FrozenRadar'
 import { JournalClient } from './JournalClient'
 
@@ -40,11 +41,12 @@ function actualsForWeek(
   cycleEnd: DayKey,
   swells: SwellRow[],
   isHours: boolean,
+  tz: string,
 ): number[] {
   const acc = new Map<string, number>()
   swells.forEach(s => acc.set(s.id, 0))
   for (const log of logs) {
-    const key = pacificDayKey(log.logged_at)
+    const key = dayKey(log.logged_at, tz)
     if (key < cycleStart || key > cycleEnd) continue
     const motion: MotionShape = (Array.isArray(log.motions) ? log.motions[0] : log.motions) as MotionShape
     motion?.motion_swells?.forEach(ms => {
@@ -85,6 +87,7 @@ export default async function AnchorJournalPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
+  const tz = await getUserTimezone(user.id)
   const [chapters, { data: swellRows }, { data: logRows }, { data: settings }] = await Promise.all([
     getJournalData(),
     supabase
@@ -136,7 +139,7 @@ export default async function AnchorJournalPage() {
         kind = 'wave'
       }
 
-      const weekSwells = chapterSwells.filter(s => pacificDayKey(s.created_at) <= w.cycleEnd)
+      const weekSwells = chapterSwells.filter(s => dayKey(s.created_at, tz) <= w.cycleEnd)
       const radarSwells = weekSwells.map(s => ({
         id: s.id,
         name: s.name,
@@ -148,7 +151,7 @@ export default async function AnchorJournalPage() {
         if (a.cycle_type === 'free' || !a.cycle_start || !a.cycle_end) {
           return a
         }
-        const ceremonySwells = chapterSwells.filter(s => pacificDayKey(s.created_at) <= a.cycle_end!)
+        const ceremonySwells = chapterSwells.filter(s => dayKey(s.created_at, tz) <= a.cycle_end!)
         if (ceremonySwells.length < 3) return a
         const ceremonyRadarSwells = ceremonySwells.map(s => ({
           id: s.id,
@@ -159,7 +162,7 @@ export default async function AnchorJournalPage() {
         return {
           ...a,
           radarSwells: ceremonyRadarSwells,
-          radarActuals: actualsForWeek(chapterLogs, a.cycle_start, a.cycle_end, ceremonySwells, isHours),
+          radarActuals: actualsForWeek(chapterLogs, a.cycle_start, a.cycle_end, ceremonySwells, isHours, tz),
         }
       })
 
@@ -174,7 +177,7 @@ export default async function AnchorJournalPage() {
       if (radarSwells.length >= 3) {
         weekData.radarSwells = radarSwells
         if (kind === 'logs-only') {
-          weekData.radarActuals = actualsForWeek(chapterLogs, w.cycleStart, w.cycleEnd, weekSwells, isHours)
+          weekData.radarActuals = actualsForWeek(chapterLogs, w.cycleStart, w.cycleEnd, weekSwells, isHours, tz)
         }
       }
 

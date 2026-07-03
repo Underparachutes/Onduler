@@ -22,6 +22,7 @@ type Submotion = { id: string; name: string; default_points: number; default_hou
 type TrackingMode = 'points' | 'hours'
 
 type Props = {
+  timezone: string
   groupsEnabled: boolean
   submotionsEnabled: boolean
   motions: Motion[]
@@ -127,6 +128,7 @@ export function DashboardView(rawProps: Props) {
             {hasMotions ? (
               <DailyChecklist
                 key={`${props.motions.length}-${props.trackingMode}`}
+                timezone={props.timezone}
                 topBar={
                   <div className="mb-2 flex items-center justify-between">
                     <p className="brand-text text-xs uppercase tracking-widest text-th-muted">Onduler</p>

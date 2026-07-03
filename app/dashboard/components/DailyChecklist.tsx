@@ -51,6 +51,7 @@ type Submotion = { id: string; name: string; default_points: number; default_hou
 type TrackingMode = 'points' | 'hours'
 
 type Props = {
+  timezone: string
   topBar: React.ReactNode
   belowHeader?: React.ReactNode
   groupsEnabled: boolean
@@ -248,6 +249,7 @@ function MotionDragOverlay({
 }
 
 export function DailyChecklist({
+  timezone,
   topBar,
   belowHeader,
   groupsEnabled,
@@ -524,7 +526,7 @@ export function DailyChecklist({
   )
 
   // Weekly total for Views mode — computed from weeklyLogMap + motion defaults
-  const viewsDayKeys = getWeekDayKeys(weekOffset)
+  const viewsDayKeys = getWeekDayKeys(weekOffset, timezone)
   const viewsDayKeySet = new Set(viewsDayKeys)
   const viewsWeekBase = (() => {
     const allM = [...motions, ...Object.values(submotionsMap).flat()]
@@ -916,6 +918,7 @@ export function DailyChecklist({
           <div className="h-4" />
           {belowHeader}
           <WeekEditView
+            timezone={timezone}
             motions={activeGroup ? motions.filter(m => m.groupId === activeGroup) : motions}
             submotionsMap={submotionsMap}
             submotionsEnabled={submotionsEnabled}

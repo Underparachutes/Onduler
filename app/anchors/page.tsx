@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { gateContentEncryption } from '@/lib/enc-gate'
 import { getTodayStart, getWeekStart } from '@/lib/timezone'
+import { getUserTimezone } from '@/lib/user-timezone'
 import { formatPts, formatHrs } from '@/lib/format'
 import {
   addDays,
@@ -14,7 +15,7 @@ import {
   daysInYear,
   monthEndKey,
   monthStartKey,
-  pacificDayKey,
+  dayKey,
   quarterEndKey,
   quarterStartKey,
   sundayOf,
@@ -116,17 +117,18 @@ export default async function AnchorsPage({
   if (!user) redirect('/login')
   await gateContentEncryption()
 
+  const tz = await getUserTimezone(user.id)
   const [chapterId, todayStart, weekStart] = await Promise.all([
     getActiveChapterId(supabase, user.id),
-    getTodayStart(),
-    getWeekStart(),
+    getTodayStart(tz),
+    getWeekStart(tz),
   ])
-  const todayKey = pacificDayKey(todayStart)
+  const todayKey = dayKey(todayStart, tz)
 
   // Resolve the chapter's log-day set once and thread it into the unlock +
   // ceremony calcs below. Previously each of the 5 calls re-resolved the
   // chapter and re-scanned the full chapter log table.
-  const logDays = await fetchLogDays(supabase, user.id, chapterId)
+  const logDays = await fetchLogDays(supabase, user.id, chapterId, tz)
 
   const [ceremonies, unlocks] = await Promise.all([
     Promise.all(CADENCES.map(c => getCeremonyState(supabase, user.id, chapterId, logDays, c, todayKey))) as Promise<CeremonyResult[]>,
@@ -221,7 +223,7 @@ export default async function AnchorsPage({
   // Resolve the active period window up front so the bonus queries below can
   // bound to it (rather than fetching every hit/completion ever). Depends only
   // on the finalized period + weekStart/todayKey/rawStart, all known here.
-  const currentWeekStartKey = pacificDayKey(weekStart)
+  const currentWeekStartKey = dayKey(weekStart, tz)
   const requestedStart = rawStart && /^\d{4}-\d{2}-\d{2}$/.test(rawStart) ? (rawStart as DayKey) : null
 
   let periodStart: DayKey
@@ -356,11 +358,11 @@ export default async function AnchorsPage({
   if (!hintsSeen.anchors_locked) markHintSeen('anchors_locked')
   const welcomeBackMode = (settings?.welcome_back_mode as WelcomeBackMode | null) ?? null
   const welcomeBackStartedKey = settings?.welcome_back_started_at
-    ? pacificDayKey(settings.welcome_back_started_at as string)
+    ? dayKey(settings.welcome_back_started_at as string, tz)
     : null
   const weeklyRamp = currentRamp(welcomeBackMode, welcomeBackStartedKey, todayKey)
   const earliestKey: DayKey = earliestLogRow?.[0]
-    ? pacificDayKey(earliestLogRow[0].logged_at)
+    ? dayKey(earliestLogRow[0].logged_at, tz)
     : todayKey
 
   const { anchors: periodAnchors, total: periodAnchorTotal } = await getAnchorsForPeriod(periodStart, periodEnd)
@@ -368,7 +370,7 @@ export default async function AnchorsPage({
   const allLogsList = allLogs ?? []
 
   function inPeriod(log: { logged_at: string }): boolean {
-    const key = pacificDayKey(log.logged_at)
+    const key = dayKey(log.logged_at, tz)
     return key >= periodStart && key <= periodEnd
   }
 
@@ -409,7 +411,7 @@ export default async function AnchorsPage({
     return rows.filter(r => {
       const at = readAt(r)
       if (!at) return false
-      const key = pacificDayKey(at)
+      const key = dayKey(at, tz)
       return key >= periodStart && key <= periodEnd
     })
   }
@@ -432,11 +434,11 @@ export default async function AnchorsPage({
   const selectedMonthStart = period === 'month' ? periodStart : monthStartKey(todayKey)
   const selectedMonthEnd = period === 'month' ? periodEnd : todayKey
   const monthLogs = period === 'month' ? periodLogs : allLogsList.filter(l => {
-    const key = pacificDayKey(l.logged_at)
+    const key = dayKey(l.logged_at, tz)
     return key >= selectedMonthStart && key <= selectedMonthEnd
   })
   const monthLogDays = new Set<DayKey>()
-  monthLogs.forEach(l => monthLogDays.add(pacificDayKey(l.logged_at)))
+  monthLogs.forEach(l => monthLogDays.add(dayKey(l.logged_at, tz)))
   const waveMonthStreak = consecutiveZeroDayStreak(monthLogDays, selectedMonthStart, selectedMonthEnd)
   const waveMonthActive = waveMonthStreak >= 7
 
@@ -498,7 +500,7 @@ export default async function AnchorsPage({
     for (const k of dayKeyRange(periodStart, periodEnd)) dayMap.set(k, 0)
   }
   for (const log of periodLogs) {
-    const day = pacificDayKey(log.logged_at)
+    const day = dayKey(log.logged_at, tz)
     if (dayMap.has(day)) {
       const inc = isHours ? Number(log.hours) : log.points
       dayMap.set(day, dayMap.get(day)! + inc)
@@ -508,7 +510,7 @@ export default async function AnchorsPage({
   const maxDayValue = Math.max(...days.map(([, v]) => v), 1)
 
   const waveCheckins = (allWaveCheckins ?? []).filter(c => {
-    const key = pacificDayKey(c.checked_in_at)
+    const key = dayKey(c.checked_in_at, tz)
     return key >= periodStart && key <= periodEnd
   })
 

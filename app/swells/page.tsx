@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { gateContentEncryption } from '@/lib/enc-gate'
 import { getActiveChapterId } from '@/lib/chapters'
 import { getTodayStart, getWeekStart, getLastWeekStart } from '@/lib/timezone'
+import { getUserTimezone } from '@/lib/user-timezone'
 import { bonusBySwell } from '@/lib/waypoints'
 import { SwellsView } from './SwellsView'
 
@@ -12,6 +13,7 @@ export default async function SwellsPage() {
   if (!user) redirect('/login')
   await gateContentEncryption()
 
+  const tz = await getUserTimezone(user.id)
   const [
     chapterId,
     { data: settings },
@@ -25,9 +27,9 @@ export default async function SwellsPage() {
       .select('groups_enabled, submotions_enabled, tracking_mode, hints_seen, progress_bar_color')
       .eq('user_id', user.id)
       .single(),
-    getTodayStart(),
-    getWeekStart(),
-    getLastWeekStart(),
+    getTodayStart(tz),
+    getWeekStart(tz),
+    getLastWeekStart(tz),
   ])
 
   const [

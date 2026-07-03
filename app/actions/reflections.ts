@@ -2,7 +2,9 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
-import { pacificDayKey, addDays, sundayOf, type DayKey } from '@/lib/periods'
+import { dayKey, addDays, sundayOf, type DayKey } from '@/lib/periods'
+import { getUserTimezone } from '@/lib/user-timezone'
+import { startOfDayUtc } from '@/lib/timezone'
 import { closedCycleFor, cycleContaining, thisWeekSunday, formatWeekLabel, type Cadence } from '@/lib/cycles'
 import { CEREMONY_FLOOR, UNLOCK_FLOOR, logDaysInCycle, unlockedForCadence } from '@/lib/unlocks'
 import { markHintSeen } from '@/app/actions/settings'
@@ -21,6 +23,7 @@ export async function fetchLogDays(
   supabase: SupabaseClient,
   userId: string,
   chapterId: string,
+  tz: string,
 ): Promise<Set<DayKey>> {
   const { data: logs } = await supabase
     .from('logs')
@@ -29,7 +32,7 @@ export async function fetchLogDays(
     .eq('chapter_id', chapterId)
   const days = new Set<DayKey>()
   for (const l of logs ?? []) {
-    days.add(pacificDayKey(l.logged_at))
+    days.add(dayKey(l.logged_at, tz))
   }
   return days
 }
@@ -145,7 +148,8 @@ export async function fetchAnyCeremonyPending(
   supabase: SupabaseClient,
   userId: string,
 ): Promise<boolean> {
-  const todayKey = pacificDayKey(new Date())
+  const tz = await getUserTimezone(userId)
+  const todayKey = dayKey(new Date(), tz)
 
   const { data: chapter } = await supabase
     .from('chapters')
@@ -168,12 +172,12 @@ export async function fetchAnyCeremonyPending(
         .select('logged_at')
         .eq('user_id', userId)
         .eq('chapter_id', chapterId)
-        .gte('logged_at', cycle.cycleStart + 'T00:00:00-08:00')
-        .lte('logged_at', cycle.cycleEnd + 'T23:59:59-08:00')
+        .gte('logged_at', startOfDayUtc(cycle.cycleStart, tz).toISOString())
+        .lt('logged_at', startOfDayUtc(addDays(cycle.cycleEnd, 1), tz).toISOString())
 
       const cycleDays = new Set<DayKey>()
       for (const l of logRows ?? []) {
-        cycleDays.add(pacificDayKey(l.logged_at))
+        cycleDays.add(dayKey(l.logged_at, tz))
       }
       const closedCycleDays = cycleDays.size
 
@@ -416,21 +420,27 @@ export async function getAnchorsForPeriod(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { anchors: [], total: 0 }
 
+  // Exact local-day window [periodStart 00:00, periodEnd+1 00:00) in the user's
+  // tz — no JS re-filter here, so the DB bound must be precise.
+  const tz = await getUserTimezone(user.id)
+  const lower = startOfDayUtc(periodStart, tz).toISOString()
+  const upper = startOfDayUtc(addDays(periodEnd, 1), tz).toISOString()
+
   const [{ data: rows }, { count }] = await Promise.all([
     supabase
       .from('reflections')
       .select('id, cycle_type, cycle_start, cycle_end, expectation_text, observation_text, did_tune, body_text, prompt_text, created_at')
       .eq('user_id', user.id)
-      .gte('created_at', periodStart + 'T00:00:00-08:00')
-      .lte('created_at', periodEnd + 'T23:59:59-08:00')
+      .gte('created_at', lower)
+      .lt('created_at', upper)
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1),
     supabase
       .from('reflections')
       .select('id', { count: 'exact', head: true })
       .eq('user_id', user.id)
-      .gte('created_at', periodStart + 'T00:00:00-08:00')
-      .lte('created_at', periodEnd + 'T23:59:59-08:00'),
+      .gte('created_at', lower)
+      .lt('created_at', upper),
   ])
 
   return {
@@ -518,7 +528,8 @@ export async function getJournalData(): Promise<JournalChapter[]> {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return []
 
-  const todayKey = pacificDayKey(new Date())
+  const tz = await getUserTimezone(user.id)
+  const todayKey = dayKey(new Date(), tz)
 
   const [{ data: chapters }, { data: anchors }, { data: logs }] = await Promise.all([
     supabase
@@ -543,7 +554,7 @@ export async function getJournalData(): Promise<JournalChapter[]> {
   const logDaysByChapter = new Map<string, Set<DayKey>>()
   for (const l of logs ?? []) {
     const set = logDaysByChapter.get(l.chapter_id) ?? new Set()
-    set.add(pacificDayKey(l.logged_at))
+    set.add(dayKey(l.logged_at, tz))
     logDaysByChapter.set(l.chapter_id, set)
   }
 
@@ -567,7 +578,7 @@ export async function getJournalData(): Promise<JournalChapter[]> {
     anchorsByChapter.set(a.chapter_id, list)
 
     const daySet = anchorDaysByChapter.get(a.chapter_id) ?? new Set()
-    daySet.add(pacificDayKey(a.created_at))
+    daySet.add(dayKey(a.created_at, tz))
     anchorDaysByChapter.set(a.chapter_id, daySet)
   }
 
@@ -584,7 +595,7 @@ export async function getJournalData(): Promise<JournalChapter[]> {
     const firstEventDay = allDays[0]
 
     // Determine the end boundary
-    const endDay = ch.ended_at ? pacificDayKey(ch.ended_at) : todayKey
+    const endDay = ch.ended_at ? dayKey(ch.ended_at, tz) : todayKey
 
     // Generate every Sun-Sat from the Sunday containing the first event
     // through the Sunday containing the end day
@@ -614,7 +625,7 @@ export async function getJournalData(): Promise<JournalChapter[]> {
 
       // Collect anchors whose created_at falls in this week
       const weekAnchors = chapterAnchors.filter(a => {
-        const day = pacificDayKey(a.created_at)
+        const day = dayKey(a.created_at, tz)
         return day >= cycleStart && day <= cycleEnd
       })
 

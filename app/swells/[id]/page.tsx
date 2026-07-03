@@ -2,9 +2,11 @@ import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getActiveChapterId } from '@/lib/chapters'
 import { getTodayStart, getWeekStart } from '@/lib/timezone'
+import { getUserTimezone } from '@/lib/user-timezone'
 import {
   monthStartKey,
-  pacificDayKey,
+  dayKey,
+  sundayKey,
   weeksSinceFirstLog as weeksSinceFirstLogFn,
 } from '@/lib/periods'
 import { cycleStartKey, type Cadence } from '@/lib/cadence'
@@ -16,23 +18,13 @@ type RawJunction = {
   motions: { id: string; name: string; default_points: number; default_hours: number; group_id: string | null; submotion_mode: string | null } | null
 }
 
-function pacificSundayKey(date: Date): string {
-  const dateStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Los_Angeles' }).format(date)
-  const [y, m, d] = dateStr.split('-').map(Number)
-  const dt = new Date(y, m - 1, d)
-  const jsDay = dt.getDay()
-  dt.setDate(dt.getDate() - jsDay)
-  const yy = dt.getFullYear()
-  const mm = String(dt.getMonth() + 1).padStart(2, '0')
-  const dd = String(dt.getDate()).padStart(2, '0')
-  return `${yy}-${mm}-${dd}`
-}
-
 export default async function SwellDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  const tz = await getUserTimezone(user.id)
 
   const [
     chapterId,
@@ -59,8 +51,8 @@ export default async function SwellDetailPage({ params }: { params: Promise<{ id
       .select('tracking_mode, groups_enabled, submotions_enabled')
       .eq('user_id', user.id)
       .single(),
-    getWeekStart(),
-    getTodayStart(),
+    getWeekStart(tz),
+    getTodayStart(tz),
   ])
 
   const [
@@ -90,7 +82,7 @@ export default async function SwellDetailPage({ params }: { params: Promise<{ id
       .eq('chapter_id', chapterId)
       .order('sort_order', { ascending: true }),
   ])
-  const todayKey = pacificDayKey(todayStart)
+  const todayKey = dayKey(todayStart, tz)
   const monthStartK = monthStartKey(todayKey)
 
   if (!swell) notFound()
@@ -207,8 +199,8 @@ export default async function SwellDetailPage({ params }: { params: Promise<{ id
     lifetimePts += wPts
     lifetimeHrs += wHrs
     const loggedAt = new Date(log.logged_at)
-    weekKeys.add(pacificSundayKey(loggedAt))
-    if (pacificDayKey(loggedAt) >= monthStartK && stats) {
+    weekKeys.add(sundayKey(loggedAt, tz))
+    if (dayKey(loggedAt, tz) >= monthStartK && stats) {
       stats.month.count += 1
       stats.month.pts += wPts
       stats.month.hrs += wHrs
@@ -241,7 +233,7 @@ export default async function SwellDetailPage({ params }: { params: Promise<{ id
   // Distinct from weeksActive on this swell — Lifetime is meant to be honest about
   // the whole journey, including swells you haven't fed yet. ceil(days_since/7);
   // ≤ 1 → proficiency view falls back to showing absolute lifetime totals.
-  const firstLogKey = firstLogRow?.logged_at ? pacificDayKey(firstLogRow.logged_at) : null
+  const firstLogKey = firstLogRow?.logged_at ? dayKey(firstLogRow.logged_at, tz) : null
   const weeksSinceFirstLog = weeksSinceFirstLogFn(firstLogKey, todayKey)
 
   // Bonus points for THIS swell, per window. Points mode only (see ADR 0004 §7).
@@ -250,7 +242,7 @@ export default async function SwellDetailPage({ params }: { params: Promise<{ id
   const weekStartIso = weekStart.toISOString()
   // Pacific 1st-of-month — pass undefined for monthStartIso; we filter the
   // hits/one-shots client-side by Pacific day key instead of by UTC instant.
-  const weekStartKey = pacificDayKey(weekStart)
+  const weekStartKey = dayKey(weekStart, tz)
   const monthStartKeyForCycles = monthStartK
 
   type HitRow = {
@@ -264,10 +256,10 @@ export default async function SwellDetailPage({ params }: { params: Promise<{ id
     .map(m => ({ swell_id: id, bonus_points: m.bonus_points, completed_at: m.completed_at }))
 
   // Filter by Pacific day key for week and month windows.
-  const weekHits = hitsLifetime.filter(h => pacificDayKey(h.hit_at) >= weekStartKey)
-  const monthHits = hitsLifetime.filter(h => pacificDayKey(h.hit_at) >= monthStartKeyForCycles)
-  const weekOneShots = oneShotsCompleted.filter(m => m.completed_at && pacificDayKey(m.completed_at) >= weekStartKey)
-  const monthOneShots = oneShotsCompleted.filter(m => m.completed_at && pacificDayKey(m.completed_at) >= monthStartKeyForCycles)
+  const weekHits = hitsLifetime.filter(h => dayKey(h.hit_at, tz) >= weekStartKey)
+  const monthHits = hitsLifetime.filter(h => dayKey(h.hit_at, tz) >= monthStartKeyForCycles)
+  const weekOneShots = oneShotsCompleted.filter(m => m.completed_at && dayKey(m.completed_at, tz) >= weekStartKey)
+  const monthOneShots = oneShotsCompleted.filter(m => m.completed_at && dayKey(m.completed_at, tz) >= monthStartKeyForCycles)
 
   // For this swell, bonusBySwell returns a single-entry Map keyed by swellId.
   const bonusWeek = isHours ? 0 : (bonusBySwell(weekHits, weekOneShots, weekStartIso).get(id) ?? 0)
@@ -285,7 +277,7 @@ export default async function SwellDetailPage({ params }: { params: Promise<{ id
   const motionLogsByMotion = new Map<string, string[]>() // motion_id → day keys
   for (const l of allLogs ?? []) {
     if (!l.motion_id) continue
-    const k = pacificDayKey(l.logged_at)
+    const k = dayKey(l.logged_at, tz)
     const arr = motionLogsByMotion.get(l.motion_id) ?? []
     arr.push(k)
     motionLogsByMotion.set(l.motion_id, arr)
@@ -293,7 +285,7 @@ export default async function SwellDetailPage({ params }: { params: Promise<{ id
   const hitsByMilestone = new Map<string, string[]>() // milestone_id → hit day keys
   for (const h of hitsLifetime) {
     const arr = hitsByMilestone.get(h.milestone_id) ?? []
-    arr.push(pacificDayKey(h.hit_at))
+    arr.push(dayKey(h.hit_at, tz))
     hitsByMilestone.set(h.milestone_id, arr)
   }
 

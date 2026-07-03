@@ -1,7 +1,8 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import { pacificDayKey, sundayOf, addDays } from '@/lib/periods'
+import { dayKey, sundayOf, addDays } from '@/lib/periods'
+import { getUserTimezone } from '@/lib/user-timezone'
 import { cycleContaining } from '@/lib/cycles'
 import { NewAnchorForm } from './NewAnchorForm'
 
@@ -10,7 +11,8 @@ export default async function NewAnchorPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const todayKey = pacificDayKey(new Date())
+  const tz = await getUserTimezone(user.id)
+  const todayKey = dayKey(new Date(), tz)
   const thisWeek = cycleContaining(todayKey, 'week')
   const lastWeekSunday = addDays(thisWeek.cycleStart, -7)
   const lastWeek = cycleContaining(lastWeekSunday, 'week')
@@ -22,7 +24,7 @@ export default async function NewAnchorPage() {
     .is('ended_at', null)
     .maybeSingle()
 
-  const chapterStartKey = chapter?.started_at ? pacificDayKey(chapter.started_at) : todayKey
+  const chapterStartKey = chapter?.started_at ? dayKey(chapter.started_at, tz) : todayKey
   const showLastWeek = sundayOf(chapterStartKey) < thisWeek.cycleStart
 
   return (

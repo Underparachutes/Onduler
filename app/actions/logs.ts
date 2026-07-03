@@ -4,7 +4,8 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { getActiveChapterId } from '@/lib/chapters'
 import { getTodayStart, getWeekStart } from '@/lib/timezone'
-import { pacificDayKey } from '@/lib/periods'
+import { dayKey } from '@/lib/periods'
+import { getUserTimezone } from '@/lib/user-timezone'
 import { cycleStartKey, type Cadence } from '@/lib/cadence'
 
 import { INTENSITY_MULTIPLIER, type Intensity } from '@/lib/intensity'
@@ -14,6 +15,7 @@ export async function quickLogMotion(motionId: string, intensity: Intensity = 'm
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
+  const tz = await getUserTimezone(user.id)
   const chapterId = await getActiveChapterId(supabase, user.id)
 
   const { data: motion } = await supabase
@@ -26,7 +28,7 @@ export async function quickLogMotion(motionId: string, intensity: Intensity = 'm
 
   if (!motion) return { error: 'Motion not found' }
 
-  const todayStart = await getTodayStart()
+  const todayStart = await getTodayStart(tz)
   const { count } = await supabase
     .from('logs')
     .select('id', { count: 'exact', head: true })
@@ -56,7 +58,7 @@ export async function quickLogMotion(motionId: string, intensity: Intensity = 'm
   // key, not row count). Bonus points accrue via the existing aggregation
   // paths — the dashboard's celebration trigger fires when the resulting
   // swell total crosses its weekly target.
-  await maybeRecordWaypointHits(supabase, user.id, motionId)
+  await maybeRecordWaypointHits(supabase, user.id, motionId, tz)
 
   revalidatePath('/dashboard')
   revalidatePath('/anchors')
@@ -68,6 +70,7 @@ async function maybeRecordWaypointHits(
   supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string,
   motionId: string,
+  tz: string,
 ) {
   const { data: linked } = await supabase
     .from('milestones')
@@ -78,9 +81,9 @@ async function maybeRecordWaypointHits(
     .not('target_count', 'is', null)
   if (!linked || linked.length === 0) return
 
-  const [weekStartDate, todayStart] = await Promise.all([getWeekStart(), getTodayStart()])
-  const weekStartKey = pacificDayKey(weekStartDate)
-  const todayKey = pacificDayKey(todayStart)
+  const [weekStartDate, todayStart] = await Promise.all([getWeekStart(tz), getTodayStart(tz)])
+  const weekStartKey = dayKey(weekStartDate, tz)
+  const todayKey = dayKey(todayStart, tz)
 
   const milestoneIds = linked.map(m => m.id)
 
@@ -105,7 +108,7 @@ async function maybeRecordWaypointHits(
       .order('hit_at', { ascending: false }),
   ])
 
-  const logDayKeysByMotion = (motionLogs ?? []).map(l => pacificDayKey(l.logged_at))
+  const logDayKeysByMotion = (motionLogs ?? []).map(l => dayKey(l.logged_at, tz))
   const latestHitByMilestone = new Map<string, string>()
   for (const h of recentHits ?? []) {
     if (!latestHitByMilestone.has(h.milestone_id)) {
@@ -118,7 +121,7 @@ async function maybeRecordWaypointHits(
     const cadence = (m.cadence ?? 'weekly') as Cadence
     const cycleStart = cycleStartKey(cadence, weekStartKey, todayKey)
     const latestHit = latestHitByMilestone.get(m.id)
-    if (latestHit && pacificDayKey(latestHit) >= cycleStart) continue // already hit this cycle
+    if (latestHit && dayKey(latestHit, tz) >= cycleStart) continue // already hit this cycle
     const inCycleCount = logDayKeysByMotion.filter(k => k >= cycleStart).length
     if (inCycleCount >= (m.target_count ?? Infinity)) {
       newHits.push({ user_id: userId, milestone_id: m.id })
@@ -132,11 +135,12 @@ async function maybeRecordWaypointHits(
   }
 }
 
-export async function logMotionOnDay(motionId: string, dayKey: string) {
+export async function logMotionOnDay(motionId: string, dayKeyStr: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
+  const tz = await getUserTimezone(user.id)
   const chapterId = await getActiveChapterId(supabase, user.id)
 
   const { data: motion } = await supabase
@@ -149,10 +153,12 @@ export async function logMotionOnDay(motionId: string, dayKey: string) {
 
   if (!motion) return { error: 'Motion not found' }
 
-  const [y, m, d] = dayKey.split('-').map(Number)
+  // Anchor the backfilled log at ~noon in the user's timezone on the chosen day
+  // (noon has enough slack that DST never bumps it to an adjacent date).
+  const [y, m, d] = dayKeyStr.split('-').map(Number)
   const utcNow = new Date()
-  const pacificMs = new Date(utcNow.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' })).getTime()
-  const offsetMs = utcNow.getTime() - pacificMs
+  const localMs = new Date(utcNow.toLocaleString('en-US', { timeZone: tz })).getTime()
+  const offsetMs = utcNow.getTime() - localMs
   const loggedAt = new Date(Date.UTC(y, m - 1, d, 12) + offsetMs)
 
   const { error } = await supabase.from('logs').insert({
@@ -191,7 +197,8 @@ export async function unlogMotion(motionId: string) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
-  const todayStart = await getTodayStart()
+  const tz = await getUserTimezone(user.id)
+  const todayStart = await getTodayStart(tz)
 
   const { data: logs } = await supabase
     .from('logs')

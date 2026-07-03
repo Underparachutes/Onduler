@@ -115,11 +115,22 @@ this lands, or tz-parameterized from the start.
   changes. AppShell passes the stored value so unchanged loads don't write.
   Nothing reads the column yet. *Deferred to a later step:* a settings manual
   override (needs an auto/manual flag so it isn't clobbered by auto-follow).
-- **Phase B — reads go local. M.** Make the funnel tz-aware; thread the user's tz
-  through read pages + the day-affecting actions (incl. the `logMotionOnDay`
-  instant fix and `quickLogMotion`'s "already logged today" dedupe). Weeks/days now
-  roll at the user's local midnight. Verify streaks, daily goals, celebration
-  triggers, "logged today" all still behave.
+- **Phase B — reads go local. ✅ SHIPPED 2026-07-03.**
+  - B1: funnel made tz-aware with a Pacific default — `dayKey(ts,tz)`,
+    `sundayKey`, `getTodayStart/WeekStart/LastWeekStart(tz)`, `startOfDayUtc`;
+    verified byte-identical to the old Pacific behavior for all 366 days of 2026.
+  - B2: threaded the user's tz through every day/week bucketing site — actions
+    (`logs`, `milestones`, `chapters`, `reflections`, incl. the `logMotionOnDay`
+    instant fix + `quickLogMotion` today-dedupe), read pages (`dashboard`,
+    `swells`, `swells/[id]`, all `anchors/*`), and the client week-grid
+    (`DashboardView`→`DailyChecklist`→`WeekEditView`→`getWeekDayKeys`). Query
+    bounds that assumed a Pacific offset now use exact per-tz `startOfDayUtc`
+    windows (or a tz-safe ±-day buffer where a JS re-filter trims). Cron left on
+    Pacific (Phase C reworks it).
+  - **Deferred follow-up:** ~8 *display* formatters still hardcode
+    `timeZone: 'America/Los_Angeles'` (date labels in journal/settings/inline
+    logs). Cosmetic only — they don't affect bucketing/behavior — but a
+    non-Pacific user sees Pacific-dated labels until threaded. Separate pass.
 - **Phase C — cron goes local. M.** Hourly schedule + per-user local-Sunday send.
   Confirm Vercel plan supports hourly first.
 

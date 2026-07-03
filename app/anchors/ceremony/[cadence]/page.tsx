@@ -1,7 +1,8 @@
 import { redirect, notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getActiveChapterId } from '@/lib/chapters'
-import { pacificDayKey, type DayKey } from '@/lib/periods'
+import { dayKey, type DayKey } from '@/lib/periods'
+import { getUserTimezone } from '@/lib/user-timezone'
 import { daysInCycle, formatCycleLabel, type Cadence } from '@/lib/cycles'
 import { getCeremonyState, fetchLogDays } from '@/app/actions/reflections'
 import { CycleCeremony } from '../CycleCeremony'
@@ -25,9 +26,10 @@ export default async function CeremonyPage({
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
+  const tz = await getUserTimezone(user.id)
   const chapterId = await getActiveChapterId(supabase, user.id)
-  const todayKey = pacificDayKey(new Date())
-  const logDays = await fetchLogDays(supabase, user.id, chapterId)
+  const todayKey = dayKey(new Date(), tz)
+  const logDays = await fetchLogDays(supabase, user.id, chapterId, tz)
   const { state, cycleStart, cycleEnd } = await getCeremonyState(supabase, user.id, chapterId, logDays, cadence, todayKey)
 
   // Only a pending ceremony renders here. Already-completed cycles and
@@ -37,11 +39,10 @@ export default async function CeremonyPage({
     redirect('/anchors')
   }
 
-  // Fetch logs with a generous timestamp bound (DST + Pacific offset safety),
-  // then filter precisely in JS using the Pacific day key. Avoids constructing
-  // PT-midnight Date objects per cycle.
-  const fetchLowerBound = cycleStart // YYYY-MM-DD; pg casts to 00:00:00 UTC
-  const fetchUpperBound = dayKeyPlusDays(cycleEnd, 2) // 2-day buffer
+  // Fetch logs with a generous timestamp bound (±2 days covers any user tz vs
+  // UTC), then filter precisely in JS using the user's local day key below.
+  const fetchLowerBound = dayKeyPlusDays(cycleStart, -2)
+  const fetchUpperBound = dayKeyPlusDays(cycleEnd, 2)
 
   const [
     { data: swells },
@@ -84,7 +85,7 @@ export default async function CeremonyPage({
 
   // Precise filter in Pacific time.
   const inCycle = (loggedAt: string): boolean => {
-    const key = pacificDayKey(loggedAt)
+    const key = dayKey(loggedAt, tz)
     return key >= cycleStart && key <= cycleEnd
   }
 

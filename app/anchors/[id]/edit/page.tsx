@@ -1,6 +1,7 @@
 import { redirect, notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { pacificDayKey } from '@/lib/periods'
+import { dayKey } from '@/lib/periods'
+import { getUserTimezone } from '@/lib/user-timezone'
 import { cycleContaining } from '@/lib/cycles'
 import { EditAnchorForm } from './EditAnchorForm'
 
@@ -23,7 +24,8 @@ export default async function EditAnchorPage({
 
   if (!anchor?.id || anchor.cycle_type !== 'free') notFound()
 
-  const todayKey = pacificDayKey(new Date())
+  const tz = await getUserTimezone(user.id)
+  const todayKey = dayKey(new Date(), tz)
   const thisWeek = cycleContaining(todayKey, 'week')
   // "Last week" = the week before the current one (Sun→Sat).
   const lastMonKey = (() => {
