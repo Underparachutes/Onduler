@@ -275,6 +275,28 @@ export async function setEmailCycleCloseEnabled(enabled: boolean) {
   return { success: true }
 }
 
+// Persist the browser's IANA timezone (auto-follow-the-device). Called from
+// TimezoneSync on app load only when the detected zone differs from the stored
+// one, so this writes rarely. Validates the zone server-side (client input
+// isn't trusted) and no-ops for unauthenticated visitors. Part of the
+// per-user-timezone effort (Phase A) — nothing reads this column yet; Phase B
+// threads it into the day/week computation. See
+// docs/specs/per-user-timezone-2026-07-03.md.
+export async function syncTimezone(tz: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return
+
+  try {
+    // Throws RangeError on anything that isn't a real IANA zone name.
+    new Intl.DateTimeFormat('en-US', { timeZone: tz })
+  } catch {
+    return
+  }
+
+  await supabase.from('user_settings').upsert({ user_id: user.id, timezone: tz })
+}
+
 export async function setProgressBarColor(color: string | null) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()

@@ -17,15 +17,17 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
   let backgroundUrl: string | null = null
   let backgroundPosition = 'center'
   let brandColor: string | null = null
+  let userTimezone: string | null = null
   if (user) {
     const [{ data }, anyPending] = await Promise.all([
-      supabase.from('user_settings').select('theme, background_url, background_position, progress_bar_color').eq('user_id', user.id).single(),
+      supabase.from('user_settings').select('theme, background_url, background_position, progress_bar_color, timezone').eq('user_id', user.id).single(),
       fetchAnyCeremonyPending(supabase, user.id),
     ])
     if (data?.theme) theme = data.theme
     if (data?.background_url) backgroundUrl = data.background_url
     if (data?.background_position) backgroundPosition = data.background_position as string
     if (data?.progress_bar_color) brandColor = data.progress_bar_color as string
+    if (data?.timezone) userTimezone = data.timezone as string
     pendingAnchor = anyPending
   }
 
@@ -35,7 +37,7 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
       <BrandColorApplier color={brandColor} />
       <BackgroundApplier url={backgroundUrl} position={backgroundPosition} />
       <PinTopApplier />
-      <TimezoneSync />
+      {user && <TimezoneSync storedTimezone={userTimezone} />}
       {user && <SideNav pendingAnchor={pendingAnchor} />}
       <div className="mx-auto flex w-full max-w-lg flex-col flex-1 desktop:mx-0 desktop:ml-12 desktop:mr-auto desktop:lg:max-w-4xl">
         {children}

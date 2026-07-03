@@ -107,9 +107,14 @@ this lands, or tz-parameterized from the start.
 
 ## Phasing
 
-- **Phase A — plumbing (safe, no behavior change). S–M.** Add the column + default,
-  capture at signup, settings UI, backfill existing rows to Pacific (the default
-  does this). Nothing user-visible shifts yet.
+- **Phase A — plumbing (safe, no behavior change). ✅ SHIPPED 2026-07-03.** Added
+  `user_settings.timezone` (default Pacific; all existing rows backfilled by the
+  default). Repurposed the dead `TimezoneSync` component (it wrote an unused
+  `tz_offset` cookie) to read the browser's IANA zone and persist it via a new
+  `syncTimezone` action — auto-follow-the-device, writing only when the zone
+  changes. AppShell passes the stored value so unchanged loads don't write.
+  Nothing reads the column yet. *Deferred to a later step:* a settings manual
+  override (needs an auto/manual flag so it isn't clobbered by auto-follow).
 - **Phase B — reads go local. M.** Make the funnel tz-aware; thread the user's tz
   through read pages + the day-affecting actions (incl. the `logMotionOnDay`
   instant fix and `quickLogMotion`'s "already logged today" dedupe). Weeks/days now
