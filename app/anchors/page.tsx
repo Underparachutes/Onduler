@@ -273,6 +273,14 @@ export default async function AnchorsPage({
     }
   }
 
+  // Bound the log fetch to the viewed period, unioned with the current month
+  // (wave detection reads the current month when a non-month period is shown).
+  // Generous 1-day buffer for DST; the exact Pacific-day-key filters below trim.
+  const currentMonthStartKey = monthStartKey(todayKey)
+  const logWindowLower = periodStart < currentMonthStartKey ? periodStart : currentMonthStartKey
+  const logLowerBound = addDays(logWindowLower, -1) + 'T00:00:00-08:00'
+  const logUpperBound = addDays(todayKey, 1) + 'T23:59:59-08:00'
+
   const [
     { data: allLogs },
     { data: allWaveCheckins },
@@ -287,6 +295,8 @@ export default async function AnchorsPage({
       .select('points, hours, logged_at, motion_id, motions(name, motion_swells(contribution_weight, swells(id, name, color)))')
       .eq('user_id', user.id)
       .eq('chapter_id', chapterId)
+      .gte('logged_at', logLowerBound)
+      .lte('logged_at', logUpperBound)
       .order('logged_at', { ascending: false }),
     supabase
       .from('wave_checkins')
