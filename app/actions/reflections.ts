@@ -531,7 +531,7 @@ export async function getJournalData(): Promise<JournalChapter[]> {
   const tz = await getUserTimezone(user.id)
   const todayKey = dayKey(new Date(), tz)
 
-  const [{ data: chapters }, { data: anchors }, { data: logs }] = await Promise.all([
+  const [{ data: chapters }, { data: anchors }, { data: logDayRows }] = await Promise.all([
     supabase
       .from('chapters')
       .select('id, started_at, ended_at')
@@ -542,20 +542,20 @@ export async function getJournalData(): Promise<JournalChapter[]> {
       .select('id, chapter_id, cycle_type, cycle_start, cycle_end, expectation_text, observation_text, did_tune, body_text, prompt_text, created_at')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false }),
-    supabase
-      .from('logs')
-      .select('logged_at, chapter_id')
-      .eq('user_id', user.id),
+    // Distinct (chapter, local-day) pairs, aggregated in Postgres, instead of
+    // pulling every log row into Node just to derive per-week presence flags.
+    supabase.rpc('log_days_by_chapter', { p_tz: tz }),
   ])
 
   if (!chapters?.length) return []
 
-  // Build per-chapter sets of log day keys and anchor day keys
+  // Build per-chapter sets of log day keys and anchor day keys. Log days come
+  // pre-distinct from the RPC (already local-tz 'YYYY-MM-DD', == dayKey output).
   const logDaysByChapter = new Map<string, Set<DayKey>>()
-  for (const l of logs ?? []) {
-    const set = logDaysByChapter.get(l.chapter_id) ?? new Set()
-    set.add(dayKey(l.logged_at, tz))
-    logDaysByChapter.set(l.chapter_id, set)
+  for (const r of (logDayRows ?? []) as { chapter_id: string; day: string }[]) {
+    const set = logDaysByChapter.get(r.chapter_id) ?? new Set()
+    set.add(r.day as DayKey)
+    logDaysByChapter.set(r.chapter_id, set)
   }
 
   // Group anchors by chapter, and also track anchor day keys per chapter

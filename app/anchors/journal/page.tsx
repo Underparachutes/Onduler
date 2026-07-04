@@ -8,16 +8,9 @@ import { FrozenRadar } from '@/app/anchors/ceremony/FrozenRadar'
 import { JournalClient } from './JournalClient'
 
 type SwellRow = { id: string; name: string; color: string; target_points: number | null; target_hours: number | null; chapter_id: string; created_at: string }
-type MotionShape = {
-  motion_swells?: { contribution_weight: number; swells: { id: string } | null }[]
-} | null
-type LogRow = {
-  points: number
-  hours: number
-  logged_at: string
-  chapter_id: string
-  motions: MotionShape
-}
+// One row per (local-day, swell) from the swell_actuals_by_day RPC — weighted
+// actuals pre-summed in Postgres. `day` is a local-tz 'YYYY-MM-DD' string.
+type ActualRow = { day: string; swell_id: string; points_sum: number; hours_sum: number }
 
 function chapterLabel(startedAt: string, endedAt: string | null): string {
   const fmt = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
@@ -35,29 +28,26 @@ function entryDate(iso: string): string {
   })
 }
 
-function actualsForWeek(
-  logs: LogRow[],
+// Per-swell actuals for a [cycleStart, cycleEnd] window (weekly or a ceremony's
+// month/quarter/year), summing the pre-aggregated per-day values. `actualsBySwell`
+// maps swell_id → its active days with the mode-selected value; a swell_id only
+// receives contributions from logs in its own chapter, so no chapter filter is
+// needed. Reproduces the old per-log reducer exactly (floor already applied in SQL).
+function actualsForWindow(
+  actualsBySwell: Map<string, { day: string; val: number }[]>,
   cycleStart: DayKey,
   cycleEnd: DayKey,
   swells: SwellRow[],
-  isHours: boolean,
-  tz: string,
 ): number[] {
-  const acc = new Map<string, number>()
-  swells.forEach(s => acc.set(s.id, 0))
-  for (const log of logs) {
-    const key = dayKey(log.logged_at, tz)
-    if (key < cycleStart || key > cycleEnd) continue
-    const motion: MotionShape = (Array.isArray(log.motions) ? log.motions[0] : log.motions) as MotionShape
-    motion?.motion_swells?.forEach(ms => {
-      if (!ms.swells) return
-      if (!acc.has(ms.swells.id)) return
-      const weight = Number(ms.contribution_weight) || 1
-      const inc = isHours ? Number(log.hours) * weight : Math.floor(log.points * weight)
-      acc.set(ms.swells.id, (acc.get(ms.swells.id) ?? 0) + inc)
-    })
-  }
-  return swells.map(s => acc.get(s.id) ?? 0)
+  return swells.map(s => {
+    const rows = actualsBySwell.get(s.id)
+    if (!rows) return 0
+    let total = 0
+    for (const r of rows) {
+      if (r.day >= cycleStart && r.day <= cycleEnd) total += r.val
+    }
+    return total
+  })
 }
 
 export type AnchorWithRadar = AnchorRow & {
@@ -88,7 +78,7 @@ export default async function AnchorJournalPage() {
   if (!user) redirect('/login')
 
   const tz = await getUserTimezone(user.id)
-  const [chapters, { data: swellRows }, { data: logRows }, { data: settings }] = await Promise.all([
+  const [chapters, { data: swellRows }, { data: actualRows }, { data: settings }] = await Promise.all([
     getJournalData(),
     supabase
       .from('swells')
@@ -96,10 +86,9 @@ export default async function AnchorJournalPage() {
       .eq('user_id', user.id)
       .eq('hidden', false)
       .order('sort_order'),
-    supabase
-      .from('logs')
-      .select('points, hours, logged_at, chapter_id, motions(motion_swells(contribution_weight, swells(id)))')
-      .eq('user_id', user.id),
+    // Per-(day, swell) weighted actuals, aggregated in Postgres, instead of
+    // pulling every log row + the motion_swells join into Node.
+    supabase.rpc('swell_actuals_by_day', { p_tz: tz }),
     supabase
       .from('user_settings')
       .select('tracking_mode')
@@ -110,7 +99,6 @@ export default async function AnchorJournalPage() {
   const trackingMode: 'points' | 'hours' = (settings?.tracking_mode as 'points' | 'hours') ?? 'points'
   const isHours = trackingMode === 'hours'
   const allSwells: SwellRow[] = (swellRows ?? []) as SwellRow[]
-  const allLogs: LogRow[] = (logRows ?? []) as unknown as LogRow[]
 
   const swellsByChapter = new Map<string, SwellRow[]>()
   for (const s of allSwells) {
@@ -118,16 +106,17 @@ export default async function AnchorJournalPage() {
     list.push(s)
     swellsByChapter.set(s.chapter_id, list)
   }
-  const logsByChapter = new Map<string, LogRow[]>()
-  for (const l of allLogs) {
-    const list = logsByChapter.get(l.chapter_id) ?? []
-    list.push(l)
-    logsByChapter.set(l.chapter_id, list)
+
+  // Index the aggregate by swell, pre-selecting the mode's value (pts or hrs).
+  const actualsBySwell = new Map<string, { day: string; val: number }[]>()
+  for (const r of (actualRows ?? []) as ActualRow[]) {
+    const list = actualsBySwell.get(r.swell_id) ?? []
+    list.push({ day: r.day, val: isHours ? Number(r.hours_sum) : Number(r.points_sum) })
+    actualsBySwell.set(r.swell_id, list)
   }
 
   const renderChapters: ChapterRenderData[] = chapters.map(ch => {
     const chapterSwells = swellsByChapter.get(ch.chapterId) ?? []
-    const chapterLogs = logsByChapter.get(ch.chapterId) ?? []
 
     const weeks: WeekRenderData[] = ch.weeks.map(w => {
       let kind: 'anchors' | 'logs-only' | 'wave'
@@ -162,7 +151,7 @@ export default async function AnchorJournalPage() {
         return {
           ...a,
           radarSwells: ceremonyRadarSwells,
-          radarActuals: actualsForWeek(chapterLogs, a.cycle_start, a.cycle_end, ceremonySwells, isHours, tz),
+          radarActuals: actualsForWindow(actualsBySwell, a.cycle_start, a.cycle_end, ceremonySwells),
         }
       })
 
@@ -177,7 +166,7 @@ export default async function AnchorJournalPage() {
       if (radarSwells.length >= 3) {
         weekData.radarSwells = radarSwells
         if (kind === 'logs-only') {
-          weekData.radarActuals = actualsForWeek(chapterLogs, w.cycleStart, w.cycleEnd, weekSwells, isHours, tz)
+          weekData.radarActuals = actualsForWindow(actualsBySwell, w.cycleStart, w.cycleEnd, weekSwells)
         }
       }
 

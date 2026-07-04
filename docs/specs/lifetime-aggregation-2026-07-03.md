@@ -66,10 +66,17 @@ that isn't enough.**
   departure from decision #2, resolved by passing the user's zone (not hardcoding
   Pacific), per the line 96–99 option. Verified against the old full scan on prod
   data before swapping.
-- **journal (`getJournalData` + `/anchors/journal`) — TODO.** Per-week presence +
-  weighted totals across all history. Bound to the visible chapter and lazy-load
-  older chapters (Node bounds), per the original spec direction. Revisit whether
-  an RPC or pagination is the lighter fix when we get here.
+- **journal (`getJournalData` + `/anchors/journal`) — DONE (RPC), 2026-07-03.**
+  Went with RPC-aggregates over the lazy-load direction (lighter, no UX change).
+  Two functions in `scripts/migrate-journal-aggregation.sql`: `log_days_by_chapter(tz)`
+  → distinct `(chapter, local-day)` for `getJournalData`'s presence flags (all
+  logs, no swell join); `swell_actuals_by_day(tz)` → per-`(local-day, swell)`
+  weighted totals, summed in Node over each rendered `[cycleStart, cycleEnd]`
+  window (day grain, because ceremony anchors carry month/quarter/year windows).
+  Per-log points floor preserved; verified against the old raw floor-sum on prod.
+  **Follow-up spotted:** `fetchLogDays` (`reflections.ts`) is a 5th unbounded
+  per-chapter distinct-days scan (feeds `/anchors` unlock/ceremony state) not in
+  this spec's original four — a chapter-filtered `log_days_by_chapter` closes it.
 
 ## Recommendation: RPCs first, rollup table as escalation
 
