@@ -30,7 +30,7 @@ import { WaveField, type WaveLine } from '@/app/components/WaveField'
 import { LockedPage } from './components/LockedPage'
 import { getActiveChapterId } from '@/lib/chapters'
 import { getCeremonyState, getUnlockState, getAnchorsForPeriod, fetchLogDays, type CeremonyState } from '@/app/actions/reflections'
-import { formatCycleLabel, type Cadence } from '@/lib/cycles'
+import { formatCycleLabel, type CeremonyCadence } from '@/lib/cycles'
 import type { BuildKey } from '@/lib/builds'
 import { HintCard } from '@/app/components/HintCard'
 import { markHintSeen } from '@/app/actions/settings'
@@ -68,8 +68,8 @@ const COMING_TOGETHER_WAVES: WaveLine[] = [
   { yBase: 0.96, amplitude: 28, frequency: 0.021, speed: 0.0019, phase: 3.5, width: 3.2, opacity: 0.60 },
 ]
 
-const CADENCES: Cadence[] = ['week', 'month', 'quarter', 'year']
-const CADENCE_LABEL: Record<Cadence, string> = {
+const CADENCES: CeremonyCadence[] = ['week', 'month', 'quarter', 'year']
+const CADENCE_LABEL: Record<CeremonyCadence, string> = {
   week: 'Last week',
   month: 'Last month',
   quarter: 'Last quarter',
@@ -134,10 +134,10 @@ export default async function AnchorsPage({
     Promise.all(CADENCES.map(c => getCeremonyState(supabase, user.id, chapterId, logDays, c, todayKey))) as Promise<CeremonyResult[]>,
     getUnlockState(logDays, todayKey),
   ])
-  const ceremonyByCadence: Record<Cadence, CeremonyResult> = {
+  const ceremonyByCadence: Record<CeremonyCadence, CeremonyResult> = {
     week: ceremonies[0], month: ceremonies[1], quarter: ceremonies[2], year: ceremonies[3],
   }
-  const pendingCadences: Cadence[] = CADENCES.filter(c => ceremonyByCadence[c].state === 'pending')
+  const pendingCadences: CeremonyCadence[] = CADENCES.filter(c => ceremonyByCadence[c].state === 'pending')
 
   if (!unlocks[period]) period = 'week'
 

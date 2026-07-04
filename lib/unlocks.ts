@@ -6,13 +6,11 @@
 // a pre-computed set of log day keys; the server hands one in.
 
 import { type DayKey } from './periods'
-import { type Cycle, type Cadence } from './cycles'
-
-export type { Cadence }
+import { type Cycle, type CeremonyCadence } from './cycles'
 
 // Engagement floors from ADR 0007. Distinct days with at least one log
 // inside the closed cycle window.
-export const UNLOCK_FLOOR: Record<Cadence, number> = {
+export const UNLOCK_FLOOR: Record<CeremonyCadence, number> = {
   week: 3,
   month: 8,
   quarter: 25,
@@ -22,7 +20,7 @@ export const UNLOCK_FLOOR: Record<Cadence, number> = {
 // Subsequent ceremonies (after first unlock) fire on a softer floor — the
 // user logged at least once during the cycle. Wave-cycles (zero logs) get
 // no ceremony, no indicator (ADR 0007).
-export const CEREMONY_FLOOR: Record<Cadence, number> = {
+export const CEREMONY_FLOOR: Record<CeremonyCadence, number> = {
   week: 1,
   month: 1,
   quarter: 1,
@@ -38,11 +36,11 @@ export function logDaysInCycle(loggedDayKeys: Set<DayKey>, cycle: Cycle): number
   return count
 }
 
-export function meetsUnlockFloor(loggedDayKeys: Set<DayKey>, cycle: Cycle, cadence: Cadence): boolean {
+export function meetsUnlockFloor(loggedDayKeys: Set<DayKey>, cycle: Cycle, cadence: CeremonyCadence): boolean {
   return logDaysInCycle(loggedDayKeys, cycle) >= UNLOCK_FLOOR[cadence]
 }
 
-export function meetsCeremonyFloor(loggedDayKeys: Set<DayKey>, cycle: Cycle, cadence: Cadence): boolean {
+export function meetsCeremonyFloor(loggedDayKeys: Set<DayKey>, cycle: Cycle, cadence: CeremonyCadence): boolean {
   return logDaysInCycle(loggedDayKeys, cycle) >= CEREMONY_FLOOR[cadence]
 }
 
@@ -51,9 +49,9 @@ export function meetsCeremonyFloor(loggedDayKeys: Set<DayKey>, cycle: Cycle, cad
 // Bucket logs by their cycle of origin, count per bucket, then check.
 export function unlockedForCadence(
   loggedDayKeys: Set<DayKey>,
-  cadence: Cadence,
+  cadence: CeremonyCadence,
   today: DayKey,
-  cycleContaining: (day: DayKey, cadence: Cadence) => Cycle,
+  cycleContaining: (day: DayKey, cadence: CeremonyCadence) => Cycle,
 ): boolean {
   const buckets = new Map<DayKey, { cycle: Cycle; count: number }>()
   for (const day of loggedDayKeys) {

@@ -8,7 +8,7 @@ import {
   dayKey,
   weeksSinceFirstLog as weeksSinceFirstLogFn,
 } from '@/lib/periods'
-import { cycleStartKey, type Cadence } from '@/lib/cadence'
+import { cycleStartKey, type WaypointCadence } from '@/lib/cadence'
 import { bonusBySwell } from '@/lib/waypoints'
 import { SwellProficiencyView } from './SwellProficiencyView'
 
@@ -319,7 +319,7 @@ export default async function SwellDetailPage({ params }: { params: Promise<{ id
     let currentCycleCount = 0
     let cycleHit = false
     if (m.kind === 'recurring') {
-      const cadence: Cadence = (m.cadence as Cadence) ?? 'weekly'
+      const cadence: WaypointCadence = (m.cadence as WaypointCadence) ?? 'weekly'
       const cycleStart = cycleStartKey(cadence, weekStartKey, todayKey)
       if (m.motion_id) {
         const dayKeys = motionLogsByMotion.get(m.motion_id) ?? []

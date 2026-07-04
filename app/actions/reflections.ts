@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { dayKey, addDays, sundayOf, type DayKey } from '@/lib/periods'
 import { getUserTimezone } from '@/lib/user-timezone'
 import { startOfDayUtc } from '@/lib/timezone'
-import { closedCycleFor, cycleContaining, thisWeekSunday, formatWeekLabel, type Cadence } from '@/lib/cycles'
+import { closedCycleFor, cycleContaining, thisWeekSunday, formatWeekLabel, type CeremonyCadence } from '@/lib/cycles'
 import { CEREMONY_FLOOR, UNLOCK_FLOOR, logDaysInCycle, unlockedForCadence } from '@/lib/unlocks'
 import { markHintSeen } from '@/app/actions/settings'
 
@@ -13,7 +13,7 @@ type SupabaseClient = Awaited<ReturnType<typeof createClient>>
 
 export type CeremonyState = 'none' | 'pending' | 'completed'
 
-export type UnlockState = Record<Cadence, boolean>
+export type UnlockState = Record<CeremonyCadence, boolean>
 
 // Fetches the distinct log days (local-tz day keys) within a chapter. The
 // caller resolves the chapter id once (via getActiveChapterId) and threads
@@ -70,7 +70,7 @@ export async function getCeremonyState(
   userId: string,
   chapterId: string | null,
   logDays: Set<DayKey>,
-  cadence: Cadence,
+  cadence: CeremonyCadence,
   todayKey: DayKey,
 ): Promise<{ state: CeremonyState; cycleStart: DayKey; cycleEnd: DayKey; chapterId: string | null }> {
   const cycle = closedCycleFor(todayKey, cadence)
@@ -96,7 +96,7 @@ export async function getCeremonyState(
 }
 
 export async function saveReflection(input: {
-  cadence: Cadence
+  cadence: CeremonyCadence
   cycleStart: DayKey
   cycleEnd: DayKey
   expectationText: string | null
@@ -162,7 +162,7 @@ export async function fetchAnyCeremonyPending(
   if (!chapter?.id) return false
 
   const chapterId = chapter.id
-  const cadences: Cadence[] = ['week', 'month', 'quarter', 'year']
+  const cadences: CeremonyCadence[] = ['week', 'month', 'quarter', 'year']
 
   const checks = await Promise.all(
     cadences.map(async cadence => {

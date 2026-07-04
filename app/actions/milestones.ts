@@ -5,11 +5,11 @@ import { createClient } from '@/lib/supabase/server'
 import { getWeekStart } from '@/lib/timezone'
 import { dayKey } from '@/lib/periods'
 import { getUserTimezone } from '@/lib/user-timezone'
-import { cycleStartKey, type Cadence } from '@/lib/cadence'
+import { cycleStartKey, type WaypointCadence } from '@/lib/cadence'
 
 type MilestoneKind = 'recurring' | 'one_shot'
 
-function cadenceMax(cadence: Cadence | null): number {
+function cadenceMax(cadence: WaypointCadence | null): number {
   return cadence === 'monthly' ? 31 : 7
 }
 
@@ -17,7 +17,7 @@ export async function createMilestone(
   swellId: string,
   kind: MilestoneKind,
   name: string,
-  cadence: Cadence | null,
+  cadence: WaypointCadence | null,
   options?: {
     targetCount?: number | null
     bonusPoints?: number | null
@@ -66,7 +66,7 @@ export async function updateMilestone(
   patch: {
     name?: string
     kind?: MilestoneKind
-    cadence?: Cadence
+    cadence?: WaypointCadence
     targetCount?: number | null
     bonusPoints?: number | null
     motionId?: string | null
@@ -98,7 +98,7 @@ export async function updateMilestone(
   }
   if (patch.cadence !== undefined) update.cadence = patch.cadence
   if (patch.targetCount !== undefined) {
-    const max = cadenceMax(patch.cadence ?? (update.cadence as Cadence | null) ?? null)
+    const max = cadenceMax(patch.cadence ?? (update.cadence as WaypointCadence | null) ?? null)
     update.target_count =
       patch.targetCount && patch.targetCount > 0
         ? Math.min(Math.floor(patch.targetCount), max)
@@ -275,7 +275,7 @@ export async function resetCycleHits(milestoneId: string, swellId: string) {
   const todayKey = dayKey(now, tz)
   const weekStart = await getWeekStart(tz)
   const weekStartStr = dayKey(weekStart, tz)
-  const cadence: Cadence = (milestone.cadence as Cadence) ?? 'weekly'
+  const cadence: WaypointCadence = (milestone.cadence as WaypointCadence) ?? 'weekly'
   const cycleStart = cycleStartKey(cadence, weekStartStr, todayKey)
 
   const { error } = await supabase

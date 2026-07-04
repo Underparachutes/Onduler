@@ -10,14 +10,14 @@ import { useDecrypted, useLocked } from '@/app/components/useDecrypted'
 import { FrozenRadar } from './FrozenRadar'
 import { ceilDisplay, type DayKey } from '@/lib/periods'
 import { formatHrs } from '@/lib/format'
-import type { Cadence } from '@/lib/cycles'
+import type { CeremonyCadence } from '@/lib/cycles'
 
 type Step = 'expectation' | 'reveal' | 'observation' | 'tune' | 'archive_confirm'
 
 type Swell = { id: string; name: string; color: string; target: number }
 
 type Props = {
-  cadence: Cadence
+  cadence: CeremonyCadence
   cycleStart: DayKey
   cycleEnd: DayKey
   cycleLabel: string
@@ -30,7 +30,7 @@ type Props = {
 // Cadence-specific copy. One shape across all four cadences (ADR 0007) —
 // the cadence is the depth knob; the questions stay the same in structure
 // but reference the cycle the user just lived through.
-const COPY: Record<Cadence, { expectation: string; reveal: string; observation: string; intention: string }> = {
+const COPY: Record<CeremonyCadence, { expectation: string; reveal: string; observation: string; intention: string }> = {
   week: {
     expectation: 'What did you expect to see this week?',
     reveal: "Here's what last week looked like.",
@@ -57,7 +57,7 @@ const COPY: Record<Cadence, { expectation: string; reveal: string; observation: 
   },
 }
 
-const CYCLE_NOUN: Record<Cadence, string> = {
+const CYCLE_NOUN: Record<CeremonyCadence, string> = {
   week: 'week',
   month: 'month',
   quarter: 'quarter',

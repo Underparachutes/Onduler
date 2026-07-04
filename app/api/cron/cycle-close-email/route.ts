@@ -9,7 +9,7 @@ import {
 import {
   closedWeekFor,
   cycleContaining,
-  type Cadence,
+  type CeremonyCadence,
 } from '@/lib/cycles'
 import { dayKey, sundayKey, addDays, type DayKey } from '@/lib/periods'
 import { startOfDayUtc, hourInTz } from '@/lib/timezone'
@@ -49,7 +49,7 @@ import {
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
-const CADENCE: Cadence = 'week'  // v1 ships weekly only
+const CADENCE: CeremonyCadence = 'week'  // v1 ships weekly only
 
 type CandidateRow = {
   user_id: string

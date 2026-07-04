@@ -1,5 +1,5 @@
 import { renderEmailWaveSvg } from './email-wave-svg'
-import { formatCycleLabel, type Cadence, type Cycle } from './cycles'
+import { formatCycleLabel, type CeremonyCadence, type Cycle } from './cycles'
 
 // Cycle-close email body. Witness voice (ADR 0008 / PROJECT.md), no
 // nudging, no metrics, single CTA. The wave SVG inlines at the top as a
@@ -11,7 +11,7 @@ import { formatCycleLabel, type Cadence, type Cycle } from './cycles'
 // open, not a coach telling the user what to do.
 
 type Args = {
-  cadence: Cadence  // 'week' for now; the helpers accept the others
+  cadence: CeremonyCadence  // 'week' for now; the helpers accept the others
   cycle: Cycle
   anchorsUrl: string
   unsubscribeUrl: string

@@ -111,7 +111,7 @@ export function formatYearLabel(cycle: Cycle): string {
   return String(y)
 }
 
-export type Cadence = 'week' | 'month' | 'quarter' | 'year'
+export type CeremonyCadence = 'week' | 'month' | 'quarter' | 'year'
 
 // Inclusive day count of a closed cycle. Used to scale weekly swell targets
 // to the cycle's window (cadence-scaled target = weekly × days_in_cycle / 7).
@@ -120,7 +120,7 @@ export function daysInCycle(cycle: Cycle): number {
 }
 
 // Dispatcher: returns the just-closed cycle for the given cadence.
-export function closedCycleFor(today: DayKey, cadence: Cadence): Cycle {
+export function closedCycleFor(today: DayKey, cadence: CeremonyCadence): Cycle {
   if (cadence === 'week') return closedWeekFor(today)
   if (cadence === 'month') return closedMonthFor(today)
   if (cadence === 'quarter') return closedQuarterFor(today)
@@ -128,7 +128,7 @@ export function closedCycleFor(today: DayKey, cadence: Cadence): Cycle {
 }
 
 // Dispatcher: returns the human-facing label for any cycle, by cadence.
-export function formatCycleLabel(cycle: Cycle, cadence: Cadence, locale: string = 'en-US'): string {
+export function formatCycleLabel(cycle: Cycle, cadence: CeremonyCadence, locale: string = 'en-US'): string {
   if (cadence === 'week') return formatWeekLabel(cycle, locale)
   if (cadence === 'month') return formatMonthLabel(cycle, locale)
   if (cadence === 'quarter') return formatQuarterLabel(cycle)
@@ -137,7 +137,7 @@ export function formatCycleLabel(cycle: Cycle, cadence: Cadence, locale: string 
 
 // Cycle containing `day`, for the given cadence. Useful for bucketing logs
 // into their cycle of origin.
-export function cycleContaining(day: DayKey, cadence: Cadence): Cycle {
+export function cycleContaining(day: DayKey, cadence: CeremonyCadence): Cycle {
   if (cadence === 'week') {
     const sunMs = toUtcMs(thisWeekSunday(day))
     const satMs = sunMs + 6 * MS_PER_DAY

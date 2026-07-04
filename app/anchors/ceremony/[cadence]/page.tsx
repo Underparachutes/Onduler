@@ -3,11 +3,11 @@ import { createClient } from '@/lib/supabase/server'
 import { getActiveChapterId } from '@/lib/chapters'
 import { dayKey, type DayKey } from '@/lib/periods'
 import { getUserTimezone } from '@/lib/user-timezone'
-import { daysInCycle, formatCycleLabel, type Cadence } from '@/lib/cycles'
+import { daysInCycle, formatCycleLabel, type CeremonyCadence } from '@/lib/cycles'
 import { getCeremonyState, fetchLogDays } from '@/app/actions/reflections'
 import { CycleCeremony } from '../CycleCeremony'
 
-const CADENCES: Cadence[] = ['week', 'month', 'quarter', 'year']
+const CADENCES: CeremonyCadence[] = ['week', 'month', 'quarter', 'year']
 
 type MotionShape = {
   motion_swells?: { contribution_weight: number; swells: { id: string } | null }[]
@@ -19,8 +19,8 @@ export default async function CeremonyPage({
   params: Promise<{ cadence: string }>
 }) {
   const { cadence: rawCadence } = await params
-  if (!CADENCES.includes(rawCadence as Cadence)) notFound()
-  const cadence = rawCadence as Cadence
+  if (!CADENCES.includes(rawCadence as CeremonyCadence)) notFound()
+  const cadence = rawCadence as CeremonyCadence
 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()

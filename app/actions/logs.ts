@@ -6,7 +6,7 @@ import { getActiveChapterId } from '@/lib/chapters'
 import { getTodayStart, getWeekStart } from '@/lib/timezone'
 import { dayKey } from '@/lib/periods'
 import { getUserTimezone } from '@/lib/user-timezone'
-import { cycleStartKey, type Cadence } from '@/lib/cadence'
+import { cycleStartKey, type WaypointCadence } from '@/lib/cadence'
 
 import { INTENSITY_MULTIPLIER, type Intensity } from '@/lib/intensity'
 
@@ -118,7 +118,7 @@ async function maybeRecordWaypointHits(
 
   const newHits: { user_id: string; milestone_id: string }[] = []
   for (const m of linked) {
-    const cadence = (m.cadence ?? 'weekly') as Cadence
+    const cadence = (m.cadence ?? 'weekly') as WaypointCadence
     const cycleStart = cycleStartKey(cadence, weekStartKey, todayKey)
     const latestHit = latestHitByMilestone.get(m.id)
     if (latestHit && dayKey(latestHit, tz) >= cycleStart) continue // already hit this cycle
