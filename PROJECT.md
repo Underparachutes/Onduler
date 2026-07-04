@@ -1,6 +1,6 @@
 # Onduler — State of the Project
 
-*Last updated: 2026-06-23*
+*Last updated: 2026-07-04*
 
 ## The big picture
 
@@ -105,7 +105,7 @@ This is a snapshot of what the app does today, edited in place as capabilities c
 - LLM-assisted import (BYO-AI): Onduler-provided prompt, markdown parse, client-side dedup against decrypted names, at Settings import; JSON restore alongside
 - Admin: read-only diagnostics at `/admin` gated by `user_settings.is_admin`, engagement metrics section
 - Shell and polish: PWA install flow (ADR 0014), themes (Biarritz default, Tjørnuvík, Bolinas, Theme Studio palette as surfaces + tokens), brand color token, background photo personalization with frosted-glass legibility, floating pill navs top and bottom, wide-screen sidebar shell at md+ (tablets keep the phone shell), Sentry, legal routes (privacy/cookies/TOS via Termly), marketing wake SVG export at `/api/wake-svg`
-- Backend hardening (Tiers 1-2, 2026-07-02/03): cron auth fails closed, open-redirect fix on auth callback, POST-only unsubscribe with confirm page, transactional motion RPCs, de-N+1'd anchors and cron reads bounded to the viewed period
+- Backend hardening (Tiers 1-3, 2026-07-02/03/04): cron auth fails closed, open-redirect fix on auth callback, POST-only unsubscribe with confirm page, transactional motion RPCs, de-N+1'd anchors and cron reads bounded to the viewed period; all lifetime aggregation in Postgres RPCs (no unbounded log scans left), WaypointCadence/CeremonyCadence type split, atomic jsonb hint writes, error-checked cron idempotency + restore writes, unit tests on `lib/contributions.ts` and `lib/cycles.ts`
 
 **Deferred / not yet built:**
 - Premium feature gating (checking `subscription_status` before allowing AI features)
@@ -132,7 +132,7 @@ Shipped sessions move to `docs/changelog.md` (with their full ship notes). This 
 | Session | Goal |
 |---|---|
 | **Per-user timezone: wrap-up** | Phases A-C shipped 2026-07-03 (changelog). Worker deployed + hourly cron live 2026-07-03; prod dry-run verified the local-window gate (all users `skip_not_send_window` on a Friday). Left: confirm a real cycle-close email lands Sunday ~8am local. Deferred: ~8 display-only date formatters still show Pacific labels (cosmetic). |
-| **Backend hardening: remaining tiers** | Tiers 1-2 shipped 2026-07-02/03 (changelog). Lifetime-aggregation L item: `/swells/[id]`, `getJournalData`, and `/anchors/journal` all migrated to Postgres RPCs 2026-07-03 (`scripts/migrate-swell-aggregation.sql`, `scripts/migrate-journal-aggregation.sql`, changelog). **Left: `fetchLogDays`** (`reflections.ts`) — a 5th unbounded distinct-days scan (per chapter, feeds `/anchors` unlock/ceremony state) spotted during the journal pass, not in the original spec; closeable with a chapter-filtered `log_days_by_chapter`. Also open: Tiers 3-4 (Cadence-type rename, `markHintSeen` await, cron idempotency check, CSP/security headers, password floor). Spec: `docs/specs/backend-hardening-followups-2026-07-02.md`. |
+| **Backend hardening: Tier 4 only** | Tiers 1-3 + the full lifetime-aggregation L item (incl. `fetchLogDays`) shipped 2026-07-02/03/04 (changelog). **Left: Tier 4, pre-public-launch** — anon `waitlist`/`contact_submissions` length caps + rate limit, Sentry replay masking audit, upload content-type allowlist, password floor, CSP/security headers, dead `/log` route in `proxy.ts`. Not needed for invite-only testers; schedule before wider launch. Spec: `docs/specs/backend-hardening-followups-2026-07-02.md`. |
 | **E2EE loose ends** | Encryption work is complete and deployed (changelog, 2026-06-17 through 2026-06-22). Left: live end-to-end test on `onduler.app` of the forgot-password OTP reset and the "Start fresh" escape. |
 | **Design noodling, queued** | Photo-legibility text-shadow approach (pinned 2026-06-05; idea to revisit: use the dark-mode shadow approach in light mode too, confirm contrast logic in a focused session). Wake-export-print: `docs/specs/wake-export-print-2026-06-05.md`. |
 | **Next** | Premium feature gating + remove admin gate on Crew (paused until testing phase clears v1 exit criteria). |
