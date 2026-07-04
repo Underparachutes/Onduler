@@ -2,6 +2,11 @@ name = "onduler-cycle-close-cron"
 main = "worker.js"
 compatibility_date = "2026-07-03"
 
+# This Worker only runs on its cron trigger; it serves nothing over the web,
+# so keep the workers.dev URL and preview URLs off.
+workers_dev = false
+preview_urls = false
+
 # Fire hourly, on the hour. Each run sends to whichever users have just crossed
 # their local Sunday-8am window; the route's idempotency key prevents double-sends.
 [triggers]
