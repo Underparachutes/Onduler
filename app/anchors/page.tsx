@@ -128,7 +128,7 @@ export default async function AnchorsPage({
   // Resolve the chapter's log-day set once and thread it into the unlock +
   // ceremony calcs below. Previously each of the 5 calls re-resolved the
   // chapter and re-scanned the full chapter log table.
-  const logDays = await fetchLogDays(supabase, user.id, chapterId, tz)
+  const logDays = await fetchLogDays(supabase, chapterId, tz)
 
   const [ceremonies, unlocks] = await Promise.all([
     Promise.all(CADENCES.map(c => getCeremonyState(supabase, user.id, chapterId, logDays, c, todayKey))) as Promise<CeremonyResult[]>,

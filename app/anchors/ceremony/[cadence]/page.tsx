@@ -29,7 +29,7 @@ export default async function CeremonyPage({
   const tz = await getUserTimezone(user.id)
   const chapterId = await getActiveChapterId(supabase, user.id)
   const todayKey = dayKey(new Date(), tz)
-  const logDays = await fetchLogDays(supabase, user.id, chapterId, tz)
+  const logDays = await fetchLogDays(supabase, chapterId, tz)
   const { state, cycleStart, cycleEnd } = await getCeremonyState(supabase, user.id, chapterId, logDays, cadence, todayKey)
 
   // Only a pending ceremony renders here. Already-completed cycles and

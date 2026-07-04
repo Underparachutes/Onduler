@@ -15,24 +15,26 @@ export type CeremonyState = 'none' | 'pending' | 'completed'
 
 export type UnlockState = Record<Cadence, boolean>
 
-// Fetches the distinct log days (Pacific day keys) within a chapter. The
+// Fetches the distinct log days (local-tz day keys) within a chapter. The
 // caller resolves the chapter id once (via getActiveChapterId) and threads
 // the resulting Set into the unlock + ceremony calcs, so a single page
-// render scans the chapter log table once rather than per calculation.
+// render resolves the chapter's log days once rather than per calculation.
+// Aggregated in Postgres (log_days_in_chapter, SECURITY INVOKER so RLS
+// scopes the scan to the caller) — days come back pre-distinct as local-tz
+// 'YYYY-MM-DD', identical to dayKey(logged_at, tz). See
+// scripts/migrate-anchors-logdays.sql.
 export async function fetchLogDays(
   supabase: SupabaseClient,
-  userId: string,
   chapterId: string,
   tz: string,
 ): Promise<Set<DayKey>> {
-  const { data: logs } = await supabase
-    .from('logs')
-    .select('logged_at')
-    .eq('user_id', userId)
-    .eq('chapter_id', chapterId)
+  const { data: rows } = await supabase.rpc('log_days_in_chapter', {
+    p_chapter: chapterId,
+    p_tz: tz,
+  })
   const days = new Set<DayKey>()
-  for (const l of logs ?? []) {
-    days.add(dayKey(l.logged_at, tz))
+  for (const r of (rows ?? []) as { day: string }[]) {
+    days.add(r.day as DayKey)
   }
   return days
 }
