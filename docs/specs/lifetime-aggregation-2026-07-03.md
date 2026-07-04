@@ -55,10 +55,17 @@ that isn't enough.**
   from the selected period plus the current month (wave detection). Fetch is now
   bounded to `[min(periodStart, currentMonthStart), today]` with a DST buffer;
   the existing exact JS filters (`inPeriod`, month slice) trim. No DB change.
-- **`/swells/[id]` — TODO (RPC).** The per-motion *lifetime* bucket is genuinely
-  all-history; needs an SQL `SUM ... GROUP BY motion_id` over a Node-supplied
-  `[start, today]` window (three windows: week / month / lifetime). No SQL TZ —
-  grouping is by motion, not day.
+- **`/swells/[id]` — DONE (RPC), 2026-07-03.** Two `SECURITY INVOKER` RPCs in
+  `scripts/migrate-swell-aggregation.sql`: `swell_lifetime_totals` (per-motion
+  all-history `count/pts/hrs`, weights + per-log points floor, no TZ — grouped by
+  motion) and `swell_weeks_active` (distinct Sunday weeks, parameterized TZ).
+  Week/month buckets + milestone cycle progress moved to a bounded Node fetch
+  (`>= min(weekStart, monthStart)`, since cadence is only weekly/monthly). Note:
+  `weeks_active` is the one genuinely-lifetime local-week group-by with no
+  Node-passable bound, so it does parameterized-TZ bucketing in SQL — a scoped
+  departure from decision #2, resolved by passing the user's zone (not hardcoding
+  Pacific), per the line 96–99 option. Verified against the old full scan on prod
+  data before swapping.
 - **journal (`getJournalData` + `/anchors/journal`) — TODO.** Per-week presence +
   weighted totals across all history. Bound to the visible chapter and lazy-load
   older chapters (Node bounds), per the original spec direction. Revisit whether

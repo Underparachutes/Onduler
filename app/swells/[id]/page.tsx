@@ -1,12 +1,11 @@
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getActiveChapterId } from '@/lib/chapters'
-import { getTodayStart, getWeekStart } from '@/lib/timezone'
+import { getTodayStart, getWeekStart, startOfDayUtc } from '@/lib/timezone'
 import { getUserTimezone } from '@/lib/user-timezone'
 import {
   monthStartKey,
   dayKey,
-  sundayKey,
   weeksSinceFirstLog as weeksSinceFirstLogFn,
 } from '@/lib/periods'
 import { cycleStartKey, type Cadence } from '@/lib/cadence'
@@ -118,8 +117,21 @@ export default async function SwellDetailPage({ params }: { params: Promise<{ id
   const rawMilestones = (milestonesRaw ?? []) as RawMilestoneJoin[]
   const milestoneIds = rawMilestones.map(m => m.id)
 
+  // Lifetime totals (all-history) are aggregated in Postgres via RPC, so Node
+  // never materializes full history. Only the period-scoped week/month buckets
+  // and milestone cycle progress need raw logs, bounded to the earliest window
+  // we render: the month bucket starts at monthStartK, the week bucket at
+  // weekStart (which can fall a few days into the previous month), and the
+  // milestone cycle (weekly or monthly cadence) starts no earlier than
+  // weekStart — so bounding to min(weekStart, monthStart) covers all three.
+  const recentBound = new Date(
+    Math.min(weekStart.getTime(), startOfDayUtc(monthStartK, tz).getTime()),
+  )
+
   const [
-    { data: allLogs },
+    { data: recentLogs },
+    { data: lifetimeRows },
+    { data: weeksActiveVal },
     { data: hitsForSwell },
     { data: allSwellsRaw },
     { data: allMotionSwellsRaw },
@@ -133,7 +145,10 @@ export default async function SwellDetailPage({ params }: { params: Promise<{ id
           .eq('user_id', user.id)
           .eq('chapter_id', chapterId)
           .in('motion_id', motionIds)
+          .gte('logged_at', recentBound.toISOString())
       : Promise.resolve({ data: [] as { motion_id: string | null; points: number; hours: number; logged_at: string }[] }),
+    supabase.rpc('swell_lifetime_totals', { p_swell_id: id, p_chapter_id: chapterId }),
+    supabase.rpc('swell_weeks_active', { p_swell_id: id, p_chapter_id: chapterId, p_tz: tz }),
     milestoneIds.length > 0
       ? supabase
           .from('milestone_hits')
@@ -183,23 +198,33 @@ export default async function SwellDetailPage({ params }: { params: Promise<{ id
     perMotion[id] = { week: emptyBucket(), month: emptyBucket(), lifetime: emptyBucket() }
   }
 
-  let weekPts = 0, weekHrs = 0, lifetimePts = 0, lifetimeHrs = 0
-  const weekKeys = new Set<string>()
-  for (const log of allLogs ?? []) {
+  // Lifetime buckets from the RPC (per-motion, all-history, weights + per-log
+  // points floor applied in Postgres). Motions with no logs don't appear in the
+  // RPC result and keep their zero seed.
+  type LifetimeRow = { motion_id: string; log_count: number; points_sum: number; hours_sum: number }
+  let lifetimePts = 0, lifetimeHrs = 0
+  for (const row of (lifetimeRows ?? []) as LifetimeRow[]) {
+    const stats = perMotion[row.motion_id]
+    if (!stats) continue
+    stats.lifetime.count = Number(row.log_count)
+    stats.lifetime.pts = Number(row.points_sum)
+    stats.lifetime.hrs = Number(row.hours_sum)
+    lifetimePts += Number(row.points_sum)
+    lifetimeHrs += Number(row.hours_sum)
+  }
+  const weeksActive = Number(weeksActiveVal ?? 0)
+
+  // Week + month buckets from the bounded recent-logs fetch. Same per-log math
+  // as before; the fetched window is a strict superset of both buckets, so the
+  // result is identical to the old full-history reduction.
+  let weekPts = 0, weekHrs = 0
+  for (const log of recentLogs ?? []) {
     if (!log.motion_id) continue
     const w = weights[log.motion_id] ?? 1
     const wPts = Math.floor(log.points * w)
     const wHrs = Number(log.hours) * w
     const stats = perMotion[log.motion_id]
-    if (stats) {
-      stats.lifetime.count += 1
-      stats.lifetime.pts += wPts
-      stats.lifetime.hrs += wHrs
-    }
-    lifetimePts += wPts
-    lifetimeHrs += wHrs
     const loggedAt = new Date(log.logged_at)
-    weekKeys.add(sundayKey(loggedAt, tz))
     if (dayKey(loggedAt, tz) >= monthStartK && stats) {
       stats.month.count += 1
       stats.month.pts += wPts
@@ -275,7 +300,7 @@ export default async function SwellDetailPage({ params }: { params: Promise<{ id
   // Per-milestone enrichment for the View: linked motion name + current-cycle
   // progress (motion-linked auto-progress; otherwise just hit count this cycle).
   const motionLogsByMotion = new Map<string, string[]>() // motion_id → day keys
-  for (const l of allLogs ?? []) {
+  for (const l of recentLogs ?? []) {
     if (!l.motion_id) continue
     const k = dayKey(l.logged_at, tz)
     const arr = motionLogsByMotion.get(l.motion_id) ?? []
@@ -389,7 +414,7 @@ export default async function SwellDetailPage({ params }: { params: Promise<{ id
       lifetimePts={lifetimePts}
       lifetimeHrs={lifetimeHrs}
       monthBonus={bonusMonth}
-      weeksActive={weekKeys.size}
+      weeksActive={weeksActive}
       weeksSinceFirstLog={weeksSinceFirstLog}
       motions={motionList}
       milestones={milestones}
