@@ -117,7 +117,10 @@ export async function restoreExport(plan: ResolvedRestore, clearMode: ImportClea
     const childId = newMotionIds[i]
     if (!parent || !childId) continue
     const parentId = resolveMotion(parent)
-    if (parentId) await supabase.from('motions').update({ parent_id: parentId }).eq('id', childId).eq('user_id', uid)
+    if (parentId) {
+      const { error } = await supabase.from('motions').update({ parent_id: parentId }).eq('id', childId).eq('user_id', uid)
+      if (error) return { error: error.message }
+    }
   }
 
   // --- Junctions ---

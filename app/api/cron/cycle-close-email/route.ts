@@ -231,11 +231,19 @@ async function handleCron(request: NextRequest) {
       if (result.error) {
         return { user_id: row.user_id, status: 'send_error', detail: result.error.message }
       }
-      // Mark idempotency anchor after successful send.
-      await supabase
+      // Mark idempotency anchor after successful send. If this write fails,
+      // the email went out but nothing recorded it — a retry within the week
+      // would re-send. Surface it loudly instead of pretending all is well.
+      const { error: anchorErr } = await supabase
         .from('user_settings')
         .update({ last_cycle_email_cycle_start: cycle.cycleStart })
         .eq('user_id', row.user_id)
+      if (anchorErr) {
+        console.error(
+          `cycle-close-email: sent to user ${row.user_id} but idempotency write failed (duplicate-send risk): ${anchorErr.message}`
+        )
+        return { user_id: row.user_id, status: 'sent_anchor_write_failed', detail: anchorErr.message }
+      }
       return { user_id: row.user_id, status: 'sent' }
     } catch (err) {
       return {

@@ -68,7 +68,7 @@ export async function createMotion(prevState: unknown, formData: FormData) {
 
   revalidatePath('/dashboard')
   revalidatePath('/swells')
-  markHintSeen('motions')
+  await markHintSeen('motions')
   return { success: true }
 }
 
@@ -105,7 +105,7 @@ export async function updateMotion(id: string, prevState: unknown, formData: For
   revalidatePath('/dashboard')
   revalidatePath('/swells')
   revalidatePath('/settings')
-  markHintSeen('motions')
+  await markHintSeen('motions')
   return { success: true }
 }
 

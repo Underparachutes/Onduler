@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { dayKey, addDays, sundayOf, type DayKey } from '@/lib/periods'
 import { getUserTimezone } from '@/lib/user-timezone'
 import { startOfDayUtc } from '@/lib/timezone'
-import { closedCycleFor, cycleContaining, thisWeekSunday, formatWeekLabel, type CeremonyCadence } from '@/lib/cycles'
+import { closedCycleFor, cycleContaining, formatWeekLabel, type CeremonyCadence } from '@/lib/cycles'
 import { CEREMONY_FLOOR, UNLOCK_FLOOR, logDaysInCycle, unlockedForCadence } from '@/lib/unlocks'
 import { markHintSeen } from '@/app/actions/settings'
 
@@ -137,7 +137,7 @@ export async function saveReflection(input: {
 
   revalidatePath('/anchors')
   revalidatePath(`/anchors/ceremony/${input.cadence}`)
-  markHintSeen('anchors_unlocked')
+  await markHintSeen('anchors_unlocked')
   return { success: true }
 }
 
@@ -247,7 +247,7 @@ export async function createFreeAnchor(_prev: unknown, formData: FormData) {
 
   revalidatePath('/anchors')
   revalidatePath('/anchors/journal')
-  markHintSeen('anchors_unlocked')
+  await markHintSeen('anchors_unlocked')
   return { success: true }
 }
 

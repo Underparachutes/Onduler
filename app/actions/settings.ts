@@ -192,7 +192,7 @@ export async function setTrackingMode(mode: 'points' | 'hours') {
   revalidatePath('/swells')
   revalidatePath('/anchors')
   revalidatePath('/settings')
-  markHintSeen('settings')
+  await markHintSeen('settings')
   return { success: true }
 }
 
@@ -233,16 +233,11 @@ export async function markHintSeen(key: 'motions' | 'swells' | 'anchors_locked' 
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
-  const { data: current } = await supabase
-    .from('user_settings')
-    .select('hints_seen')
-    .eq('user_id', user.id)
-    .single()
-
-  const hints = (current?.hints_seen as Record<string, boolean>) ?? {}
-  hints[key] = true
-
-  const { error: hintErr } = await supabase.from('user_settings').upsert({ user_id: user.id, hints_seen: hints })
+  // Single-statement jsonb merge in Postgres (mark_hint_seen RPC) so two
+  // concurrent actions marking different hints can't clobber each other's
+  // keys, which the old read-modify-write on the whole blob allowed. See
+  // scripts/migrate-mark-hint-seen.sql.
+  const { error: hintErr } = await supabase.rpc('mark_hint_seen', { p_key: key })
   if (hintErr) return { error: hintErr.message }
 
   return { success: true }

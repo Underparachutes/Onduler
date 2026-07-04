@@ -355,7 +355,7 @@ export default async function AnchorsPage({
   if (period === 'month') anchorTargetForPeriod = Math.ceil(anchorTargetPerWeek * daysInMonth(todayKey) / 7)
   if (period === 'quarter') anchorTargetForPeriod = Math.ceil(anchorTargetPerWeek * daysInQuarter(todayKey) / 7)
   if (period === 'year') anchorTargetForPeriod = Math.ceil(anchorTargetPerWeek * daysInYear(todayKey) / 7)
-  if (!hintsSeen.anchors_locked) markHintSeen('anchors_locked')
+  if (!hintsSeen.anchors_locked) await markHintSeen('anchors_locked')
   const welcomeBackMode = (settings?.welcome_back_mode as WelcomeBackMode | null) ?? null
   const welcomeBackStartedKey = settings?.welcome_back_started_at
     ? dayKey(settings.welcome_back_started_at as string, tz)

@@ -43,7 +43,7 @@ export async function createSwell(prevState: unknown, formData: FormData) {
 
   if (error) return { error: error.message }
   revalidatePath('/swells')
-  markHintSeen('swells')
+  await markHintSeen('swells')
   return { success: true }
 }
 
@@ -194,7 +194,7 @@ export async function updateSwellDirect(
   if (error) return { error: error.message }
 
   revalidatePath('/swells')
-  markHintSeen('swells')
+  await markHintSeen('swells')
   return { success: true }
 }
 

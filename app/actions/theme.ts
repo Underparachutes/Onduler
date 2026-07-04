@@ -15,6 +15,6 @@ export async function setTheme(theme: string) {
   if (themeErr) return { error: themeErr.message }
 
   revalidatePath('/', 'layout')
-  markHintSeen('settings')
+  await markHintSeen('settings')
   return { success: true }
 }
