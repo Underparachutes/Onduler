@@ -4,6 +4,8 @@
 
 Always read `PROJECT.md` in this folder at the start of every session before responding to anything. PROJECT.md is the source of truth — product spec, vocabulary, design principles, data model, roadmap, and working agreements. Do not rely on memory from prior sessions; the file is the contract.
 
+PROJECT.md is deliberately kept lean (target: under 50KB). Dated build history lives in `docs/changelog.md` (read it only when you need the detail of a past session). Decision records are ADRs in `docs/decisions/`.
+
 ## Trigger phrase: "Onduler, Onduler"
 
 When the user says **"Onduler, Onduler"**, that means they're ready to build. Do the following, in order:
@@ -19,7 +21,7 @@ When the user signals they're wrapping up (or you hit a natural stopping point):
 1. **Summarize what we did** in this session — bullet list, concrete.
 2. **Queue the next session** — name what comes next from the roadmap, or what got deferred.
 3. **Suggest a commit message** if there are uncommitted changes. Keep it short and present-tense (e.g. "Add intent toggle to motion creation").
-4. **Update PROJECT.md** if anything in this session shifted the spec — current state of the build, roadmap, deferred items. Surgical edits, not rewrites.
+4. **Record the session in the right place.** Ship notes (what was built, dated, with detail) get APPENDED to `docs/changelog.md`, newest at the bottom. PROJECT.md gets EDITED IN PLACE: update the "Current state" summary by replacing stale lines (never append session notes there), move a shipped roadmap row's ship notes to the changelog and delete or slim the row, and add a row to the Decisions index if a new ADR was written. PROJECT.md must not grow with history; if a section is accumulating dated entries, that content belongs in the changelog.
 
 ## Working agreements (from PROJECT.md)
 
