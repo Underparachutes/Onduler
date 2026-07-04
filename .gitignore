@@ -44,3 +44,6 @@ next-env.d.ts
 
 # local archives (not load-bearing for the build)
 Claude Cowork Legacy/
+
+# loose marketing drafts kept local
+onduler-tiktok-copy.md
