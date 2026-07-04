@@ -144,8 +144,13 @@ export async function saveReflection(input: {
 // Layout-level helper: true if *any* cadence has a pending ceremony. Used
 // to drive the bottom-nav tide-pulse on the Anchors tab. Accepts the
 // already-authenticated supabase client and userId from the layout to avoid
-// redundant auth round-trips. Queries only the cycle windows that matter
-// (not all logs in the chapter).
+// redundant auth round-trips.
+//
+// Delegates to getCeremonyState per cadence — the exact calculation the
+// Anchors page uses — so the pulse can never show for a ceremony the page
+// would render as locked. An earlier version used CEREMONY_FLOOR as an
+// optimistic shortcut, which lit the dot for not-yet-unlocked cadences the
+// user had no way to open (or clear).
 export async function fetchAnyCeremonyPending(
   supabase: SupabaseClient,
   userId: string,
@@ -161,54 +166,16 @@ export async function fetchAnyCeremonyPending(
     .maybeSingle()
   if (!chapter?.id) return false
 
-  const chapterId = chapter.id
+  const logDays = await fetchLogDays(supabase, chapter.id, tz)
+  if (logDays.size === 0) return false
+
   const cadences: CeremonyCadence[] = ['week', 'month', 'quarter', 'year']
-
-  const checks = await Promise.all(
-    cadences.map(async cadence => {
-      const cycle = closedCycleFor(todayKey, cadence)
-
-      // Count distinct log days in this cycle window only
-      const { data: logRows } = await supabase
-        .from('logs')
-        .select('logged_at')
-        .eq('user_id', userId)
-        .eq('chapter_id', chapterId)
-        .gte('logged_at', startOfDayUtc(cycle.cycleStart, tz).toISOString())
-        .lt('logged_at', startOfDayUtc(addDays(cycle.cycleEnd, 1), tz).toISOString())
-
-      const cycleDays = new Set<DayKey>()
-      for (const l of logRows ?? []) {
-        cycleDays.add(dayKey(l.logged_at, tz))
-      }
-      const closedCycleDays = cycleDays.size
-
-      // For unlock check, we need to know if any prior closed cycle met
-      // the unlock floor. Use the ceremony floor (1) as the optimistic
-      // check — if this cycle has zero logs, no ceremony regardless.
-      if (closedCycleDays < CEREMONY_FLOOR[cadence]) return false
-
-      // Check if a reflection already exists for this cycle
-      const { data: existing } = await supabase
-        .from('reflections')
-        .select('id')
-        .eq('user_id', userId)
-        .eq('chapter_id', chapterId)
-        .eq('cycle_type', cadence)
-        .eq('cycle_start', cycle.cycleStart)
-        .maybeSingle()
-      if (existing?.id) return false
-
-      // If we're above ceremony floor but need to check unlock floor for
-      // first-time unlock, we need the full unlock check. For the layout
-      // indicator this is rare — most users will have unlocked weekly
-      // within their first week. Accept the slightly optimistic signal:
-      // if the cycle has >=1 log day and no reflection saved, show the
-      // pulse. The ceremony page itself does the full floor check.
-      return true
-    }),
+  const states = await Promise.all(
+    cadences.map(cadence =>
+      getCeremonyState(supabase, userId, chapter.id, logDays, cadence, todayKey),
+    ),
   )
-  return checks.some(Boolean)
+  return states.some(s => s.state === 'pending')
 }
 
 // Free-form anchor (cycle_type='free'). Optional prompt header + body text.
