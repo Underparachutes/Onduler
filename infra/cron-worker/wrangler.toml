@@ -1,0 +1,16 @@
+name = "onduler-cycle-close-cron"
+main = "worker.js"
+compatibility_date = "2026-07-03"
+
+# Fire hourly, on the hour. Each run sends to whichever users have just crossed
+# their local Sunday-8am window; the route's idempotency key prevents double-sends.
+[triggers]
+crons = ["0 * * * *"]
+
+# The route to hit. Non-secret, so it lives here (not a secret binding).
+[vars]
+CYCLE_CLOSE_URL = "https://onduler.app/api/cron/cycle-close-email"
+
+# CRON_SECRET is NOT stored here — it's a secret, set once with:
+#   wrangler secret put CRON_SECRET
+# (must match the CRON_SECRET in the Vercel project env).

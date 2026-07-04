@@ -131,8 +131,17 @@ this lands, or tz-parameterized from the start.
     `timeZone: 'America/Los_Angeles'` (date labels in journal/settings/inline
     logs). Cosmetic only — they don't affect bucketing/behavior — but a
     non-Pacific user sees Pacific-dated labels until threaded. Separate pass.
-- **Phase C — cron goes local. M.** Hourly schedule + per-user local-Sunday send.
-  Confirm Vercel plan supports hourly first.
+- **Phase C — cron goes local. ✅ SHIPPED 2026-07-03 (code; Worker deploy +
+  live-verify pending Josh).** `route.ts` now gates per user in their own tz
+  against one shared `now`: local day is Sunday (`sundayKey===dayKey`), local
+  hour ≥ 8 (`hourInTz`), the just-closed local Sun–Sat week clears the floor,
+  `last_cycle_email_cycle_start` ≠ that week's start. Pure window gate runs
+  before any per-user DB query so the hourly cadence stays cheap. Log bounds use
+  exact per-tz `startOfDayUtc` windows; day/floor counting uses `dayKey(ts,tz)`.
+  The Vercel native cron was removed from `vercel.json`; a Cloudflare Worker
+  (`infra/cron-worker/`) POSTs the route hourly (`0 * * * *`) with the
+  `CRON_SECRET` bearer. `>= 8` + idempotency key = jitter-robust (no miss, no
+  dup). Remaining: `wrangler deploy` the Worker + one live send on `onduler.app`.
 
 Each phase is independently shippable. A + B with the Pacific default is a no-op
 for current (US) testers; the change only becomes visible to a user whose stored

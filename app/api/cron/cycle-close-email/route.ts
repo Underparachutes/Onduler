@@ -11,34 +11,40 @@ import {
   cycleContaining,
   type Cadence,
 } from '@/lib/cycles'
-import { pacificDayKey, addDays, type DayKey } from '@/lib/periods'
+import { dayKey, sundayKey, addDays, type DayKey } from '@/lib/periods'
+import { startOfDayUtc, hourInTz } from '@/lib/timezone'
 import {
   CEREMONY_FLOOR,
   UNLOCK_FLOOR,
   unlockedForCadence,
 } from '@/lib/unlocks'
 
-// Vercel Cron POSTs to this route every Sunday morning Pacific time. The
-// route iterates users, decides who should receive a weekly cycle-close
-// email, and sends. Idempotent via user_settings.last_cycle_email_cycle_start:
-// if a retry happens within the same week, already-sent users are skipped.
+// An external scheduler POSTs to this route HOURLY (Vercel Hobby can't do
+// sub-daily native cron — see docs/specs/per-user-timezone-2026-07-03.md).
+// Each run sends the weekly cycle-close email to every user who has just
+// entered their local send window, so 8am-Sunday sweeps westward across
+// timezones over ~24h — "ceremonies rolling across the globe." Idempotent via
+// user_settings.last_cycle_email_cycle_start: a user is sent at most once per
+// local week no matter how many hourly triggers hit their window.
 //
-// Auth: Vercel signs cron calls with the value of CRON_SECRET in an
-// Authorization: Bearer <token> header (when configured). We require it
-// so an unauthenticated POST from the public internet can't trigger the
-// send. CRON_SECRET is set in Vercel project env.
+// Auth: the scheduler sends the CRON_SECRET in an Authorization: Bearer
+// <token> header. We require it so an unauthenticated POST from the public
+// internet can't trigger the send. CRON_SECRET is set in Vercel project env.
 //
-// Eligibility rules per user:
-//   - User has a row in user_settings (so we know their preference)
-//   - email_cycle_close_enabled is true (or, charitably, null/default)
+// Eligibility rules per user (evaluated against one shared `now` per run):
+//   - email_cycle_close_enabled is true
+//   - Their LOCAL day is Sunday and their LOCAL hour is >= 8 (the send
+//     window). Using >= 8 (not == 8) plus the idempotency key means the
+//     first hourly trigger after 8am local Sunday catches them and later
+//     triggers skip — a late/dropped trigger can't miss or double-send.
+//   - last_cycle_email_cycle_start != cycle.cycleStart (idempotency)
 //   - They have an active chapter
-//   - The closed cycle has >= UNLOCK_FLOOR (first time) or
+//   - The just-closed LOCAL Sun–Sat week has >= UNLOCK_FLOOR (first time) or
 //     >= CEREMONY_FLOOR (subsequent cycles) distinct log days. Wave-cycle
 //     users (zero logs) explicitly do not get an email — ADR 0007's
 //     "no ceremony, no indicator" rule applies to the email too.
 //   - No reflection row already exists for the cycle (they didn't already
 //     complete it on Saturday night)
-//   - last_cycle_email_cycle_start != cycle.cycleStart (idempotency)
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -50,6 +56,7 @@ type CandidateRow = {
   email: string | null
   email_unsubscribe_token: string
   last_cycle_email_cycle_start: string | null
+  timezone: string | null
 }
 
 function authorized(request: NextRequest): boolean {
@@ -79,15 +86,16 @@ async function handleCron(request: NextRequest) {
   const dryRun = request.nextUrl.searchParams.get('dry') === '1'
 
   const supabase = createAdminClient()
-  const todayKey = pacificDayKey(new Date())
-  const cycle = closedWeekFor(todayKey)
+  // One shared instant for the whole run, so every user is evaluated against
+  // the same "now" — their local day/hour is derived from it per-timezone.
+  const now = new Date()
 
   // Pull every user_settings row + the user's email (joined from auth.users
   // via a separate call — Supabase JS doesn't let us join across the auth
   // schema in a single .select). Two round-trips, fine at our user count.
   const { data: settings, error: settingsErr } = await supabase
     .from('user_settings')
-    .select('user_id, email_unsubscribe_token, last_cycle_email_cycle_start')
+    .select('user_id, email_unsubscribe_token, last_cycle_email_cycle_start, timezone')
     .eq('email_cycle_close_enabled', true)
 
   if (settingsErr) {
@@ -124,16 +132,27 @@ async function handleCron(request: NextRequest) {
     process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '') ?? 'https://onduler.app'
   const anchorsUrl = `${appUrl}/anchors`
 
-  // Generous timestamp window for the just-closed week (1-day buffer for
-  // DST/Pacific-offset safety); the exact Pacific-day-key filter trims it.
-  const winLower = addDays(cycle.cycleStart, -1) + 'T00:00:00-08:00'
-  const winUpper = addDays(cycle.cycleEnd, 1) + 'T23:59:59-08:00'
-
   type SendResult = { user_id: string; status: string; detail?: string }
 
   async function processUser(row: CandidateRow): Promise<SendResult> {
     const email = emailMap.get(row.user_id)
     if (!email) return { user_id: row.user_id, status: 'skip_no_email' }
+
+    // Local-window gate — pure computation, no DB. Runs first so the ~23/24
+    // of users outside their Sunday-8am window are skipped before any per-user
+    // query, keeping the hourly cadence cheap. Falls back to Pacific.
+    const tz = row.timezone || 'America/Los_Angeles'
+    const localToday = dayKey(now, tz)
+    // sundayKey(today) === today exactly when today IS a local Sunday.
+    if (sundayKey(now, tz) !== localToday) {
+      return { user_id: row.user_id, status: 'skip_not_send_window' }
+    }
+    if (hourInTz(now, tz) < 8) {
+      return { user_id: row.user_id, status: 'skip_not_send_window' }
+    }
+
+    // The just-closed local Sun–Sat week.
+    const cycle = closedWeekFor(localToday)
 
     // Idempotency: if we already sent for this cycle, skip.
     if (row.last_cycle_email_cycle_start === cycle.cycleStart) {
@@ -150,16 +169,20 @@ async function handleCron(request: NextRequest) {
     if (!chapter?.id) return { user_id: row.user_id, status: 'skip_no_chapter' }
 
     // Distinct log days inside the just-closed week only (bounded read).
+    // Exact per-tz window: [00:00 local of cycleStart, 00:00 local of the day
+    // after cycleEnd).
+    const winLower = startOfDayUtc(cycle.cycleStart, tz).toISOString()
+    const winUpper = startOfDayUtc(addDays(cycle.cycleEnd, 1), tz).toISOString()
     const { data: weekLogs } = await supabase
       .from('logs')
       .select('logged_at')
       .eq('user_id', row.user_id)
       .eq('chapter_id', chapter.id)
       .gte('logged_at', winLower)
-      .lte('logged_at', winUpper)
+      .lt('logged_at', winUpper)
     const closedDays = new Set<DayKey>()
     for (const l of weekLogs ?? []) {
-      const k = pacificDayKey(l.logged_at)
+      const k = dayKey(l.logged_at, tz)
       if (k >= cycle.cycleStart && k <= cycle.cycleEnd) closedDays.add(k)
     }
     const closedCycleDays = closedDays.size
@@ -179,8 +202,8 @@ async function handleCron(request: NextRequest) {
         .eq('user_id', row.user_id)
         .eq('chapter_id', chapter.id)
       const logDays = new Set<DayKey>()
-      for (const l of allLogs ?? []) logDays.add(pacificDayKey(l.logged_at))
-      const isUnlocked = unlockedForCadence(logDays, CADENCE, todayKey, cycleContaining)
+      for (const l of allLogs ?? []) logDays.add(dayKey(l.logged_at, tz))
+      const isUnlocked = unlockedForCadence(logDays, CADENCE, localToday, cycleContaining)
       if (!isUnlocked) return { user_id: row.user_id, status: 'skip_below_floor' }
     }
 
@@ -240,8 +263,7 @@ async function handleCron(request: NextRequest) {
   }
 
   return Response.json({
-    today: todayKey,
-    cycle,
+    now: now.toISOString(),
     cadence: CADENCE,
     dryRun,
     total_candidates: candidateRows.length,

@@ -41,6 +41,17 @@ function zonedToday(tz: string): string {
   return new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(new Date())
 }
 
+// Current wall-clock hour (0–23) of `date` in `tz`. Used by the cycle-close
+// cron to gate on "local hour >= 8" as 8am sweeps westward across zones.
+export function hourInTz(date: Date, tz: string = DEFAULT_TZ): number {
+  const h = new Intl.DateTimeFormat('en-US', {
+    timeZone: tz,
+    hour: '2-digit',
+    hourCycle: 'h23',
+  }).format(date)
+  return parseInt(h, 10)
+}
+
 // Sunday (or `weeksBack` Sundays ago) of the week containing `dateStr`.
 function sundayOf(dateStr: string, weeksBack = 0): string {
   const [year, month, day] = dateStr.split('-').map(Number)
